@@ -5,7 +5,7 @@
   "visble" : true,
   "categories" : [ "importers" ],
   "widgets" : {
-    "input" : null
+    "input" : "kbaseNarrativeMethodInput"
   },
   "parameters" : [ {
     "id" : "gbkFile",
