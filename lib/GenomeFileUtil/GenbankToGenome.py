@@ -31,14 +31,13 @@ class GenbankToGenome:
         # 2) construct the input directory staging area
         input_directory = self.stage_input(params)
 
+
         # 3) extract out the parameters
         workspace_name = params['workspace_name']
         genome_name = params['genome_name']
-
         source = 'Genbank'
         if 'source' in params:
             source = source;
-
         taxon_wsname = 'ReferenceTaxons'
         if 'taxon_wsname' in params:
             taxon_wsname = params['taxon_wsname']
@@ -169,8 +168,9 @@ class GenbankToGenome:
         # extract the file if it is compressed
         if genbank_file_path is not None:
             print("input file =" + genbank_file_path)
-            # unpack if needed using the standard transform utility
-            #script_utils.extract_data(filePath=genbank_file_path)
+            dfUtil = DataFileUtil(self.callbackURL)
+            dfUtil.unpack_file({ 'file_path': genbank_file_path })
+
         else:
             raise ValueError('No valid files could be extracted based on the input')
 

@@ -205,6 +205,34 @@ class DataFileUtil(object):
             if job_state['finished']:
                 return job_state['result'][0]
 
+    def _unpack_file_submit(self, params, context=None):
+        return self._client._submit_job(
+             'DataFileUtil.unpack_file', [params],
+             self._service_ver, context)
+
+    def unpack_file(self, params, context=None):
+        """
+        Using the same logic as unpacking a Shock file, this method will cause
+        any bzip or gzip files to be uncompressed, and then unpack tar and zip
+        archive files (uncompressing gzipped or bzipped archive files if 
+        necessary). If the file is an archive, it will be unbundled into the 
+        directory containing the original output file.
+        :param params: instance of type "UnpackFileParams" -> structure:
+           parameter "file_path" of String
+        :returns: instance of type "UnpackFileResult" -> structure:
+        """
+        job_id = self._unpack_file_submit(params, context)
+        async_job_check_time = self._client.async_job_check_time
+        while True:
+            time.sleep(async_job_check_time)
+            async_job_check_time = (async_job_check_time *
+                self._client.async_job_check_time_scale_percent / 100.0)
+            if async_job_check_time > self._client.async_job_check_max_time:
+                async_job_check_time = self._client.async_job_check_max_time
+            job_state = self._check_job(job_id)
+            if job_state['finished']:
+                return job_state['result'][0]
+
     def _package_for_download_submit(self, params, context=None):
         return self._client._submit_job(
              'DataFileUtil.package_for_download', [params],
