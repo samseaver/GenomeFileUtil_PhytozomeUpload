@@ -32,4 +32,24 @@ module GenomeFileUtil {
 
     funcdef genbank_to_genome(GenbankToGenomeParams params)
                 returns (GenomeSaveResult result) authentication required;
+
+
+
+
+    typedef structure {
+        string genome_ref;
+        list <string> ref_path_to_genome;
+    } GenomeToGFFParams;
+
+    /* from_cache is 1 if the file already exists and was just returned, 0 if
+    the file was generated during this call. */
+    typedef structure {
+        File gff_file;
+        boolean from_cache;
+    } GenomeToGFFResult;
+
+    funcdef genome_to_gff(GenomeToGFFParams params)
+                returns (GenomeToGFFResult result) authentication required;
+
+
 };

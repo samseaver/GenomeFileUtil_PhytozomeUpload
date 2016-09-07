@@ -8,8 +8,17 @@ import traceback
 import uuid
 from pprint import pprint, pformat
 
-from GenomeFileUtil.GenbankToGenome import GenbankToGenome
+from GenomeFileUtil.core.GenbankToGenome import GenbankToGenome
+from GenomeFileUtil.core.GenomeToGFF import GenomeToGFF
 
+# Used to store and pass around configuration URLs more easily
+class SDKConfig:
+    def __init__(self, config):
+        self.workspaceURL = config['workspace-url']
+        self.shockURL = config['shock-url']
+        self.handleURL = config['handle-service-url']
+        self.callbackURL = os.environ['SDK_CALLBACK_URL']
+        self.sharedFolder = config['scratch']
 
 #END_HEADER
 
@@ -30,8 +39,8 @@ class GenomeFileUtil:
     # the latter method is running.
     #########################################
     VERSION = "0.0.1"
-    GIT_URL = ""
-    GIT_COMMIT_HASH = ""
+    GIT_URL = "git@github.com:kbaseapps/GenomeFileUtil.git"
+    GIT_COMMIT_HASH = "431de8850afbb007b83e0c9fb197c103a974cb00"
     
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -40,11 +49,7 @@ class GenomeFileUtil:
     # be found
     def __init__(self, config):
         #BEGIN_CONSTRUCTOR
-        self.workspaceURL = config['workspace-url']
-        self.shockURL = config['shock-url']
-        self.handleURL = config['handle-service-url']
-        self.callbackURL = os.environ['SDK_CALLBACK_URL']
-        self.sharedFolder = config['scratch']
+        self.cfg = SDKConfig(config)
         #END_CONSTRUCTOR
         pass
     
@@ -66,13 +71,7 @@ class GenomeFileUtil:
         print('genbank_to_genome -- paramaters = ')
         pprint(params)
 
-        importer = GenbankToGenome(
-                        self.workspaceURL,
-                        self.shockURL,
-                        self.handleURL,
-                        self.callbackURL,
-                        self.sharedFolder)
-
+        importer = GenbankToGenome(self.cfg)
         result = importer.import_file(ctx, params)
 
         print('import complete -- result = ')
@@ -82,6 +81,39 @@ class GenomeFileUtil:
         # At some point might do deeper type checking...
         if not isinstance(result, dict):
             raise ValueError('Method genbank_to_genome return value ' +
+                             'result is not type dict as required.')
+        # return the results
+        return [result]
+
+    def genome_to_gff(self, ctx, params):
+        """
+        :param params: instance of type "GenomeToGFFParams" -> structure:
+           parameter "genome_ref" of String, parameter "ref_path_to_genome"
+           of list of String
+        :returns: instance of type "GenomeToGFFResult" (from_cache is 1 if
+           the file already exists and was just returned, 0 if the file was
+           generated during this call.) -> structure: parameter "gff_file" of
+           type "File" -> structure: parameter "path" of String, parameter
+           "shock_id" of String, parameter "ftp_url" of String, parameter
+           "from_cache" of type "boolean" (A boolean - 0 for false, 1 for
+           true. @range (0, 1))
+        """
+        # ctx is the context object
+        # return variables are: result
+        #BEGIN genome_to_gff
+        print('genome_to_gff -- paramaters = ')
+        pprint(params)
+
+        exporter = GenomeToGFF(self.cfg)
+        result = exporter.export(ctx, params)
+
+        print('export complete -- result = ')
+        pprint(result)
+        #END genome_to_gff
+
+        # At some point might do deeper type checking...
+        if not isinstance(result, dict):
+            raise ValueError('Method genome_to_gff return value ' +
                              'result is not type dict as required.')
         # return the results
         return [result]
