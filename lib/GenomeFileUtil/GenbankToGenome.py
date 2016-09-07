@@ -134,8 +134,8 @@ class GenbankToGenome:
 
         if 'shock_id' in file and file['shock_id'] is not None:
             # handle shock file
-
             print('Downloading file from SHOCK node: ' + str(self.shockURL) + ' - ' + str(file['shock_id']))
+            sys.stdout.flush()
             dfUtil = DataFileUtil(self.callbackURL)
             file_name = dfUtil.shock_to_file({
                                     'file_path': input_directory,
@@ -149,6 +149,7 @@ class GenbankToGenome:
             # fetching from NCBI (not clear if it is our issue or NCBI), but for now just
             # support the most common case- an FTP to a single file.
             print('Downloading file from: ' + str(file['ftp_url']))
+            sys.stdout.flush()
 
             url = urlparse(file['ftp_url'])
             if url.scheme != 'ftp' and url.scheme != 'http':
@@ -167,7 +168,8 @@ class GenbankToGenome:
 
         # extract the file if it is compressed
         if genbank_file_path is not None:
-            print("input file =" + genbank_file_path)
+            print("staged input file =" + genbank_file_path)
+            sys.stdout.flush()
             dfUtil = DataFileUtil(self.callbackURL)
             dfUtil.unpack_file({ 'file_path': genbank_file_path })
 
