@@ -1045,6 +1045,7 @@ def upload_genome(shock_service_url=None,
     try:
         fasta_working_dir = str(os.getcwd()) + "/temp_fasta_file_dir"
 
+        ## TODO: move this call to a Local Function, add provenance
         print "HANDLE SERVICE URL " + handle_service_url
         assembly.upload_assembly(shock_service_url = shock_service_url,
                                  handle_service_url = handle_service_url,
@@ -1145,7 +1146,7 @@ def upload_genome(shock_service_url=None,
 
     logger.info("Conversions completed.")
 
-    return genome_annotation_info
+    return genome_annotation_info[0]
 
 # called only if script is run from command line
 if __name__ == "__main__":

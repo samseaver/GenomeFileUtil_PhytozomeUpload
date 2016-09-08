@@ -113,15 +113,19 @@ class GenomeFileUtilTest(unittest.TestCase):
 
 
     def test_simple_gff_download(self):
-        # fetch the test files and set things up
         genomeFileUtil = self.getImpl()
-
+        print('testing GTF download by building the file')
         res1 = genomeFileUtil.genome_to_gff(self.getContext(),
-            { 'genome_ref':self.rhodobacter_ref })
+            { 'genome_ref':self.rhodobacter_ref })[0]
         self.assertEqual(res1['from_cache'],0)
 
+        #TODO: test that files we got back are correct
+
+    def test_simple_gff_download_from_cache(self):
+        genomeFileUtil = self.getImpl()
+        print('testing GTF download from cached file')
         res2 = genomeFileUtil.genome_to_gff(self.getContext(),
-            { 'genome_ref':self.rhodobacter_ref_with_gff })
+            { 'genome_ref':self.rhodobacter_ref_with_gff })[0]
         self.assertEqual(res1['from_cache'],1)
 
         #TODO: test that files we got back are correct

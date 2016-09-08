@@ -98,7 +98,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'file' : { 'path':gbk_path },
                 'workspace_name':self.getWsName(),
                 'genome_name':ws_obj_name
-            });
+            })[0];
         pprint(result)
         self.assertIsNotNone(result['genome_ref'])
         # todo: add test that result is correct
@@ -115,7 +115,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'file': {'shock_id':shock_id},
                 'workspace_name':self.getWsName(),
                 'genome_name':ws_obj_name2,
-            });
+            })[0];
         pprint(result2)
         self.assertIsNotNone(result['genome_ref'])
         # todo: add test that result is correct
@@ -128,7 +128,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'file':{'ftp_url':'ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/bacteria/Escherichia_coli/reference/GCF_000005845.2_ASM584v2/GCF_000005845.2_ASM584v2_genomic.gbff.gz'},
                 'workspace_name':self.getWsName(),
                 'genome_name':ws_obj_name3,
-            });
+            })[0];
         pprint(result3)
         self.assertIsNotNone(result3['genome_ref'])
 
