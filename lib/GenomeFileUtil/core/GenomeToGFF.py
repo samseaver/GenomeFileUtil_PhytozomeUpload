@@ -83,7 +83,7 @@ class GenomeToGFF:
         print('pulling cached GFF file from Shock: '+str(data['gff_handle_ref']))
         dfu = DataFileUtil(self.cfg.callbackURL)
         file = dfu.shock_to_file({
-                            'shock_id':data['gff_handle_ref'],
+                            'handle_id':data['gff_handle_ref'],
                             'file_path':self.cfg.sharedFolder,
                             'unpack': 'unpack'
                         })

@@ -57,17 +57,36 @@ class GenomeFileUtilTest(unittest.TestCase):
             data_str=file.read()
         data = json.loads(data_str)
         # save to ws
-        result = cls.ws.save_objects({
+        save_info = {
                 'workspace':wsName,
                 'objects': [{
                     'type':'KBaseGenomes.Genome',
                     'data':data,
                     'name':'rhodobacter'
                 }]
-            })
+            }
+        result = cls.ws.save_objects(save_info)
         info = result[0]
         cls.rhodobacter_ref = str(info[6]) +'/' + str(info[0]) + '/' + str(info[4])
         print('created rhodobacter test genome: ' + cls.rhodobacter_ref)
+
+        # save a GFF file to shock, preload a genome pointing to it
+        dfu = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
+        shutil.copy('data/rhodobacter.gtf',cls.cfg['scratch'])
+        shock_file = dfu.file_to_shock({
+                            'file_path': os.path.join(cls.cfg['scratch'], 'rhodobacter.gtf'),
+                            'make_handle': 1
+                        })
+        pprint(shock_file)
+        data['gff_handle_ref']=shock_file['handle']['hid']
+
+        # save to ws
+        save_info['objects'][0]['name'] = 'rhodobacter_with_gff'
+        result = cls.ws.save_objects(save_info)
+        info = result[0]
+        cls.rhodobacter_ref_with_gff = str(info[6]) +'/' + str(info[0]) + '/' + str(info[4])
+        print('created rhodobacter test genome with handle: ' + cls.rhodobacter_ref_with_gff)
+
 
     @classmethod
     def tearDownClass(cls):
@@ -101,6 +120,8 @@ class GenomeFileUtilTest(unittest.TestCase):
         genomeFileUtil.genome_to_gff(self.getContext(),
             { 'genome_ref':self.rhodobacter_ref })
 
+        genomeFileUtil.genome_to_gff(self.getContext(),
+            { 'genome_ref':self.rhodobacter_ref_with_gff })
 
 
 

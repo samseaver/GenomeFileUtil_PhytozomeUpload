@@ -12,6 +12,7 @@ from pprint import pprint, pformat
 from biokbase.workspace.client import Workspace
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 
+#from GenomeFileUtil.core.GenbankUploaderScript import GenomeToGFF
 
 class GenbankToGenome:
 
