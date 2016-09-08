@@ -19,26 +19,26 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
-    "ref"
+    "genome_ref"
 })
 public class GenomeSaveResult {
 
-    @JsonProperty("ref")
-    private String ref;
+    @JsonProperty("genome_ref")
+    private String genomeRef;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
-    @JsonProperty("ref")
-    public String getRef() {
-        return ref;
+    @JsonProperty("genome_ref")
+    public String getGenomeRef() {
+        return genomeRef;
     }
 
-    @JsonProperty("ref")
-    public void setRef(String ref) {
-        this.ref = ref;
+    @JsonProperty("genome_ref")
+    public void setGenomeRef(String genomeRef) {
+        this.genomeRef = genomeRef;
     }
 
-    public GenomeSaveResult withRef(String ref) {
-        this.ref = ref;
+    public GenomeSaveResult withGenomeRef(String genomeRef) {
+        this.genomeRef = genomeRef;
         return this;
     }
 
@@ -54,7 +54,7 @@ public class GenomeSaveResult {
 
     @Override
     public String toString() {
-        return ((((("GenomeSaveResult"+" [ref=")+ ref)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((("GenomeSaveResult"+" [genomeRef=")+ genomeRef)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

@@ -19,6 +19,7 @@ RUN git clone https://github.com/kbase/transform && \
     git checkout 3d0f47b && \
     cd /kb/module && \
     cp -a transform/lib/biokbase /kb/deployment/lib/ && \
+    cp transform/plugins/scripts/upload/trns_transform_FASTA_DNA_Assembly_to_KBaseGenomeAnnotations_Assembly.py lib/. && \
     . /kb/module/transform/deps/pylib.sh
 
 # Genbank uploader uses the data_api, so install that to our lib directory

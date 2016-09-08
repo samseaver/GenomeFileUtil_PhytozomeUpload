@@ -100,6 +100,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'genome_name':ws_obj_name
             });
         pprint(result)
+        self.assertIsNotNone(result['genome_ref'])
         # todo: add test that result is correct
 
         ### Test for upload from SHOCK - upload the file to shock first
@@ -116,61 +117,20 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'genome_name':ws_obj_name2,
             });
         pprint(result2)
+        self.assertIsNotNone(result['genome_ref'])
         # todo: add test that result is correct
 
         ### Test for upload via FTP- use something from genbank
         print('attempting upload through ftp url')
         ws_obj_name3 = 'MyGenome.3'
-        result2 = genomeFileUtil.genbank_to_genome(self.getContext(), 
+        result3 = genomeFileUtil.genbank_to_genome(self.getContext(), 
             {
                 'file':{'ftp_url':'ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/bacteria/Escherichia_coli/reference/GCF_000005845.2_ASM584v2/GCF_000005845.2_ASM584v2_genomic.gbff.gz'},
                 'workspace_name':self.getWsName(),
                 'genome_name':ws_obj_name3,
             });
-        pprint(result2)
+        pprint(result3)
+        self.assertIsNotNone(result3['genome_ref'])
 
-
-    # def test_simple_download(self):
-    #     genomeFileUtil = self.getImpl()
-
-    #     tmp_dir = self.__class__.cfg['scratch']
-    #     #file_name = "GCF_000005845.2_ASM584v2_genomic.gbff.gz"
-    #     #shutil.copy(os.path.join("data", file_name), tmp_dir)
-    #     gbk_path = self.getTempGenbank()  # os.path.join(tmp_dir, file_name)
-    #     print('attempting upload via local function directly to test download')
-    #     ws_obj_name = 'g.download_test'
-    #     result = genomeFileUtil.genbank_to_genome(self.getContext(), 
-    #         {
-    #             'file_path':gbk_path,
-    #             'workspace_name':self.getWsName(),
-    #             'genome_name':ws_obj_name,
-    #             'convert_to_legacy':1
-    #         })[0];
-    #     pprint(result)
-
-    #     # download from the new type
-    #     print('Download and save as local file')
-    #     downloadResult = genomeFileUtil.genbank_to_genome(self.getContext(), 
-    #         {
-    #             'genome_ref':result['genome_annotation_ref']
-    #         });
-    #     pprint(downloadResult)
-
-    #     # download and save to shock, test using the genome_name and workspace_name
-    #     print('Download and save single file to shock')
-    #     downloadResult = genomeFileUtil.genbank_to_genome(self.getContext(), 
-    #         {
-    #             'genome_name':ws_obj_name,
-    #             'workspace_name':self.getWsName(),
-    #             'save_to_shock':1
-    #         });
-    #     pprint(downloadResult)
-
-    #     print('Download and package as zip archive')
-    #     exportResult = genomeFileUtil.genbank_to_genome(self.getContext(), 
-    #         {
-    #             'input_ref':self.getWsName()+'/'+ws_obj_name
-    #         });
-    #     pprint(exportResult)
 
 

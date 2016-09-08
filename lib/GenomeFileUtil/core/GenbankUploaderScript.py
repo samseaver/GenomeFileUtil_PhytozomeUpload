@@ -70,6 +70,7 @@ def upload_genome(shock_service_url=None,
                   core_genome_name=None,
                   source=None,
                   type=None,
+                  provenance=None,
                   level=logging.INFO, logger=None):
     """
     Uploads CondensedGenomeAssembly
@@ -169,7 +170,7 @@ def upload_genome(shock_service_url=None,
             genbank_file_boundaries.append([start_position,end_position])
     else:
         print "NO GENBANK FILE"
-        sys.exit(1)
+        raise ValueError("NO GENBANK FILE")
 
     print "Number of contigs : " + str(len(genbank_file_boundaries))
    
@@ -177,7 +178,7 @@ def upload_genome(shock_service_url=None,
     organism = None
     if len(genbank_file_boundaries) < 1 :
         print "Error no genbank record found in the input file"
-        sys.exit(1)
+        raise ValueError("Error no genbank record found in the input file")
     else:
         byte_coordinates = genbank_file_boundaries[0]
         genbank_file_handle.seek(byte_coordinates[0]) 
@@ -355,7 +356,6 @@ def upload_genome(shock_service_url=None,
             #sequence does not exist.
             fasta_file_handle.close() 
             raise Exception("This Genbank file has at least one record without a sequence.")
-            sys.exit(1) 
 
         #done with need for variable genbank_record. Freeing up memory
         genbank_record = None
@@ -424,7 +424,6 @@ def upload_genome(shock_service_url=None,
             exception_string = "Incorrect date format, should be 'DD-MON-YYYY' , attempting to parse the following as a date: %s , the locus line elements: %s " % (date_text, ":".join(locus_line_info))
 #            raise ValueError("Incorrect date format, should be 'DD-MON-YYYY' , attempting to parse the following as a date:" + date_text)
             raise ValueError(exception_string)
-            sys.exit(1)
 
         genbank_metadata_objects[accession]["external_source_origination_date"] = date_text
 
@@ -452,7 +451,6 @@ def upload_genome(shock_service_url=None,
                     fasta_file_handle.close()
                     raise ValueError("There is more than one organism represented in these Genbank files, they do not represent single genome. First record's organism is %s , but %s was also found" 
                                      % (str(organism_dict.keys()),organism)) 
-                    sys.exit(1) 
             elif metadata_line.startswith("COMMENT     "):
                 comment = metadata_line[12:] 
                 comment_loop_counter = 1 
@@ -1104,7 +1102,12 @@ def upload_genome(shock_service_url=None,
         handle_id = handles[0]
 
     genome['genbank_handle_ref'] = handle_id
-    genome_annotation_provenance = [{"script": __file__, "script_ver": "0.1", "description": "features from upload from %s" % (source_name)}]
+    # setup provenance
+    provenance_action = {"script": __file__, "script_ver": "0.1", "description": "features from upload from %s" % (source_name)}
+    genome_annotation_provenance = []
+    if provenance is not None:
+        genome_annotation_provenance = provenance
+    genome_annotation_provenance.append(provenance_action)
     genome_object_name = core_genome_name 
     genome['type'] = type 
     if type == "Reference":
@@ -1142,7 +1145,7 @@ def upload_genome(shock_service_url=None,
 
     logger.info("Conversions completed.")
 
-    return genome_object_name
+    return genome_annotation_info
 
 # called only if script is run from command line
 if __name__ == "__main__":

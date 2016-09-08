@@ -42,7 +42,7 @@ class GenomeFileUtil(object):
            "workspace_name" of String, parameter "source" of String,
            parameter "taxon_wsname" of String
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
-           "ref" of String
+           "genome_ref" of String
         """
         return self._client.call_method(
             'GenomeFileUtil.genbank_to_genome',

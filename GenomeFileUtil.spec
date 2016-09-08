@@ -27,7 +27,7 @@ module GenomeFileUtil {
     } GenbankToGenomeParams;
 
     typedef structure {
-        string ref;
+        string genome_ref;
     } GenomeSaveResult;
 
     funcdef genbank_to_genome(GenbankToGenomeParams params)

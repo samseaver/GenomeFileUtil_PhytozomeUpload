@@ -40,7 +40,7 @@ class GenomeFileUtil:
     #########################################
     VERSION = "0.0.1"
     GIT_URL = "git@github.com:kbaseapps/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "431de8850afbb007b83e0c9fb197c103a974cb00"
+    GIT_COMMIT_HASH = "10c1f07638a49e4797d118440cb5675dba8b1b91"
     
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -63,7 +63,7 @@ class GenomeFileUtil:
            "workspace_name" of String, parameter "source" of String,
            parameter "taxon_wsname" of String
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
-           "ref" of String
+           "genome_ref" of String
         """
         # ctx is the context object
         # return variables are: result

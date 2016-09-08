@@ -133,7 +133,7 @@ File is a reference to a hash where the following keys are defined:
 	shock_id has a value which is a string
 	ftp_url has a value which is a string
 GenomeSaveResult is a reference to a hash where the following keys are defined:
-	ref has a value which is a string
+	genome_ref has a value which is a string
 
 </pre>
 
@@ -154,7 +154,7 @@ File is a reference to a hash where the following keys are defined:
 	shock_id has a value which is a string
 	ftp_url has a value which is a string
 GenomeSaveResult is a reference to a hash where the following keys are defined:
-	ref has a value which is a string
+	genome_ref has a value which is a string
 
 
 =end text
@@ -522,7 +522,7 @@ taxon_wsname has a value which is a string
 
 <pre>
 a reference to a hash where the following keys are defined:
-ref has a value which is a string
+genome_ref has a value which is a string
 
 </pre>
 
@@ -531,7 +531,7 @@ ref has a value which is a string
 =begin text
 
 a reference to a hash where the following keys are defined:
-ref has a value which is a string
+genome_ref has a value which is a string
 
 
 =end text

@@ -12,7 +12,7 @@ from pprint import pprint, pformat
 from biokbase.workspace.client import Workspace
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 
-#from GenomeFileUtil.core.GenbankUploaderScript import GenomeToGFF
+from GenomeFileUtil.core.GenbankUploaderScript import upload_genome
 
 class GenbankToGenome:
 
@@ -44,36 +44,31 @@ class GenbankToGenome:
         # exclude_feature_types
         # type
 
-
-
         # 4) Do the upload
+        info = upload_genome(
+                logger=None,
+        
+                shock_service_url = self.cfg.shockURL,
+                handle_service_url = self.cfg.handleURL,
+                workspace_service_url = self.cfg.workspaceURL,
+        
+                input_directory=input_directory,
+        
+                workspace_name   = workspace_name,
+                core_genome_name = genome_name,
+                source           = source,
+                taxon_wsname     = taxon_wsname,
 
-        # uploader.upload_genome(
-        #         logger=None,
-        #
-        #         shock_service_url = self.shockURL,
-        #         handle_service_url = self.handleURL,
-        #         workspace_service_url = self.workspaceURL,
-        #
-        #         input_directory=input_directory,
-        #
-        #         workspace_name   = workspace_name,
-        #         core_genome_name = genome_name,
-        #         source           = source,
-        #         taxon_wsname     = taxon_wsname
-        #     )
-
+                provenance = ctx['provenance']
+            )
 
         # 5) clear the temp directory
         shutil.rmtree(input_directory)
 
         # 6) return the result
-        # get WS metadata to return the reference to the object (could be returned by the uploader method...)
-        #ws = Workspace(url=self.workspaceURL)
-        #info = ws.get_object_info_new({'objects':[{'ref':workspace_name + '/' + genome_name}],'includeMetadata':0, 'ignoreErrors':0})[0]
-
         details = {
-            'genome_ref': 'not_implemented_yet'  #str(info[6]) + '/' + str(info[0]) + '/' + str(info[4])
+            'genome_ref': str(info[6]) + '/' + str(info[0]) + '/' + str(info[4]),
+            'genome_info': info
         }
 
         return details

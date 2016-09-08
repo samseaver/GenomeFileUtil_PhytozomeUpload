@@ -77,7 +77,6 @@ class GenomeFileUtilTest(unittest.TestCase):
                             'file_path': os.path.join(cls.cfg['scratch'], 'rhodobacter.gtf'),
                             'make_handle': 1
                         })
-        pprint(shock_file)
         data['gff_handle_ref']=shock_file['handle']['hid']
 
         # save to ws
@@ -113,15 +112,19 @@ class GenomeFileUtilTest(unittest.TestCase):
         return self.__class__.ctx
 
 
-    def test_simple_upload(self):
+    def test_simple_gff_download(self):
         # fetch the test files and set things up
         genomeFileUtil = self.getImpl()
 
-        genomeFileUtil.genome_to_gff(self.getContext(),
+        res1 = genomeFileUtil.genome_to_gff(self.getContext(),
             { 'genome_ref':self.rhodobacter_ref })
+        self.assertEqual(res1['from_cache'],0)
 
-        genomeFileUtil.genome_to_gff(self.getContext(),
+        res2 = genomeFileUtil.genome_to_gff(self.getContext(),
             { 'genome_ref':self.rhodobacter_ref_with_gff })
+        self.assertEqual(res1['from_cache'],1)
+
+        #TODO: test that files we got back are correct
 
 
 
