@@ -53,7 +53,10 @@
        "advanced": true,
        "allow_multiple": false,
        "default_values": [ "" ],
-       "field_type" : "int" 
+       "field_type" : "text", 
+       "text_options" : {
+	   "validate_as": "int"
+       }
    }
   ],
   "behavior" : {
