@@ -45,6 +45,32 @@ parameters :
         long-hint  : |
             Provide a name for the genome you are uploading (for example, Shewanella_MR_4)
 
+    source :
+        ui-name : |
+            Source of the GenBank file
+        short-hint : |
+            Provide name for the source of the data (for example: RefSeq, Ensembl, Arkin Lab)
+        long-hint : |
+            Provide name for the source of the data (for example: RefSeq, Ensembl, Arkin Lab)
+
+    release :
+        ui-name : |
+            Release or Version of the source data
+        short-hint : |
+            Release or Version of the source data (for example: Release31, V4)
+        long-hint : |
+            Release or Version of the source data (for example: Release31, V4)
+
+    genetic_code :
+        ui-name : |
+            Genetic code for the organism
+        short-hint : |
+            Valid genetic code (see http://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi)
+        long-hint : |
+            Valid genetic code integer for translation purposes(see http://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi)
+
+
+
 description : none
 
 
