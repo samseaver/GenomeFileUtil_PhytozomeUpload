@@ -229,7 +229,7 @@ def upload_genome(shock_service_url=None,
             taxon_id = "%s/%s/%s" % (taxon_info[0]["info"][6], taxon_info[0]["info"][0], taxon_info[0]["info"][4]) 
             if not genetic_code_supplied:
                 genetic_code = taxon_info[0]["data"]["genetic_code"]
-            elsif genetic_code != taxon_info[0]["data"]["genetic_code"]:
+            elif genetic_code != taxon_info[0]["data"]["genetic_code"]:
                 #Supplied genetic code differs from taxon genetic code.  Add warning to genome notes
                 temp_notes = ""
                 if "notes" in genome:
@@ -255,7 +255,7 @@ def upload_genome(shock_service_url=None,
                 raise Exception("The object retrieved for the taxon object is not actually a taxon object.  It is " + taxon_info[0]["info"][2])
             if not genetic_code_supplied:
                 genetic_code = taxon_info[0]["data"]["genetic_code"]
-            elsif genetic_code != taxon_info[0]["data"]["genetic_code"]:
+            elif genetic_code != taxon_info[0]["data"]["genetic_code"]:
                 #Supplied genetic code differs from taxon genetic code.  Add warning to genome notes
                 temp_notes = ""
                 if "notes" in genome:
@@ -1162,7 +1162,7 @@ def upload_genome(shock_service_url=None,
 
     logger.info("Conversions completed.")
 
-    return genome_annotation_info
+    return genome_annotation_info[0]
 
 # called only if script is run from command line
 if __name__ == "__main__":
