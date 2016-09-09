@@ -103,7 +103,7 @@ def upload_genome(shock_service_url=None,
     taxon_workspace_name = taxon_workspace_object[1] 
  
     logger.info("Scanning for Genbank Format files.") 
- 
+    logger.info("GENETIC_CODE ENTERED : {}".format(str(genetic_code)))
     valid_extensions = [".gbff",".gbk",".gb",".genbank",".dat"] 
  
     files = os.listdir(os.path.abspath(input_directory)) 
@@ -114,7 +114,6 @@ def upload_genome(shock_service_url=None,
     if genetic_code is not None:
         genetic_code_supplied = True
         valid_genetic_codes = [1,2,3,4,5,6,9,10,11,12,13,14,16,21,22,23,24,25,26]
-        logger.info("GENETIC_CODE ENTERED : {}".format(str(genetic_code)))
         if genetic_code not in valid_genetic_codes:
             raise Exception("The entered genetic code of {} is not a valid genetic code, please see http://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi".format(str(genetic_code)))
     else:
