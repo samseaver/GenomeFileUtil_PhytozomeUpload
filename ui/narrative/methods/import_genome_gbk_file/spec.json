@@ -7,28 +7,55 @@
   "widgets" : {
     "input" : "kbaseNarrativeMethodInput"
   },
-  "parameters" : [ {
-    "id" : "gbkFile",
-    "optional" : false,
-    "advanced" : false,
-    "allow_multiple" : false,
-    "default_values" : [ "" ],
-    "field_type" : "file",
-    "text_options" : {
-      "valid_ws_types" : [ ]
-    }
-  }, {
-    "id" : "outputObject",
-    "optional" : true,
-    "advanced" : false,
-    "allow_multiple" : false,
-    "default_values" : [ "" ],
-    "field_type" : "text",
-    "text_options" : {
-      "valid_ws_types" : [ "KBaseGenomes.Genome" ],
-      "is_output_name" : true
-    }
-  } ],
+  "parameters" : [ 
+  {
+      "id" : "gbkFile",
+      "optional" : false,
+      "advanced" : false,
+      "allow_multiple" : false,
+      "default_values" : [ "" ],
+      "field_type" : "file",
+      "text_options" : {
+	  "valid_ws_types" : [ ]
+      }
+  }, 
+  {
+      "id" : "outputObject",
+      "optional" : true,
+      "advanced" : false,
+      "allow_multiple" : false,
+      "default_values" : [ "" ],
+      "field_type" : "text",
+      "text_options" : {
+	  "valid_ws_types" : [ "KBaseGenomes.Genome" ],
+	  "is_output_name" : true
+      }
+  },
+  {
+      "id": "source",
+      "optional": true,
+      "advanced": false,
+      "allow_multiple": false,
+      "default_values": [ "" ],
+      "field_type" : "text"
+   },
+   {  
+       "id": "release",
+       "optional": true,
+       "advanced": true,
+       "allow_multiple": false,
+       "default_values": [ "" ],
+       "field_type" : "text" 
+   },
+   {  
+       "id": "genetic_code",
+       "optional": true,
+       "advanced": true,
+       "allow_multiple": false,
+       "default_values": [ "" ],
+       "field_type" : "int" 
+   }
+  ],
   "behavior" : {
     "service-mapping" : {
       "url" : "",
