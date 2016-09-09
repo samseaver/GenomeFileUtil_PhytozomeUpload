@@ -76,6 +76,18 @@
         {
           "input_parameter": "ftpFolder",
           "target_property": "file/ftp_url"
+        },
+        {
+          "input_parameter": "source",
+          "target_property": "source"
+        },
+        {
+          "input_parameter": "release",
+          "target_property": "release"
+        },
+        {
+          "input_parameter": "genetic_code",
+          "target_property": "genetic_code"
         }
       ],
       "output_mapping" : [
