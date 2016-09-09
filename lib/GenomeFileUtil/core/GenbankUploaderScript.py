@@ -114,6 +114,7 @@ def upload_genome(shock_service_url=None,
     if genetic_code is not None:
         genetic_code_supplied = True
         valid_genetic_codes = [1,2,3,4,5,6,9,10,11,12,13,14,16,21,22,23,24,25,26]
+        logger.info("GENETIC_CODE ENTERED : {}".format(str(genetic_code)))
         if genetic_code not in valid_genetic_codes:
             raise Exception("The entered genetic code of {} is not a valid genetic code, please see http://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi".format(str(genetic_code)))
     else:
@@ -236,6 +237,8 @@ def upload_genome(shock_service_url=None,
                     temp_notes = "{} ".format(genome["notes"])
                 temp_notes += "The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.".format(genetic_code, 
                                                                                                                                                            taxon_info[0]["data"]["genetic_code"])
+            logger.info("GENETIC_CODE 2 : {}".format(str(genetic_code)))
+            print "Genetic CODE 2 : {}".format(str(genetic_code))
             genome['genetic_code'] = genetic_code
 #            print "Found name : " + taxon_object_name + " id: " + taxon_id
 #            print "TAXON OBJECT TYPE : " + taxon_info[0]["info"][2]
@@ -1210,6 +1213,8 @@ if __name__ == "__main__":
     logger = script_utils.stderrlogger(__file__)
 
     logger.debug(args)
+    logger.info("GENETIC_CODE FIRST ENTERED : {}".format(str(args.genetic_code)))
+
     try:
         obj_name = upload_genome(shock_service_url = args.shock_service_url,
                                  handle_service_url = args.handle_service_url, 
