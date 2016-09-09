@@ -64,12 +64,12 @@ def upload_genome(shock_service_url=None,
                   workspace_name=None,
                   workspace_service_url=None,
                   taxon_wsname=None,
-                  exclude_feature_types=list(),
                   taxon_reference = None,
                   release= None,
                   core_genome_name=None,
                   source=None,
                   type=None,
+                  genetic_code=None,
                   provenance=None,
                   level=logging.INFO, logger=None):
     """
@@ -88,9 +88,6 @@ def upload_genome(shock_service_url=None,
     if logger is None:
         logger = script_utils.stderrlogger(__file__)
     token = os.environ.get('KB_AUTH_TOKEN') 
-
-    if exclude_feature_types is None:
-        exclude_feature_types = list()
 
     ws_client = biokbase.workspace.client.Workspace(workspace_service_url)
  
@@ -112,7 +109,16 @@ def upload_genome(shock_service_url=None,
     files = os.listdir(os.path.abspath(input_directory)) 
     print "FILES : " + str(files)
     genbank_files = [x for x in files if os.path.splitext(x)[-1] in valid_extensions] 
- 
+
+    genetic_code_supplied = False
+    if genetic_code is not None:
+        genetic_code_supplied = True
+        valid_genetic_codes = [1,2,3,4,5,6,9,10,11,12,13,14,16,21,22,23,24,25,26]
+        if genetic_code not in valid_genetic_codes:
+            raise Exception("The entered genetic code of {} is not a valid genetic code, please see http://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi".format(str(genetic_code)))
+    else:
+        genetic_code = 1
+
     if (len(genbank_files) == 0): 
         raise Exception("The input directory does not have one of the following extensions %s." % (",".join(valid_extensions))) 
   
@@ -129,8 +135,6 @@ def upload_genome(shock_service_url=None,
 
     genbank_file_boundaries = list()  
     #list of tuples: (first value record start byte position, second value record stop byte position)
-
-    exclude_feature_types.append("source")
 
     if os.path.isfile(input_file_name):
         print "Found Genbank_File" 
@@ -169,7 +173,6 @@ def upload_genome(shock_service_url=None,
             end_position = genbank_file_handle.tell()
             genbank_file_boundaries.append([start_position,end_position])
     else:
-        print "NO GENBANK FILE"
         raise ValueError("NO GENBANK FILE")
 
     print "Number of contigs : " + str(len(genbank_file_boundaries))
@@ -177,7 +180,6 @@ def upload_genome(shock_service_url=None,
     organism_dict = dict() 
     organism = None
     if len(genbank_file_boundaries) < 1 :
-        print "Error no genbank record found in the input file"
         raise ValueError("Error no genbank record found in the input file")
     else:
         byte_coordinates = genbank_file_boundaries[0]
@@ -199,7 +201,6 @@ def upload_genome(shock_service_url=None,
     genome = dict()
 
     display_sc_name = None
-    genetic_code = 1 #By default
 
     genomes_without_taxon_refs = list()
     if taxon_reference is None:
@@ -213,12 +214,12 @@ def upload_genome(shock_service_url=None,
             else:
                 genomes_without_taxon_refs.append(organism)
                 taxon_object_name = "unknown_taxon"
-                genome['notes'] = "Unable to find taxon for this organism : %s ." % (organism )
+                genome['notes'] = "Unable to find taxon for this organism : {}.".format(organism )
                 genome['scientific_name'] = "Unconfirmed Organism: {}".format(organism )
         else: 
             genomes_without_taxon_refs.append(organism)
             taxon_object_name = "unknown_taxon"
-            genome['notes'] = "Unable to find taxon for this organism : %s ." % (organism )
+            genome['notes'] = "Unable to find taxon for this organism : {}.".format(organism )
             genome['scientific_name'] = "Unconfirmed Organism: {}".format(organism )
         del taxon_lookup
 
@@ -226,7 +227,15 @@ def upload_genome(shock_service_url=None,
             taxon_info = ws_client.get_objects([{"workspace": taxon_wsname, 
                                                  "name": taxon_object_name}]) 
             taxon_id = "%s/%s/%s" % (taxon_info[0]["info"][6], taxon_info[0]["info"][0], taxon_info[0]["info"][4]) 
-            genetic_code = taxon_info[0]["data"]["genetic_code"]
+            if not genetic_code_supplied:
+                genetic_code = taxon_info[0]["data"]["genetic_code"]
+            elsif genetic_code != taxon_info[0]["data"]["genetic_code"]:
+                #Supplied genetic code differs from taxon genetic code.  Add warning to genome notes
+                temp_notes = ""
+                if "notes" in genome:
+                    temp_notes = "{} ".format(genome["notes"])
+                temp_notes += "The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.".format(genetic_code, 
+                                                                                                                                                           taxon_info[0]["data"]["genetic_code"])
             genome['genetic_code'] = genetic_code
 #            print "Found name : " + taxon_object_name + " id: " + taxon_id
 #            print "TAXON OBJECT TYPE : " + taxon_info[0]["info"][2]
@@ -244,7 +253,15 @@ def upload_genome(shock_service_url=None,
             print "TAXON OBJECT TYPE : " + taxon_info[0]["info"][2] 
             if not taxon_info[0]["info"][2].startswith("KBaseGenomeAnnotations.Taxon"):
                 raise Exception("The object retrieved for the taxon object is not actually a taxon object.  It is " + taxon_info[0]["info"][2])
-            genetic_code = taxon_info[0]["data"]["genetic_code"]
+            if not genetic_code_supplied:
+                genetic_code = taxon_info[0]["data"]["genetic_code"]
+            elsif genetic_code != taxon_info[0]["data"]["genetic_code"]:
+                #Supplied genetic code differs from taxon genetic code.  Add warning to genome notes
+                temp_notes = ""
+                if "notes" in genome:
+                    temp_notes = "{} ".format(genome["notes"])
+                temp_notes += "The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.".format(genetic_code, 
+                                                                                                                                                           taxon_info[0]["data"]["genetic_code"])
             genome['genetic_code'] = genetic_code
             genome['scientific_name'] = taxon_info[0]['data']['scientific_name']
             genome['domain'] = taxon_info[0]['data']['domain']
@@ -809,7 +826,7 @@ def upload_genome(shock_service_url=None,
             if len(locations) > 0:
                 if need_to_reverse_locations and (len(locations) > 1):
                     locations.reverse()
-            feature_object["locations"]=locations
+            feature_object["location"]=locations
 
             feature_object["dna_sequence_length"] = dna_sequence_length
             feature_object["dna_sequence"] = dna_sequence
@@ -1045,7 +1062,6 @@ def upload_genome(shock_service_url=None,
     try:
         fasta_working_dir = str(os.getcwd()) + "/temp_fasta_file_dir"
 
-        ## TODO: move this call to a Local Function, add provenance
         print "HANDLE SERVICE URL " + handle_service_url
         assembly.upload_assembly(shock_service_url = shock_service_url,
                                  handle_service_url = handle_service_url,
@@ -1146,7 +1162,7 @@ def upload_genome(shock_service_url=None,
 
     logger.info("Conversions completed.")
 
-    return genome_annotation_info[0]
+    return genome_annotation_info
 
 # called only if script is run from command line
 if __name__ == "__main__":
@@ -1172,8 +1188,6 @@ if __name__ == "__main__":
     parser.add_argument('--object_name', 
                         help="genbank file", 
                         nargs='?', required=False)
-    parser.add_argument('--exclude_feature_types', type=str, nargs='*', required=False,
-                        help='which feature types to exclude.  feature type "source" is always excluded.  Ensembl should exclude "misc_feature"') 
     parser.add_argument('--source', 
                         help="data source : examples Refseq, Genbank, Pythozyme, Gramene, etc", 
                         nargs='?', required=False, default="Genbank") 
@@ -1183,13 +1197,13 @@ if __name__ == "__main__":
     parser.add_argument('--release', 
                         help="Release or version of the data.  Example Ensembl release 30", 
                         nargs='?', required=False) 
+    parser.add_argument('--genetic_code', 
+                        help="genetic code for the genome, normally determined by taxon information. Will override taxon supplied genetic code if not supplied. Defaults to 1", 
+                        nargs='?', type=int, required=False) 
 
     parser.add_argument('--input_directory', 
                         help="directory the genbank file is in", 
                         action='store', type=str, nargs='?', required=True)
-    parser.add_argument('--no_convert',
-                        help="Dont convert", action='store_true',
-                        dest='no_convert_to_old_type')
 
     args, unknown = parser.parse_known_args()
 
@@ -1198,18 +1212,18 @@ if __name__ == "__main__":
     logger.debug(args)
     try:
         obj_name = upload_genome(shock_service_url = args.shock_service_url,
-                      handle_service_url = args.handle_service_url, 
-                      input_directory = args.input_directory, 
-                      workspace_name = args.workspace_name,
-                      workspace_service_url = args.workspace_service_url,
-                      taxon_wsname = args.taxon_wsname,
-                      exclude_feature_types = args.exclude_feature_types,
-                      taxon_reference = args.taxon_reference,
-                      core_genome_name = args.object_name,
-                      source = args.source,
-                      release = args.release,
-                      type = args.type,
-                      logger = logger)
+                                 handle_service_url = args.handle_service_url, 
+                                 input_directory = args.input_directory, 
+                                 workspace_name = args.workspace_name,
+                                 workspace_service_url = args.workspace_service_url,
+                                 taxon_wsname = args.taxon_wsname,
+                                 taxon_reference = args.taxon_reference,
+                                 core_genome_name = args.object_name,
+                                 source = args.source,
+                                 release = args.release,
+                                 type = args.type,
+                                 genetic_code = args.genetic_code,
+                                 logger = logger)
     except Exception, e:
         logger.exception(e)
         sys.exit(1)
