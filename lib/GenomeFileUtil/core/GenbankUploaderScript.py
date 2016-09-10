@@ -1200,9 +1200,8 @@ if __name__ == "__main__":
                         help="Release or version of the data.  Example Ensembl release 30", 
                         nargs='?', required=False) 
     parser.add_argument('--genetic_code', 
-                        help="genetic code for the genome, normally determined by taxon information. Will override taxon supplied genetic code if not supplied. Defaults to 1", 
-                        nargs='?', type=int, required=False) 
-
+                        help="genetic code for the genome, normally determined by taxon information. Will override taxon supplied genetic code if supplied. Defaults to 1", 
+                        nargs='?', type=int, required=False)
     parser.add_argument('--input_directory', 
                         help="directory the genbank file is in", 
                         action='store', type=str, nargs='?', required=True)
@@ -1212,7 +1211,7 @@ if __name__ == "__main__":
     logger = script_utils.stderrlogger(__file__)
 
     logger.debug(args)
-    logger.info("GENETIC_CODE FIRST ENTERED : {}".format(str(args.genetic_code)))
+    print("GENETIC_CODE FIRST ENTERED : {}".format(str(args.genetic_code)))
 
     try:
         obj_name = upload_genome(shock_service_url = args.shock_service_url,
