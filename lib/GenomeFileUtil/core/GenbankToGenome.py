@@ -65,7 +65,7 @@ class GenbankToGenome:
                 source           = source,
                 taxon_wsname     = taxon_wsname,
                 release          = release,
-                genetic_code     = genetic_code
+                genetic_code     = genetic_code,
 
                 provenance = ctx['provenance']
             )
