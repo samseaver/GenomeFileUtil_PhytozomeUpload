@@ -38,6 +38,12 @@ class GenbankToGenome:
         if 'taxon_wsname' in params:
             taxon_wsname = params['taxon_wsname']
 
+        if 'release' in params:
+            release = params['release']
+
+        if 'genetic_code' in params:
+            genetic_code = param['genetic_code']
+
         # other options to handle
         # release
         # taxon_reference
@@ -58,6 +64,8 @@ class GenbankToGenome:
                 core_genome_name = genome_name,
                 source           = source,
                 taxon_wsname     = taxon_wsname,
+                release          = release,
+                genetic_code     = genetic_code,
 
                 provenance = ctx['provenance']
             )
