@@ -879,7 +879,7 @@ def upload_genome(shock_service_url=None,
                 if key == "gene":
                     feature_object["gene"] = value 
                     alias_dict[value]=1 
-                    if source.upper() == "ENSEMBL" and feature_type = "gene":
+                    if source.upper() == "ENSEMBL" and feature_type == "gene":
                         if value in feature_ids:
                             raise Exception("More than one feature has the specific feature id of {}.  All feature ids need to be unique.".format(value))
                         else:
@@ -893,7 +893,7 @@ def upload_genome(shock_service_url=None,
                 elif key == "locus_tag":
                     feature_object["locus_tag"] = value 
                     alias_dict[value]=1 
-                    if source.upper() != "ENSEMBL" and feature_type = "gene":
+                    if source.upper() != "ENSEMBL" and feature_type == "gene":
                         if value in feature_ids:
                             raise Exception("More than one feature has the specific feature id of {}.  All feature ids need to be unique.".format(value))
                         else:
