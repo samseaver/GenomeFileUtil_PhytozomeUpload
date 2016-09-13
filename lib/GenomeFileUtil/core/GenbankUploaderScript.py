@@ -70,6 +70,7 @@ def upload_genome(shock_service_url=None,
                   source=None,
                   type=None,
                   genetic_code=None,
+                  generate_ids_if_needed=None,
                   provenance=None,
                   level=logging.INFO, logger=None):
     """
@@ -118,6 +119,13 @@ def upload_genome(shock_service_url=None,
             raise Exception("The entered genetic code of {} is not a valid genetic code, please see http://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi".format(str(genetic_code)))
     else:
         genetic_code = 1
+
+
+    if generate_ids_if_needed is not None:
+        if generate_ids_if_needed != 1:
+            generate_ids_if_needed = 0
+    else:
+        generate_ids_if_needed = 0
 
     if (len(genbank_files) == 0): 
         raise Exception("The input directory does not have one of the following extensions %s." % (",".join(valid_extensions))) 
@@ -234,10 +242,15 @@ def upload_genome(shock_service_url=None,
                 temp_notes = ""
                 if "notes" in genome:
                     temp_notes = "{} ".format(genome["notes"])
-                temp_notes += "The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.".format(genetic_code, 
-                                                                                                                                                           taxon_info[0]["data"]["genetic_code"])
-            logger.info("GENETIC_CODE 2 : {}".format(str(genetic_code)))
-            print "Genetic CODE 2 : {}".format(str(genetic_code))
+                genome["notes"] += "{}The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.".format(temp_notes,genetic_code, taxon_info[0]["data"]["genetic_code"])
+            else:
+                temp_notes = ""
+                if "notes" in genome:
+                    temp_notes = "{} ".format(genome["notes"])
+                genome["notes"] += "{}The genetic code of {} was supplied by the user.".format(temp_notes,genetic_code, taxon_info[0]["data"]["genetic_code"])
+
+#            logger.info("GENETIC_CODE 2 : {}".format(str(genetic_code)))
+#            print "Genetic CODE 2 : {}".format(str(genetic_code))
             genome['genetic_code'] = genetic_code
 #            print "Found name : " + taxon_object_name + " id: " + taxon_id
 #            print "TAXON OBJECT TYPE : " + taxon_info[0]["info"][2]
@@ -357,6 +370,9 @@ def upload_genome(shock_service_url=None,
     #Key is feature type, value is the number of occurances of this type. Lets me know the feature containers that will need 
     #to be made and a check to insure the counts are accurate.
     feature_type_counts = dict() 
+
+    #key feature id to be used, value 1
+    feature_ids = dict()
 
     #integers used for stripping text 
     complement_len = len("complement(")
@@ -674,27 +690,13 @@ def upload_genome(shock_service_url=None,
             coordinates_info = feature_header[21:] 
             feature_type = feature_header[:21] 
             feature_type = feature_type.strip().replace(" ","_")
-            if feature_type not in ['CDS','mRNA','Gene']:
-                #skip non core feature types.
+            if feature_type not in ['CDS','Gene']:
+                #skip non core feature types. We currently decided to not include mRNA
                 continue
             feature_object["type"] = feature_type
 
             quality_warnings = list() #list of warnings about the feature. Can do more with this at a later time.
             feature_keys_present_dict = dict() #dict of keys present in the feature
-
-            ############################################
-            #DETERMINE ID TO USE FOR THE FEATURE OBJECT
-            ############################################                                                                                                                                      
-#            if feature_type not in features_type_containers_dict:
-#                features_type_containers_dict[feature_type] = dict()
-            feature_id = None 
-            #MAKING ALL IDS UNIQUE ACROSS THE GENOME.
-            if feature_type not in feature_type_id_counter_dict:
-                feature_type_id_counter_dict[feature_type] = 1;
-                feature_id = "%s_%s" % (feature_type,str(1)) 
-            else: 
-                feature_type_id_counter_dict[feature_type] += 1; 
-                feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_type]))
 
             #Get feature key value pairs
             for feature_key_value_pair in feature_key_value_pairs_list: 
@@ -726,7 +728,7 @@ def upload_genome(shock_service_url=None,
             if coordinates_info.startswith("order") and coordinates_info.endswith(")"):
                 coordinates_info = coordinates_info[order_len:-1]
                 has_odd_coordinates = True
-                temp_warning = "%s has the rare 'order' coordinate. The sequence was joined together because KBase does not allow for a non contiguous resulting sequence with multiple locations for a feature." % (feature_id)
+                temp_warning = "Feature with the text %s has the rare 'order' coordinate. The sequence was joined together because KBase does not allow for a non contiguous resulting sequence with multiple locations for a feature." % (feature_text)
                 quality_warnings.append(temp_warning)
                 #annotation_metadata_warnings.append(temp_warning)
                 sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,))
@@ -743,7 +745,7 @@ def upload_genome(shock_service_url=None,
                 #Look for and handle odd coordinates
                 if (("<" in coordinates) or (">" in coordinates)):
                     has_odd_coordinates = True
-                    temp_warning = "%s has a '<' or a '>' in the coordinates.  This means the feature starts or ends beyond the known sequence." % (feature_id)
+                    temp_warning = "Feature with the text %s has a '<' or a '>' in the coordinates.  This means the feature starts or ends beyond the known sequence." % (feature_text)
                     quality_warnings.append(temp_warning)
                     #annotation_metadata_warnings.append(temp_warning)
                     sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,))
@@ -759,7 +761,7 @@ def upload_genome(shock_service_url=None,
                 elif period_count == 1:
                     start_pos, end_pos = coordinates.split('.', 1) 
                     has_odd_coordinates = True
-                    temp_warning = "%s has a single period in the original coordinate this indicates that the exact location is unknown but that it is one of the bases between bases %s and %s, inclusive.  Note the entire sequence range has been put into this feature." % (feature_id, str(start_pos),str(end_pos))
+                    temp_warning = "Feature with the text %s has a single period in the original coordinate this indicates that the exact location is unknown but that it is one of the bases between bases %s and %s, inclusive.  Note the entire sequence range has been put into this feature." % (feature_text, str(start_pos),str(end_pos))
                     quality_warnings.append(temp_warning)
                     #annotation_metadata_warnings.append(temp_warning)
                     sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,))
@@ -770,7 +772,7 @@ def upload_genome(shock_service_url=None,
                 if "^" in coordinates:
                     start_pos, end_pos = coordinates.split('^', 1) 
                     has_odd_coordinates = True
-                    temp_warning = "%s is between bases.  It points to a site between bases %s and %s, inclusive.  Note the entire sequence range has been put into this feature." % (feature_id, str(start_pos),str(end_pos))
+                    temp_warning = "Feature with the text %s is between bases.  It points to a site between bases %s and %s, inclusive.  Note the entire sequence range has been put into this feature." % (feature_text, str(start_pos),str(end_pos))
                     quality_warnings.append(temp_warning)
                     #annotation_metadata_warnings.append(temp_warning)       
                     sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,))
@@ -851,6 +853,7 @@ def upload_genome(shock_service_url=None,
             notes = ""
             additional_properties = dict()
             feature_specific_id = None
+            feature_id = None
             product = None
             EC_number = None
 
@@ -876,6 +879,12 @@ def upload_genome(shock_service_url=None,
                 if key == "gene":
                     feature_object["gene"] = value 
                     alias_dict[value]=1 
+                    if source.upper() == "ENSEMBL" and feature_type = "gene":
+                        if value in feature_ids:
+                            raise Exception("More than one feature has the specific feature id of {}.  All feature ids need to be unique.".format(value))
+                        else:
+                            feature_id = value
+                            feature_ids[value] = 1
 #Kept lines, for dealing with aliases if keeping track of sources/source field
 #                    if value in alias_dict and ("Genbank Gene" not in alias_dict[value]) :
 #                        alias_dict[value].append("Genbank Gene")
@@ -884,8 +893,14 @@ def upload_genome(shock_service_url=None,
                 elif key == "locus_tag":
                     feature_object["locus_tag"] = value 
                     alias_dict[value]=1 
-                    if feature_type == "gene":
-                        feature_object["feature_specific_id"] = value
+                    if source.upper() != "ENSEMBL" and feature_type = "gene":
+                        if value in feature_ids:
+                            raise Exception("More than one feature has the specific feature id of {}.  All feature ids need to be unique.".format(value))
+                        else:
+                            feature_id = value
+                            feature_ids[value] = 1
+#                    if feature_type == "gene":
+#                        feature_object["feature_specific_id"] = value
                 elif key == "old_locus_tag" or key == "standard_name":
                     alias_dict[value]=1 
                 elif key == "gene_synonym":
@@ -894,12 +909,18 @@ def upload_genome(shock_service_url=None,
                         i = i.strip()
                         alias_dict[i]=1 
                 elif (key == "transcript_id"):
-                    if feature_type == "mRNA":
-                        feature_object["feature_specific_id"] = value 
+#                    if feature_type == "mRNA":
+#                        feature_object["feature_specific_id"] = value 
                     alias_dict[value]=1 
                 elif (key == "protein_id"):
-                    if feature_type == "CDS":
-                        feature_object["feature_specific_id"] = value 
+#                    if feature_type == "CDS":
+#                        feature_object["feature_specific_id"] = value
+                    if feature_type = "CDS":
+                        if value in feature_ids:
+                            raise Exception("More than one feature has the specific feature id of {}.  All feature ids need to be unique.".format(value))
+                        else:
+                            feature_id = value
+                            feature_ids[value] = 1 
                     alias_dict[value]=1 
                 elif (key == "db_xref"):
                     alias_dict[value]=1 
@@ -969,8 +990,28 @@ def upload_genome(shock_service_url=None,
                         feature_object["protein_translation"] = aa_trans_seq
                         feature_object["protein_translation_length"] = len(aa_trans_seq)
 
-#            feature_object["quality_warnings"] = quality_warnings
+            if feature_id is None:
+                if generate_ids_if_needed == 1:
+                    #MAKE AUTOGENERATED ID
+                    #MAKING ALL IDS UNIQUE ACROSS THE GENOME.
+                    if feature_type not in feature_type_id_counter_dict:
+                        feature_type_id_counter_dict[feature_type] = 1;
+                        feature_id = "%s_%s" % (feature_type,str(1)) 
+                    else: 
+                        feature_type_id_counter_dict[feature_type] += 1; 
+                        feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_type]))
+                else:
+                    #Throw an error informing user they can set the generate ids if needed checkbox
+                    #do specific errors so they know where we look for the ids.
+                    raise Exception("There was no feature specific id for {}.  \
+                    For gene type we take the id from the locus tag \
+                    (except for Ensembl, then the gene field)\
+                    For CDS type we take the id from the protein id field. \
+                    NOTE IF YOU WANT THIS STILL UPLOADED GO TO THE \
+                    ADVANCED OPTIONS AND CHECK THE\
+                    \"Generate IDs if needed\" checkbox".format(feature_text))
 
+#            feature_object["quality_warnings"] = quality_warnings
 
 #            ############################################
 #            #DETERMINE ID TO USE FOR THE FEATURE OBJECT
@@ -1013,8 +1054,6 @@ def upload_genome(shock_service_url=None,
 ##END NEW WAY
 
             feature_object["id"] = feature_id
-
-
 
             ########################################
             #CLEAN UP UNWANTED FEATURE KEYS
@@ -1202,6 +1241,9 @@ if __name__ == "__main__":
     parser.add_argument('--genetic_code', 
                         help="genetic code for the genome, normally determined by taxon information. Will override taxon supplied genetic code if supplied. Defaults to 1", 
                         nargs='?', type=int, required=False)
+    parser.add_argument('--generate_ids_if_needed', 
+                        help="If the fields used for ID determination are not present the uploader will fail by default. If generate_ids_id_needed is 1 then it will generate IDs (Feature_AutoincrementNumber format)", 
+                        nargs='?', type=int, required=False)
     parser.add_argument('--input_directory', 
                         help="directory the genbank file is in", 
                         action='store', type=str, nargs='?', required=True)
@@ -1226,6 +1268,7 @@ if __name__ == "__main__":
                                  release = args.release,
                                  type = args.type,
                                  genetic_code = args.genetic_code,
+                                 generate_ids_if_needed = args.generate_ids_if_needed,
                                  logger = logger)
     except Exception, e:
         logger.exception(e)
