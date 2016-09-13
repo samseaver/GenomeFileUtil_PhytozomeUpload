@@ -57,7 +57,20 @@
        "text_options" : {
 	   "validate_as": "int"
        }
+   },
+   {
+       "id": "generate_ids_if_needed",
+       "optional":true,
+       "advanced":true,
+       "allow_multiple":false,
+       "default_values":[""],
+       "field_type" : "checkbox",
+       "checkbox_options":{
+	   "checked_value": 1,
+	   "unchecked_value": 0
+       }
    }
+},
   ],
   "behavior" : {
     "service-mapping" : {
@@ -88,6 +101,10 @@
         {
           "input_parameter": "genetic_code",
           "target_property": "genetic_code"
+        },
+        {
+          "input_parameter": "generate_ids_if_needed",
+          "target_property": "generate_ids_if_needed"
         }
       ],
       "output_mapping" : [
