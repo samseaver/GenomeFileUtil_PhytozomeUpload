@@ -44,6 +44,9 @@ class GenbankToGenome:
         if 'genetic_code' in params:
             genetic_code = params['genetic_code']
 
+        if 'generate_ids_if_needed' in params:
+            generate_ids_if_needed = params['generate_ids_if_needed']
+
         # other options to handle
         # release
         # taxon_reference
@@ -66,7 +69,8 @@ class GenbankToGenome:
                 taxon_wsname     = taxon_wsname,
                 release          = release,
                 genetic_code     = genetic_code,
-
+                generate_ids_if_needed = generate_ids_if_needed,
+            
                 provenance = ctx['provenance']
             )
 
