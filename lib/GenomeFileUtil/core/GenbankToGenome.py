@@ -42,7 +42,7 @@ class GenbankToGenome:
             release = params['release']
 
         if 'genetic_code' in params:
-            genetic_code = param['genetic_code']
+            genetic_code = params['genetic_code']
 
         # other options to handle
         # release
