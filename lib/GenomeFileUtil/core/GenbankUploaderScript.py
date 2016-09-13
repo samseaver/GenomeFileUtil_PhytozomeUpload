@@ -915,7 +915,7 @@ def upload_genome(shock_service_url=None,
                 elif (key == "protein_id"):
 #                    if feature_type == "CDS":
 #                        feature_object["feature_specific_id"] = value
-                    if feature_type = "CDS":
+                    if feature_type == "CDS":
                         if value in feature_ids:
                             raise Exception("More than one feature has the specific feature id of {}.  All feature ids need to be unique.".format(value))
                         else:
