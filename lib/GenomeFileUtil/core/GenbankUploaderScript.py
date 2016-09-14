@@ -997,10 +997,9 @@ def upload_genome(shock_service_url=None,
 #                        feature_object["protein_translation_length"] = len(aa_trans_seq)
             
             if pseudo_non_gene:
-                if feature_type == "CDS":
-                if has_protein_id:
+                if feature_type == "CDS" and has_protein_id:
                     print "Feature text : {} is a CDS with pseudo and protein_id.".format(feature_text)
-                #don not include this feature.
+                    #don not include this feature.
                 continue
 
             if feature_type in feature_type_counts:
