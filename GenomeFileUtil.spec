@@ -14,6 +14,8 @@ module GenomeFileUtil {
         string ftp_url;
     } File;
 
+    typedef mapping<string, string> usermeta;
+
     /* */
     typedef structure {
         File file;
@@ -23,6 +25,10 @@ module GenomeFileUtil {
 
         string source;
         string taxon_wsname;
+	string release;
+	string generate_ids_if_needed;
+	int    genetic_code;
+	usermeta metadata;
 
     } GenbankToGenomeParams;
 
