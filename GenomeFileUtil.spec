@@ -28,6 +28,7 @@ module GenomeFileUtil {
 	string release;
 	string generate_ids_if_needed;
 	int    genetic_code;
+	string type;
 	usermeta metadata;
 
     } GenbankToGenomeParams;
