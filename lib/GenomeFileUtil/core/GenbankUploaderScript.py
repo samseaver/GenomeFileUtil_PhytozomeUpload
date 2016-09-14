@@ -1212,7 +1212,7 @@ ADVANCED OPTIONS AND CHECK THE\
                                                                     "data":genome,
                                                                     "name": genome_object_name,
                                                                     "provenance":genome_annotation_provenance,
-                                                                    "usermeta":usermeta
+                                                                    "meta":usermeta
                                                                 }]}) 
 #            genome_annotation_not_saved = False 
     logger.info("Genome saved for %s" % (genome_object_name))
