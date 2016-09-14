@@ -690,7 +690,7 @@ def upload_genome(shock_service_url=None,
             coordinates_info = feature_header[21:] 
             feature_type = feature_header[:21] 
             feature_type = feature_type.strip().replace(" ","_")
-            if feature_type not in ['CDS','Gene']:
+            if feature_type not in ['CDS','gene']:
                 #skip non core feature types. We currently decided to not include mRNA
                 continue
             feature_object["type"] = feature_type
