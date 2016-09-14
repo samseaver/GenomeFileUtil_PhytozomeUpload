@@ -72,6 +72,7 @@ def upload_genome(shock_service_url=None,
                   genetic_code=None,
                   generate_ids_if_needed=None,
                   provenance=None,
+                  usermeta=None,
                   level=logging.INFO, logger=None):
     """
     Uploads CondensedGenomeAssembly
@@ -1210,7 +1211,9 @@ ADVANCED OPTIONS AND CHECK THE\
                                                       "objects":[ { "type":"KBaseGenomes.Genome",
                                                                     "data":genome,
                                                                     "name": genome_object_name,
-                                                                    "provenance":genome_annotation_provenance}]}) 
+                                                                    "provenance":genome_annotation_provenance,
+                                                                    "usermeta":usermeta
+                                                                }]}) 
 #            genome_annotation_not_saved = False 
     logger.info("Genome saved for %s" % (genome_object_name))
 #        except biokbase.workspace.client.ServerError as err: 

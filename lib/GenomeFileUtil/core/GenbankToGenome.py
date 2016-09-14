@@ -47,6 +47,11 @@ class GenbankToGenome:
         if 'generate_ids_if_needed' in params:
             generate_ids_if_needed = params['generate_ids_if_needed']
 
+        if 'type' in params:
+            type = params['type']
+        else:
+            type = "User upload"
+
         # other options to handle
         # release
         # taxon_reference
@@ -69,6 +74,7 @@ class GenbankToGenome:
                 taxon_wsname     = taxon_wsname,
                 release          = release,
                 genetic_code     = genetic_code,
+                type             = type,
                 generate_ids_if_needed = generate_ids_if_needed,
             
                 provenance = ctx['provenance']
@@ -110,6 +116,10 @@ class GenbankToGenome:
             raise ValueError('required "file" field must include one source: path | shock_id | ftp_url')
         if n_valid_fields > 1:
             raise ValueError('required "file" field has too many sources specified: ' + str(file.keys()))
+
+        valid_types = ['Reference','User upload','Representative']
+        if 'type' in params and params['type'] not in valid_types:
+            raise ValueError('Entered value for type is not one of the valid entries of "Reference", "Representative" or "User upload"')
 
 
 
