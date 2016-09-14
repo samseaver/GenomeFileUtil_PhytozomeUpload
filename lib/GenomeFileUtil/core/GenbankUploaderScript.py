@@ -1002,7 +1002,7 @@ def upload_genome(shock_service_url=None,
                     #don not include this feature.
                 continue
 
-            if feature_type in feature_type_counts:
+            if feature_object["type"] in feature_type_counts:
                 feature_type_counts[feature_object["type"]] += 1
             else:
                 feature_type_counts[feature_object["type"]] = 1     
