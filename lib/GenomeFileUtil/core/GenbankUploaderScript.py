@@ -990,12 +990,15 @@ def upload_genome(shock_service_url=None,
 #                        quality_warnings.append(temp_warning) 
 #                        sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,)) 
                 else:
-                    if "dna_sequence" in feature_object:
-                        feature_object["protein_translation"] = aa_trans_seq
-                        feature_object["protein_translation_length"] = len(aa_trans_seq)
+                    if not pseudo_non_gene:
+                        raise Exception("Error: CDS with the text : {} has not protein translation".format(feature_text))
+#                    if "dna_sequence" in feature_object:
+#                        feature_object["protein_translation"] = aa_trans_seq
+#                        feature_object["protein_translation_length"] = len(aa_trans_seq)
             
             if pseudo_non_gene:
-                if has_protein_id and feature_type == "CDS":
+                if feature_type == "CDS:
+                if has_protein_id:
                     print "Feature text : {} is a CDS with pseudo and protein_id.".format(feature_text)
                 #don not include this feature.
                 continue
