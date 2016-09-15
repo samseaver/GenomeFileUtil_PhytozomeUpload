@@ -680,6 +680,12 @@ def upload_genome(shock_service_url=None,
                 feature_line_counter += 1 
                 feature_line = features_lines[feature_line_counter]
         
+        print ("Source equals : {}".format(source))
+        if source.upper() == "ENSEMBL":
+            print("IT EQUALS ENSEMBL")
+        else:
+            print("DOES NOT EQUAL ENSEMBL")
+
         #Go through each feature and determine key value pairs, properties and importantly the id to use to group for interfeature_relationships.
         for feature_text in features_list:
             feature_object = dict()
