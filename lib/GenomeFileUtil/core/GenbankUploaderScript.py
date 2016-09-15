@@ -103,7 +103,15 @@ def upload_genome(shock_service_url=None,
 
     taxon_workspace_id = taxon_workspace_object[0] 
     taxon_workspace_name = taxon_workspace_object[1] 
- 
+
+    #Get GO OntologyDictionary
+#    ontologies = ws_client.get_objects2({'objects': [{'workspace': 'KBaseOntology', 'name':'gene_ontology'}]}) 
+#    go_ontology = ontologies['data'][0]['data'] 
+    ontologies = ws_client.get_objects( [{'workspace':'KBaseOntology',
+                                           'name':'gene_ontology'}])
+    go_ontology = ontologies[0]['data']
+    del ontologies
+
     logger.info("Scanning for Genbank Format files.") 
     logger.info("GENETIC_CODE ENTERED : {}".format(str(genetic_code)))
     valid_extensions = [".gbff",".gbk",".gb",".genbank",".dat"] 
@@ -852,6 +860,7 @@ def upload_genome(shock_service_url=None,
             EC_number = None
             pseudo_non_gene = False
             has_protein_id = False
+            ontology_terms = dict()
 
             for feature_key_value_pair in feature_key_value_pairs_list:
                 #the key value pair removing unnecessary white space (including new lines as these often span multiple lines)
@@ -926,10 +935,27 @@ def upload_genome(shock_service_url=None,
                     has_protein_id = True
 
                 elif (key == "db_xref"):
-                    alias_dict[value]=1 
-#                    try:
-#                        db_xref_source, db_xref_value = value.strip().split(':',1)
-#                    except Exception, e: 
+                    try:
+                        db_xref_source, db_xref_value = value.strip().split(':',1)
+                        db_xref_value = db_xref_value.strip()
+                        db_xref_source = db_xref_source.strip()
+                        if db_xref_source.upper() == "GO":
+                            if db_xref_value not in go_ontology:
+                                alias_dict[value]=1 
+                                print "GO term {} was not found in our ontology database. Used as an alias".format(db_xref_value)
+                            else:
+                                if("GO" not in ontology_terms):
+                                    ontology_terms["GO"]=dict()
+                                if(go_id not in ontology_terms["GO"]):
+                                    OntologyEvidence=[{"method":"KBase_Genbank_uploader from db_xref field","timestamp":time_string,"method_version":"1.0"}]
+                                    OntologyData={"id":db_xref_value,"ontology_ref":"KBaseOntology/gene_ontology",
+                                                  "term_name":go_ontology[db_xref_value]["name"],
+                                                  "term_lineage":[],"evidence":OntologyEvidence}
+                                    ontology_terms["GO"][db_xref_value]=OntologyData
+                        else:
+                            alias_dict[value]=1 
+                    except Exception, e: 
+                        alias_dict[value]=1 
 #                        db_xref_source = "Unknown"
 #                        db_xref_value = value.strip()
 #                    if db_xref_value.strip() in alias_dict: 
@@ -1068,7 +1094,7 @@ ADVANCED OPTIONS AND CHECK THE\
 #                feature_type_id_counter_dict[feature_type] += 1;
 #                feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_type]))
 ##END NEW WAY
-
+            feature_object["ontology_terms"]=ontology_terms
             feature_object["id"] = feature_id
 
             ########################################
