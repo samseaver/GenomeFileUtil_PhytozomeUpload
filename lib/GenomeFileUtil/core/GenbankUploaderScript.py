@@ -680,12 +680,6 @@ def upload_genome(shock_service_url=None,
                 feature_line_counter += 1 
                 feature_line = features_lines[feature_line_counter]
         
-        print ("Source equals : {}".format(source))
-        if source.upper() == "ENSEMBL":
-            print("IT EQUALS ENSEMBL")
-        else:
-            print("DOES NOT EQUAL ENSEMBL")
-
         #Go through each feature and determine key value pairs, properties and importantly the id to use to group for interfeature_relationships.
         for feature_text in features_list:
             feature_object = dict()
@@ -1092,11 +1086,11 @@ ADVANCED OPTIONS AND CHECK THE\
 #            feature_object["quality_warnings"] = quality_warnings
 
             #MAKE ENTRY INTO THE FEATURE TABLE
-            pickled_feature = cPickle.dumps(feature_object, cPickle.HIGHEST_PROTOCOL) 
-            sql_cursor.execute("insert into features values(:feature_id, :feature_type , :sequence_length, :feature_data)", 
-                               (feature_id, feature_object["type"], feature_object["dna_sequence_length"], sqlite3.Binary(pickled_feature),))
+#            pickled_feature = cPickle.dumps(feature_object, cPickle.HIGHEST_PROTOCOL) 
+#            sql_cursor.execute("insert into features values(:feature_id, :feature_type , :sequence_length, :feature_data)", 
+#                               (feature_id, feature_object["type"], feature_object["dna_sequence_length"], sqlite3.Binary(pickled_feature),))
 
-#            list_of_features.append(feature_object)
+            list_of_features.append(feature_object)
             
 #        for feature_type in feature_type_counts:
 #            print "Feature " + feature_type + "  count: " + str(feature_type_counts[feature_type])
@@ -1154,24 +1148,24 @@ ADVANCED OPTIONS AND CHECK THE\
 
     #Do size check of the features
 #    sql_cursor.execute("select sum(length(feature_data)) from features where feature_type = ?", (feature_type,))
-    sql_cursor.execute("select sum(length(feature_data)) from features")
-    for row in sql_cursor:
-        data_length = row[0]
+#    sql_cursor.execute("select sum(length(feature_data)) from features")
+#    for row in sql_cursor:
+#        data_length = row[0]
 
-    if data_length < 900000000:
+#    if data_length < 900000000:
         #Size is probably ok Try the save
         #Retrieve the features from the sqllite DB
-        sql_cursor.execute("select feature_id, feature_data from features")
+#        sql_cursor.execute("select feature_id, feature_data from features")
 
-        for row in sql_cursor: 
-            feature_id = row[0]
-            feature_data = cPickle.loads(str(row[1])) 
-            list_of_features.append(feature_data)
+#        for row in sql_cursor: 
+#            feature_id = row[0]
+#            feature_data = cPickle.loads(str(row[1])) 
+#            list_of_features.append(feature_data)
 
-    else:
+#    else:
         #Features too large
         #raising an error for now.
-        raise Exception("This genome can not be saved due to the resulting object being too large for the workspace")
+#        raise Exception("This genome can not be saved due to the resulting object being too large for the workspace")
 
     #Save genome
     #Then Finally store the GenomeAnnotation.                                                                            
@@ -1280,7 +1274,6 @@ if __name__ == "__main__":
     logger = script_utils.stderrlogger(__file__)
 
     logger.debug(args)
-    print("GENETIC_CODE FIRST ENTERED : {}".format(str(args.genetic_code)))
 
     try:
         obj_name = upload_genome(shock_service_url = args.shock_service_url,
