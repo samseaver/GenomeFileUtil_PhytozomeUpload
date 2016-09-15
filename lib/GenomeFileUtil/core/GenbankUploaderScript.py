@@ -11,11 +11,11 @@ import traceback
 import os.path 
 import datetime
 import shutil
-import sqlite3 
-try: 
-    import cPickle as cPickle 
-except: 
-    import pickle as cPickle 
+#import sqlite3 
+#try: 
+#    import cPickle as cPickle 
+#except: 
+#    import pickle as cPickle 
 from string import digits
 from string import maketrans
 from collections import OrderedDict
@@ -147,7 +147,7 @@ def upload_genome(shock_service_url=None,
 
     if os.path.isfile(input_file_name):
         print "Found Genbank_File" 
-        make_sql_in_memory = True
+#        make_sql_in_memory = True
         dir_name = os.path.dirname(input_file_name)
 
         #take in Genbank file and remove all empty lines from it.
@@ -162,8 +162,8 @@ def upload_genome(shock_service_url=None,
         os.remove(temp_file)
 
         #If file is over a 1GB need to do SQLLite on disc
-        if os.stat(input_file_name) > 1073741824 :
-            make_sql_in_memory = True
+#        if os.stat(input_file_name) > 1073741824 :
+#            make_sql_in_memory = True
             
         genbank_file_handle = TextFileDecoder.open_textdecoder(input_file_name, 'ISO-8859-1') 
         start_position = 0
@@ -250,8 +250,6 @@ def upload_genome(shock_service_url=None,
                     temp_notes = "{} ".format(genome["notes"])
                 genome["notes"] += "{}The genetic code of {} was supplied by the user.".format(temp_notes,genetic_code, taxon_info[0]["data"]["genetic_code"])
 
-#            logger.info("GENETIC_CODE 2 : {}".format(str(genetic_code)))
-#            print "Genetic CODE 2 : {}".format(str(genetic_code))
             genome['genetic_code'] = genetic_code
 #            print "Found name : " + taxon_object_name + " id: " + taxon_id
 #            print "TAXON OBJECT TYPE : " + taxon_info[0]["info"][2]
@@ -342,21 +340,21 @@ def upload_genome(shock_service_url=None,
     genbank_time_string = None
     genome_publication_dict = dict()
 
-    #Create a SQLLite database and connection.
-    if make_sql_in_memory:
-        sql_conn = sqlite3.connect(':memory:') 
-    else:
-        db_name = "GenomeAnnotation_{}.db".format(time_string) 
-        sql_conn = sqlite3.connect(db_name) 
+#    #Create a SQLLite database and connection.
+#    if make_sql_in_memory:
+#        sql_conn = sqlite3.connect(':memory:') 
+#    else:
+#        db_name = "GenomeAnnotation_{}.db".format(time_string) 
+#        sql_conn = sqlite3.connect(db_name) 
 
-    sql_cursor = sql_conn.cursor() 
+#    sql_cursor = sql_conn.cursor() 
 
     #Create a protein and feature table.
-    sql_cursor.execute('''CREATE TABLE features (feature_id text, feature_type text, sequence_length integer, feature_data blob)''')
-    sql_cursor.execute('''CREATE INDEX feature_id_idx ON features (feature_id)''')
-    sql_cursor.execute('''CREATE INDEX feature_type_idx ON features (feature_type)''')
-    sql_cursor.execute('''CREATE INDEX seq_len_idx ON features (sequence_length)''')
-    sql_cursor.execute('''PRAGMA synchronous=OFF''') 
+#    sql_cursor.execute('''CREATE TABLE features (feature_id text, feature_type text, sequence_length integer, feature_data blob)''')
+#    sql_cursor.execute('''CREATE INDEX feature_id_idx ON features (feature_id)''')
+#    sql_cursor.execute('''CREATE INDEX feature_type_idx ON features (feature_type)''')
+#    sql_cursor.execute('''CREATE INDEX seq_len_idx ON features (sequence_length)''')
+#    sql_cursor.execute('''PRAGMA synchronous=OFF''') 
 
     #Feature Data structures
     list_of_features = list()
@@ -732,7 +730,7 @@ def upload_genome(shock_service_url=None,
                 temp_warning = "Feature with the text %s has the rare 'order' coordinate. The sequence was joined together because KBase does not allow for a non contiguous resulting sequence with multiple locations for a feature." % (feature_text)
                 quality_warnings.append(temp_warning)
                 #annotation_metadata_warnings.append(temp_warning)
-                sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,))
+#                sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,))
             coordinates_list = coordinates_info.split(",")
             last_coordinate = 0
             dna_sequence_length = 0
@@ -749,7 +747,7 @@ def upload_genome(shock_service_url=None,
                     temp_warning = "Feature with the text %s has a '<' or a '>' in the coordinates.  This means the feature starts or ends beyond the known sequence." % (feature_text)
                     quality_warnings.append(temp_warning)
                     #annotation_metadata_warnings.append(temp_warning)
-                    sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,))
+#                    sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,))
                     coordinates= re.sub('<', '', coordinates)
                     coordinates= re.sub('>', '', coordinates)
 
@@ -765,7 +763,7 @@ def upload_genome(shock_service_url=None,
                     temp_warning = "Feature with the text %s has a single period in the original coordinate this indicates that the exact location is unknown but that it is one of the bases between bases %s and %s, inclusive.  Note the entire sequence range has been put into this feature." % (feature_text, str(start_pos),str(end_pos))
                     quality_warnings.append(temp_warning)
                     #annotation_metadata_warnings.append(temp_warning)
-                    sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,))
+#                    sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,))
                 elif period_count > 2 :
                     can_not_process_feature = True
                 else:
@@ -776,7 +774,7 @@ def upload_genome(shock_service_url=None,
                     temp_warning = "Feature with the text %s is between bases.  It points to a site between bases %s and %s, inclusive.  Note the entire sequence range has been put into this feature." % (feature_text, str(start_pos),str(end_pos))
                     quality_warnings.append(temp_warning)
                     #annotation_metadata_warnings.append(temp_warning)       
-                    sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,))
+#                    sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,))
 
                 if not can_not_process_feature:
                     if (represents_int(start_pos) and represents_int(end_pos)):
@@ -1219,8 +1217,8 @@ ADVANCED OPTIONS AND CHECK THE\
 #        except biokbase.workspace.client.ServerError as err: 
 #            raise 
 
-    if not make_sql_in_memory:
-        os.remove(db_name) 
+#    if not make_sql_in_memory:
+#        os.remove(db_name) 
 
     logger.info("Conversions completed.")
 
