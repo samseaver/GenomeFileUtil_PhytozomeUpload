@@ -939,19 +939,20 @@ def upload_genome(shock_service_url=None,
                         db_xref_source, db_xref_value = value.strip().split(':',1)
                         db_xref_value = db_xref_value.strip()
                         db_xref_source = db_xref_source.strip()
+                        go_id=value.strip()
                         if db_xref_source.upper() == "GO":
-                            if db_xref_value not in go_ontology:
+                            if  not in go_ontology:
                                 alias_dict[value]=1 
-                                print "GO term {} was not found in our ontology database. Used as an alias".format(db_xref_value)
+                                print ("GO term {} was not found in our ontology database. Used as an alias".format(go_id))
                             else:
                                 if("GO" not in ontology_terms):
                                     ontology_terms["GO"]=dict()
-                                if(go_id not in ontology_terms["GO"]):
+                                if( go_id not in ontology_terms["GO"]):
                                     OntologyEvidence=[{"method":"KBase_Genbank_uploader from db_xref field","timestamp":time_string,"method_version":"1.0"}]
-                                    OntologyData={"id":db_xref_value,"ontology_ref":"KBaseOntology/gene_ontology",
-                                                  "term_name":go_ontology[db_xref_value]["name"],
+                                    OntologyData={"id":go_id,"ontology_ref":"KBaseOntology/gene_ontology",
+                                                  "term_name":go_ontology[go_id]["name"],
                                                   "term_lineage":[],"evidence":OntologyEvidence}
-                                    ontology_terms["GO"][db_xref_value]=OntologyData
+                                    ontology_terms["GO"][go_id]=OntologyData
                         else:
                             alias_dict[value]=1 
                     except Exception, e: 
