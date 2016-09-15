@@ -33,7 +33,7 @@ class GenbankToGenome:
         genome_name = params['genome_name']
         source = 'Genbank'
         if 'source' in params:
-            source = source;
+            source = params['source'];
         taxon_wsname = 'ReferenceTaxons'
         if 'taxon_wsname' in params:
             taxon_wsname = params['taxon_wsname']
