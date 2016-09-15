@@ -941,7 +941,7 @@ def upload_genome(shock_service_url=None,
                         db_xref_source = db_xref_source.strip()
                         go_id=value.strip()
                         if db_xref_source.upper() == "GO":
-                            if  not in go_ontology:
+                            if go_id not in go_ontology:
                                 alias_dict[value]=1 
                                 print ("GO term {} was not found in our ontology database. Used as an alias".format(go_id))
                             else:
