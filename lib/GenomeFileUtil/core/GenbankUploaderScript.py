@@ -109,7 +109,7 @@ def upload_genome(shock_service_url=None,
 #    go_ontology = ontologies['data'][0]['data'] 
     ontologies = ws_client.get_objects( [{'workspace':'KBaseOntology',
                                            'name':'gene_ontology'}])
-    go_ontology = ontologies[0]['data']
+    go_ontology = ontologies[0]['data']['term_hash']
     del ontologies
 
     logger.info("Scanning for Genbank Format files.") 
