@@ -956,7 +956,7 @@ def upload_genome(shock_service_url=None,
                                 print ("Term {} was not found in our ontology database. Used as an alias".format(ontology_id))
                             else:
                                 if(ontology_source not in ontology_terms):
-                                    ontology_terms[ontology-source]=dict()
+                                    ontology_terms[ontology_source]=dict()
                                 if( ontology_id not in ontology_terms[ontology_source]):
                                     OntologyEvidence=[{"method":"KBase_Genbank_uploader from db_xref field","timestamp":time_string,"method_version":"1.0"}]
                                     OntologyData={"id":ontology_id,"ontology_ref":ontology_ref,
