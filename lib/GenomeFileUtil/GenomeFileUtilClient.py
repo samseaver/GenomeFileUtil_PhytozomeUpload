@@ -65,6 +65,23 @@ class GenomeFileUtil(object):
             'GenomeFileUtil.genome_to_gff',
             [params], self._service_ver, context)
 
+    def genome_to_genbank(self, params, context=None):
+        """
+        :param params: instance of type "GenomeToGenbankParams" -> structure:
+           parameter "genome_ref" of String, parameter "ref_path_to_genome"
+           of list of String
+        :returns: instance of type "GenomeToGenbankResult" (from_cache is 1
+           if the file already exists and was just returned, 0 if the file
+           was generated during this call.) -> structure: parameter
+           "gff_file" of type "File" -> structure: parameter "path" of
+           String, parameter "shock_id" of String, parameter "ftp_url" of
+           String, parameter "from_cache" of type "boolean" (A boolean - 0
+           for false, 1 for true. @range (0, 1))
+        """
+        return self._client.call_method(
+            'GenomeFileUtil.genome_to_genbank',
+            [params], self._service_ver, context)
+
     def status(self, context=None):
         return self._client.call_method('GenomeFileUtil.status',
                                         [], self._service_ver, context)

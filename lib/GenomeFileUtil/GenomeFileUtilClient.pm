@@ -317,6 +317,110 @@ boolean is an int
     }
 }
  
+
+
+=head2 genome_to_genbank
+
+  $result = $obj->genome_to_genbank($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a GenomeFileUtil.GenomeToGenbankParams
+$result is a GenomeFileUtil.GenomeToGenbankResult
+GenomeToGenbankParams is a reference to a hash where the following keys are defined:
+	genome_ref has a value which is a string
+	ref_path_to_genome has a value which is a reference to a list where each element is a string
+GenomeToGenbankResult is a reference to a hash where the following keys are defined:
+	gff_file has a value which is a GenomeFileUtil.File
+	from_cache has a value which is a GenomeFileUtil.boolean
+File is a reference to a hash where the following keys are defined:
+	path has a value which is a string
+	shock_id has a value which is a string
+	ftp_url has a value which is a string
+boolean is an int
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a GenomeFileUtil.GenomeToGenbankParams
+$result is a GenomeFileUtil.GenomeToGenbankResult
+GenomeToGenbankParams is a reference to a hash where the following keys are defined:
+	genome_ref has a value which is a string
+	ref_path_to_genome has a value which is a reference to a list where each element is a string
+GenomeToGenbankResult is a reference to a hash where the following keys are defined:
+	gff_file has a value which is a GenomeFileUtil.File
+	from_cache has a value which is a GenomeFileUtil.boolean
+File is a reference to a hash where the following keys are defined:
+	path has a value which is a string
+	shock_id has a value which is a string
+	ftp_url has a value which is a string
+boolean is an int
+
+
+=end text
+
+=item Description
+
+
+
+=back
+
+=cut
+
+ sub genome_to_genbank
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function genome_to_genbank (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to genome_to_genbank:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'genome_to_genbank');
+	}
+    }
+
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "GenomeFileUtil.genome_to_genbank",
+	    params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'genome_to_genbank',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method genome_to_genbank",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'genome_to_genbank',
+				       );
+    }
+}
+ 
   
 sub status
 {
@@ -360,16 +464,16 @@ sub version {
             Bio::KBase::Exceptions::JSONRPC->throw(
                 error => $result->error_message,
                 code => $result->content->{code},
-                method_name => 'genome_to_gff',
+                method_name => 'genome_to_genbank',
             );
         } else {
             return wantarray ? @{$result->result} : $result->result->[0];
         }
     } else {
         Bio::KBase::Exceptions::HTTP->throw(
-            error => "Error invoking method genome_to_gff",
+            error => "Error invoking method genome_to_genbank",
             status_line => $self->{client}->status_line,
-            method_name => 'genome_to_gff',
+            method_name => 'genome_to_genbank',
         );
     }
 }
@@ -573,6 +677,76 @@ ref_path_to_genome has a value which is a reference to a list where each element
 
 
 =head2 GenomeToGFFResult
+
+=over 4
+
+
+
+=item Description
+
+from_cache is 1 if the file already exists and was just returned, 0 if
+the file was generated during this call.
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+gff_file has a value which is a GenomeFileUtil.File
+from_cache has a value which is a GenomeFileUtil.boolean
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+gff_file has a value which is a GenomeFileUtil.File
+from_cache has a value which is a GenomeFileUtil.boolean
+
+
+=end text
+
+=back
+
+
+
+=head2 GenomeToGenbankParams
+
+=over 4
+
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+genome_ref has a value which is a string
+ref_path_to_genome has a value which is a reference to a list where each element is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+genome_ref has a value which is a string
+ref_path_to_genome has a value which is a reference to a list where each element is a string
+
+
+=end text
+
+=back
+
+
+
+=head2 GenomeToGenbankResult
 
 =over 4
 

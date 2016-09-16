@@ -72,33 +72,20 @@ class GenomeFileUtilTest(unittest.TestCase):
     def getContext(self):
         return self.__class__.ctx
 
-    def getTempGenbank(self):
-        tmp_dir = self.__class__.cfg['scratch']
-        file_name = "GCF_000005845.2_ASM584v2_genomic.gbff.gz"
-        gbk_path = os.path.join(tmp_dir, file_name)
-        if not os.path.exists(gbk_path):
-            ftp_url = self.TEST_ECOLI_FILE_FTP
-            print('downloading test data from:' + ftp_url)
-            with closing(urllib2.urlopen(ftp_url)) as r:
-                with open(gbk_path, 'wb') as f:
-                    shutil.copyfileobj(r, f)
-        return gbk_path
-
     def test_simple_upload(self):
         # fetch the test files and set things up
         genomeFileUtil = self.getImpl()
-        tmp_dir = self.__class__.cfg['scratch']
-        gbk_path = self.getTempGenbank()
+        gbk_path = "data/GCF_000005845.2_ASM584v2_genomic.gbff"
 
         ### Test for a Local Function Call
         print('attempting upload via local function directly')
         ws_obj_name = 'MyGenome'
         result = genomeFileUtil.genbank_to_genome(self.getContext(), 
             {
-                'file' : { 'path':gbk_path },
+                'file' : { 'path': gbk_path },
                 'workspace_name':self.getWsName(),
                 'genome_name':ws_obj_name
-            })[0];
+            })[0]
         pprint(result)
         self.assertIsNotNone(result['genome_ref'])
         # todo: add test that result is correct
@@ -108,14 +95,17 @@ class GenomeFileUtilTest(unittest.TestCase):
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'], 
                                 token=self.__class__.ctx['token'],
                                 service_ver='dev')
-        shock_id = data_file_cli.file_to_shock({'file_path': gbk_path})['shock_id']
+        shutil.copy('data/rhodobacter.gtf', self.__class__.cfg['scratch'])
+        shock_id = data_file_cli.file_to_shock({
+            'file_path': os.path.join(self.__class__.cfg['scratch'], gbk_path.split("/")[-1])
+        })['shock_id']
         ws_obj_name2 = 'MyGenome.2'
         result2 = genomeFileUtil.genbank_to_genome(self.getContext(), 
             {
                 'file': {'shock_id':shock_id},
                 'workspace_name':self.getWsName(),
                 'genome_name':ws_obj_name2,
-            })[0];
+            })[0]
         pprint(result2)
         self.assertIsNotNone(result['genome_ref'])
         # todo: add test that result is correct
@@ -125,11 +115,12 @@ class GenomeFileUtilTest(unittest.TestCase):
         ws_obj_name3 = 'MyGenome.3'
         result3 = genomeFileUtil.genbank_to_genome(self.getContext(), 
             {
-                'file':{'ftp_url':'ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/bacteria/Escherichia_coli/reference/GCF_000005845.2_ASM584v2/GCF_000005845.2_ASM584v2_genomic.gbff.gz'},
-                'workspace_name':self.getWsName(),
-                'genome_name':ws_obj_name3,
-            })[0];
+                'file':{'ftp_url': self.__class__.TEST_ECOLI_FILE_FTP},
+                'workspace_name': self.getWsName(),
+                'genome_name': ws_obj_name3,
+            })[0]
         pprint(result3)
+
         self.assertIsNotNone(result3['genome_ref'])
 
 

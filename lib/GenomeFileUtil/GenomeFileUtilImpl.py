@@ -10,6 +10,7 @@ from pprint import pprint, pformat
 
 from GenomeFileUtil.core.GenbankToGenome import GenbankToGenome
 from GenomeFileUtil.core.GenomeToGFF import GenomeToGFF
+from GenomeFileUtil.core.GenomeToGenbank import GenomeToGenbank
 
 # Used to store and pass around configuration URLs more easily
 class SDKConfig:
@@ -38,9 +39,9 @@ class GenomeFileUtil:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     #########################################
-    VERSION = "0.0.1"
-    GIT_URL = "git@github.com:kbaseapps/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "10c1f07638a49e4797d118440cb5675dba8b1b91"
+    VERSION = "0.1.0"
+    GIT_URL = "https://github.com/mlhenderson/GenomeFileUtil"
+    GIT_COMMIT_HASH = "af5e452e463c3f785c8c999beb15dd866a0a08eb"
     
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -114,6 +115,33 @@ class GenomeFileUtil:
         # At some point might do deeper type checking...
         if not isinstance(result, dict):
             raise ValueError('Method genome_to_gff return value ' +
+                             'result is not type dict as required.')
+        # return the results
+        return [result]
+
+    def genome_to_genbank(self, ctx, params):
+        """
+        :param params: instance of type "GenomeToGenbankParams" -> structure:
+           parameter "genome_ref" of String, parameter "ref_path_to_genome"
+           of list of String
+        :returns: instance of type "GenomeToGenbankResult" (from_cache is 1
+           if the file already exists and was just returned, 0 if the file
+           was generated during this call.) -> structure: parameter
+           "gff_file" of type "File" -> structure: parameter "path" of
+           String, parameter "shock_id" of String, parameter "ftp_url" of
+           String, parameter "from_cache" of type "boolean" (A boolean - 0
+           for false, 1 for true. @range (0, 1))
+        """
+        # ctx is the context object
+        # return variables are: result
+        #BEGIN genome_to_genbank
+        exporter = GenomeToGenbank(self.cfg)
+        result = exporter.export(ctx, params)
+        #END genome_to_genbank
+
+        # At some point might do deeper type checking...
+        if not isinstance(result, dict):
+            raise ValueError('Method genome_to_genbank return value ' +
                              'result is not type dict as required.')
         # return the results
         return [result]
