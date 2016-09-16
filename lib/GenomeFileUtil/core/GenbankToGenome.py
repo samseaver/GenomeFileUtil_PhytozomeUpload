@@ -33,7 +33,11 @@ class GenbankToGenome:
         genome_name = params['genome_name']
         source = 'Genbank'
         if 'source' in params:
+<<<<<<< HEAD
             source = params['source']
+=======
+            source = source
+>>>>>>> 57f827efc4a42788437a32d9d494ff1c8748e3d9
         taxon_wsname = 'ReferenceTaxons'
         if 'taxon_wsname' in params:
             taxon_wsname = params['taxon_wsname']
@@ -55,10 +59,13 @@ class GenbankToGenome:
             generate_ids_if_needed = params['generate_ids_if_needed']
         else:
             generate_ids_if_needed = None
+<<<<<<< HEAD
 
         type = "User upload"
         if 'type' in params:
             type = params['type']
+=======
+>>>>>>> 57f827efc4a42788437a32d9d494ff1c8748e3d9
 
         # other options to handle
         # release
