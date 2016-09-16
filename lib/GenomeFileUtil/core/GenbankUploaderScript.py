@@ -108,8 +108,11 @@ def upload_genome(shock_service_url=None,
 #    ontologies = ws_client.get_objects2({'objects': [{'workspace': 'KBaseOntology', 'name':'gene_ontology'}]}) 
 #    go_ontology = ontologies['data'][0]['data'] 
     ontologies = ws_client.get_objects( [{'workspace':'KBaseOntology',
-                                           'name':'gene_ontology'}])
+                                          'name':'gene_ontology'},
+                                         {'workspace':'KBaseOntology',
+                                          'name':'plant_ontology'}])
     go_ontology = ontologies[0]['data']['term_hash']
+    po_ontology = ontologies[1]['data']['term_hash']
     del ontologies
 
     logger.info("Scanning for Genbank Format files.") 
@@ -939,20 +942,27 @@ def upload_genome(shock_service_url=None,
                         db_xref_source, db_xref_value = value.strip().split(':',1)
                         db_xref_value = db_xref_value.strip()
                         db_xref_source = db_xref_source.strip()
-                        go_id=value.strip()
-                        if db_xref_source.upper() == "GO":
-                            if go_id not in go_ontology:
+                        if db_xref_source.upper() == "GO" or db_xref_source.upper() == "PO":
+                            ontology_id=value.strip()
+                            ontology_source = db_xref_source.upper()
+                            if ontology_source == "GO":
+                                ontology_to_use = go_ontology
+                                ontology_ref = "KBaseOntology/gene_ontology"
+                            elif ontology_source == "PO":
+                                ontology_to_use = po_ontology
+                                ontology_ref = "KBaseOntology/plant_ontology"
+                            if ontology_id not in ontology_to_use:
                                 alias_dict[value]=1 
-                                print ("GO term {} was not found in our ontology database. Used as an alias".format(go_id))
+                                print ("Term {} was not found in our ontology database. Used as an alias".format(ontology_id))
                             else:
-                                if("GO" not in ontology_terms):
-                                    ontology_terms["GO"]=dict()
-                                if( go_id not in ontology_terms["GO"]):
+                                if(ontology_source not in ontology_terms):
+                                    ontology_terms[ontology_source]=dict()
+                                if( ontology_id not in ontology_terms[ontology_source]):
                                     OntologyEvidence=[{"method":"KBase_Genbank_uploader from db_xref field","timestamp":time_string,"method_version":"1.0"}]
-                                    OntologyData={"id":go_id,"ontology_ref":"KBaseOntology/gene_ontology",
-                                                  "term_name":go_ontology[go_id]["name"],
+                                    OntologyData={"id":ontology_id,"ontology_ref":ontology_ref,
+                                                  "term_name":ontology_source[ontology_id]["name"],
                                                   "term_lineage":[],"evidence":OntologyEvidence}
-                                    ontology_terms["GO"][go_id]=OntologyData
+                                    ontology_terms[ontology_source][ontology_id]=OntologyData
                         else:
                             alias_dict[value]=1 
                     except Exception, e: 
