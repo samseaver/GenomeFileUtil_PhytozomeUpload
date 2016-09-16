@@ -947,19 +947,20 @@ def upload_genome(shock_service_url=None,
                             ontology_source = db_xref_source.upper()
                             if ontology_source == "GO":
                                 ontology_to_use = go_ontology
+                                ontology_ref = "KBaseOntology/gene_ontology"
                             elif ontology_source == "PO":
                                 ontology_to_use = po_ontology
-                            
+                                ontology_ref = "KBaseOntology/plant_ontology"
                             if ontology_id not in ontology_to_use:
                                 alias_dict[value]=1 
-                                print ("Term {} was not found in our ontology database. Used as an alias".format(go_id))
+                                print ("Term {} was not found in our ontology database. Used as an alias".format(ontology_id))
                             else:
                                 if(ontology_source not in ontology_terms):
                                     ontology_terms[ontology-source]=dict()
                                 if( ontology_id not in ontology_terms[ontology_source]):
                                     OntologyEvidence=[{"method":"KBase_Genbank_uploader from db_xref field","timestamp":time_string,"method_version":"1.0"}]
-                                    OntologyData={"id":ontology_id,"ontology_ref":"KBaseOntology/gene_ontology",
-                                                  "term_name":go_ontology[ontology_id]["name"],
+                                    OntologyData={"id":ontology_id,"ontology_ref":ontology_ref,
+                                                  "term_name":ontology_source[ontology_id]["name"],
                                                   "term_lineage":[],"evidence":OntologyEvidence}
                                     ontology_terms[ontology_source][ontology_id]=OntologyData
                         else:
