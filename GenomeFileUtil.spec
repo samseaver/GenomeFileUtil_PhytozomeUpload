@@ -38,12 +38,11 @@ module GenomeFileUtil {
 
         string source;
         string taxon_wsname;
-	string release;
-	string generate_ids_if_needed;
-	int    genetic_code;
-	string type;
-	usermeta metadata;
-
+	    string release;
+	    string generate_ids_if_needed;
+	    int    genetic_code;
+	    string type;
+	    usermeta metadata;
     } GenbankToGenomeParams;
 
     typedef structure {
@@ -52,9 +51,6 @@ module GenomeFileUtil {
 
     funcdef genbank_to_genome(GenbankToGenomeParams params)
                 returns (GenomeSaveResult result) authentication required;
-
-
-
 
     typedef structure {
         string genome_ref;
@@ -71,5 +67,18 @@ module GenomeFileUtil {
     funcdef genome_to_gff(GenomeToGFFParams params)
                 returns (GenomeToGFFResult result) authentication required;
 
+    typedef structure {
+        string genome_ref;
+        list <string> ref_path_to_genome;
+    } GenomeToGenbankParams;
 
+    /* from_cache is 1 if the file already exists and was just returned, 0 if
+    the file was generated during this call. */
+    typedef structure {
+        File gff_file;
+        boolean from_cache;
+    } GenomeToGenbankResult;
+
+    funcdef genome_to_genbank(GenomeToGenbankParams params)
+                returns (GenomeToGenbankResult result) authentication required;
 };

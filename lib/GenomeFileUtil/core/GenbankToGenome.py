@@ -17,7 +17,7 @@ from GenomeFileUtil.core.GenbankUploaderScript import upload_genome
 class GenbankToGenome:
 
     def __init__(self, sdk_config):
-        self.cfg = sdk_config;
+        self.cfg = sdk_config
 
     def import_file(self, ctx, params):
 
@@ -33,8 +33,7 @@ class GenbankToGenome:
         genome_name = params['genome_name']
         source = 'Genbank'
         if 'source' in params:
-            source = params['source'];
-
+            source = params['source']
         taxon_wsname = 'ReferenceTaxons'
         if 'taxon_wsname' in params:
             taxon_wsname = params['taxon_wsname']
@@ -42,14 +41,20 @@ class GenbankToGenome:
         release = None
         if 'release' in params:
             release = params['release']
+        else:
+            release = None
 
         genetic_code = None
         if 'genetic_code' in params:
             genetic_code = params['genetic_code']
+        else:
+            genetic_code = None
 
         generate_ids_if_needed = 0
         if 'generate_ids_if_needed' in params:
             generate_ids_if_needed = params['generate_ids_if_needed']
+        else:
+            generate_ids_if_needed = None
 
         type = "User upload"
         if 'type' in params:
@@ -79,7 +84,6 @@ class GenbankToGenome:
                 genetic_code     = genetic_code,
                 type             = type,
                 generate_ids_if_needed = generate_ids_if_needed,
-            
                 provenance = ctx['provenance']
             )
 
