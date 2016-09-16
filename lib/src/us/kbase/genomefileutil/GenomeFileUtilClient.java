@@ -195,6 +195,23 @@ public class GenomeFileUtilClient {
         return res.get(0);
     }
 
+    /**
+     * <p>Original spec-file function name: genome_to_genbank</p>
+     * <pre>
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.genomefileutil.GenomeToGenbankParams GenomeToGenbankParams}
+     * @return   parameter "result" of type {@link us.kbase.genomefileutil.GenomeToGenbankResult GenomeToGenbankResult}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public GenomeToGenbankResult genomeToGenbank(GenomeToGenbankParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<GenomeToGenbankResult>> retType = new TypeReference<List<GenomeToGenbankResult>>() {};
+        List<GenomeToGenbankResult> res = caller.jsonrpcCall("GenomeFileUtil.genome_to_genbank", args, retType, true, true, jsonRpcContext, this.serviceVersion);
+        return res.get(0);
+    }
+
     public Map<String, Object> status(RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         TypeReference<List<Map<String, Object>>> retType = new TypeReference<List<Map<String, Object>>>() {};

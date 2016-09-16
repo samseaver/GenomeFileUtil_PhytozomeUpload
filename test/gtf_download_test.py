@@ -12,8 +12,6 @@ try:
 except:
     from configparser import ConfigParser  # py3
 
-from pprint import pprint
-
 from biokbase.workspace.client import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
@@ -86,7 +84,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         cls.rhodobacter_ref_with_gff = str(info[6]) +'/' + str(info[0]) + '/' + str(info[4])
         print('created rhodobacter test genome with handle: ' + cls.rhodobacter_ref_with_gff)
 
-
     @classmethod
     def tearDownClass(cls):
         if hasattr(cls, 'wsName'):
@@ -111,24 +108,16 @@ class GenomeFileUtilTest(unittest.TestCase):
     def getContext(self):
         return self.__class__.ctx
 
-
     def test_simple_gff_download(self):
         genomeFileUtil = self.getImpl()
         print('testing GTF download by building the file')
         res1 = genomeFileUtil.genome_to_gff(self.getContext(),
             { 'genome_ref':self.rhodobacter_ref })[0]
-        self.assertEqual(res1['from_cache'],0)
-
-        #TODO: test that files we got back are correct
+        self.assertEqual(res1['from_cache'], 0)
 
     def test_simple_gff_download_from_cache(self):
         genomeFileUtil = self.getImpl()
         print('testing GTF download from cached file')
         res2 = genomeFileUtil.genome_to_gff(self.getContext(),
             { 'genome_ref':self.rhodobacter_ref_with_gff })[0]
-        self.assertEqual(res2['from_cache'],1)
-
-        #TODO: test that files we got back are correct
-
-
-
+        self.assertEqual(res2['from_cache'], 1)

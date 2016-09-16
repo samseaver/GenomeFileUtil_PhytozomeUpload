@@ -337,6 +337,10 @@ class Application(object):
                              name='GenomeFileUtil.genome_to_gff',
                              types=[dict])
         self.method_authentication['GenomeFileUtil.genome_to_gff'] = 'required'
+        self.rpc_service.add(impl_GenomeFileUtil.genome_to_genbank,
+                             name='GenomeFileUtil.genome_to_genbank',
+                             types=[dict])
+        self.method_authentication['GenomeFileUtil.genome_to_genbank'] = 'required'
         self.rpc_service.add(impl_GenomeFileUtil.status,
                              name='GenomeFileUtil.status',
                              types=[dict])
