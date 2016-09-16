@@ -111,8 +111,11 @@ def upload_genome(shock_service_url=None,
                                           'name':'gene_ontology'},
                                          {'workspace':'KBaseOntology',
                                           'name':'plant_ontology'}])
-    go_ontology = ontologies[0]['data']['term_hash']
-    po_ontology = ontologies[1]['data']['term_hash']
+    ontology_sources = dict()
+    ontology_sources["GO"] = ontologies[0]['data']['term_hash']
+    ontology_sources["PO"] = ontologies[1]['data']['term_hash']
+#    go_ontology = ontologies[0]['data']['term_hash']
+#    po_ontology = ontologies[1]['data']['term_hash']
     del ontologies
 
     logger.info("Scanning for Genbank Format files.") 
@@ -946,12 +949,10 @@ def upload_genome(shock_service_url=None,
                             ontology_id=value.strip()
                             ontology_source = db_xref_source.upper()
                             if ontology_source == "GO":
-                                ontology_to_use = go_ontology
                                 ontology_ref = "KBaseOntology/gene_ontology"
                             elif ontology_source == "PO":
-                                ontology_to_use = po_ontology
                                 ontology_ref = "KBaseOntology/plant_ontology"
-                            if ontology_id not in ontology_to_use:
+                            if ontology_id not in ontology_sources[ontology_source]:
                                 alias_dict[value]=1 
                                 print ("Term {} was not found in our ontology database. Used as an alias".format(ontology_id))
                             else:
@@ -960,7 +961,7 @@ def upload_genome(shock_service_url=None,
                                 if( ontology_id not in ontology_terms[ontology_source]):
                                     OntologyEvidence=[{"method":"KBase_Genbank_uploader from db_xref field","timestamp":time_string,"method_version":"1.0"}]
                                     OntologyData={"id":ontology_id,"ontology_ref":ontology_ref,
-                                                  "term_name":ontology_source[ontology_id]["name"],
+                                                  "term_name":ontology_sources[ontology_source][ontology_id]["name"],
                                                   "term_lineage":[],"evidence":OntologyEvidence}
                                     ontology_terms[ontology_source][ontology_id]=OntologyData
                         else:
