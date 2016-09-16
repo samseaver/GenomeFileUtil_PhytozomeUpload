@@ -1095,7 +1095,8 @@ ADVANCED OPTIONS AND CHECK THE\
 #                feature_type_id_counter_dict[feature_type] += 1;
 #                feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_type]))
 ##END NEW WAY
-            feature_object["ontology_terms"]=ontology_terms
+            if len(ontology_terms) > 0:
+                feature_object["ontology_terms"]=ontology_terms
             feature_object["id"] = feature_id
 
             ########################################
