@@ -109,15 +109,25 @@ def upload_genome(shock_service_url=None,
 #    ontologies = ws_client.get_objects2({'objects': [{'workspace': 'KBaseOntology', 'name':'gene_ontology'}]}) 
 #    go_ontology = ontologies['data'][0]['data'] 
     logger.info("Retrieving Ontology databases.") 
-    ontologies = ws_client.get_objects( [{'workspace':'KBaseOntology',
-                                          'name':'gene_ontology'},
-                                         {'workspace':'KBaseOntology',
-                                          'name':'plant_ontology'}])
+#    ontologies = ws_client.get_objects( [{'workspace':'KBaseOntology',
+#                                          'name':'gene_ontology'},
+#                                         {'workspace':'KBaseOntology',
+#                                          'name':'plant_ontology'}])
+#    logger.info("Ontology databases retrieved.") 
     ontology_sources = dict()
-    ontology_sources["GO"] = ontologies[0]['data']['term_hash']
-    ontology_sources["PO"] = ontologies[1]['data']['term_hash']
-    del ontologies
-    logger.info("Ontology databases retrieved.") 
+#    ontology_sources["GO"] = ontologies[0]['data']['term_hash']
+#    ontology_sources["PO"] = ontologies[1]['data']['term_hash']
+#    del ontologies
+    go_ontologies = ws_client.get_objects( [{'workspace':'KBaseOntology',
+                                             'name':'gene_ontology'}])
+    logger.info("Retried GO Ontology database, starting PO") 
+    po_ontologies = ws_client.get_objects( [{'workspace':'KBaseOntology',
+                                          'name':'plant_ontology'}])
+    logger.info("Retried PO Ontology database") 
+    ontology_sources["GO"] = go_ontologies[0]['data']['term_hash']
+    ontology_sources["PO"] = po_ontologies[0]['data']['term_hash']
+    del go_ontologies
+    del po_ontologies
 
     logger.info("Scanning for Genbank Format files.") 
     logger.info("GENETIC_CODE ENTERED : {}".format(str(genetic_code)))
