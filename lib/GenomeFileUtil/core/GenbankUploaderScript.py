@@ -104,9 +104,11 @@ def upload_genome(shock_service_url=None,
     taxon_workspace_id = taxon_workspace_object[0] 
     taxon_workspace_name = taxon_workspace_object[1] 
 
+
     #Get GO OntologyDictionary
 #    ontologies = ws_client.get_objects2({'objects': [{'workspace': 'KBaseOntology', 'name':'gene_ontology'}]}) 
 #    go_ontology = ontologies['data'][0]['data'] 
+    logger.info("Retrieving Ontology databases.") 
     ontologies = ws_client.get_objects( [{'workspace':'KBaseOntology',
                                           'name':'gene_ontology'},
                                          {'workspace':'KBaseOntology',
@@ -114,9 +116,8 @@ def upload_genome(shock_service_url=None,
     ontology_sources = dict()
     ontology_sources["GO"] = ontologies[0]['data']['term_hash']
     ontology_sources["PO"] = ontologies[1]['data']['term_hash']
-#    go_ontology = ontologies[0]['data']['term_hash']
-#    po_ontology = ontologies[1]['data']['term_hash']
     del ontologies
+    logger.info("Ontology databases retrieved.") 
 
     logger.info("Scanning for Genbank Format files.") 
     logger.info("GENETIC_CODE ENTERED : {}".format(str(genetic_code)))
