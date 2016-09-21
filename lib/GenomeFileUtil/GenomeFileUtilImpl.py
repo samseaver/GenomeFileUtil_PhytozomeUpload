@@ -12,6 +12,10 @@ from GenomeFileUtil.core.GenbankToGenome import GenbankToGenome
 from GenomeFileUtil.core.GenomeToGFF import GenomeToGFF
 from GenomeFileUtil.core.GenomeToGenbank import GenomeToGenbank
 
+from biokbase.workspace.client import Workspace
+
+from DataFileUtil.DataFileUtilClient import DataFileUtil
+
 # Used to store and pass around configuration URLs more easily
 class SDKConfig:
     def __init__(self, config):
@@ -39,9 +43,9 @@ class GenomeFileUtil:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     #########################################
-    VERSION = "0.1.0"
-    GIT_URL = "https://github.com/mlhenderson/GenomeFileUtil"
-    GIT_COMMIT_HASH = "af5e452e463c3f785c8c999beb15dd866a0a08eb"
+    VERSION = "0.2.0"
+    GIT_URL = "git@github.com:kbaseapps/GenomeFileUtil.git"
+    GIT_COMMIT_HASH = "d1d8060c9961a2bcac838b8c1c404bc93d50c4a2"
     
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -57,12 +61,25 @@ class GenomeFileUtil:
 
     def genbank_to_genome(self, ctx, params):
         """
-        :param params: instance of type "GenbankToGenomeParams" -> structure:
-           parameter "file" of type "File" -> structure: parameter "path" of
-           String, parameter "shock_id" of String, parameter "ftp_url" of
-           String, parameter "genome_name" of String, parameter
-           "workspace_name" of String, parameter "source" of String,
-           parameter "taxon_wsname" of String
+        :param params: instance of type "GenbankToGenomeParams" (genome_name
+           - becomes the name of the object workspace_name - the name of the
+           workspace it gets saved to. source - Source of the file typically
+           something like RefSeq or Ensembl taxon_ws_name - where the
+           reference taxons are : ReferenceTaxons release - Release or
+           version number of the data per example Ensembl has numbered
+           releases of all their data: Release 31 generate_ids_if_needed - If
+           field used for feature id is not there, generate ids (default
+           behavior is raising an exception) genetic_code - Genetic code of
+           organism. Overwrites determined GC from taxon object type -
+           Reference, Representative or User upload) -> structure: parameter
+           "file" of type "File" -> structure: parameter "path" of String,
+           parameter "shock_id" of String, parameter "ftp_url" of String,
+           parameter "genome_name" of String, parameter "workspace_name" of
+           String, parameter "source" of String, parameter "taxon_wsname" of
+           String, parameter "release" of String, parameter
+           "generate_ids_if_needed" of String, parameter "genetic_code" of
+           Long, parameter "type" of String, parameter "metadata" of type
+           "usermeta" -> mapping from String to String
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
            "genome_ref" of String
         """
@@ -135,8 +152,14 @@ class GenomeFileUtil:
         # ctx is the context object
         # return variables are: result
         #BEGIN genome_to_genbank
+        print('genome_to_genbank -- paramaters = ')
+        pprint(params)
+
         exporter = GenomeToGenbank(self.cfg)
         result = exporter.export(ctx, params)
+
+        print('export complete -- result = ')
+        pprint(result)
         #END genome_to_genbank
 
         # At some point might do deeper type checking...
@@ -145,6 +168,61 @@ class GenomeFileUtil:
                              'result is not type dict as required.')
         # return the results
         return [result]
+
+    def export_genome_as_genbank(self, ctx, params):
+        """
+        :param params: instance of type "ExportParams" (input and output
+           structure functions for standard downloaders) -> structure:
+           parameter "input_ref" of String
+        :returns: instance of type "ExportOutput" -> structure: parameter
+           "shock_id" of String
+        """
+        # ctx is the context object
+        # return variables are: output
+        #BEGIN export_genome_as_genbank
+        print('export_genome_as_genbank -- paramaters = ')
+
+        # validate parameters
+        if 'input_ref' not in params:
+            raise ValueError('Cannot run export_genome_as_genbank- no "input_ref" field defined.')
+
+        # get WS metadata to get ws_name and obj_name
+        ws = Workspace(url=self.cfg.workspaceURL)
+        info = ws.get_object_info_new({'objects':[{'ref': params['input_ref'] }],'includeMetadata':0, 'ignoreErrors':0})[0]
+
+        genome_to_genbank_params = {
+          'genome_ref': params['input_ref']
+        }
+
+        # export to file
+        result = self.genome_to_genbank(ctx, genome_to_genbank_params)[0]['genbank_file'];
+
+        # create the output directory and move the file there
+        export_package_dir = os.path.join(self.cfg.sharedFolder, info[1])
+        os.makedirs(export_package_dir)
+        shutil.move(
+          result['file_path'],
+          os.path.join(export_package_dir, os.path.basename(result['file_path'])))
+
+        # package it up and be done
+        dfUtil = DataFileUtil(self.cfg.callbackURL)
+        package_details = dfUtil.package_for_download({
+                                    'file_path': export_package_dir,
+                                    'ws_refs': [ params['input_ref'] ]
+                                })
+
+        output = { 'shock_id': package_details['shock_id'] }
+
+        print('export complete -- result = ')
+        pprint(output)
+        #END export_genome_as_genbank
+
+        # At some point might do deeper type checking...
+        if not isinstance(output, dict):
+            raise ValueError('Method export_genome_as_genbank return value ' +
+                             'output is not type dict as required.')
+        # return the results
+        return [output]
 
     def status(self, ctx):
         #BEGIN_STATUS

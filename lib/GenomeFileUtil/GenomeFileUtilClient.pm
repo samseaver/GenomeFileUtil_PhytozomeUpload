@@ -128,10 +128,16 @@ GenbankToGenomeParams is a reference to a hash where the following keys are defi
 	workspace_name has a value which is a string
 	source has a value which is a string
 	taxon_wsname has a value which is a string
+	release has a value which is a string
+	generate_ids_if_needed has a value which is a string
+	genetic_code has a value which is an int
+	type has a value which is a string
+	metadata has a value which is a GenomeFileUtil.usermeta
 File is a reference to a hash where the following keys are defined:
 	path has a value which is a string
 	shock_id has a value which is a string
 	ftp_url has a value which is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
 GenomeSaveResult is a reference to a hash where the following keys are defined:
 	genome_ref has a value which is a string
 
@@ -149,10 +155,16 @@ GenbankToGenomeParams is a reference to a hash where the following keys are defi
 	workspace_name has a value which is a string
 	source has a value which is a string
 	taxon_wsname has a value which is a string
+	release has a value which is a string
+	generate_ids_if_needed has a value which is a string
+	genetic_code has a value which is an int
+	type has a value which is a string
+	metadata has a value which is a GenomeFileUtil.usermeta
 File is a reference to a hash where the following keys are defined:
 	path has a value which is a string
 	shock_id has a value which is a string
 	ftp_url has a value which is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
 GenomeSaveResult is a reference to a hash where the following keys are defined:
 	genome_ref has a value which is a string
 
@@ -421,6 +433,96 @@ boolean is an int
     }
 }
  
+
+
+=head2 export_genome_as_genbank
+
+  $output = $obj->export_genome_as_genbank($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a GenomeFileUtil.ExportParams
+$output is a GenomeFileUtil.ExportOutput
+ExportParams is a reference to a hash where the following keys are defined:
+	input_ref has a value which is a string
+ExportOutput is a reference to a hash where the following keys are defined:
+	shock_id has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a GenomeFileUtil.ExportParams
+$output is a GenomeFileUtil.ExportOutput
+ExportParams is a reference to a hash where the following keys are defined:
+	input_ref has a value which is a string
+ExportOutput is a reference to a hash where the following keys are defined:
+	shock_id has a value which is a string
+
+
+=end text
+
+=item Description
+
+
+
+=back
+
+=cut
+
+ sub export_genome_as_genbank
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function export_genome_as_genbank (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to export_genome_as_genbank:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'export_genome_as_genbank');
+	}
+    }
+
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "GenomeFileUtil.export_genome_as_genbank",
+	    params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'export_genome_as_genbank',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method export_genome_as_genbank",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'export_genome_as_genbank',
+				       );
+    }
+}
+ 
   
 sub status
 {
@@ -464,16 +566,16 @@ sub version {
             Bio::KBase::Exceptions::JSONRPC->throw(
                 error => $result->error_message,
                 code => $result->content->{code},
-                method_name => 'genome_to_genbank',
+                method_name => 'export_genome_as_genbank',
             );
         } else {
             return wantarray ? @{$result->result} : $result->result->[0];
         }
     } else {
         Bio::KBase::Exceptions::HTTP->throw(
-            error => "Error invoking method genome_to_genbank",
+            error => "Error invoking method export_genome_as_genbank",
             status_line => $self->{client}->status_line,
-            method_name => 'genome_to_genbank',
+            method_name => 'export_genome_as_genbank',
         );
     }
 }
@@ -576,10 +678,51 @@ ftp_url has a value which is a string
 
 
 
+=head2 usermeta
+
+=over 4
+
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the key is a string and the value is a string
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the key is a string and the value is a string
+
+=end text
+
+=back
+
+
+
 =head2 GenbankToGenomeParams
 
 =over 4
 
+
+
+=item Description
+
+genome_name - becomes the name of the object
+workspace_name - the name of the workspace it gets saved to.
+source - Source of the file typically something like RefSeq or Ensembl
+taxon_ws_name - where the reference taxons are : ReferenceTaxons
+release - Release or version number of the data 
+  per example Ensembl has numbered releases of all their data: Release 31
+generate_ids_if_needed - If field used for feature id is not there, 
+  generate ids (default behavior is raising an exception)
+genetic_code - Genetic code of organism. Overwrites determined GC from 
+  taxon object
+type - Reference, Representative or User upload
 
 
 =item Definition
@@ -593,6 +736,11 @@ genome_name has a value which is a string
 workspace_name has a value which is a string
 source has a value which is a string
 taxon_wsname has a value which is a string
+release has a value which is a string
+generate_ids_if_needed has a value which is a string
+genetic_code has a value which is an int
+type has a value which is a string
+metadata has a value which is a GenomeFileUtil.usermeta
 
 </pre>
 
@@ -606,6 +754,11 @@ genome_name has a value which is a string
 workspace_name has a value which is a string
 source has a value which is a string
 taxon_wsname has a value which is a string
+release has a value which is a string
+generate_ids_if_needed has a value which is a string
+genetic_code has a value which is an int
+type has a value which is a string
+metadata has a value which is a GenomeFileUtil.usermeta
 
 
 =end text
@@ -776,6 +929,71 @@ from_cache has a value which is a GenomeFileUtil.boolean
 a reference to a hash where the following keys are defined:
 gff_file has a value which is a GenomeFileUtil.File
 from_cache has a value which is a GenomeFileUtil.boolean
+
+
+=end text
+
+=back
+
+
+
+=head2 ExportParams
+
+=over 4
+
+
+
+=item Description
+
+input and output structure functions for standard downloaders
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+input_ref has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+input_ref has a value which is a string
+
+
+=end text
+
+=back
+
+
+
+=head2 ExportOutput
+
+=over 4
+
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+shock_id has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+shock_id has a value which is a string
 
 
 =end text

@@ -13,7 +13,19 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 /**
  * <p>Original spec-file type: GenbankToGenomeParams</p>
- * 
+ * <pre>
+ * genome_name - becomes the name of the object
+ * workspace_name - the name of the workspace it gets saved to.
+ * source - Source of the file typically something like RefSeq or Ensembl
+ * taxon_ws_name - where the reference taxons are : ReferenceTaxons
+ * release - Release or version number of the data 
+ *   per example Ensembl has numbered releases of all their data: Release 31
+ * generate_ids_if_needed - If field used for feature id is not there, 
+ *   generate ids (default behavior is raising an exception)
+ * genetic_code - Genetic code of organism. Overwrites determined GC from 
+ *   taxon object
+ * type - Reference, Representative or User upload
+ * </pre>
  * 
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -23,7 +35,12 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "genome_name",
     "workspace_name",
     "source",
-    "taxon_wsname"
+    "taxon_wsname",
+    "release",
+    "generate_ids_if_needed",
+    "genetic_code",
+    "type",
+    "metadata"
 })
 public class GenbankToGenomeParams {
 
@@ -35,14 +52,24 @@ public class GenbankToGenomeParams {
     @JsonProperty("file")
     private File file;
     @JsonProperty("genome_name")
-    private String genomeName;
+    private java.lang.String genomeName;
     @JsonProperty("workspace_name")
-    private String workspaceName;
+    private java.lang.String workspaceName;
     @JsonProperty("source")
-    private String source;
+    private java.lang.String source;
     @JsonProperty("taxon_wsname")
-    private String taxonWsname;
-    private Map<String, Object> additionalProperties = new HashMap<String, Object>();
+    private java.lang.String taxonWsname;
+    @JsonProperty("release")
+    private java.lang.String release;
+    @JsonProperty("generate_ids_if_needed")
+    private java.lang.String generateIdsIfNeeded;
+    @JsonProperty("genetic_code")
+    private Long geneticCode;
+    @JsonProperty("type")
+    private java.lang.String type;
+    @JsonProperty("metadata")
+    private Map<String, String> metadata;
+    private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     /**
      * <p>Original spec-file type: File</p>
@@ -70,78 +97,153 @@ public class GenbankToGenomeParams {
     }
 
     @JsonProperty("genome_name")
-    public String getGenomeName() {
+    public java.lang.String getGenomeName() {
         return genomeName;
     }
 
     @JsonProperty("genome_name")
-    public void setGenomeName(String genomeName) {
+    public void setGenomeName(java.lang.String genomeName) {
         this.genomeName = genomeName;
     }
 
-    public GenbankToGenomeParams withGenomeName(String genomeName) {
+    public GenbankToGenomeParams withGenomeName(java.lang.String genomeName) {
         this.genomeName = genomeName;
         return this;
     }
 
     @JsonProperty("workspace_name")
-    public String getWorkspaceName() {
+    public java.lang.String getWorkspaceName() {
         return workspaceName;
     }
 
     @JsonProperty("workspace_name")
-    public void setWorkspaceName(String workspaceName) {
+    public void setWorkspaceName(java.lang.String workspaceName) {
         this.workspaceName = workspaceName;
     }
 
-    public GenbankToGenomeParams withWorkspaceName(String workspaceName) {
+    public GenbankToGenomeParams withWorkspaceName(java.lang.String workspaceName) {
         this.workspaceName = workspaceName;
         return this;
     }
 
     @JsonProperty("source")
-    public String getSource() {
+    public java.lang.String getSource() {
         return source;
     }
 
     @JsonProperty("source")
-    public void setSource(String source) {
+    public void setSource(java.lang.String source) {
         this.source = source;
     }
 
-    public GenbankToGenomeParams withSource(String source) {
+    public GenbankToGenomeParams withSource(java.lang.String source) {
         this.source = source;
         return this;
     }
 
     @JsonProperty("taxon_wsname")
-    public String getTaxonWsname() {
+    public java.lang.String getTaxonWsname() {
         return taxonWsname;
     }
 
     @JsonProperty("taxon_wsname")
-    public void setTaxonWsname(String taxonWsname) {
+    public void setTaxonWsname(java.lang.String taxonWsname) {
         this.taxonWsname = taxonWsname;
     }
 
-    public GenbankToGenomeParams withTaxonWsname(String taxonWsname) {
+    public GenbankToGenomeParams withTaxonWsname(java.lang.String taxonWsname) {
         this.taxonWsname = taxonWsname;
         return this;
     }
 
+    @JsonProperty("release")
+    public java.lang.String getRelease() {
+        return release;
+    }
+
+    @JsonProperty("release")
+    public void setRelease(java.lang.String release) {
+        this.release = release;
+    }
+
+    public GenbankToGenomeParams withRelease(java.lang.String release) {
+        this.release = release;
+        return this;
+    }
+
+    @JsonProperty("generate_ids_if_needed")
+    public java.lang.String getGenerateIdsIfNeeded() {
+        return generateIdsIfNeeded;
+    }
+
+    @JsonProperty("generate_ids_if_needed")
+    public void setGenerateIdsIfNeeded(java.lang.String generateIdsIfNeeded) {
+        this.generateIdsIfNeeded = generateIdsIfNeeded;
+    }
+
+    public GenbankToGenomeParams withGenerateIdsIfNeeded(java.lang.String generateIdsIfNeeded) {
+        this.generateIdsIfNeeded = generateIdsIfNeeded;
+        return this;
+    }
+
+    @JsonProperty("genetic_code")
+    public Long getGeneticCode() {
+        return geneticCode;
+    }
+
+    @JsonProperty("genetic_code")
+    public void setGeneticCode(Long geneticCode) {
+        this.geneticCode = geneticCode;
+    }
+
+    public GenbankToGenomeParams withGeneticCode(Long geneticCode) {
+        this.geneticCode = geneticCode;
+        return this;
+    }
+
+    @JsonProperty("type")
+    public java.lang.String getType() {
+        return type;
+    }
+
+    @JsonProperty("type")
+    public void setType(java.lang.String type) {
+        this.type = type;
+    }
+
+    public GenbankToGenomeParams withType(java.lang.String type) {
+        this.type = type;
+        return this;
+    }
+
+    @JsonProperty("metadata")
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+
+    @JsonProperty("metadata")
+    public void setMetadata(Map<String, String> metadata) {
+        this.metadata = metadata;
+    }
+
+    public GenbankToGenomeParams withMetadata(Map<String, String> metadata) {
+        this.metadata = metadata;
+        return this;
+    }
+
     @JsonAnyGetter
-    public Map<String, Object> getAdditionalProperties() {
+    public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
     }
 
     @JsonAnySetter
-    public void setAdditionalProperties(String name, Object value) {
+    public void setAdditionalProperties(java.lang.String name, Object value) {
         this.additionalProperties.put(name, value);
     }
 
     @Override
-    public String toString() {
-        return ((((((((((((("GenbankToGenomeParams"+" [file=")+ file)+", genomeName=")+ genomeName)+", workspaceName=")+ workspaceName)+", source=")+ source)+", taxonWsname=")+ taxonWsname)+", additionalProperties=")+ additionalProperties)+"]");
+    public java.lang.String toString() {
+        return ((((((((((((((((((((((("GenbankToGenomeParams"+" [file=")+ file)+", genomeName=")+ genomeName)+", workspaceName=")+ workspaceName)+", source=")+ source)+", taxonWsname=")+ taxonWsname)+", release=")+ release)+", generateIdsIfNeeded=")+ generateIdsIfNeeded)+", geneticCode=")+ geneticCode)+", type=")+ type)+", metadata=")+ metadata)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

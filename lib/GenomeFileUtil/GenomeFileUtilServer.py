@@ -341,6 +341,10 @@ class Application(object):
                              name='GenomeFileUtil.genome_to_genbank',
                              types=[dict])
         self.method_authentication['GenomeFileUtil.genome_to_genbank'] = 'required'
+        self.rpc_service.add(impl_GenomeFileUtil.export_genome_as_genbank,
+                             name='GenomeFileUtil.export_genome_as_genbank',
+                             types=[dict])
+        self.method_authentication['GenomeFileUtil.export_genome_as_genbank'] = 'required'
         self.rpc_service.add(impl_GenomeFileUtil.status,
                              name='GenomeFileUtil.status',
                              types=[dict])

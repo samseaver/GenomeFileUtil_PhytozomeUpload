@@ -212,6 +212,23 @@ public class GenomeFileUtilClient {
         return res.get(0);
     }
 
+    /**
+     * <p>Original spec-file function name: export_genome_as_genbank</p>
+     * <pre>
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.genomefileutil.ExportParams ExportParams}
+     * @return   parameter "output" of type {@link us.kbase.genomefileutil.ExportOutput ExportOutput}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public ExportOutput exportGenomeAsGenbank(ExportParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<ExportOutput>> retType = new TypeReference<List<ExportOutput>>() {};
+        List<ExportOutput> res = caller.jsonrpcCall("GenomeFileUtil.export_genome_as_genbank", args, retType, true, true, jsonRpcContext, this.serviceVersion);
+        return res.get(0);
+    }
+
     public Map<String, Object> status(RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         TypeReference<List<Map<String, Object>>> retType = new TypeReference<List<Map<String, Object>>>() {};
