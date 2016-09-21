@@ -120,10 +120,10 @@ def upload_genome(shock_service_url=None,
     ontology_sources["PO"] = ontologies[1]['data']['term_hash']
     del ontologies
 #    go_ontologies = ws_client.get_objects( [{'workspace':'KBaseOntology',
-                                             'name':'gene_ontology'}])
+#                                             'name':'gene_ontology'}])
 #    logger.info("Retrieved GO Ontology database, starting PO") 
 #    po_ontologies = ws_client.get_objects( [{'workspace':'KBaseOntology',
-                                          'name':'plant_ontology'}])
+#                                          'name':'plant_ontology'}])
 #    logger.info("Retrieved PO Ontology database") 
 #    ontology_sources["GO"] = go_ontologies[0]['data']['term_hash']
 #    ontology_sources["PO"] = po_ontologies[0]['data']['term_hash']
