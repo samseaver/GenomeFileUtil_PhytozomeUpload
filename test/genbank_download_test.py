@@ -119,3 +119,16 @@ class GenomeFileUtilTest(unittest.TestCase):
         res2 = genomeFileUtil.genome_to_genbank(self.getContext(),
             {'genome_ref': self.e_coli_ref_with_genbank})[0]
         self.assertEqual(res2['from_cache'], 1)
+        self.assertTrue('genbank_file' in res2)
+        self.assertTrue('file_path' in res2['genbank_file'])
+        self.assertTrue(bool(res2['genbank_file']['file_path']))
+
+    def test_simple_genbank_export_from_cache(self):
+        genomeFileUtil = self.getImpl()
+        print('testing Genbank export from cached file')
+        res = genomeFileUtil.export_genome_as_genbank(self.getContext(),
+            {'input_ref': self.e_coli_ref_with_genbank})[0]
+        self.assertTrue('shock_id' in res)
+        self.assertTrue(bool(res['shock_id']))
+
+

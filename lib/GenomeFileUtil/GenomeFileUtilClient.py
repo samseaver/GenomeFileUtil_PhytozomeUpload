@@ -35,12 +35,25 @@ class GenomeFileUtil(object):
 
     def genbank_to_genome(self, params, context=None):
         """
-        :param params: instance of type "GenbankToGenomeParams" -> structure:
-           parameter "file" of type "File" -> structure: parameter "path" of
-           String, parameter "shock_id" of String, parameter "ftp_url" of
-           String, parameter "genome_name" of String, parameter
-           "workspace_name" of String, parameter "source" of String,
-           parameter "taxon_wsname" of String
+        :param params: instance of type "GenbankToGenomeParams" (genome_name
+           - becomes the name of the object workspace_name - the name of the
+           workspace it gets saved to. source - Source of the file typically
+           something like RefSeq or Ensembl taxon_ws_name - where the
+           reference taxons are : ReferenceTaxons release - Release or
+           version number of the data per example Ensembl has numbered
+           releases of all their data: Release 31 generate_ids_if_needed - If
+           field used for feature id is not there, generate ids (default
+           behavior is raising an exception) genetic_code - Genetic code of
+           organism. Overwrites determined GC from taxon object type -
+           Reference, Representative or User upload) -> structure: parameter
+           "file" of type "File" -> structure: parameter "path" of String,
+           parameter "shock_id" of String, parameter "ftp_url" of String,
+           parameter "genome_name" of String, parameter "workspace_name" of
+           String, parameter "source" of String, parameter "taxon_wsname" of
+           String, parameter "release" of String, parameter
+           "generate_ids_if_needed" of String, parameter "genetic_code" of
+           Long, parameter "type" of String, parameter "metadata" of type
+           "usermeta" -> mapping from String to String
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
            "genome_ref" of String
         """
@@ -80,6 +93,18 @@ class GenomeFileUtil(object):
         """
         return self._client.call_method(
             'GenomeFileUtil.genome_to_genbank',
+            [params], self._service_ver, context)
+
+    def export_genome_as_genbank(self, params, context=None):
+        """
+        :param params: instance of type "ExportParams" (input and output
+           structure functions for standard downloaders) -> structure:
+           parameter "input_ref" of String
+        :returns: instance of type "ExportOutput" -> structure: parameter
+           "shock_id" of String
+        """
+        return self._client.call_method(
+            'GenomeFileUtil.export_genome_as_genbank',
             [params], self._service_ver, context)
 
     def status(self, context=None):

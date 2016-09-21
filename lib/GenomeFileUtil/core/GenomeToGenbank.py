@@ -78,7 +78,9 @@ class GenomeToGenbank(object):
                             'unpack': 'unpack'
                         })
         return {
-            'file_path': file['file_path']
+            'genbank_file': {
+                'file_path': file['file_path']
+            }
         }
 
     def build_genbank_file(self, getGenomeOptions, output_filename):
@@ -95,7 +97,11 @@ class GenomeToGenbank(object):
         g = GenbankAnnotations(genome)
         g.to_file(output_filename)
 
-        return {'file_path': str(output_filename)}
+        return {
+            'genbank_file': {
+                'file_path': str(output_filename)
+            }
+        }
 
 
 class GenbankAnnotations(object):
