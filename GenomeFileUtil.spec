@@ -75,10 +75,23 @@ module GenomeFileUtil {
     /* from_cache is 1 if the file already exists and was just returned, 0 if
     the file was generated during this call. */
     typedef structure {
-        File gff_file;
+        File genbank_file;
         boolean from_cache;
     } GenomeToGenbankResult;
 
     funcdef genome_to_genbank(GenomeToGenbankParams params)
                 returns (GenomeToGenbankResult result) authentication required;
+
+
+    /*  input and output structure functions for standard downloaders */
+    typedef structure {
+        string input_ref;
+    } ExportParams;
+
+    typedef structure {
+        string shock_id;
+    } ExportOutput;
+
+    funcdef export_genome_as_genbank(ExportParams params)
+                returns (ExportOutput output) authentication required;
 };
