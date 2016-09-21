@@ -113,11 +113,11 @@ def upload_genome(shock_service_url=None,
                                           'name':'gene_ontology'},
                                          {'workspace':'KBaseOntology',
                                           'name':'plant_ontology'}])
+    logger.info("Ontology databases retrieved.") 
     ontology_sources = dict()
     ontology_sources["GO"] = ontologies[0]['data']['term_hash']
     ontology_sources["PO"] = ontologies[1]['data']['term_hash']
     del ontologies
-    logger.info("Ontology databases retrieved.") 
 
     logger.info("Scanning for Genbank Format files.") 
     logger.info("GENETIC_CODE ENTERED : {}".format(str(genetic_code)))
