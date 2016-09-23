@@ -71,6 +71,7 @@ def upload_genome(shock_service_url=None,
                   type=None,
                   genetic_code=None,
                   generate_ids_if_needed=None,
+                  exclude_ontologies=None,
                   provenance=None,
                   usermeta=None,
                   level=logging.INFO, logger=None):
@@ -105,20 +106,25 @@ def upload_genome(shock_service_url=None,
     taxon_workspace_name = taxon_workspace_object[1] 
 
 
+    if exclude_ontologies is not None:
+        if exclude_ontologies != 1:
+            exclude_ontologies == 0
     #Get GO OntologyDictionary
     ontology_sources = dict()
-#    ontologies = ws_client.get_objects2({'objects': [{'workspace': 'KBaseOntology', 'name':'gene_ontology'}]}) 
-#    go_ontology = ontologies['data'][0]['data'] 
-    logger.info("Retrieving Ontology databases.") 
-    ontologies = ws_client.get_objects( [{'workspace':'KBaseOntology',
-                                          'name':'gene_ontology'},
-                                         {'workspace':'KBaseOntology',
-                                          'name':'plant_ontology'}])
-    logger.info("Ontology databases retrieved.") 
 
-    ontology_sources["GO"] = ontologies[0]['data']['term_hash']
-    ontology_sources["PO"] = ontologies[1]['data']['term_hash']
-    del ontologies
+    if exclude_ontologies == 1:
+        #    ontologies = ws_client.get_objects2({'objects': [{'workspace': 'KBaseOntology', 'name':'gene_ontology'}]}) 
+        #    go_ontology = ontologies['data'][0]['data'] 
+        logger.info("Retrieving Ontology databases.") 
+        ontologies = ws_client.get_objects( [{'workspace':'KBaseOntology',
+                                              'name':'gene_ontology'},
+                                             {'workspace':'KBaseOntology',
+                                              'name':'plant_ontology'}])
+        logger.info("Ontology databases retrieved.") 
+        
+        ontology_sources["GO"] = ontologies[0]['data']['term_hash']
+        ontology_sources["PO"] = ontologies[1]['data']['term_hash']
+        del ontologies
 #    go_ontologies = ws_client.get_objects( [{'workspace':'KBaseOntology',
 #                                             'name':'gene_ontology'}])
 #    logger.info("Retrieved GO Ontology database, starting PO") 
@@ -879,6 +885,7 @@ def upload_genome(shock_service_url=None,
             pseudo_non_gene = False
             has_protein_id = False
             ontology_terms = dict()
+            ontology_terms_not_found = dict() #Term and then count of occurences
 
             for feature_key_value_pair in feature_key_value_pairs_list:
                 #the key value pair removing unnecessary white space (including new lines as these often span multiple lines)
@@ -958,24 +965,29 @@ def upload_genome(shock_service_url=None,
                         db_xref_value = db_xref_value.strip()
                         db_xref_source = db_xref_source.strip()
                         if db_xref_source.upper() == "GO" or db_xref_source.upper() == "PO":
-                            ontology_id=value.strip()
-                            ontology_source = db_xref_source.upper()
-                            if ontology_source == "GO":
-                                ontology_ref = "KBaseOntology/gene_ontology"
-                            elif ontology_source == "PO":
-                                ontology_ref = "KBaseOntology/plant_ontology"
-                            if ontology_id not in ontology_sources[ontology_source]:
-                                alias_dict[value]=1 
-                                print ("Term {} was not found in our ontology database. Used as an alias".format(ontology_id))
-                            else:
-                                if(ontology_source not in ontology_terms):
-                                    ontology_terms[ontology_source]=dict()
-                                if( ontology_id not in ontology_terms[ontology_source]):
-                                    OntologyEvidence=[{"method":"KBase_Genbank_uploader from db_xref field","timestamp":time_string,"method_version":"1.0"}]
-                                    OntologyData={"id":ontology_id,"ontology_ref":ontology_ref,
-                                                  "term_name":ontology_sources[ontology_source][ontology_id]["name"],
-                                                  "term_lineage":[],"evidence":OntologyEvidence}
-                                    ontology_terms[ontology_source][ontology_id]=OntologyData
+                            if exclude_ontologies == 0:
+                                ontology_id=value.strip()
+                                ontology_source = db_xref_source.upper()
+                                if ontology_source == "GO":
+                                    ontology_ref = "KBaseOntology/gene_ontology"
+                                elif ontology_source == "PO":
+                                    ontology_ref = "KBaseOntology/plant_ontology"
+                                if ontology_id not in ontology_sources[ontology_source]:
+#                                alias_dict[value]=1 
+    #                                print ("Term {} was not found in our ontology database. It is likely a deprecated term.".format(ontology_id))
+                                    if ontology_id not in ontology_terms_not_found:
+                                        ontology_terms_not_found[ontology_id] = 1
+                                    else:
+                                        ontology_terms_not_found[ontology_id] = ontology_terms_not_found[ontology_id] + 1
+                                else:
+                                    if(ontology_source not in ontology_terms):
+                                        ontology_terms[ontology_source]=dict()
+                                    if( ontology_id not in ontology_terms[ontology_source]):
+                                        OntologyEvidence=[{"method":"KBase_Genbank_uploader from db_xref field","timestamp":time_string,"method_version":"1.0"}]
+                                        OntologyData={"id":ontology_id,"ontology_ref":ontology_ref,
+                                                      "term_name":ontology_sources[ontology_source][ontology_id]["name"],
+                                                      "term_lineage":[],"evidence":OntologyEvidence}
+                                        ontology_terms[ontology_source][ontology_id]=OntologyData
                         else:
                             alias_dict[value]=1 
                     except Exception, e: 
@@ -1040,7 +1052,7 @@ def upload_genome(shock_service_url=None,
 #                        sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,)) 
                 else:
                     if not pseudo_non_gene:
-                        raise Exception("Error: CDS with the text : {} has not protein translation".format(feature_text))
+                        raise Exception("Error: CDS with the text : {} has no protein translation".format(feature_text))
 #                    if "dna_sequence" in feature_object:
 #                        feature_object["protein_translation"] = aa_trans_seq
 #                        feature_object["protein_translation_length"] = len(aa_trans_seq)
@@ -1313,6 +1325,9 @@ if __name__ == "__main__":
                         nargs='?', type=int, required=False)
     parser.add_argument('--generate_ids_if_needed', 
                         help="If the fields used for ID determination are not present the uploader will fail by default. If generate_ids_id_needed is 1 then it will generate IDs (Feature_AutoincrementNumber format)", 
+                        nargs='?', type=int, required=False)
+    parser.add_argument('--exclude_ontologies', 
+                        help="Some larger genomes may not fit in the 1 GB limit, one way to increase likelihood they will fit is to exclude the ontologies.", 
                         nargs='?', type=int, required=False)
     parser.add_argument('--input_directory', 
                         help="directory the genbank file is in", 

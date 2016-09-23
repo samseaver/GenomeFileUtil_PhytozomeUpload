@@ -56,14 +56,18 @@ class GenbankToGenome:
         else:
             generate_ids_if_needed = None
 
+        exclude_ontologies = 0
+        if 'exclude_ontologies' in params:
+            exclude_ontologies = params['exclude_ontologies']
+        else:
+            exclude_ontologies = 0
+
         type = "User upload"
         if 'type' in params:
             type = params['type']
 
         # other options to handle
-        # release
         # taxon_reference
-        # exclude_feature_types
         # type
 
         # 4) Do the upload

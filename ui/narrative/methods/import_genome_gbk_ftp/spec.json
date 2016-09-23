@@ -32,12 +32,28 @@
     }
   },
   {
-      "id": "source",
-      "optional": true,
-      "advanced": false,
-      "allow_multiple": false,
-      "default_values": [ "" ],
-      "field_type" : "text"
+       "id" : "source",
+       "optional" : false,
+       "advanced" : false,
+       "allow_multiple" : false,
+       "default_values" : [ "" ],
+       "field_type" : "dropdown",
+       "dropdown_options":{
+	   "options": [
+               {
+		   "value": "RefSeq",
+		   "display": "RefSeq"
+               },
+               {
+		   "value": "Ensembl",
+		   "display": "Ensembl"
+               },
+               {
+		   "value": "Other",
+		   "display": "Other"
+               }
+	   ]
+       }
    },
    {  
        "id": "release",
@@ -60,6 +76,18 @@
    },
    {
        "id": "generate_ids_if_needed",
+       "optional":true,
+       "advanced":true,
+       "allow_multiple":false,
+       "default_values":[""],
+       "field_type" : "checkbox",
+       "checkbox_options":{
+	   "checked_value": 1,
+	   "unchecked_value": 0
+       }
+   },
+   {
+       "id": "exclude_ontologies",
        "optional":true,
        "advanced":true,
        "allow_multiple":false,
@@ -104,6 +132,10 @@
         {
           "input_parameter": "generate_ids_if_needed",
           "target_property": "generate_ids_if_needed"
+        },
+        {
+          "input_parameter": "exclude_ontologies",
+          "target_property": "exclude_ontologies"
         }
       ],
       "output_mapping" : [
