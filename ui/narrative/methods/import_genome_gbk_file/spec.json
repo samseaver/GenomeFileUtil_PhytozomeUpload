@@ -136,7 +136,7 @@
         {
           "input_parameter": "exclude_ontologies",
           "target_property": "exclude_ontologies"
-        },
+        }
       ],
       "output_mapping" : [
       ]
