@@ -25,7 +25,7 @@ RUN git clone https://github.com/kbase/transform && \
 # Genbank uploader uses the data_api, so install that to our lib directory
 RUN git clone https://github.com/kbase/data_api && \
     cd data_api && \
-    git checkout 0.4.0-dev && \
+    git checkout 0.4.1-dev && \
     cd /kb/module && \
     cp -a data_api/lib/doekbase lib/ && \
     pip install -r /kb/module/data_api/requirements.txt
@@ -35,7 +35,7 @@ RUN mkdir -p /kb/module && \
     cd /kb/module && \
     git clone https://github.com/kbase/workspace_deluxe && \
     cd workspace_deluxe && \
-    git checkout 837ad4c && \
+    git checkout 0.5.0 && \
     rm -rf /kb/deployment/lib/biokbase/workspace && \
     cp -vr lib/biokbase/workspace /kb/deployment/lib/biokbase/workspace
 

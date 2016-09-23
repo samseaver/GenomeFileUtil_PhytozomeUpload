@@ -44,8 +44,8 @@ class GenomeFileUtil:
     # the latter method is running.
     #########################################
     VERSION = "0.2.0"
-    GIT_URL = "git@github.com:kbaseapps/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "d1d8060c9961a2bcac838b8c1c404bc93d50c4a2"
+    GIT_URL = "https://github.com/mlhenderson/GenomeFileUtil"
+    GIT_COMMIT_HASH = "6ef377228c4232fc735dacb2b2a2b056c12c9526"
     
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -144,7 +144,7 @@ class GenomeFileUtil:
         :returns: instance of type "GenomeToGenbankResult" (from_cache is 1
            if the file already exists and was just returned, 0 if the file
            was generated during this call.) -> structure: parameter
-           "gff_file" of type "File" -> structure: parameter "path" of
+           "genbank_file" of type "File" -> structure: parameter "path" of
            String, parameter "shock_id" of String, parameter "ftp_url" of
            String, parameter "from_cache" of type "boolean" (A boolean - 0
            for false, 1 for true. @range (0, 1))

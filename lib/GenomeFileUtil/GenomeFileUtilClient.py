@@ -86,7 +86,7 @@ class GenomeFileUtil(object):
         :returns: instance of type "GenomeToGenbankResult" (from_cache is 1
            if the file already exists and was just returned, 0 if the file
            was generated during this call.) -> structure: parameter
-           "gff_file" of type "File" -> structure: parameter "path" of
+           "genbank_file" of type "File" -> structure: parameter "path" of
            String, parameter "shock_id" of String, parameter "ftp_url" of
            String, parameter "from_cache" of type "boolean" (A boolean - 0
            for false, 1 for true. @range (0, 1))
