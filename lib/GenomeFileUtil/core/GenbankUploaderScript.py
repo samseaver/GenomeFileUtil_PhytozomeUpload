@@ -35,6 +35,7 @@ import biokbase.Transform.script_utils as script_utils
 import biokbase.Transform.TextFileDecoder as TextFileDecoder
 import biokbase.workspace.client 
 import trns_transform_FASTA_DNA_Assembly_to_KBaseGenomeAnnotations_Assembly as assembly
+from KBaseReport.KBaseReportClient import KBaseReport
 #from doekbase.data_api.annotation.genome_annotation.api import GenomeAnnotationAPI, GenomeAnnotationClientAPI
 
 def insert_newlines(s, every): 
@@ -105,6 +106,7 @@ def upload_genome(shock_service_url=None,
     taxon_workspace_id = taxon_workspace_object[0] 
     taxon_workspace_name = taxon_workspace_object[1] 
 
+    $report = StringIO.StringIO() #variable to put warnings report into.  For UI widget reports output tab
 
     if exclude_ontologies is not None:
         if exclude_ontologies != 1:
@@ -170,6 +172,7 @@ def upload_genome(shock_service_url=None,
  
     if len(genbank_files) > 1: 
         # TODO if multiple files - CONCATENATE FILES HERE (sort by name)? OR Change how the byte coordinates work.
+        report.write("Not sure how to handle multiple Genbank files in this context. Using {0}.\n\n".format(input_file_name))
         logger.warning("Not sure how to handle multiple Genbank files in this context. Using {0}".format(input_file_name))
 
     print "INPUT FILE NAME :" + input_file_name + ":"
@@ -257,11 +260,13 @@ def upload_genome(shock_service_url=None,
                 taxon_object_name = "unknown_taxon"
                 genome['notes'] = "Unable to find taxon for this organism : {}.".format(organism )
                 genome['scientific_name'] = "Unconfirmed Organism: {}".format(organism )
+                report.write("Unable to find taxon for this organism : {}.\n\n".format(organism ))
         else: 
             genomes_without_taxon_refs.append(organism)
             taxon_object_name = "unknown_taxon"
             genome['notes'] = "Unable to find taxon for this organism : {}.".format(organism )
             genome['scientific_name'] = "Unconfirmed Organism: {}".format(organism )
+            report.write("Unable to find taxon for this organism : {}.\n\n".format(organism ))
         del taxon_lookup
 
         try: 
@@ -276,11 +281,13 @@ def upload_genome(shock_service_url=None,
                 if "notes" in genome:
                     temp_notes = "{} ".format(genome["notes"])
                 genome["notes"] += "{}The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.".format(temp_notes,genetic_code, taxon_info[0]["data"]["genetic_code"])
+                report.write("The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.\n\n".format(genetic_code, taxon_info[0]["data"]["genetic_code"]))
             else:
                 temp_notes = ""
                 if "notes" in genome:
                     temp_notes = "{} ".format(genome["notes"])
                 genome["notes"] += "{}The genetic code of {} was supplied by the user.".format(temp_notes,genetic_code, taxon_info[0]["data"]["genetic_code"])
+                report.write("The genetic code of {} was supplied by the user.\n\n".format(genetic_code, taxon_info[0]["data"]["genetic_code"]))
 
             genome['genetic_code'] = genetic_code
 #            print "Found name : " + taxon_object_name + " id: " + taxon_id
@@ -306,8 +313,10 @@ def upload_genome(shock_service_url=None,
                 temp_notes = ""
                 if "notes" in genome:
                     temp_notes = "{} ".format(genome["notes"])
-                temp_notes += "The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.".format(genetic_code, 
+                genome['notes'] ="{}  The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.".format(temp_notes,genetic_code, 
                                                                                                                                                            taxon_info[0]["data"]["genetic_code"])
+                report.write("The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.\n\n".format(genetic_code, 
+                                                                                                                                                              taxon_info[0]["data"]["genetic_code"]))
             genome['genetic_code'] = genetic_code
             genome['scientific_name'] = taxon_info[0]['data']['scientific_name']
             genome['domain'] = taxon_info[0]['data']['domain']
@@ -759,8 +768,9 @@ def upload_genome(shock_service_url=None,
             if coordinates_info.startswith("order") and coordinates_info.endswith(")"):
                 coordinates_info = coordinates_info[order_len:-1]
                 has_odd_coordinates = True
-                temp_warning = "Feature with the text %s has the rare 'order' coordinate. The sequence was joined together because KBase does not allow for a non contiguous resulting sequence with multiple locations for a feature." % (feature_text)
-                quality_warnings.append(temp_warning)
+                temp_warning = "Feature with the text %s has the rare 'order' coordinate. The sequence was joined together because KBase does not allow for a non contiguous resulting sequence with multiple locations for a feature.\n\n" % (feature_text)
+#                quality_warnings.append(temp_warning)
+                report.write(temp_warning)
                 #annotation_metadata_warnings.append(temp_warning)
 #                sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,))
             coordinates_list = coordinates_info.split(",")
@@ -776,8 +786,9 @@ def upload_genome(shock_service_url=None,
                 #Look for and handle odd coordinates
                 if (("<" in coordinates) or (">" in coordinates)):
                     has_odd_coordinates = True
-                    temp_warning = "Feature with the text %s has a '<' or a '>' in the coordinates.  This means the feature starts or ends beyond the known sequence." % (feature_text)
-                    quality_warnings.append(temp_warning)
+                    temp_warning = "Feature with the text %s has a '<' or a '>' in the coordinates.  This means the feature starts or ends beyond the known sequence.\n\n" % (feature_text)
+                    #quality_warnings.append(temp_warning)
+                    report.write(temp_warning)
                     #annotation_metadata_warnings.append(temp_warning)
 #                    sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,))
                     coordinates= re.sub('<', '', coordinates)
@@ -792,8 +803,9 @@ def upload_genome(shock_service_url=None,
                 elif period_count == 1:
                     start_pos, end_pos = coordinates.split('.', 1) 
                     has_odd_coordinates = True
-                    temp_warning = "Feature with the text %s has a single period in the original coordinate this indicates that the exact location is unknown but that it is one of the bases between bases %s and %s, inclusive.  Note the entire sequence range has been put into this feature." % (feature_text, str(start_pos),str(end_pos))
-                    quality_warnings.append(temp_warning)
+                    temp_warning = "Feature with the text %s has a single period in the original coordinate this indicates that the exact location is unknown but that it is one of the bases between bases %s and %s, inclusive.  Note the entire sequence range has been put into this feature.\n\n" % (feature_text, str(start_pos),str(end_pos))
+                    #quality_warnings.append(temp_warning)
+                    report.write(temp_warning)
                     #annotation_metadata_warnings.append(temp_warning)
 #                    sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,))
                 elif period_count > 2 :
@@ -803,8 +815,9 @@ def upload_genome(shock_service_url=None,
                 if "^" in coordinates:
                     start_pos, end_pos = coordinates.split('^', 1) 
                     has_odd_coordinates = True
-                    temp_warning = "Feature with the text %s is between bases.  It points to a site between bases %s and %s, inclusive.  Note the entire sequence range has been put into this feature." % (feature_text, str(start_pos),str(end_pos))
-                    quality_warnings.append(temp_warning)
+                    temp_warning = "Feature with the text %s is between bases.  It points to a site between bases %s and %s, inclusive.  Note the entire sequence range has been put into this feature.\n\n" % (feature_text, str(start_pos),str(end_pos))
+                    #quality_warnings.append(temp_warning)
+                    report.write(temp_warning)
                     #annotation_metadata_warnings.append(temp_warning)       
 #                    sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,))
 
@@ -1047,7 +1060,8 @@ def upload_genome(shock_service_url=None,
 
                 if "protein_translation" in feature_object:
                     if aa_trans_seq != feature_object["protein_translation"].upper():
-                        temp_warning = "%s translated amino acid sequence does not match the supplied amino acid sequence." % (feature_id) 
+                        temp_warning = "%s translated amino acid sequence does not match the supplied amino acid sequence.\n\n" % (feature_id) 
+                        report.write(temp_warning)
 #                        quality_warnings.append(temp_warning) 
 #                        sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,)) 
                 else:
@@ -1059,7 +1073,7 @@ def upload_genome(shock_service_url=None,
             
             if pseudo_non_gene:
                 if feature_type == "CDS" and has_protein_id:
-                    print "Feature text : {} is a CDS with pseudo and protein_id.".format(feature_text)
+                    read.write("Feature text : {} is a CDS with pseudo and protein_id.\n\n".format(feature_text))
                     #don not include this feature.
                 continue
 
@@ -1262,6 +1276,15 @@ ADVANCED OPTIONS AND CHECK THE\
     genome['features'] = list_of_features
     if release is not None:
         genome['release'] = release
+
+    if len(ontology_terms_not_found) > 0:
+        report.write("\nThere were ontologies in the source file that were not found in the onology database.\n\
+These are like to be deprecated terms.\n\
+Below is a list of the term and the countof the number of features that contained that term:\n")
+
+        for term in ontology_terms_not_found:
+            report.write("{} --- {}\n".format(term,str(ontology_terms_not_found[term])))
+        report.write("\n")
 
 #    print "Genome id %s" % (genome['id'])
  
