@@ -20,10 +20,10 @@ from string import digits
 from string import maketrans
 from collections import OrderedDict
 
-#try:
-#    from cStringIO import StringIO
-#except:
-#    from StringIO import StringIO
+try:
+    from cStringIO import StringIO
+except:
+    from StringIO import StringIO
 
 # 3rd party imports
 import simplejson
@@ -1307,6 +1307,17 @@ Below is a list of the term and the countof the number of features that containe
 #        os.remove(db_name) 
 
     logger.info("Conversions completed.")
+    report.write("\n\nGENOME AND ASSEMBLY OBJECTS HAVE BEEN SUCESSFULLY SAVED.")
+
+    reportObj = {
+        'objects_created':[{'ref':output_data_ref, 'description':'Assembled contigs'}],
+        'text_message':report.getvalue()
+    }
+    report_kb = KBaseReport(self.callbackURL, token=ctx['token'], service_ver=SERVICE_VER)
+    report_info = report_kb.create({'report':reportObj, 'workspace_name':workspace_name})
+    report.close
+    # STEP 6: contruct the output to send back
+    output = { 'report_name': report_info['name'], 'report_ref': report_info['ref'] }    
 
     return genome_annotation_info[0]
 
