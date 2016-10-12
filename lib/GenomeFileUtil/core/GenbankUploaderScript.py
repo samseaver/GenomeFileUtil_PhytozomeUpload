@@ -106,7 +106,7 @@ def upload_genome(shock_service_url=None,
     taxon_workspace_id = taxon_workspace_object[0] 
     taxon_workspace_name = taxon_workspace_object[1] 
 
-    $report = StringIO.StringIO() #variable to put warnings report into.  For UI widget reports output tab
+    $report = StringIO() #variable to put warnings report into.  For UI widget reports output tab
 
     if exclude_ontologies is not None:
         if exclude_ontologies != 1:
