@@ -114,7 +114,7 @@ def upload_genome(shock_service_url=None,
     #Get GO OntologyDictionary
     ontology_sources = dict()
 
-    if exclude_ontologies == 1:
+    if exclude_ontologies == 0:
         #    ontologies = ws_client.get_objects2({'objects': [{'workspace': 'KBaseOntology', 'name':'gene_ontology'}]}) 
         #    go_ontology = ontologies['data'][0]['data'] 
         logger.info("Retrieving Ontology databases.") 
