@@ -77,7 +77,8 @@ class GenbankToGenome:
                 shock_service_url = self.cfg.shockURL,
                 handle_service_url = self.cfg.handleURL,
                 workspace_service_url = self.cfg.workspaceURL,
-        
+                callback_url = self.cfg.callbackURL,
+
                 input_directory=input_directory,
         
                 workspace_name   = workspace_name,
