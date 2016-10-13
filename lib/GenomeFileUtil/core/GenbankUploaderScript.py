@@ -106,7 +106,7 @@ def upload_genome(shock_service_url=None,
     taxon_workspace_id = taxon_workspace_object[0] 
     taxon_workspace_name = taxon_workspace_object[1] 
 
-    report = StringIO.StringIO() #variable to put warnings report into.  For UI widget reports output tab
+    report = StringIO() #variable to put warnings report into.  For UI widget reports output tab
 
     if exclude_ontologies is not None:
         if exclude_ontologies != 1:
@@ -280,20 +280,20 @@ def upload_genome(shock_service_url=None,
                 temp_notes = ""
                 if "notes" in genome:
                     temp_notes = "{} ".format(genome["notes"])
-                genome["notes"] += "{}The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.".format(temp_notes,genetic_code, taxon_info[0]["data"]["genetic_code"])
+                genome["notes"] = "{}The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.".format(temp_notes,genetic_code, taxon_info[0]["data"]["genetic_code"])
                 report.write("The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.\n\n".format(genetic_code, taxon_info[0]["data"]["genetic_code"]))
             else:
                 temp_notes = ""
                 if "notes" in genome:
                     temp_notes = "{} ".format(genome["notes"])
-                genome["notes"] += "{}The genetic code of {} was supplied by the user.".format(temp_notes,genetic_code, taxon_info[0]["data"]["genetic_code"])
+                genome["notes"] = "{}The genetic code of {} was supplied by the user.".format(temp_notes,genetic_code, taxon_info[0]["data"]["genetic_code"])
                 report.write("The genetic code of {} was supplied by the user.\n\n".format(genetic_code, taxon_info[0]["data"]["genetic_code"]))
 
             genome['genetic_code'] = genetic_code
 #            print "Found name : " + taxon_object_name + " id: " + taxon_id
 #            print "TAXON OBJECT TYPE : " + taxon_info[0]["info"][2]
             if not taxon_info[0]["info"][2].startswith("KBaseGenomeAnnotations.Taxon"):
-                raise Exception("The object retrieved for the taxon object is not actually a taxon object.  It is " + taxon_info[0]["info"][2])
+                raise Exception("The object retrieved for the taxon object is not actually a taxon object.  It is {}".format(taxon_info[0]["info"][2]))
             if 'scientific_name' not in genome:
                 genome['scientific_name'] = taxon_info[0]['data']['scientific_name']
             genome['domain'] = taxon_info[0]['data']['domain']
