@@ -1309,6 +1309,7 @@ Below is a list of the term and the countof the number of features that containe
     logger.info("Conversions completed.")
     report.write("\n\nGENOME AND ASSEMBLY OBJECTS HAVE BEEN SUCESSFULLY SAVED.")
 
+    output_data_ref = "{}/{}".format(workspace_name,genome_object_name)
     reportObj = {
         'objects_created':[{'ref':output_data_ref, 'description':'Assembled contigs'}],
         'text_message':report.getvalue()
