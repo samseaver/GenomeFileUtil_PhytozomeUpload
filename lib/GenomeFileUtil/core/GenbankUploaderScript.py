@@ -64,6 +64,7 @@ def upload_genome(shock_service_url=None,
                   shock_id=None, handle_id=None, 
                   workspace_name=None,
                   workspace_service_url=None,
+                  callbackURL=None,
                   taxon_wsname=None,
                   taxon_reference = None,
                   release= None,
@@ -1309,12 +1310,14 @@ Below is a list of the term and the countof the number of features that containe
     logger.info("Conversions completed.")
     report.write("\n\nGENOME AND ASSEMBLY OBJECTS HAVE BEEN SUCESSFULLY SAVED.")
 
+
     output_data_ref = "{}/{}".format(workspace_name,genome_object_name)
     reportObj = {
         'objects_created':[{'ref':output_data_ref, 'description':'Assembled contigs'}],
         'text_message':report.getvalue()
     }
-    report_kb = KBaseReport(self.callbackURL, token=ctx['token'], service_ver=SERVICE_VER)
+    report_kb = KBaseReport(self.callbackURL)
+#    report_kb = KBaseReport(self.callbackURL, token=ctx['token'], service_ver=SERVICE_VER)
     report_info = report_kb.create({'report':reportObj, 'workspace_name':workspace_name})
     report.close
     # STEP 6: contruct the output to send back
