@@ -261,6 +261,9 @@ def upload_genome(shock_service_url=None,
     display_sc_name = None
 
     genomes_without_taxon_refs = list()
+
+
+    logger.info("Looking up taxonomy")
     if taxon_reference is None:
         #Get the taxon_lookup_object
         taxon_lookup = ws_client.get_objects( [{'workspace':taxon_wsname,
@@ -284,6 +287,7 @@ def upload_genome(shock_service_url=None,
         del taxon_lookup
 
         try: 
+            logger.info("attempting to link to " + taxon_wsname + '/' + taxon_object_name)
             taxon_info = ws_client.get_objects([{"workspace": taxon_wsname, 
                                                  "name": taxon_object_name}]) 
             taxon_id = "%s/%s/%s" % (taxon_info[0]["info"][6], taxon_info[0]["info"][0], taxon_info[0]["info"][4]) 
@@ -315,6 +319,8 @@ def upload_genome(shock_service_url=None,
         except Exception, e: 
             raise Exception("The taxon " + taxon_object_name + " from workspace " + str(taxon_workspace_id) + " does not exist. " + str(e))
     else:
+
+        logger.info("Exact reference provided, using:" + taxon_reference)
         try: 
             taxon_info = ws_client.get_objects({"object_ids":[{"ref": taxon_reference}]})
             print "TAXON OBJECT TYPE : " + taxon_info[0]["info"][2] 
