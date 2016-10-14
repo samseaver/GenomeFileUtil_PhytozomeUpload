@@ -113,7 +113,6 @@ def upload_genome(shock_service_url=None,
     workspace_id = workspace_object[0] 
     workspace_name = workspace_object[1] 
  
-    taxon_ws_client = biokbase.workspace.client.Workspace(workspace_service_url)
     taxon_workspace_object = ws_client.get_workspace_info({'workspace':taxon_wsname}) 
 
     taxon_workspace_id = taxon_workspace_object[0] 
@@ -255,7 +254,9 @@ def upload_genome(shock_service_url=None,
     tax_id = 0;
     tax_lineage = None;
 
-    genome = dict()
+    genome = {
+        'notes':''
+    }
 
     display_sc_name = None
 
