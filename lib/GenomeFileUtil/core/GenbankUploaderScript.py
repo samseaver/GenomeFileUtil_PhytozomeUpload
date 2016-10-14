@@ -106,6 +106,11 @@ def upload_genome(shock_service_url=None,
         logger = script_utils.stderrlogger(__file__)
     token = os.environ.get('KB_AUTH_TOKEN') 
 
+    logger.info("WS URL : " + str(workspace_service_url))
+    logger.info("HANDLE URL : " + str(handle_service_url))
+    logger.info("SHOCK URL : " + str(shock_service_url))
+    logger.info("CALLBACK URL : " + str(callback_url))
+
     ws_client = biokbase.workspace.client.Workspace(workspace_service_url)
  
     workspace_object = ws_client.get_workspace_info({'workspace':workspace_name}) 
@@ -289,59 +294,63 @@ def upload_genome(shock_service_url=None,
         try: 
             logger.info("attempting to link to " + taxon_wsname + '/' + taxon_object_name)
             taxon_info = ws_client.get_objects([{"workspace": taxon_wsname, 
-                                                 "name": taxon_object_name}]) 
-            taxon_id = "%s/%s/%s" % (taxon_info[0]["info"][6], taxon_info[0]["info"][0], taxon_info[0]["info"][4]) 
-            if not genetic_code_supplied:
-                genetic_code = taxon_info[0]["data"]["genetic_code"]
-            elif genetic_code != taxon_info[0]["data"]["genetic_code"]:
-                #Supplied genetic code differs from taxon genetic code.  Add warning to genome notes
-                temp_notes = ""
-                if "notes" in genome:
-                    temp_notes = "{} ".format(genome["notes"])
-                genome["notes"] = "{}The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.".format(temp_notes,genetic_code, taxon_info[0]["data"]["genetic_code"])
-                report.write("The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.\n\n".format(genetic_code, taxon_info[0]["data"]["genetic_code"]))
-            else:
-                temp_notes = ""
-                if "notes" in genome:
-                    temp_notes = "{} ".format(genome["notes"])
-                genome["notes"] = "{}The genetic code of {} was supplied by the user.".format(temp_notes,genetic_code, taxon_info[0]["data"]["genetic_code"])
-                report.write("The genetic code of {} was supplied by the user.\n\n".format(genetic_code, taxon_info[0]["data"]["genetic_code"]))
+                                                 "name": taxon_object_name}])
+        except Exception, e: 
+            raise Exception("The taxon " + taxon_object_name + " from workspace " + str(taxon_workspace_id) + " does not exist. Error was:" + str(e))
+    
+        taxon_id = "%s/%s/%s" % (taxon_info[0]["info"][6], taxon_info[0]["info"][0], taxon_info[0]["info"][4]) 
+        if not genetic_code_supplied:
+            genetic_code = taxon_info[0]["data"]["genetic_code"]
+        elif genetic_code != taxon_info[0]["data"]["genetic_code"]:
+            #Supplied genetic code differs from taxon genetic code.  Add warning to genome notes
+            temp_notes = ""
+            if "notes" in genome:
+                temp_notes = "{} ".format(genome["notes"])
+            genome["notes"] = "{}The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.".format(temp_notes,genetic_code, taxon_info[0]["data"]["genetic_code"])
+            report.write("The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.\n\n".format(genetic_code, taxon_info[0]["data"]["genetic_code"]))
+        else:
+            temp_notes = ""
+            if "notes" in genome:
+                temp_notes = "{} ".format(genome["notes"])
+            genome["notes"] = "{}The genetic code of {} was supplied by the user.".format(temp_notes,genetic_code, taxon_info[0]["data"]["genetic_code"])
+            report.write("The genetic code of {} was supplied by the user.\n\n".format(genetic_code, taxon_info[0]["data"]["genetic_code"]))
 
-            genome['genetic_code'] = genetic_code
+        genome['genetic_code'] = genetic_code
 #            print "Found name : " + taxon_object_name + " id: " + taxon_id
 #            print "TAXON OBJECT TYPE : " + taxon_info[0]["info"][2]
-            if not taxon_info[0]["info"][2].startswith("KBaseGenomeAnnotations.Taxon"):
-                raise Exception("The object retrieved for the taxon object is not actually a taxon object.  It is {}".format(taxon_info[0]["info"][2]))
-            if 'scientific_name' not in genome:
-                genome['scientific_name'] = taxon_info[0]['data']['scientific_name']
-            genome['domain'] = taxon_info[0]['data']['domain']
+        if not taxon_info[0]["info"][2].startswith("KBaseGenomeAnnotations.Taxon"):
+            raise Exception("The object retrieved for the taxon object is not actually a taxon object.  It is {}".format(taxon_info[0]["info"][2]))
+        if 'scientific_name' not in genome:
+            genome['scientific_name'] = taxon_info[0]['data']['scientific_name']
+        genome['domain'] = taxon_info[0]['data']['domain']
 
-        except Exception, e: 
-            raise Exception("The taxon " + taxon_object_name + " from workspace " + str(taxon_workspace_id) + " does not exist. " + str(e))
     else:
 
-        logger.info("Exact reference provided, using:" + taxon_reference)
+        logger.info("Exact reference provided, using:" + str(taxon_reference))
         try: 
-            taxon_info = ws_client.get_objects({"object_ids":[{"ref": taxon_reference}]})
-            print "TAXON OBJECT TYPE : " + taxon_info[0]["info"][2] 
-            if not taxon_info[0]["info"][2].startswith("KBaseGenomeAnnotations.Taxon"):
-                raise Exception("The object retrieved for the taxon object is not actually a taxon object.  It is " + taxon_info[0]["info"][2])
-            if not genetic_code_supplied:
-                genetic_code = taxon_info[0]["data"]["genetic_code"]
-            elif genetic_code != taxon_info[0]["data"]["genetic_code"]:
-                #Supplied genetic code differs from taxon genetic code.  Add warning to genome notes
-                temp_notes = ""
-                if "notes" in genome:
-                    temp_notes = "{} ".format(genome["notes"])
-                genome['notes'] ="{}  The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.".format(temp_notes,genetic_code, 
-                                                                                                                                                           taxon_info[0]["data"]["genetic_code"])
-                report.write("The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.\n\n".format(genetic_code, 
-                                                                                                                                                              taxon_info[0]["data"]["genetic_code"]))
-            genome['genetic_code'] = genetic_code
-            genome['scientific_name'] = taxon_info[0]['data']['scientific_name']
-            genome['domain'] = taxon_info[0]['data']['domain']
+            taxon_info = ws_client.get_objects([{"ref": taxon_reference}])
+            taxon_id = "%s/%s/%s" % (taxon_info[0]["info"][6], taxon_info[0]["info"][0], taxon_info[0]["info"][4]) 
         except Exception, e:
-            raise Exception("The taxon reference " + taxon_reference + " does not correspond to a workspace object.")
+            raise Exception("The taxon reference " + str(taxon_reference) + " does not correspond to a workspace object. Error was:" + str(e))
+    
+        print "TAXON OBJECT TYPE : " + taxon_info[0]["info"][2] 
+        if not taxon_info[0]["info"][2].startswith("KBaseGenomeAnnotations.Taxon"):
+            raise Exception("The object retrieved for the taxon object is not actually a taxon object.  It is " + taxon_info[0]["info"][2])
+        if not genetic_code_supplied:
+            genetic_code = taxon_info[0]["data"]["genetic_code"]
+        elif genetic_code != taxon_info[0]["data"]["genetic_code"]:
+            #Supplied genetic code differs from taxon genetic code.  Add warning to genome notes
+            temp_notes = ""
+            if "notes" in genome:
+                temp_notes = "{} ".format(genome["notes"])
+            genome['notes'] ="{}  The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.".format(temp_notes,genetic_code, 
+                                                                                                                                                           taxon_info[0]["data"]["genetic_code"])
+        report.write("The supplied genetic code of {} differs from the taxon genetic code of {}. The supplied genetic code is being used.\n\n".format(genetic_code, 
+                                                                                                                                                              taxon_info[0]["data"]["genetic_code"]))
+        genome['genetic_code'] = genetic_code
+        genome['scientific_name'] = taxon_info[0]['data']['scientific_name']
+        genome['domain'] = taxon_info[0]['data']['domain']
+
     genome['taxonomy'] = taxon_info[0]["data"]["scientific_lineage"]
 
 #EARLY BAILOUT FOR TESTING

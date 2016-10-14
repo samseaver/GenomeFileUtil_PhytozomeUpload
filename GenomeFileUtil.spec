@@ -21,6 +21,8 @@ module GenomeFileUtil {
 	workspace_name - the name of the workspace it gets saved to.
 	source - Source of the file typically something like RefSeq or Ensembl
 	taxon_ws_name - where the reference taxons are : ReferenceTaxons
+    taxon_reference - if defined, will try to link the Genome to the specified
+        taxonomy object insteas of performing the lookup during upload
 	release - Release or version number of the data 
           per example Ensembl has numbered releases of all their data: Release 31
 	generate_ids_if_needed - If field used for feature id is not there, 
@@ -38,6 +40,8 @@ module GenomeFileUtil {
 
         string source;
         string taxon_wsname;
+        string taxon_reference;
+
 	    string release;
 	    string generate_ids_if_needed;
 	    int    genetic_code;

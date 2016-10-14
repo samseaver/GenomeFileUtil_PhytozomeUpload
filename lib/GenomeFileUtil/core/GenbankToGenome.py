@@ -38,6 +38,7 @@ class GenbankToGenome:
         optional_param_fields_to_check = [
                 'source',
                 'taxon_wsname',
+                'taxon_reference',
                 'release',
                 'genetic_code',
                 'generate_ids_if_needed',
@@ -48,7 +49,7 @@ class GenbankToGenome:
 
         for field in optional_param_fields_to_check:
             if field in params:
-                parsed_params = params[field]
+                parsed_params[field] = params[field]
 
         # 4) Do the upload
         result = upload_genome(
@@ -68,6 +69,7 @@ class GenbankToGenome:
 
                 taxon_wsname     = parsed_params['taxon_wsname'],
                 taxon_lookup_obj_name = parsed_params['taxon_lookup_obj_name'],
+                taxon_reference = parsed_params['taxon_reference'],
 
                 release          = parsed_params['release'],
                 genetic_code     = parsed_params['genetic_code'],
@@ -134,7 +136,7 @@ class GenbankToGenome:
             'source':'Genbank',
             'taxon_wsname': self.cfg.raw['taxon-workspace-name'],
             'taxon_lookup_obj_name': self.cfg.raw['taxon-lookup-object-name'],
-
+            'taxon_reference': None,
 
             'ontology_wsname': self.cfg.raw['ontology-workspace-name'],
             'ontology_GO_obj_name': self.cfg.raw['ontology-gene-ontology-obj-name'],
