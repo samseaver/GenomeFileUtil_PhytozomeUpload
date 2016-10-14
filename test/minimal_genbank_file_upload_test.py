@@ -81,15 +81,16 @@ class MinimalGenbankUploadTest(unittest.TestCase):
         genomeFileUtil = self.getImpl()
         gbk_path = self.MINIMAL_TEST_FILE
 
-
-        genomeFileUtil = self.getImpl()
-
+        # ok, first test with minimal options
         result = genomeFileUtil.genbank_to_genome(self.getContext(),
                                     {
                                         'file':{'path': gbk_path},
                                         'workspace_name': self.getWsName(),
                                         'genome_name': 'something',
                                     })[0]
+
+
+        
 
         pprint(result)
 

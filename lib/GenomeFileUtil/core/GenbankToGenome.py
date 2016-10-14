@@ -24,11 +24,8 @@ class GenbankToGenome:
         # 1) validate parameters and extract defaults
         self.validate_params(params)
 
-
-
         # 2) construct the input directory staging area
         input_directory = self.stage_input(params)
-
 
         # 3) extract out the parameters
         parsed_params = self.set_defaults()
@@ -54,7 +51,7 @@ class GenbankToGenome:
                 parsed_params = params[field]
 
         # 4) Do the upload
-        info = upload_genome(
+        result = upload_genome(
                 logger=None,
         
                 shock_service_url = self.cfg.shockURL,
@@ -91,9 +88,12 @@ class GenbankToGenome:
         shutil.rmtree(input_directory)
 
         # 6) return the result
+        info = result['genome_info']
         details = {
             'genome_ref': str(info[6]) + '/' + str(info[0]) + '/' + str(info[4]),
-            'genome_info': info
+            'genome_info': info,
+            'report_name': result['report_name'],
+            'report_ref': result['report_ref']
         }
 
         return details

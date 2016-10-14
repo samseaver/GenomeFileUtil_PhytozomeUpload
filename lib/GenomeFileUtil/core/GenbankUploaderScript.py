@@ -1332,10 +1332,12 @@ Below is a list of the term and the countof the number of features that containe
     report_kb = KBaseReport(callback_url)
     report_info = report_kb.create({'report':reportObj, 'workspace_name':workspace_name})
     report.close
-    # STEP 6: contruct the output to send back
-    output = { 'report_name': report_info['name'], 'report_ref': report_info['ref'] }    
 
-    return genome_annotation_info[0]
+    return {
+        'genome_info': genome_annotation_info[0],
+        'report_name': report_info['name'],
+        'report_ref': report_info['ref']
+    }
 
 
 
