@@ -58,24 +58,36 @@ def represents_int(s):
 #
 # The default level is set to INFO which includes everything except DEBUG
 #@profile
-def upload_genome(shock_service_url=None, 
-                  handle_service_url=None, 
-                  input_directory=None, 
-                  shock_id=None, handle_id=None, 
-                  workspace_name=None,
+def upload_genome(shock_service_url=None,
+                  handle_service_url=None,
                   workspace_service_url=None,
-                  callbackURL=None,
-                  taxon_wsname=None,
-                  taxon_reference = None,
-                  release= None,
+                  callback_url=None,
+
+                  input_directory=None, 
+
+                  shock_id=None, handle_id=None,
+
+                  workspace_name=None,
                   core_genome_name=None,
+
+                  taxon_wsname=None,
+                  taxon_lookup_obj_name=None,
+                  taxon_reference = None,
+
+                  exclude_ontologies=None,
+                  ontology_wsname=None,
+                  ontology_GO_obj_name = None,
+                  ontology_PO_obj_name = None,
+
+                  release= None,
                   source=None,
                   type=None,
                   genetic_code=None,
                   generate_ids_if_needed=None,
-                  exclude_ontologies=None,
+
                   provenance=None,
                   usermeta=None,
+
                   level=logging.INFO, logger=None):
     """
     Uploads CondensedGenomeAssembly
@@ -119,10 +131,10 @@ def upload_genome(shock_service_url=None,
         #    ontologies = ws_client.get_objects2({'objects': [{'workspace': 'KBaseOntology', 'name':'gene_ontology'}]}) 
         #    go_ontology = ontologies['data'][0]['data'] 
         logger.info("Retrieving Ontology databases.") 
-        ontologies = ws_client.get_objects( [{'workspace':'KBaseOntology',
-                                              'name':'gene_ontology'},
-                                             {'workspace':'KBaseOntology',
-                                              'name':'plant_ontology'}])
+        ontologies = ws_client.get_objects( [{'workspace':ontology_wsname,
+                                              'name':ontology_GO_obj_name},
+                                             {'workspace':ontology_wsname,
+                                              'name':ontology_PO_obj_name}])
         logger.info("Ontology databases retrieved.") 
         
         ontology_sources["GO"] = ontologies[0]['data']['term_hash']
@@ -251,7 +263,7 @@ def upload_genome(shock_service_url=None,
     if taxon_reference is None:
         #Get the taxon_lookup_object
         taxon_lookup = ws_client.get_objects( [{'workspace':taxon_wsname,
-                                                'name':"taxon_lookup"}])
+                                                'name':taxon_lookup_obj_name}])
         if ((organism is not None) and (organism[0:3] in taxon_lookup[0]['data']['taxon_lookup'])):
             if organism in taxon_lookup[0]['data']['taxon_lookup'][organism[0:3]]:
                 tax_id = taxon_lookup[0]['data']['taxon_lookup'][organism[0:3]][organism] 
@@ -1316,14 +1328,30 @@ Below is a list of the term and the countof the number of features that containe
         'objects_created':[{'ref':output_data_ref, 'description':'Assembled contigs'}],
         'text_message':report.getvalue()
     }
-    report_kb = KBaseReport(self.callbackURL)
-#    report_kb = KBaseReport(self.callbackURL, token=ctx['token'], service_ver=SERVICE_VER)
+    report_kb = KBaseReport(callback_url)
     report_info = report_kb.create({'report':reportObj, 'workspace_name':workspace_name})
     report.close
     # STEP 6: contruct the output to send back
     output = { 'report_name': report_info['name'], 'report_ref': report_info['ref'] }    
 
     return genome_annotation_info[0]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # called only if script is run from command line
 if __name__ == "__main__":

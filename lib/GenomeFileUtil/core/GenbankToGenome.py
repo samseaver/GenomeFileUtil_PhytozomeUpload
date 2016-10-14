@@ -24,51 +24,34 @@ class GenbankToGenome:
         # 1) validate parameters and extract defaults
         self.validate_params(params)
 
+
+
         # 2) construct the input directory staging area
         input_directory = self.stage_input(params)
 
 
         # 3) extract out the parameters
-        workspace_name = params['workspace_name']
-        genome_name = params['genome_name']
-        source = 'Genbank'
-        if 'source' in params:
-            source = params['source']
-        taxon_wsname = 'ReferenceTaxons'
-        if 'taxon_wsname' in params:
-            taxon_wsname = params['taxon_wsname']
+        parsed_params = self.set_defaults()
 
-        release = None
-        if 'release' in params:
-            release = params['release']
-        else:
-            release = None
+        # required parameters must be defined
+        parsed_params['workspace_name'] = params['workspace_name']
+        parsed_params['genome_name'] = params['genome_name']
 
-        genetic_code = None
-        if 'genetic_code' in params:
-            genetic_code = params['genetic_code']
-        else:
-            genetic_code = None
+        # add any optional parameters
+        optional_param_fields_to_check = [
+                'source',
+                'taxon_wsname',
+                'release',
+                'genetic_code',
+                'generate_ids_if_needed',
+                'exclude_ontologies',
+                'type',
+                'metadata'
+            ]
 
-        generate_ids_if_needed = 0
-        if 'generate_ids_if_needed' in params:
-            generate_ids_if_needed = params['generate_ids_if_needed']
-        else:
-            generate_ids_if_needed = None
-
-        exclude_ontologies = 0
-        if 'exclude_ontologies' in params:
-            exclude_ontologies = params['exclude_ontologies']
-        else:
-            exclude_ontologies = 0
-
-        type = "User upload"
-        if 'type' in params:
-            type = params['type']
-
-        # other options to handle
-        # taxon_reference
-        # type
+        for field in optional_param_fields_to_check:
+            if field in params:
+                parsed_params = params[field]
 
         # 4) Do the upload
         info = upload_genome(
@@ -81,15 +64,27 @@ class GenbankToGenome:
 
                 input_directory=input_directory,
         
-                workspace_name   = workspace_name,
-                core_genome_name = genome_name,
-                source           = source,
-                taxon_wsname     = taxon_wsname,
-                release          = release,
-                genetic_code     = genetic_code,
-                type             = type,
-                generate_ids_if_needed = generate_ids_if_needed,
-                provenance = ctx['provenance']
+                workspace_name   = parsed_params['workspace_name'],
+                core_genome_name = parsed_params['genome_name'],
+
+                source           = parsed_params['source'],
+
+                taxon_wsname     = parsed_params['taxon_wsname'],
+                taxon_lookup_obj_name = parsed_params['taxon_lookup_obj_name'],
+
+                release          = parsed_params['release'],
+                genetic_code     = parsed_params['genetic_code'],
+                type             = parsed_params['type'],
+                generate_ids_if_needed = parsed_params['generate_ids_if_needed'],
+
+                exclude_ontologies = parsed_params['exclude_ontologies'],
+                ontology_wsname = parsed_params['ontology_wsname'],
+                ontology_GO_obj_name = parsed_params['ontology_GO_obj_name'],
+                ontology_PO_obj_name = parsed_params['ontology_PO_obj_name'],
+
+
+                provenance = ctx['provenance'],
+                usermeta = parsed_params['metadata']
             )
 
         # 5) clear the temp directory
@@ -132,6 +127,27 @@ class GenbankToGenome:
         valid_types = ['Reference','User upload','Representative']
         if 'type' in params and params['type'] not in valid_types:
             raise ValueError('Entered value for type is not one of the valid entries of "Reference", "Representative" or "User upload"')
+
+
+    def set_defaults(self):
+        default_params = {
+            'source':'Genbank',
+            'taxon_wsname': self.cfg.raw['taxon-workspace-name'],
+            'taxon_lookup_obj_name': self.cfg.raw['taxon-lookup-object-name'],
+
+
+            'ontology_wsname': self.cfg.raw['ontology-workspace-name'],
+            'ontology_GO_obj_name': self.cfg.raw['ontology-gene-ontology-obj-name'],
+            'ontology_PO_obj_name': self.cfg.raw['ontology-plant-ontology-obj-name'],
+
+            'release': None,
+            'genetic_code': None,
+            'generate_ids_if_needed': 0,
+            'exclude_ontologies': 0,
+            'type': 'User upload',
+            'metadata':{}
+        }
+        return default_params
 
 
 
