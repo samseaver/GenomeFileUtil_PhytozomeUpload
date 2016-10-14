@@ -24,6 +24,7 @@ class SDKConfig:
         self.handleURL = config['handle-service-url']
         self.callbackURL = os.environ['SDK_CALLBACK_URL']
         self.sharedFolder = config['scratch']
+        self.raw = config
 
 #END_HEADER
 
