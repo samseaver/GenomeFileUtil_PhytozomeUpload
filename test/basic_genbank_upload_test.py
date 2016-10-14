@@ -1,10 +1,7 @@
 import unittest
 import os
-import json
 import time
 import shutil
-import urllib2
-from contextlib import closing
 
 from os import environ
 try:
@@ -95,7 +92,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'], 
                                 token=self.__class__.ctx['token'],
                                 service_ver='dev')
-        shutil.copy('data/rhodobacter.gtf', self.__class__.cfg['scratch'])
+        shutil.copy(gbk_path, self.__class__.cfg['scratch'])
         shock_id = data_file_cli.file_to_shock({
             'file_path': os.path.join(self.__class__.cfg['scratch'], gbk_path.split("/")[-1])
         })['shock_id']

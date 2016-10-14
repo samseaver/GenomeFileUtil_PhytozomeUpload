@@ -48,10 +48,37 @@ class GenomeFileUtilTest(unittest.TestCase):
         ret = cls.ws.create_workspace({'workspace': wsName})
         cls.wsName = wsName
 
+        with open ('data/e_coli_assembly.json', 'r') as file:
+            data_str=file.read()
+        data = json.loads(data_str)
+
+        # save a fasta file to shock, preload an assembly pointing to it
+        dfu = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
+        shutil.copy('data/e_coli_assembly.fasta', cls.cfg['scratch'])
+        shock_file = dfu.file_to_shock({
+                            'file_path': os.path.join(cls.cfg['scratch'], 'e_coli_assembly.fasta'),
+                            'make_handle': 1
+                        })
+        data['fasta_handle_ref'] = shock_file['handle']['hid']
+
+        # save to ws
+        save_info = {
+                'workspace':wsName,
+                'objects': [{
+                    'type':'KBaseGenomeAnnotations.Assembly',
+                    'data':data,
+                    'name':'e_coli_assembly'
+                }]
+            }
+        result = cls.ws.save_objects(save_info)
+        info = result[0]
+        cls.e_coli_assembly_ref = str(info[6]) +'/' + str(info[0]) + '/' + str(info[4])
+
         # preload with reference data
         with open ('data/e_coli.json', 'r') as file:
             data_str=file.read()
         data = json.loads(data_str)
+        data['assembly_ref'] = cls.e_coli_assembly_ref
         # save to ws
         save_info = {
                 'workspace':wsName,

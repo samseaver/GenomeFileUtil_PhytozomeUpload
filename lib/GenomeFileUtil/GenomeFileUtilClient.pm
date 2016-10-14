@@ -348,7 +348,7 @@ GenomeToGenbankParams is a reference to a hash where the following keys are defi
 	genome_ref has a value which is a string
 	ref_path_to_genome has a value which is a reference to a list where each element is a string
 GenomeToGenbankResult is a reference to a hash where the following keys are defined:
-	gff_file has a value which is a GenomeFileUtil.File
+	genbank_file has a value which is a GenomeFileUtil.File
 	from_cache has a value which is a GenomeFileUtil.boolean
 File is a reference to a hash where the following keys are defined:
 	path has a value which is a string
@@ -368,7 +368,7 @@ GenomeToGenbankParams is a reference to a hash where the following keys are defi
 	genome_ref has a value which is a string
 	ref_path_to_genome has a value which is a reference to a list where each element is a string
 GenomeToGenbankResult is a reference to a hash where the following keys are defined:
-	gff_file has a value which is a GenomeFileUtil.File
+	genbank_file has a value which is a GenomeFileUtil.File
 	from_cache has a value which is a GenomeFileUtil.boolean
 File is a reference to a hash where the following keys are defined:
 	path has a value which is a string
@@ -917,7 +917,7 @@ the file was generated during this call.
 
 <pre>
 a reference to a hash where the following keys are defined:
-gff_file has a value which is a GenomeFileUtil.File
+genbank_file has a value which is a GenomeFileUtil.File
 from_cache has a value which is a GenomeFileUtil.boolean
 
 </pre>
@@ -927,7 +927,7 @@ from_cache has a value which is a GenomeFileUtil.boolean
 =begin text
 
 a reference to a hash where the following keys are defined:
-gff_file has a value which is a GenomeFileUtil.File
+genbank_file has a value which is a GenomeFileUtil.File
 from_cache has a value which is a GenomeFileUtil.boolean
 
 

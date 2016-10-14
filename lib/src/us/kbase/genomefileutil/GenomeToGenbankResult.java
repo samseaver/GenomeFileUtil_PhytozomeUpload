@@ -22,7 +22,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Generated("com.googlecode.jsonschema2pojo")
 @JsonPropertyOrder({
-    "gff_file",
+    "genbank_file",
     "from_cache"
 })
 public class GenomeToGenbankResult {
@@ -32,8 +32,8 @@ public class GenomeToGenbankResult {
      * 
      * 
      */
-    @JsonProperty("gff_file")
-    private File gffFile;
+    @JsonProperty("genbank_file")
+    private File genbankFile;
     @JsonProperty("from_cache")
     private Long fromCache;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
@@ -43,9 +43,9 @@ public class GenomeToGenbankResult {
      * 
      * 
      */
-    @JsonProperty("gff_file")
-    public File getGffFile() {
-        return gffFile;
+    @JsonProperty("genbank_file")
+    public File getGenbankFile() {
+        return genbankFile;
     }
 
     /**
@@ -53,13 +53,13 @@ public class GenomeToGenbankResult {
      * 
      * 
      */
-    @JsonProperty("gff_file")
-    public void setGffFile(File gffFile) {
-        this.gffFile = gffFile;
+    @JsonProperty("genbank_file")
+    public void setGenbankFile(File genbankFile) {
+        this.genbankFile = genbankFile;
     }
 
-    public GenomeToGenbankResult withGffFile(File gffFile) {
-        this.gffFile = gffFile;
+    public GenomeToGenbankResult withGenbankFile(File genbankFile) {
+        this.genbankFile = genbankFile;
         return this;
     }
 
@@ -90,7 +90,7 @@ public class GenomeToGenbankResult {
 
     @Override
     public String toString() {
-        return ((((((("GenomeToGenbankResult"+" [gffFile=")+ gffFile)+", fromCache=")+ fromCache)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((("GenomeToGenbankResult"+" [genbankFile=")+ genbankFile)+", fromCache=")+ fromCache)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }
