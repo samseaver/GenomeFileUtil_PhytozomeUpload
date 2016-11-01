@@ -1,7 +1,7 @@
 #
 # Define basic display information
 #
-name     : SDK IMPORT FROM FTP
+name     : IMPORT FROM FTP
 subtitle : none
 tooltip  : |
     Import a genome with genome sequence in GenBank format or as a zip file of multiple GenBank files, creating GenomeAnnotation and Assembly objects for use in various analysis methods.
