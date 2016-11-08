@@ -1307,7 +1307,7 @@ ADVANCED OPTIONS AND CHECK THE\
     genome['external_source_origination_date'] = genbank_time_string
     genome['features'] = list_of_features
     if release is not None:
-            genome['release'] = release
+        genome['release'] = release
     if len(ontology_terms_not_found) > 0:
         report.write("\nThere were ontologies in the source file that were not found in the onology database.\n\
 These are like to be deprecated terms.\n\
