@@ -1302,7 +1302,7 @@ ADVANCED OPTIONS AND CHECK THE\
     genome['source'] = source_name
     temp_source_id = locus_name_order[0]
     if len(locus_name_order) > 1:
-        temp_source_id += ' (' + str(len(locus_name_order)) + ' more accessions)'
+        temp_source_id += ' (' + str(len(locus_name_order) - 1) + ' more accessions)'
     genome['source_id'] = temp_source_id
     genome['external_source_origination_date'] = genbank_time_string
     genome['features'] = list_of_features
