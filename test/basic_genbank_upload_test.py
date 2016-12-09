@@ -2,6 +2,7 @@ import unittest
 import os
 import time
 import shutil
+import json
 
 from os import environ
 try:
@@ -16,6 +17,9 @@ from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 
 from DataFileUtil.DataFileUtilClient import DataFileUtil
+
+from GenomeFileUtil.JsonIOHelper import (download_genome_to_json_files, 
+                                         compare_genome_json_files)
 
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -85,6 +89,12 @@ class GenomeFileUtilTest(unittest.TestCase):
             })[0]
         pprint(result)
         self.assertIsNotNone(result['genome_ref'])
+        target_dir = os.path.join("/kb/module/work/tmp", "GCF_000005845")
+        download_genome_to_json_files(self.getContext()['token'], result['genome_ref'],
+                                      target_dir)
+        self.assertEqual(0, len(compare_genome_json_files(target_dir, 
+                                                          os.path.join("/kb/module/test/data", 
+                                                                       "GCF_000005845"))))
         # todo: add test that result is correct
 
         ### Test for upload from SHOCK - upload the file to shock first
