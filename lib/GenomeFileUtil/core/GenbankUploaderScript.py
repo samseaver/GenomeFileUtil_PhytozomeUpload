@@ -122,6 +122,28 @@ def upload_genome(shock_service_url=None,
     if exclude_ontologies is not None:
         if exclude_ontologies != 1:
             exclude_ontologies = 0
+    
+    [genome, taxon_id, source_name, genbank_time_string, contig_information_dict,
+     source_file_name, input_file_name, locus_name_order, list_of_features,
+     ontology_terms_not_found] = _load_data(exclude_ontologies, generate_ids_if_needed, input_directory,
+                                            genetic_code, core_genome_name, source, ws_client, 
+                                            ontology_wsname, ontology_GO_obj_name, ontology_PO_obj_name, 
+                                            taxon_wsname, taxon_workspace_id, taxon_lookup_obj_name, 
+                                            taxon_reference, report, logger)
+
+    return _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_string, 
+                      contig_information_dict, provenance, source_file_name, input_file_name, 
+                      locus_name_order, list_of_features, release, ontology_terms_not_found, 
+                      type, usermeta, token, ws_client, workspace_name, workspace_service_url, 
+                      handle_service_url, shock_service_url, callback_url, report, logger)        
+
+
+
+def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, genetic_code,
+               core_genome_name, source,
+               ws_client, ontology_wsname, ontology_GO_obj_name, ontology_PO_obj_name,
+               taxon_wsname, taxon_workspace_id, taxon_lookup_obj_name, taxon_reference,
+               report, logger):
     #Get GO OntologyDictionary
     ontology_sources = _load_ontology_sources(ws_client, exclude_ontologies, ontology_wsname, 
                                               ontology_GO_obj_name, ontology_PO_obj_name,
@@ -254,7 +276,17 @@ def upload_genome(shock_service_url=None,
         genbank_time_string = min_date.strftime('%d-%b-%Y').upper()
     else:
         genbank_time_string = "%s to %s" %(min_date.strftime('%d-%b-%Y').upper(), max_date.strftime('%d-%b-%Y').upper())
+    
+    return [genome, taxon_id, source_name, genbank_time_string, contig_information_dict, source_file_name, 
+            input_file_name, locus_name_order, list_of_features, ontology_terms_not_found]
 
+
+
+def _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_string, 
+               contig_information_dict, provenance, source_file_name, input_file_name,
+               locus_name_order, list_of_features, release, ontology_terms_not_found,
+               genome_type, usermeta, token, ws_client, workspace_name, workspace_service_url,
+               handle_service_url, shock_service_url, callback_url, report, logger):
     ##########################################
     #ASSEMBLY CREATION PORTION  - consume Fasta File
     ##########################################
@@ -328,8 +360,8 @@ def upload_genome(shock_service_url=None,
         genome_annotation_provenance = provenance
     genome_annotation_provenance.append(provenance_action)
     genome_object_name = core_genome_name 
-    genome['type'] = type 
-    if type == "Reference":
+    genome['type'] = genome_type 
+    if genome_type == "Reference":
         genome['reference_annotation'] = 1
     else:
         genome['reference_annotation'] = 0
@@ -396,7 +428,6 @@ Below is a list of the term and the countof the number of features that containe
 
 
 
-
 def _find_input_file(input_directory, logger, report):
     logger.info("Scanning for Genbank Format files.") 
     valid_extensions = [".gbff",".gbk",".gb",".genbank",".dat"] 
@@ -418,6 +449,7 @@ def _find_input_file(input_directory, logger, report):
         logger.warning("Not sure how to handle multiple Genbank files in this context. Using {0}".format(input_file_name))
 
     return input_file_name
+
 
 
 def _load_ontology_sources(ws_client, exclude_ontologies, ontology_wsname,
@@ -450,6 +482,7 @@ def _load_ontology_sources(ws_client, exclude_ontologies, ontology_wsname,
     return ontology_sources
 
 
+
 def _validate_generic_code(genetic_code, logger):
     logger.info("GENETIC_CODE ENTERED : {}".format(str(genetic_code)))
     genetic_code_supplied = False
@@ -461,6 +494,7 @@ def _validate_generic_code(genetic_code, logger):
     else:
         genetic_code = 1
     return [genetic_code, genetic_code_supplied]
+
 
 
 def _strip_lines(input_file_name):
@@ -489,6 +523,7 @@ def _strip_lines(input_file_name):
         return input_file_name
     else:
         raise ValueError("NO GENBANK FILE")
+
 
 
 def _load_contig_boundaries(genbank_file_handle):
@@ -525,6 +560,7 @@ def _load_contig_boundaries(genbank_file_handle):
     return genbank_file_boundaries
 
 
+
 def _load_organism_info(genbank_file_handle, genbank_file_boundaries):
     organism_dict = dict() 
     organism = None
@@ -544,6 +580,7 @@ def _load_organism_info(genbank_file_handle, genbank_file_boundaries):
                 organism_dict[organism] = 1
                 break
         return [organism_dict, organism]
+
 
 
 def _load_taxonomy_info(ws_client, taxon_wsname, taxon_lookup_obj_name, taxon_reference,
@@ -642,6 +679,7 @@ def _load_taxonomy_info(ws_client, taxon_wsname, taxon_lookup_obj_name, taxon_re
     return [tax_id, tax_lineage, taxon_id]
 
 
+
 def _setup_object_names(core_genome_name, source, tax_id, core_scientific_name):
     time_string = str(datetime.datetime.fromtimestamp(time.time()).strftime('%Y_%m_%d_%H_%M_%S'))
     if core_genome_name is None:
@@ -664,6 +702,7 @@ def _setup_object_names(core_genome_name, source, tax_id, core_scientific_name):
     return [time_string, core_genome_name, fasta_file_name, source_name]
 
 
+
 def _load_blocks_for_contig(genbank_file_handle, byte_coordinates):
     genbank_file_handle.seek(byte_coordinates[0]) 
     genbank_record = genbank_file_handle.read(byte_coordinates[1] - byte_coordinates[0]) 
@@ -679,9 +718,11 @@ def _load_blocks_for_contig(genbank_file_handle, byte_coordinates):
     return [metadata_part, features_part, sequence_part]
 
 
+
 def _process_contigs(genbank_file_handle, genbank_file_boundaries, tax_lineage, genbank_division_set, min_date,
                      max_date, organism_dict, now_date, complement_len, join_len, order_len, source, 
                      exclude_ontologies, ontology_sources, time_string, genetic_code, generate_ids_if_needed,
+                     # Output part:
                      list_of_features, genbank_metadata_objects, contig_information_dict, locus_name_order, 
                      genome_publication_dict, genome, fasta_file_handle, report, feature_ids, 
                      feature_type_counts, feature_type_id_counter_dict, ontology_terms_not_found):
@@ -761,6 +802,7 @@ def _process_contigs(genbank_file_handle, genbank_file_boundaries, tax_lineage, 
         fasta_file_handle.write(insert_newlines(sequence_part,80))
         
     return [min_date, max_date]
+
 
 
 def _process_metadata(metadata_part, tax_lineage, genbank_division_set, 
@@ -877,6 +919,7 @@ def _process_metadata(metadata_part, tax_lineage, genbank_division_set,
         genome["publications"] = genome_publication_dict.values() 
 
     return [min_date, max_date, accession]
+
 
 
 def _load_publication_info(metadata_lines, metadata_line_counter, now_date,
@@ -1017,10 +1060,12 @@ def _load_publication_info(metadata_lines, metadata_line_counter, now_date,
     #END OF PUBLICATION SECTION
 
 
+
 def _create_feature_object(feature_text, complement_len, join_len, order_len, contig_length,
                          accession, sequence_part, source, exclude_ontologies, ontology_sources,
-                         time_string, genetic_code, generate_ids_if_needed, report,
-                         feature_ids, feature_type_counts, feature_type_id_counter_dict,
+                         time_string, genetic_code, generate_ids_if_needed, 
+                         # Output part:
+                         report, feature_ids, feature_type_counts, feature_type_id_counter_dict,
                          ontology_terms_not_found):
             feature_object = dict()
             #split the feature into the key value pairs. "/" denotes start of a new key value pair.
@@ -1075,9 +1120,181 @@ def _create_feature_object(feature_text, complement_len, join_len, order_len, co
                 #annotation_metadata_warnings.append(temp_warning)
 #                sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,))
             coordinates_list = coordinates_info.split(",")
+            
+            [locations, dna_sequence_length, dna_sequence,
+             can_not_process_feature] = _load_feature_locations(coordinates_list, complement_len, 
+                                                                feature_text, contig_length, 
+                                                                accession, sequence_part, 
+                                                                apply_complement_to_all, 
+                                                                can_not_process_feature, report)
+
+            if has_odd_coordinates:
+                    quality_warnings.insert(0,"Note this feature contains some atypical coordinates, see the rest of the warnings for details : %s" % (original_coordinates))
+            if can_not_process_feature: 
+                #skip source feature types.
+                return None
+            
+            dna_sequence = dna_sequence.upper()
+
+            if len(locations) > 0:
+                if need_to_reverse_locations and (len(locations) > 1):
+                    locations.reverse()
+            feature_object["location"]=locations
+
+            feature_object["dna_sequence_length"] = dna_sequence_length
+            feature_object["dna_sequence"] = dna_sequence
+            try:
+                feature_object["md5"] = hashlib.md5(dna_sequence).hexdigest() 
+            except Exception, e:
+#                print "THE FEATURE TEXT IS : %s" % (feature_text)
+#                print "THE FEATURE SEQUENCE IS : %s : " % (dna_sequence)
+#                print "Help %s" % help(dna_sequence)
+                raise Exception(e)
+
+            [alias_dict, feature_id, product, pseudo_non_gene, 
+             has_protein_id, ontology_terms] = _load_feature_properties(feature_key_value_pairs_list, 
+                                                                        feature_type, source, exclude_ontologies, 
+                                                                        ontology_sources, time_string, 
+                                                                        # Output part:
+                                                                        feature_object, quality_warnings, 
+                                                                        feature_ids, ontology_terms_not_found)
+
+#            if len(additional_properties) > 0:
+#                feature_object["additional_properties"] = additional_properties
+#            if len(notes) > 0:
+#                feature_object["notes"] = notes
+#            if len(inference) > 0:
+#                feature_object["inference"] = inference
+            if len(alias_dict) > 0:
+                feature_object["aliases"] = alias_dict.keys()
+            if ("function" not in feature_object) and (product is not None):
+                feature_object["function"] = product
+
+            if feature_type == 'CDS':
+                #GET TRANSLATION OF THE CDS.  IF THE GENBANK FILE DOES NOT HAVE IT.  
+                coding_dna = Seq(feature_object["dna_sequence"], generic_dna)
+                aa_seq = coding_dna.translate(table=genetic_code, to_stop=True)
+                aa_trans_seq = str(aa_seq[0:].upper())
+
+                if "protein_translation" in feature_object:
+                    if aa_trans_seq != feature_object["protein_translation"].upper():
+                        temp_warning = "%s translated amino acid sequence does not match the supplied amino acid sequence.\n\n" % (feature_id) 
+                        report.write(temp_warning)
+#                        quality_warnings.append(temp_warning) 
+#                        sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,)) 
+                else:
+                    if not pseudo_non_gene:
+                        raise Exception("Error: CDS with the text : {} has no protein translation".format(feature_text))
+#                    if "dna_sequence" in feature_object:
+#                        feature_object["protein_translation"] = aa_trans_seq
+#                        feature_object["protein_translation_length"] = len(aa_trans_seq)
+            
+            if pseudo_non_gene:
+                if feature_type == "CDS" and has_protein_id:
+                    report.write("Feature text : {} is a CDS with pseudo and protein_id.\n\n".format(feature_text))
+                    #don not include this feature.
+                return None
+
+            if feature_object["type"] in feature_type_counts:
+                feature_type_counts[feature_object["type"]] += 1
+            else:
+                feature_type_counts[feature_object["type"]] = 1     
+
+            if feature_id is None:
+                if generate_ids_if_needed == 1:
+                    #MAKE AUTOGENERATED ID
+                    #MAKING ALL IDS UNIQUE ACROSS THE GENOME.
+                    if feature_type not in feature_type_id_counter_dict:
+                        feature_type_id_counter_dict[feature_object["type"]] = 1;
+                        feature_id = "%s_%s" % (feature_object["type"],str(1)) 
+                    else: 
+                        feature_type_id_counter_dict[feature_object["type"]] += 1; 
+                        feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_object["type"]]))
+                else:
+                    #Throw an error informing user they can set the generate ids if needed checkbox
+                    #do specific errors so they know where we look for the ids.
+                    raise Exception("There was no feature specific id for {}.  \
+For gene type we take the id from the locus tag \
+(except for Ensembl, then the gene field)\
+For CDS type we take the id from the protein id field. \
+NOTE IF YOU WANT THIS STILL UPLOADED GO TO THE \
+ADVANCED OPTIONS AND CHECK THE\
+\"Generate IDs if needed\" checkbox".format(feature_text))
+
+#            feature_object["quality_warnings"] = quality_warnings
+
+#            ############################################
+#            #DETERMINE ID TO USE FOR THE FEATURE OBJECT
+#            ############################################
+#            if feature_type not in features_type_containers_dict:
+#                features_type_containers_dict[feature_type] = dict()
+#            feature_id = None
+
+#OLD WAY TRIED TO USE ID FROM THE FEATURE, UNIQUENESS ONLY GUARANTEED WITH FEATURE CONTAINER AND NOT ACROSS THE GENOME ANNOTATION
+#            if "feature_specific_id" not in feature_object:
+#                if "locus_tag" not in feature_object:
+#                    if feature_type not in feature_type_id_counter_dict:
+#                        feature_type_id_counter_dict[feature_type] = 1;
+#                        feature_id = "%s_%s" % (feature_type,str(1))
+#                    else:
+#                        feature_type_id_counter_dict[feature_type] += 1;
+#                        feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_type]))
+#                else:
+#                    feature_id = feature_object["locus_tag"]
+#            else:
+#                feature_id = feature_object["feature_specific_id"]
+#            if feature_id in features_type_containers_dict[feature_type]:
+#                #Insure that no duplicate ids exist
+#                if feature_type not in feature_type_id_counter_dict:
+#                    feature_type_id_counter_dict[feature_type] = 1;
+#                    feature_id = "%s_%s" % (feature_type,str(1))
+#                else: 
+#                    feature_type_id_counter_dict[feature_type] += 1;
+#                    feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_type]))
+#END OLD WAY
+
+
+##NEW WAY:  MAKING ALL IDS UNIQUE ACROSS THE GENOME.
+#            if feature_type not in feature_type_id_counter_dict:
+#                feature_type_id_counter_dict[feature_type] = 1;
+#                feature_id = "%s_%s" % (feature_type,str(1))
+#            else: 
+#                feature_type_id_counter_dict[feature_type] += 1;
+#                feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_type]))
+##END NEW WAY
+            if len(ontology_terms) > 0:
+                feature_object["ontology_terms"]=ontology_terms
+            feature_object["id"] = feature_id
+
+            ########################################
+            #CLEAN UP UNWANTED FEATURE KEYS
+            #######################################
+            if "locus_tag" in feature_object: 
+                del feature_object["locus_tag"]
+            if "gene" in feature_object: 
+                del feature_object["gene"]
+            if "feature_specific_id" in feature_object: 
+                del feature_object["feature_specific_id"]
+
+#            feature_object["quality_warnings"] = quality_warnings
+
+            #MAKE ENTRY INTO THE FEATURE TABLE
+#            pickled_feature = cPickle.dumps(feature_object, cPickle.HIGHEST_PROTOCOL) 
+#            sql_cursor.execute("insert into features values(:feature_id, :feature_type , :sequence_length, :feature_data)", 
+#                               (feature_id, feature_object["type"], feature_object["dna_sequence_length"], sqlite3.Binary(pickled_feature),))
+
+            return feature_object
+
+
+
+def _load_feature_locations(coordinates_list, complement_len, feature_text,
+                            contig_length, accession, sequence_part,
+                            apply_complement_to_all, can_not_process_feature,
+                            report):
             last_coordinate = 0
             dna_sequence_length = 0
             dna_sequence = ''
+
             locations = list()#list of location objects
             for coordinates in coordinates_list:
                 apply_complement_to_current = False
@@ -1160,30 +1377,15 @@ def _create_feature_object(feature_text, complement_len, join_len, order_len, co
                         raise Exception("The genbank record %s contains coordinates that are not valid number(s).  Feature text is : %s" % (accession,feature_text)) 
 
                     last_coordinate = int(end_pos)
+            return [locations, dna_sequence_length, dna_sequence, can_not_process_feature]
 
-            if has_odd_coordinates:
-                    quality_warnings.insert(0,"Note this feature contains some atypical coordinates, see the rest of the warnings for details : %s" % (original_coordinates))
-            if can_not_process_feature: 
-                #skip source feature types.
-                return None
-            
-            dna_sequence = dna_sequence.upper()
 
-            if len(locations) > 0:
-                if need_to_reverse_locations and (len(locations) > 1):
-                    locations.reverse()
-            feature_object["location"]=locations
 
-            feature_object["dna_sequence_length"] = dna_sequence_length
-            feature_object["dna_sequence"] = dna_sequence
-            try:
-                feature_object["md5"] = hashlib.md5(dna_sequence).hexdigest() 
-            except Exception, e:
-#                print "THE FEATURE TEXT IS : %s" % (feature_text)
-#                print "THE FEATURE SEQUENCE IS : %s : " % (dna_sequence)
-#                print "Help %s" % help(dna_sequence)
-                raise Exception(e)
-
+def _load_feature_properties(feature_key_value_pairs_list, feature_type, source,
+                             exclude_ontologies, ontology_sources, time_string,
+                             # Output part:
+                             feature_object, quality_warnings, feature_ids,
+                             ontology_terms_not_found):
             #Need to determine id for the feature : order selected by gene, then locus.
             alias_dict = dict() #contains locus_tag, gene, gene_synonym, dbxref, then value is 1 (old way value is a list of sources).
             inference = ""
@@ -1336,133 +1538,10 @@ def _create_feature_object(feature_text, complement_len, join_len, order_len, co
 #                        additional_properties[key] =  "%s::%s" % (additional_properties[key],value)
 #                    else:
 #                        additional_properties[key] = value
+            return [alias_dict, feature_id, product, pseudo_non_gene, has_protein_id, ontology_terms]
 
 
-#            if len(additional_properties) > 0:
-#                feature_object["additional_properties"] = additional_properties
-#            if len(notes) > 0:
-#                feature_object["notes"] = notes
-#            if len(inference) > 0:
-#                feature_object["inference"] = inference
-            if len(alias_dict) > 0:
-                feature_object["aliases"] = alias_dict.keys()
-            if ("function" not in feature_object) and (product is not None):
-                feature_object["function"] = product
 
-            if feature_type == 'CDS':
-                #GET TRANSLATION OF THE CDS.  IF THE GENBANK FILE DOES NOT HAVE IT.  
-                coding_dna = Seq(feature_object["dna_sequence"], generic_dna)
-                aa_seq = coding_dna.translate(table=genetic_code, to_stop=True)
-                aa_trans_seq = str(aa_seq[0:].upper())
-
-                if "protein_translation" in feature_object:
-                    if aa_trans_seq != feature_object["protein_translation"].upper():
-                        temp_warning = "%s translated amino acid sequence does not match the supplied amino acid sequence.\n\n" % (feature_id) 
-                        report.write(temp_warning)
-#                        quality_warnings.append(temp_warning) 
-#                        sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,)) 
-                else:
-                    if not pseudo_non_gene:
-                        raise Exception("Error: CDS with the text : {} has no protein translation".format(feature_text))
-#                    if "dna_sequence" in feature_object:
-#                        feature_object["protein_translation"] = aa_trans_seq
-#                        feature_object["protein_translation_length"] = len(aa_trans_seq)
-            
-            if pseudo_non_gene:
-                if feature_type == "CDS" and has_protein_id:
-                    report.write("Feature text : {} is a CDS with pseudo and protein_id.\n\n".format(feature_text))
-                    #don not include this feature.
-                return None
-
-            if feature_object["type"] in feature_type_counts:
-                feature_type_counts[feature_object["type"]] += 1
-            else:
-                feature_type_counts[feature_object["type"]] = 1     
-
-            if feature_id is None:
-                if generate_ids_if_needed == 1:
-                    #MAKE AUTOGENERATED ID
-                    #MAKING ALL IDS UNIQUE ACROSS THE GENOME.
-                    if feature_type not in feature_type_id_counter_dict:
-                        feature_type_id_counter_dict[feature_object["type"]] = 1;
-                        feature_id = "%s_%s" % (feature_object["type"],str(1)) 
-                    else: 
-                        feature_type_id_counter_dict[feature_object["type"]] += 1; 
-                        feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_object["type"]]))
-                else:
-                    #Throw an error informing user they can set the generate ids if needed checkbox
-                    #do specific errors so they know where we look for the ids.
-                    raise Exception("There was no feature specific id for {}.  \
-For gene type we take the id from the locus tag \
-(except for Ensembl, then the gene field)\
-For CDS type we take the id from the protein id field. \
-NOTE IF YOU WANT THIS STILL UPLOADED GO TO THE \
-ADVANCED OPTIONS AND CHECK THE\
-\"Generate IDs if needed\" checkbox".format(feature_text))
-
-#            feature_object["quality_warnings"] = quality_warnings
-
-#            ############################################
-#            #DETERMINE ID TO USE FOR THE FEATURE OBJECT
-#            ############################################
-#            if feature_type not in features_type_containers_dict:
-#                features_type_containers_dict[feature_type] = dict()
-#            feature_id = None
-
-#OLD WAY TRIED TO USE ID FROM THE FEATURE, UNIQUENESS ONLY GUARANTEED WITH FEATURE CONTAINER AND NOT ACROSS THE GENOME ANNOTATION
-#            if "feature_specific_id" not in feature_object:
-#                if "locus_tag" not in feature_object:
-#                    if feature_type not in feature_type_id_counter_dict:
-#                        feature_type_id_counter_dict[feature_type] = 1;
-#                        feature_id = "%s_%s" % (feature_type,str(1))
-#                    else:
-#                        feature_type_id_counter_dict[feature_type] += 1;
-#                        feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_type]))
-#                else:
-#                    feature_id = feature_object["locus_tag"]
-#            else:
-#                feature_id = feature_object["feature_specific_id"]
-#            if feature_id in features_type_containers_dict[feature_type]:
-#                #Insure that no duplicate ids exist
-#                if feature_type not in feature_type_id_counter_dict:
-#                    feature_type_id_counter_dict[feature_type] = 1;
-#                    feature_id = "%s_%s" % (feature_type,str(1))
-#                else: 
-#                    feature_type_id_counter_dict[feature_type] += 1;
-#                    feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_type]))
-#END OLD WAY
-
-
-##NEW WAY:  MAKING ALL IDS UNIQUE ACROSS THE GENOME.
-#            if feature_type not in feature_type_id_counter_dict:
-#                feature_type_id_counter_dict[feature_type] = 1;
-#                feature_id = "%s_%s" % (feature_type,str(1))
-#            else: 
-#                feature_type_id_counter_dict[feature_type] += 1;
-#                feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_type]))
-##END NEW WAY
-            if len(ontology_terms) > 0:
-                feature_object["ontology_terms"]=ontology_terms
-            feature_object["id"] = feature_id
-
-            ########################################
-            #CLEAN UP UNWANTED FEATURE KEYS
-            #######################################
-            if "locus_tag" in feature_object: 
-                del feature_object["locus_tag"]
-            if "gene" in feature_object: 
-                del feature_object["gene"]
-            if "feature_specific_id" in feature_object: 
-                del feature_object["feature_specific_id"]
-
-#            feature_object["quality_warnings"] = quality_warnings
-
-            #MAKE ENTRY INTO THE FEATURE TABLE
-#            pickled_feature = cPickle.dumps(feature_object, cPickle.HIGHEST_PROTOCOL) 
-#            sql_cursor.execute("insert into features values(:feature_id, :feature_type , :sequence_length, :feature_data)", 
-#                               (feature_id, feature_object["type"], feature_object["dna_sequence_length"], sqlite3.Binary(pickled_feature),))
-
-            return feature_object
 
 
 
