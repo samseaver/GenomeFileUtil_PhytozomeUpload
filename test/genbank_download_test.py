@@ -48,66 +48,9 @@ class GenomeFileUtilTest(unittest.TestCase):
         ret = cls.ws.create_workspace({'workspace': wsName})
         cls.wsName = wsName
 
-        with open ('data/e_coli_assembly.json', 'r') as file:
-            data_str=file.read()
-        data = json.loads(data_str)
+        
 
-        # save a fasta file to shock, preload an assembly pointing to it
-        dfu = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
-        shutil.copy('data/e_coli_assembly.fasta', cls.cfg['scratch'])
-        shock_file = dfu.file_to_shock({
-                            'file_path': os.path.join(cls.cfg['scratch'], 'e_coli_assembly.fasta'),
-                            'make_handle': 1
-                        })
-        data['fasta_handle_ref'] = shock_file['handle']['hid']
-
-        # save to ws
-        save_info = {
-                'workspace':wsName,
-                'objects': [{
-                    'type':'KBaseGenomeAnnotations.Assembly',
-                    'data':data,
-                    'name':'e_coli_assembly'
-                }]
-            }
-        result = cls.ws.save_objects(save_info)
-        info = result[0]
-        cls.e_coli_assembly_ref = str(info[6]) +'/' + str(info[0]) + '/' + str(info[4])
-
-        # preload with reference data
-        with open ('data/e_coli.json', 'r') as file:
-            data_str=file.read()
-        data = json.loads(data_str)
-        data['assembly_ref'] = cls.e_coli_assembly_ref
-        # save to ws
-        save_info = {
-                'workspace':wsName,
-                'objects': [{
-                    'type':'KBaseGenomes.Genome',
-                    'data':data,
-                    'name':'e_coli'
-                }]
-            }
-        result = cls.ws.save_objects(save_info)
-        info = result[0]
-        cls.e_coli_ref = str(info[6]) +'/' + str(info[0]) + '/' + str(info[4])
-        print('created e.coli test genome: ' + cls.e_coli_ref)
-
-        # save a genbank file to shock, preload a genome pointing to it
-        dfu = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
-        shutil.copy('data/GCF_000005845.2_ASM584v2_genomic.gbff', cls.cfg['scratch'])
-        shock_file = dfu.file_to_shock({
-                            'file_path': os.path.join(cls.cfg['scratch'], 'GCF_000005845.2_ASM584v2_genomic.gbff'),
-                            'make_handle': 1
-                        })
-        data['genbank_handle_ref'] = shock_file['handle']['hid']
-
-        # save to ws
-        save_info['objects'][0]['name'] = 'e_coli_with_genbank'
-        result = cls.ws.save_objects(save_info)
-        info = result[0]
-        cls.e_coli_ref_with_genbank = str(info[6]) +'/' + str(info[0]) + '/' + str(info[4])
-        print('created e.coli test genome with handle: ' + cls.e_coli_ref_with_genbank)
+       
 
     @classmethod
     def tearDownClass(cls):
@@ -133,28 +76,99 @@ class GenomeFileUtilTest(unittest.TestCase):
     def getContext(self):
         return self.__class__.ctx
 
-    def test_simple_genbank_download(self):
+
+    def load_test_genome_direct(self, filename):
+        with open(filename, 'r') as file:
+            data_str = file.read()
+        data = json.loads(data_str)
+        # save to ws
+        save_info = {
+                'workspace': self.getWsName(),
+                'objects': [{
+                    'type': 'KBaseGenomes.Genome',
+                    'data': data,
+                    'name': 'e_coli'
+                }]
+            }
+        result = self.ws.save_objects(save_info)
+        info = result[0]
+        ref = str(info[6]) + '/' + str(info[0]) + '/' + str(info[4])
+        print('created test genome: ' + ref + ' from file ' + filename)
+        return ref
+
+    def load_test_genome_with_cache(self, filename, gbff_cache_filename):
+        """ cache filename needs to in scratch space """
+        with open(filename, 'r') as file:
+            data_str = file.read()
+        data = json.loads(data_str)
+        # save to ws
+        save_info = {
+                'workspace': self.getWsName(),
+                'objects': [{
+                    'type': 'KBaseGenomes.Genome',
+                    'data': data,
+                    'name': 'e_coli'
+                }]
+            }
+        dfu = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
+        shock_file = dfu.file_to_shock({
+                            'file_path': gbff_cache_filename,
+                            'make_handle': 1
+                        })
+        data['genbank_handle_ref'] = shock_file['handle']['hid']
+        # save to ws
+        save_info['objects'][0]['name'] = 'e_coli_with_genbank'
+        result = self.ws.save_objects(save_info)
+        info = result[0]
+        ref = str(info[6]) + '/' + str(info[0]) + '/' + str(info[4])
+        print('created test genome with gbff cache: ' + ref + ' from file ' + filename)
+        return ref
+
+
+    def skip_test_simple_genbank_download(self):
+        # load test data data
+        e_coli_ref = self.load_test_genome_direct('data/e_coli.json')
+
+        # run the test
         genomeFileUtil = self.getImpl()
         print('testing Genbank download by building the file')
         res1 = genomeFileUtil.genome_to_genbank(self.getContext(),
-            {'genome_ref': self.e_coli_ref})[0]
+            {'genome_ref': e_coli_ref})[0]
         self.assertEqual(res1['from_cache'], 0)
 
-    def test_simple_genbank_download_from_cache(self):
+    def test_check_for_taxonomy_bug(self):
+        # load test data data
+        e_coli_ref = self.load_test_genome_direct('data/taxonomy_bug_test_genome.json')
+        # run the test
+        genomeFileUtil = self.getImpl()
+        print('testing Genbank download by building the file')
+        res1 = genomeFileUtil.genome_to_genbank(self.getContext(),
+            {'genome_ref': e_coli_ref})[0]
+        self.assertEqual(res1['from_cache'], 0)
+
+
+
+
+    def skip_test_simple_genbank_download_with_cache(self):
+
+        # load test data data
+        target_file_path = os.path.join(self.cfg['scratch'], 'GCF_000005845.2_ASM584v2_genomic.gbff')
+        shutil.copy('data/GCF_000005845.2_ASM584v2_genomic.gbff', target_file_path)
+        e_coli_ref_with_genbank = self.load_test_genome_with_cache('data/e_coli.json', target_file_path)
+
+        # run the test
         genomeFileUtil = self.getImpl()
         print('testing Genbank download from cached file')
         res2 = genomeFileUtil.genome_to_genbank(self.getContext(),
-            {'genome_ref': self.e_coli_ref_with_genbank})[0]
+            {'genome_ref': e_coli_ref_with_genbank})[0]
         self.assertEqual(res2['from_cache'], 1)
         self.assertTrue('genbank_file' in res2)
         self.assertTrue('file_path' in res2['genbank_file'])
         self.assertTrue(bool(res2['genbank_file']['file_path']))
-
-    def test_simple_genbank_export_from_cache(self):
         genomeFileUtil = self.getImpl()
         print('testing Genbank export from cached file')
         res = genomeFileUtil.export_genome_as_genbank(self.getContext(),
-            {'input_ref': self.e_coli_ref_with_genbank})[0]
+            {'input_ref': e_coli_ref_with_genbank})[0]
         self.assertTrue('shock_id' in res)
         self.assertTrue(bool(res['shock_id']))
 
