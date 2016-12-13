@@ -208,7 +208,6 @@ def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, gene
     
     min_date = None
     max_date = None
-    genbank_time_string = None
     genome_publication_dict = dict()
 
 #    #Create a SQLLite database and connection.
@@ -265,17 +264,20 @@ def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, gene
                                                 # Output part:
                                                 list_of_features, genbank_metadata_objects, 
                                                 contig_information_dict, locus_name_order, 
-                                                genome_publication_dict, genome, fasta_file_handle, report, 
+                                                genome_publication_dict, genome, fasta_file_handle, 
                                                 feature_ids, feature_type_counts, 
-                                                feature_type_id_counter_dict, ontology_terms_not_found)
+                                                feature_type_id_counter_dict, ontology_terms_not_found,
+                                                logger, report)
     finally:
         fasta_file_handle.close()
         genbank_file_handle.close()
 
-    if min_date == max_date:
-        genbank_time_string = min_date.strftime('%d-%b-%Y').upper()
-    else:
-        genbank_time_string = "%s to %s" %(min_date.strftime('%d-%b-%Y').upper(), max_date.strftime('%d-%b-%Y').upper())
+    genbank_time_string = "Unknown"
+    if min_date and max_date:
+        if min_date == max_date:
+            genbank_time_string = min_date.strftime('%d-%b-%Y').upper()
+        else:
+            genbank_time_string = "%s to %s" %(min_date.strftime('%d-%b-%Y').upper(), max_date.strftime('%d-%b-%Y').upper())
     
     return [genome, taxon_id, source_name, genbank_time_string, contig_information_dict, source_file_name, 
             input_file_name, locus_name_order, list_of_features, ontology_terms_not_found]
@@ -719,20 +721,35 @@ def _load_blocks_for_contig(genbank_file_handle, byte_coordinates):
 
 
 
+def _log_report(logger, report, line):
+    if logger:
+        logger.info(line)
+    if report:
+        report.write(line + "\n")
+
+
 def _process_contigs(genbank_file_handle, genbank_file_boundaries, tax_lineage, genbank_division_set, min_date,
                      max_date, organism_dict, now_date, complement_len, join_len, order_len, source, 
                      exclude_ontologies, ontology_sources, time_string, genetic_code, generate_ids_if_needed,
                      # Output part:
                      list_of_features, genbank_metadata_objects, contig_information_dict, locus_name_order, 
-                     genome_publication_dict, genome, fasta_file_handle, report, feature_ids, 
-                     feature_type_counts, feature_type_id_counter_dict, ontology_terms_not_found):
-    for byte_coordinates in genbank_file_boundaries: 
+                     genome_publication_dict, genome, fasta_file_handle, feature_ids, 
+                     feature_type_counts, feature_type_id_counter_dict, ontology_terms_not_found,
+                     logger, report):
+    good_contig_count = 0;
+    for contig_pos, byte_coordinates in enumerate(genbank_file_boundaries): 
         [metadata_part, features_part, sequence_part] = _load_blocks_for_contig(genbank_file_handle, byte_coordinates)
 
-        [min_date, max_date, accession] = _process_metadata(metadata_part, tax_lineage, genbank_division_set, 
+        [min_date, max_date, accession] = _process_metadata(contig_pos,
+                                                            metadata_part, tax_lineage, genbank_division_set, 
                                                             min_date, max_date, organism_dict, now_date, 
                                                             genbank_metadata_objects, contig_information_dict, 
-                                                            locus_name_order, genome_publication_dict, genome)
+                                                            locus_name_order, genome_publication_dict, genome,
+                                                            logger, report)
+        if not accession:
+            # Contig is skipped
+            continue
+        good_contig_count += 1
 
         ##################################################################################################
         #MAKE SEQUENCE PART INTO CONTIG WITH NO INTERVENING SPACES OR NUMBERS
@@ -800,21 +817,26 @@ def _process_contigs(genbank_file_handle, genbank_file_boundaries, tax_lineage, 
         fasta_file_handle.write(">{}\n".format(accession))
         #write 80 nucleotides per line
         fasta_file_handle.write(insert_newlines(sequence_part,80))
+    
+    if good_contig_count == 0:
+        raise ValueError("No DNA/virus-RNA contigs in proper format were found")
         
     return [min_date, max_date]
 
 
 
-def _process_metadata(metadata_part, tax_lineage, genbank_division_set, 
+def _process_metadata(contig_pos,
+                      metadata_part, tax_lineage, genbank_division_set, 
                       min_date, max_date, organism_dict, now_date,
                       genbank_metadata_objects, contig_information_dict, 
-                      locus_name_order, genome_publication_dict, genome):
+                      locus_name_order, genome_publication_dict, genome,
+                      logger, report):
     metadata_lines = metadata_part.split("\n")
 
     ##########################################
     #METADATA PARSING PORTION
     ##########################################
-    accession = None
+    accession = "Unknown_" + str(contig_pos + 1)
     for metadata_line in metadata_lines: 
         if metadata_line.startswith("ACCESSION   "): 
             accession = metadata_line[12:].split(' ', 1)[0]
@@ -826,21 +848,32 @@ def _process_metadata(metadata_part, tax_lineage, genbank_division_set,
     genbank_metadata_objects[accession] = dict()
     contig_information_dict[accession] = dict()
     locus_name_order.append(accession)
+    if (len(locus_line_info) < 5):
+        raise Exception("Error the record with the Locus Name of %s does not have a valid Locus" +
+                        "line.  It has %s space separated elements when 6 to 8 are expected " +
+                        "(typically 8)." % (locus_line_info[1],str(len(locus_line_info))))
     genbank_metadata_objects[accession]["number_of_basepairs"] = locus_line_info[2]
-    date_text = None
-    if ((len(locus_line_info)!= 7) and (len(locus_line_info)!= 8)): 
-        raise Exception("Error the record with the Locus Name of %s does not have a valid Locus line.  It has %s space separated elements when 6 to 8 are expected (typically 8)." % (locus_line_info[1],str(len(locus_line_info))))
     if locus_line_info[4].upper() != 'DNA':
-        if (locus_line_info[4].upper() == 'RNA') or (locus_line_info[4].upper() == 'SS-RNA') or (locus_line_info[4].upper() == 'SS-DNA'):
-            if not tax_lineage.lower().startswith("viruses") and not tax_lineage.lower().startswith("viroids"):
-                raise Exception("Error the record with the Locus Name of %s is RNA, but the organism does not belong to Viruses or Viroids." % (locus_line_info[1]))
+        if ((locus_line_info[4].upper() == 'RNA') or (locus_line_info[4].upper() == 'SS-RNA') or 
+            (locus_line_info[4].upper() == 'SS-DNA')):
+            if ((not tax_lineage.lower().startswith("viruses")) and 
+                (not tax_lineage.lower().startswith("viroids"))):
+                _log_report(logger, report, 
+                            "Error the record with the Locus Name of %s is RNA, but the organism" +
+                            " does not belong to Viruses or Viroids." % (locus_line_info[1]))
+                return [None, None, None]
         else:
-            raise Exception("Error the record with the Locus Name of %s is not valid as the molecule type of '%s' , is not 'DNA' or 'RNA'.  If it is RNA it must be a virus or a viroid." % (locus_line_info[1],locus_line_info[4]))
-    if ((locus_line_info[5] in genbank_division_set) and (len(locus_line_info) == 7)) :
-        genbank_metadata_objects[accession]["is_circular"] = "Unknown"
-        contig_information_dict[accession]["is_circular"] = "Unknown"
+            _log_report(logger, report, 
+                        "Error the record with the Locus Name of %s is not valid as the molecule" +
+                        " type of '%s' , is not 'DNA' or 'RNA'.  If it is RNA it must be a virus" +
+                        " or a viroid." % (locus_line_info[1],locus_line_info[4]))
+            return [None, None, None]
+    genbank_metadata_objects[accession]["is_circular"] = "Unknown"
+    contig_information_dict[accession]["is_circular"] = "Unknown"
+    date_text = ''
+    if ((len(locus_line_info) == 7) and (locus_line_info[5] in genbank_division_set)) :
         date_text = locus_line_info[6]
-    elif (locus_line_info[6] in genbank_division_set  and (len(locus_line_info) == 8)) :
+    elif ((len(locus_line_info) == 8) and (locus_line_info[6] in genbank_division_set)) :
         date_text = locus_line_info[7]
         if locus_line_info[5] == "circular":
             genbank_metadata_objects[accession]["is_circular"] = "True"
@@ -848,10 +881,7 @@ def _process_metadata(metadata_part, tax_lineage, genbank_division_set,
         elif locus_line_info[5] == "linear":
             genbank_metadata_objects[accession]["is_circular"] = "False"
             contig_information_dict[accession]["is_circular"] = "False"
-        else:
-            genbank_metadata_objects[accession]["is_circular"] = "Unknown"
-            contig_information_dict[accession]["is_circular"] = "Unknown"
-    else:
+    elif len(locus_line_info) >= 6:
         date_text = locus_line_info[5]
 
     try:
@@ -864,11 +894,10 @@ def _process_metadata(metadata_part, tax_lineage, genbank_division_set,
             max_date = record_time
         elif record_time > max_date:
             max_date = record_time
-
     except ValueError:
         exception_string = "Incorrect date format, should be 'DD-MON-YYYY' , attempting to parse the following as a date: %s , the locus line elements: %s " % (date_text, ":".join(locus_line_info))
 #            raise ValueError("Incorrect date format, should be 'DD-MON-YYYY' , attempting to parse the following as a date:" + date_text)
-        raise ValueError(exception_string)
+        _log_report(logger, report, exception_string)
 
     genbank_metadata_objects[accession]["external_source_origination_date"] = date_text
 
