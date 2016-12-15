@@ -139,7 +139,7 @@ class MinimalGenbankUploadTest(unittest.TestCase):
 
         genome_info = result['genome_info']
         self.assertEquals(genome_info[10]['Number contigs'],'1')
-        self.assertEquals(genome_info[10]['Number features'],'5')
+        self.assertEquals(genome_info[10]['Number features'],'3')
         self.assertEquals(genome_info[10]['Domain'],'Eukaryota')
         self.assertEquals(genome_info[10]['Genetic code'],'1')
         self.assertEquals(genome_info[10]['Name'],'Saccharomyces cerevisiae')

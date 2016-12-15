@@ -1,5 +1,6 @@
 import unittest
 import time
+import os
 
 from os import environ
 try:
@@ -12,6 +13,7 @@ from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 
 from DataFileUtil.DataFileUtilClient import DataFileUtil
+from GenomeFileUtil.JsonIOHelper import download_genome_to_json_files
 
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -63,14 +65,33 @@ class GenomeFileUtilTest(unittest.TestCase):
     def getContext(self):
         return self.__class__.ctx
 
-    def test_genome_upload_bug(self):
-        gbk_path = "data/kb_g.399.c.1.gbk"
-        ws_obj_name = 'BugGenome.1'
+#     def test_genome_upload_bug(self):
+#         gbk_path = "data/kb_g.399.c.1.gbk"
+#         ws_obj_name = 'BugGenome.1'
+#         result = self.getImpl().genbank_to_genome(self.getContext(), 
+#             {
+#                 'file' : { 'path': gbk_path },
+#                 'workspace_name': self.getWsName(),
+#                 'genome_name': ws_obj_name,
+#                 'generate_ids_if_needed': 1
+#             })[0]
+#         self.assertTrue(int(result['genome_info'][10]['Number features']) > 0)
+
+    def test_feature_id_duplication_bug(self):
+        gbk_path = "data/duplication.gbff"
+        #gbk_url = "ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/825/225/GCF_000825225.1_XAC4311/GCF_000825225.1_XAC4311_genomic.gbff.gz"
+        ws_obj_name = 'BugGenome.2'
         result = self.getImpl().genbank_to_genome(self.getContext(), 
             {
-                'file' : { 'path': gbk_path },
+                'file' : {'path': gbk_path
+                          #'ftp_url': gbk_url 
+                          },
                 'workspace_name': self.getWsName(),
                 'genome_name': ws_obj_name,
                 'generate_ids_if_needed': 1
             })[0]
-        print(str(result))
+        target_dir = os.path.join("/kb/module/work/tmp", "duplication")
+        download_genome_to_json_files(self.getContext()['token'], result['genome_ref'],
+                                      target_dir)
+        self.assertTrue(int(result['genome_info'][10]['Number features']) > 0)
+        

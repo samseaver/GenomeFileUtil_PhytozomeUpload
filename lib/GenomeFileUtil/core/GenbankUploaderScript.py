@@ -275,6 +275,8 @@ def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, gene
         genbank_file_handle.close()
 
     [list_of_genes, list_of_rnas] = _propagate_genes_to_cdss(list_of_features, logger)
+    _rename_duplicated_ids(list_of_features, "id")
+    _rename_duplicated_ids(list_of_features, "cds_id")
 
     genbank_time_string = "Unknown"
     if min_date and max_date:
@@ -312,10 +314,22 @@ def _propagate_genes_to_cdss(list_of_features, logger):
             gene = id_to_gene_map.get(cds["gene_id"])
             if gene:
                 cds["id"] = gene["id"]  # It doesn't guarantee uniqueness. See below...
-                # Merge cds["aliases"] and gene["aliases"]
-                # Merge cds["ontology_terms"] and gene["ontology_terms"]
-    _rename_duplicated_ids(list_of_features, "id")
-    _rename_duplicated_ids(list_of_features, "cds_id")
+                # Merge gene["aliases"] -> cds["aliases"]
+                alias_dict = {alias: True for alias in cds["aliases"] if len(alias) > 0}
+                alias_dict.update({alias: True for alias in gene["aliases"] if len(alias) > 0})
+                cds["aliases"] = alias_dict.keys()
+                # Merge gene["ontology_terms"] -> cds["ontology_terms"]
+                terms2 = gene.get("ontology_terms")
+                if terms2 is not None:
+                    terms = cds.get("ontology_terms")
+                    if terms is None:
+                        cds["ontology_terms"] = terms2
+                    else:
+                        for source in terms2:
+                            if source in terms:
+                                terms[source].update(terms2[source])
+                            else:
+                                terms[source] = terms2[source]
     return [list_of_genes, list_of_rnas]
 
 
@@ -358,7 +372,8 @@ def _generate_alphabetic_suffix(pos):
         if pos == 0:
             break
     return ret
-                
+
+
 
 def _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_string, 
                contig_information_dict, provenance, source_file_name, input_file_name,
@@ -393,7 +408,7 @@ def _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_str
         shutil.rmtree(fasta_working_dir)
     except Exception, e: 
         logger.exception(e) 
-        sys.exit(1) 
+        raise
 
     logger.info("Assembly Uploaded")
 
