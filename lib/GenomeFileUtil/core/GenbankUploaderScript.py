@@ -125,17 +125,19 @@ def upload_genome(shock_service_url=None,
     
     [genome, taxon_id, source_name, genbank_time_string, contig_information_dict,
      source_file_name, input_file_name, locus_name_order, list_of_features,
-     ontology_terms_not_found] = _load_data(exclude_ontologies, generate_ids_if_needed, input_directory,
-                                            genetic_code, core_genome_name, source, ws_client, 
-                                            ontology_wsname, ontology_GO_obj_name, ontology_PO_obj_name, 
-                                            taxon_wsname, taxon_workspace_id, taxon_lookup_obj_name, 
-                                            taxon_reference, report, logger)
+     ontology_terms_not_found, list_of_genes, list_of_rnas] = _load_data(
+                        exclude_ontologies, generate_ids_if_needed, input_directory,
+                        genetic_code, core_genome_name, source, ws_client, 
+                        ontology_wsname, ontology_GO_obj_name, ontology_PO_obj_name, 
+                        taxon_wsname, taxon_workspace_id, taxon_lookup_obj_name, 
+                        taxon_reference, report, logger)
 
     return _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_string, 
                       contig_information_dict, provenance, source_file_name, input_file_name, 
                       locus_name_order, list_of_features, release, ontology_terms_not_found, 
                       type, usermeta, token, ws_client, workspace_name, workspace_service_url, 
-                      handle_service_url, shock_service_url, callback_url, report, logger)        
+                      handle_service_url, shock_service_url, callback_url, 
+                      list_of_genes, list_of_rnas, report, logger)        
 
 
 
@@ -272,6 +274,10 @@ def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, gene
         fasta_file_handle.close()
         genbank_file_handle.close()
 
+    [list_of_genes, list_of_rnas] = _propagate_genes_to_cdss(list_of_features, logger)
+    _rename_duplicated_ids(list_of_features, "id")
+    _rename_duplicated_ids(list_of_features, "cds_id")
+
     genbank_time_string = "Unknown"
     if min_date and max_date:
         if min_date == max_date:
@@ -279,8 +285,93 @@ def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, gene
         else:
             genbank_time_string = "%s to %s" %(min_date.strftime('%d-%b-%Y').upper(), max_date.strftime('%d-%b-%Y').upper())
     
-    return [genome, taxon_id, source_name, genbank_time_string, contig_information_dict, source_file_name, 
-            input_file_name, locus_name_order, list_of_features, ontology_terms_not_found]
+    return [genome, taxon_id, source_name, genbank_time_string, contig_information_dict, 
+            source_file_name, input_file_name, locus_name_order, list_of_features, 
+            ontology_terms_not_found, list_of_genes, list_of_rnas]
+
+
+
+def _propagate_genes_to_cdss(list_of_features, logger):
+    id_to_gene_map = {}  # feature_id -> gene
+    list_of_genes = []
+    list_of_rnas = []
+    for feature in list_of_features:
+        if feature["type"] == "gene":
+            id_to_gene_map[feature["id"]] = feature
+            list_of_genes.append(feature)
+        elif "RNA" in feature["type"].upper():
+            list_of_rnas.append(feature)
+    _log_report(logger, None, "Number of genes: " + str(len(list_of_genes)))
+    _log_report(logger, None, "Number of RNAs: " + str(len(list_of_rnas)))
+    # Filtering out all other features except CDSs
+    list_of_features[:] = [feature for feature in list_of_features if feature["type"] == "CDS"]
+    _log_report(logger, None, "Number of CDSs: " + str(len(list_of_features)))
+    # Propagate gene properties to CDSs
+    for cds in list_of_features:
+        if cds["id"]:
+            cds["cds_id"] = cds["id"]
+        if "gene_id" in cds:
+            gene = id_to_gene_map.get(cds["gene_id"])
+            if gene:
+                cds["id"] = gene["id"]  # It doesn't guarantee uniqueness. See below...
+                # Merge gene["aliases"] -> cds["aliases"]
+                alias_dict = {alias: True for alias in cds["aliases"] if len(alias) > 0}
+                alias_dict.update({alias: True for alias in gene["aliases"] if len(alias) > 0})
+                cds["aliases"] = alias_dict.keys()
+                # Merge gene["ontology_terms"] -> cds["ontology_terms"]
+                terms2 = gene.get("ontology_terms")
+                if terms2 is not None:
+                    terms = cds.get("ontology_terms")
+                    if terms is None:
+                        cds["ontology_terms"] = terms2
+                    else:
+                        for source in terms2:
+                            if source in terms:
+                                terms[source].update(terms2[source])
+                            else:
+                                terms[source] = terms2[source]
+    return [list_of_genes, list_of_rnas]
+
+
+
+def _rename_duplicated_ids(list_of_features, id_field):
+    id_to_cdss_map = {}  # feature_id -> list<CDS>
+    for cds in list_of_features:
+        if id_field not in cds or not(cds[id_field]):
+            continue
+        id_value = cds[id_field]
+        if id_value in id_to_cdss_map:
+            id_to_cdss_map[id_value].append(cds)
+        else:
+            id_to_cdss_map[id_value] = [cds]
+    used_cds_ids = {key: True for key in id_to_cdss_map}
+    # Make IDs of CDSs unique:
+    for cds_id in id_to_cdss_map:
+        cds_list = id_to_cdss_map[cds_id]
+        if len(cds_list) > 1:
+            pos = 0
+            for cds in cds_list:
+                new_id = None
+                while True:
+                    new_id = cds_id + '_' + _generate_alphabetic_suffix(pos)
+                    if new_id not in used_cds_ids:
+                        break
+                    pos += 1
+                cds[id_field] = new_id
+                used_cds_ids[new_id] = True     # Not necessary but it's cleaner
+                pos += 1
+
+
+
+def _generate_alphabetic_suffix(pos):
+    alphabet_size = 26
+    ret = ""
+    while True:
+        ret = chr(ord('A') + (pos % alphabet_size)) + ret
+        pos = int(pos / alphabet_size)
+        if pos == 0:
+            break
+    return ret
 
 
 
@@ -288,7 +379,8 @@ def _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_str
                contig_information_dict, provenance, source_file_name, input_file_name,
                locus_name_order, list_of_features, release, ontology_terms_not_found,
                genome_type, usermeta, token, ws_client, workspace_name, workspace_service_url,
-               handle_service_url, shock_service_url, callback_url, report, logger):
+               handle_service_url, shock_service_url, callback_url, 
+               list_of_genes, list_of_rnas, report, logger):
     ##########################################
     #ASSEMBLY CREATION PORTION  - consume Fasta File
     ##########################################
@@ -316,7 +408,7 @@ def _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_str
         shutil.rmtree(fasta_working_dir)
     except Exception, e: 
         logger.exception(e) 
-        sys.exit(1) 
+        raise
 
     logger.info("Assembly Uploaded")
 
@@ -378,6 +470,8 @@ def _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_str
     genome['source_id'] = temp_source_id
     genome['external_source_origination_date'] = genbank_time_string
     genome['features'] = list_of_features
+    genome['genes'] = list_of_genes
+    genome['rnas'] = list_of_rnas
     if release is not None:
         genome['release'] = release
     if len(ontology_terms_not_found) > 0:
@@ -1181,12 +1275,14 @@ def _create_feature_object(feature_text, complement_len, join_len, order_len, co
                 raise Exception(e)
 
             [alias_dict, feature_id, product, pseudo_non_gene, 
-             has_protein_id, ontology_terms] = _load_feature_properties(feature_key_value_pairs_list, 
-                                                                        feature_type, source, exclude_ontologies, 
-                                                                        ontology_sources, time_string, 
-                                                                        # Output part:
-                                                                        feature_object, quality_warnings, 
-                                                                        feature_ids, ontology_terms_not_found)
+             has_protein_id, ontology_terms, gene_feature_id] = _load_feature_properties(
+                    feature_key_value_pairs_list, feature_type, source, exclude_ontologies, 
+                    ontology_sources, time_string, 
+                    # Output part:
+                    feature_object, quality_warnings, feature_ids, ontology_terms_not_found)
+
+            if gene_feature_id:
+                feature_object["gene_id"] = gene_feature_id
 
 #            if len(additional_properties) > 0:
 #                feature_object["additional_properties"] = additional_properties
@@ -1427,6 +1523,7 @@ def _load_feature_properties(feature_key_value_pairs_list, feature_type, source,
             pseudo_non_gene = False
             has_protein_id = False
             ontology_terms = dict()
+            gene_feature_id = None    # This is feature_id of parent gene for current CDS feature
 
             for feature_key_value_pair in feature_key_value_pairs_list:
                 #the key value pair removing unnecessary white space (including new lines as these often span multiple lines)
@@ -1455,12 +1552,15 @@ def _load_feature_properties(feature_key_value_pairs_list, feature_type, source,
                 if key == "gene":
                     feature_object["gene"] = value 
                     alias_dict[value]=1 
-                    if source.upper() == "ENSEMBL" and feature_type == "gene":
-                        if value in feature_ids:
-                            raise Exception("More than one feature has the specific feature id of {}.  All feature ids need to be unique.".format(value))
-                        else:
-                            feature_id = value
-                            feature_ids[value] = 1
+                    if source.upper() == "ENSEMBL":
+                        if feature_type == "gene":
+                            if value in feature_ids:
+                                raise Exception("More than one feature has the specific feature id of {}.  All feature ids need to be unique.".format(value))
+                            else:
+                                feature_id = value
+                                feature_ids[value] = 1
+                        elif feature_type == "CDS":
+                            gene_feature_id = value
 #Kept lines, for dealing with aliases if keeping track of sources/source field
 #                    if value in alias_dict and ("Genbank Gene" not in alias_dict[value]) :
 #                        alias_dict[value].append("Genbank Gene")
@@ -1469,12 +1569,15 @@ def _load_feature_properties(feature_key_value_pairs_list, feature_type, source,
                 elif key == "locus_tag":
                     feature_object["locus_tag"] = value 
                     alias_dict[value]=1 
-                    if source.upper() != "ENSEMBL" and feature_type == "gene":
-                        if value in feature_ids:
-                            raise Exception("More than one feature has the specific feature id of {}.  All feature ids need to be unique.".format(value))
-                        else:
-                            feature_id = value
-                            feature_ids[value] = 1
+                    if source.upper() != "ENSEMBL":
+                        if feature_type == "gene":
+                            if value in feature_ids:
+                                raise Exception("More than one feature has the specific feature id of {}.  All feature ids need to be unique.".format(value))
+                            else:
+                                feature_id = value
+                                feature_ids[value] = 1
+                        elif feature_type == "CDS":
+                            gene_feature_id = value
 #                    if feature_type == "gene":
 #                        feature_object["feature_specific_id"] = value
                 elif key == "old_locus_tag" or key == "standard_name":
@@ -1492,11 +1595,12 @@ def _load_feature_properties(feature_key_value_pairs_list, feature_type, source,
 #                    if feature_type == "CDS":
 #                        feature_object["feature_specific_id"] = value
                     if feature_type == "CDS":
-                        if value in feature_ids:
-                            raise Exception("More than one feature has the specific feature id of {}.  All feature ids need to be unique.".format(value))
-                        else:
-                            feature_id = value
-                            feature_ids[value] = 1 
+                        feature_id = value
+#                         if value in feature_ids:
+#                             raise Exception("More than one feature has the specific feature id of {}.  All feature ids need to be unique.".format(value))
+#                         else:
+#                             feature_id = value
+#                             feature_ids[value] = 1 
                     alias_dict[value]=1 
                     has_protein_id = True
 
@@ -1567,7 +1671,8 @@ def _load_feature_properties(feature_key_value_pairs_list, feature_type, source,
 #                        additional_properties[key] =  "%s::%s" % (additional_properties[key],value)
 #                    else:
 #                        additional_properties[key] = value
-            return [alias_dict, feature_id, product, pseudo_non_gene, has_protein_id, ontology_terms]
+            return [alias_dict, feature_id, product, pseudo_non_gene, has_protein_id, 
+                    ontology_terms, gene_feature_id]
 
 
 
