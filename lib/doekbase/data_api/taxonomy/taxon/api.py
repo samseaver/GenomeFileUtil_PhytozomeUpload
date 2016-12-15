@@ -155,7 +155,9 @@ class _KBaseGenomes_Genome(ObjectAPI, TaxonInterface):
             return [GenomeAnnotationAPI(self.services, self._token, self.ref)]
 
     def get_scientific_lineage(self):
-        return [x.strip() for x in self.data["taxonomy"].split(";")]
+        if 'taxonomy' in self.data:
+            return [x.strip() for x in self.data["taxonomy"].split(";")]
+        return []
 
     def get_scientific_name(self):
         return self.data["scientific_name"]

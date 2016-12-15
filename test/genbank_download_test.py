@@ -125,7 +125,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         return ref
 
 
-    def skip_test_simple_genbank_download(self):
+    def test_simple_genbank_download(self):
         # load test data data
         e_coli_ref = self.load_test_genome_direct('data/e_coli.json')
 
@@ -135,6 +135,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         res1 = genomeFileUtil.genome_to_genbank(self.getContext(),
             {'genome_ref': e_coli_ref})[0]
         self.assertEqual(res1['from_cache'], 0)
+
 
     def test_check_for_taxonomy_bug(self):
         # load test data data
@@ -149,7 +150,7 @@ class GenomeFileUtilTest(unittest.TestCase):
 
 
 
-    def skip_test_simple_genbank_download_with_cache(self):
+    def test_simple_genbank_download_with_cache(self):
 
         # load test data data
         target_file_path = os.path.join(self.cfg['scratch'], 'GCF_000005845.2_ASM584v2_genomic.gbff')

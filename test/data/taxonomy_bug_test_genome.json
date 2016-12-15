@@ -1,13 +1,13 @@
 {
     "domain": "B",
-    "assembly_ref":"13304/14/1",
+    "assembly_ref":"13304/14",
     "features": [
         {
             "function": "Polysaccharide biosynthesis protein",
             "id": "NewGenome.CDS.6211",
             "location": [
                 [
-                    "NODE_10_length_171788_cov_9.00126_ID_5753",
+                    "NC_000913",
                     169139,
                     "+",
                     2484
@@ -28,7 +28,7 @@
             "id": "NewGenome.CDS.6210",
             "location": [
                 [
-                    "NODE_10_length_171788_cov_9.00126_ID_5753",
+                    "NC_000913",
                     168018,
                     "+",
                     504
@@ -66,7 +66,7 @@
             "id": "NewGenome.CDS.6209",
             "location": [
                 [
-                    "NODE_10_length_171788_cov_9.00126_ID_5753",
+                    "NC_000913",
                     167592,
                     "-",
                     1473
