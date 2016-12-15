@@ -114,9 +114,13 @@ class GenbankAnnotations(object):
         print('extracting taxonomy information')
         self._taxa = self._ga.get_taxon()
         self._tax_lineage = self._taxa.get_scientific_lineage()
+
+        print('assembling feature and protein data')
         self._genome_name = str(self._ga.get_id())
         self._proteins = self._ga.get_proteins()
         self._features = self._ga.get_features()
+
+        print('writing file')
 
         # organize features by location
         feature_ids_by_region = self._ga.get_feature_ids(group_by="region")["by_region"]
