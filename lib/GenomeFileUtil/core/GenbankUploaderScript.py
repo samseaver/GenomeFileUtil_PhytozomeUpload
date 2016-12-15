@@ -112,23 +112,348 @@ def upload_genome(shock_service_url=None,
     logger.info("CALLBACK URL : " + str(callback_url))
 
     ws_client = biokbase.workspace.client.Workspace(workspace_service_url)
- 
     workspace_object = ws_client.get_workspace_info({'workspace':workspace_name}) 
-
-    workspace_id = workspace_object[0] 
     workspace_name = workspace_object[1] 
- 
     taxon_workspace_object = ws_client.get_workspace_info({'workspace':taxon_wsname}) 
-
     taxon_workspace_id = taxon_workspace_object[0] 
-    taxon_workspace_name = taxon_workspace_object[1] 
 
     report = StringIO() #variable to put warnings report into.  For UI widget reports output tab
 
     if exclude_ontologies is not None:
         if exclude_ontologies != 1:
-            exclude_ontologies == 0
+            exclude_ontologies = 0
+    
+    [genome, taxon_id, source_name, genbank_time_string, contig_information_dict,
+     source_file_name, input_file_name, locus_name_order, list_of_features,
+     ontology_terms_not_found] = _load_data(exclude_ontologies, generate_ids_if_needed, input_directory,
+                                            genetic_code, core_genome_name, source, ws_client, 
+                                            ontology_wsname, ontology_GO_obj_name, ontology_PO_obj_name, 
+                                            taxon_wsname, taxon_workspace_id, taxon_lookup_obj_name, 
+                                            taxon_reference, report, logger)
+
+    return _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_string, 
+                      contig_information_dict, provenance, source_file_name, input_file_name, 
+                      locus_name_order, list_of_features, release, ontology_terms_not_found, 
+                      type, usermeta, token, ws_client, workspace_name, workspace_service_url, 
+                      handle_service_url, shock_service_url, callback_url, report, logger)        
+
+
+
+def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, genetic_code,
+               core_genome_name, source,
+               ws_client, ontology_wsname, ontology_GO_obj_name, ontology_PO_obj_name,
+               taxon_wsname, taxon_workspace_id, taxon_lookup_obj_name, taxon_reference,
+               report, logger):
     #Get GO OntologyDictionary
+    ontology_sources = _load_ontology_sources(ws_client, exclude_ontologies, ontology_wsname, 
+                                              ontology_GO_obj_name, ontology_PO_obj_name,
+                                              logger)
+
+    [genetic_code, genetic_code_supplied] = _validate_generic_code(genetic_code, logger)
+
+    if generate_ids_if_needed is not None:
+        if generate_ids_if_needed != 1:
+            generate_ids_if_needed = 0
+    else:
+        generate_ids_if_needed = 0
+
+    input_file_name = _find_input_file(input_directory, logger, report)
+    source_file_name = os.path.basename(input_file_name)
+    print "INPUT FILE NAME :" + input_file_name + ":"
+
+    input_file_name = _strip_lines(input_file_name)
+
+    genbank_file_handle = TextFileDecoder.open_textdecoder(input_file_name, 'ISO-8859-1') 
+
+    #list of tuples: (first value record start byte position, second value record stop byte position)
+    genbank_file_boundaries = _load_contig_boundaries(genbank_file_handle)  
+    print "Number of contigs : " + str(len(genbank_file_boundaries))
+   
+    [organism_dict, organism] = _load_organism_info(genbank_file_handle, genbank_file_boundaries)
+
+    genome = {'notes': ''}
+    [tax_id, tax_lineage, taxon_id] = _load_taxonomy_info(ws_client, taxon_wsname, 
+                                                          taxon_lookup_obj_name, taxon_reference, 
+                                                          organism, genetic_code_supplied, 
+                                                          taxon_workspace_id, logger, report, genome)
+
+    core_scientific_name = re.sub(r'[\W_]+', '_', genome['scientific_name'])
+
+    #CORE OBJECT NAME WILL BE EITHER PASSED IN OR GENERATED (TaxID_Source)
+    #Fasta file name format is taxID_source_timestamp
+    [time_string, core_genome_name, 
+     fasta_file_name, source_name] = _setup_object_names(core_genome_name, source, tax_id, 
+                                                         core_scientific_name)
+
+    print "Core Genome Name :"+ core_genome_name + ":"
+    print "FASTA FILE Name :"+ fasta_file_name + ":"
+
+    now_date = datetime.datetime.now()
+        
+    #Parse LOCUS line from each file and grab that meta data (also establish order of the contigs)
+    locus_name_order = list() #for knowing order of the genbank files/contigs
+    genbank_metadata_objects = dict() #the data structure for holding the top level metadata information of each genbank file
+    contig_information_dict = dict() #the data structure for holding the top level metadata information of each genbank file for the stuff needed for making the assembly.
+
+    #HAD TO ADD "CON" as a possible division set.  Even though that does not exist according to this documentation:
+    #http://www.ncbi.nlm.nih.gov/Sitemap/samplerecord.html#GenBankDivisionB
+    #Found this http://www.ncbi.nlm.nih.gov/Web/Newsltr/Fall99/contig.html , oddly suggests no sequence should be associated with this.
+    genbank_division_set = {'PRI','ROD','MAM','VRT','INV','PLN','BCT','VRL','PHG','SYN','UNA','EST','PAT','STS','GSS','HTG','HTC','ENV','CON'}
+
+    #Make the Fasta file for the sequences to be written to
+    if not os.path.exists("temp_fasta_file_dir"):
+        os.makedirs("temp_fasta_file_dir")
+    fasta_file_name = "temp_fasta_file_dir/" +fasta_file_name
+    fasta_file_handle = open(fasta_file_name, 'w')
+    
+    min_date = None
+    max_date = None
+    genbank_time_string = None
+    genome_publication_dict = dict()
+
+#    #Create a SQLLite database and connection.
+#    if make_sql_in_memory:
+#        sql_conn = sqlite3.connect(':memory:') 
+#    else:
+#        db_name = "GenomeAnnotation_{}.db".format(time_string) 
+#        sql_conn = sqlite3.connect(db_name) 
+
+#    sql_cursor = sql_conn.cursor() 
+
+    #Create a protein and feature table.
+#    sql_cursor.execute('''CREATE TABLE features (feature_id text, feature_type text, sequence_length integer, feature_data blob)''')
+#    sql_cursor.execute('''CREATE INDEX feature_id_idx ON features (feature_id)''')
+#    sql_cursor.execute('''CREATE INDEX feature_type_idx ON features (feature_type)''')
+#    sql_cursor.execute('''CREATE INDEX seq_len_idx ON features (sequence_length)''')
+#    sql_cursor.execute('''PRAGMA synchronous=OFF''') 
+
+    #Feature Data structures
+    list_of_features = list()
+
+#    #Key is the gene tag (ex: gene="NAC001"), the value is a dict with feature type as the key. The value is a list of maps (one for each feature with that gene value).  
+#    #The internal map stores all the key value pairs of that feature.
+#    features_grouping_dict = dict() 
+    
+    #Feature_type_id_counter_dict  keeps track of the count of each time a specific id needed to be generated by the uploader and not the file.
+    feature_type_id_counter_dict = dict()
+
+    #Key is feature type, value is the number of occurrences of this type. Lets me know the feature containers that will need 
+    #to be made and a check to insure the counts are accurate.
+    feature_type_counts = dict() 
+
+    #key feature id to be used, value 1
+    feature_ids = dict()
+
+    #Mapping from missing ontology term to number of occurrences
+    ontology_terms_not_found = dict() 
+
+    #integers used for stripping text 
+    complement_len = len("complement(")
+    join_len = len("join(")
+    order_len = len("order(")
+
+    genome["num_contigs"] = len(genbank_file_boundaries)
+
+    print "NUMBER OF GENBANK RECORDS: " + str(len(genbank_file_boundaries))
+    
+    try:
+        [min_date, max_date] = _process_contigs(genbank_file_handle, genbank_file_boundaries, tax_lineage, 
+                                                genbank_division_set, min_date, max_date, organism_dict, 
+                                                now_date, complement_len, join_len, order_len, source, 
+                                                exclude_ontologies, ontology_sources, time_string, 
+                                                genetic_code, generate_ids_if_needed,
+                                                # Output part:
+                                                list_of_features, genbank_metadata_objects, 
+                                                contig_information_dict, locus_name_order, 
+                                                genome_publication_dict, genome, fasta_file_handle, report, 
+                                                feature_ids, feature_type_counts, 
+                                                feature_type_id_counter_dict, ontology_terms_not_found)
+    finally:
+        fasta_file_handle.close()
+        genbank_file_handle.close()
+
+    if min_date == max_date:
+        genbank_time_string = min_date.strftime('%d-%b-%Y').upper()
+    else:
+        genbank_time_string = "%s to %s" %(min_date.strftime('%d-%b-%Y').upper(), max_date.strftime('%d-%b-%Y').upper())
+    
+    return [genome, taxon_id, source_name, genbank_time_string, contig_information_dict, source_file_name, 
+            input_file_name, locus_name_order, list_of_features, ontology_terms_not_found]
+
+
+
+def _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_string, 
+               contig_information_dict, provenance, source_file_name, input_file_name,
+               locus_name_order, list_of_features, release, ontology_terms_not_found,
+               genome_type, usermeta, token, ws_client, workspace_name, workspace_service_url,
+               handle_service_url, shock_service_url, callback_url, report, logger):
+    ##########################################
+    #ASSEMBLY CREATION PORTION  - consume Fasta File
+    ##########################################
+
+    logger.info("Calling FASTA to Assembly Uploader")
+    assembly_reference = "%s/%s_assembly" % (workspace_name,core_genome_name)
+    try:
+        fasta_working_dir = str(os.getcwd()) + "/temp_fasta_file_dir"
+
+        print "HANDLE SERVICE URL " + handle_service_url
+        assembly.upload_assembly(shock_service_url = shock_service_url,
+                                 handle_service_url = handle_service_url,
+                                 input_directory = fasta_working_dir,
+                                 #                  shock_id = args.shock_id,
+                                 #                  handle_id = args.handle_id,
+                                 #                  input_mapping = args.input_mapping, 
+                                 workspace_name = workspace_name,
+                                 workspace_service_url = workspace_service_url,
+                                 taxon_reference = taxon_id,
+                                 assembly_name = "%s_assembly" % (core_genome_name),
+                                 source = source_name,
+                                 contig_information_dict = contig_information_dict,
+                                 date_string = genbank_time_string,
+                                 logger = logger)
+        shutil.rmtree(fasta_working_dir)
+    except Exception, e: 
+        logger.exception(e) 
+        sys.exit(1) 
+
+    logger.info("Assembly Uploaded")
+
+#    sys.exit(1)
+
+    #Do size check of the features
+#    sql_cursor.execute("select sum(length(feature_data)) from features where feature_type = ?", (feature_type,))
+#    sql_cursor.execute("select sum(length(feature_data)) from features")
+#    for row in sql_cursor:
+#        data_length = row[0]
+
+#    if data_length < 900000000:
+        #Size is probably ok Try the save
+        #Retrieve the features from the sqllite DB
+#        sql_cursor.execute("select feature_id, feature_data from features")
+
+#        for row in sql_cursor: 
+#            feature_id = row[0]
+#            feature_data = cPickle.loads(str(row[1])) 
+#            list_of_features.append(feature_data)
+
+#    else:
+        #Features too large
+        #raising an error for now.
+#        raise Exception("This genome can not be saved due to the resulting object being too large for the workspace")
+
+    #Save genome
+    #Then Finally store the GenomeAnnotation.                                                                            
+
+    shock_id = None
+    handle_id = None
+    if shock_id is None:
+        shock_info = script_utils.upload_file_to_shock(logger, shock_service_url, input_file_name, token=token)
+        shock_id = shock_info["id"]
+        handles = script_utils.getHandles(logger, shock_service_url, handle_service_url, [shock_id], [handle_id], token)   
+        handle_id = handles[0]
+
+    genome['genbank_handle_ref'] = handle_id
+    # setup provenance
+    provenance_action = {"script": __file__, "script_ver": "0.1", "description": "features from upload from %s" % (source_name)}
+    genome_annotation_provenance = []
+    if provenance is not None:
+        genome_annotation_provenance = provenance
+    genome_annotation_provenance.append(provenance_action)
+    genome_object_name = core_genome_name 
+    genome['type'] = genome_type 
+    if genome_type == "Reference":
+        genome['reference_annotation'] = 1
+    else:
+        genome['reference_annotation'] = 0
+    genome['taxon_ref'] = taxon_id
+    genome['original_source_file_name'] = source_file_name
+    genome['assembly_ref'] =  assembly_reference 
+    genome['id'] = genome_object_name
+    genome['source'] = source_name
+    temp_source_id = locus_name_order[0]
+    if len(locus_name_order) > 1:
+        temp_source_id += ' (' + str(len(locus_name_order) - 1) + ' more accessions)'
+    genome['source_id'] = temp_source_id
+    genome['external_source_origination_date'] = genbank_time_string
+    genome['features'] = list_of_features
+    if release is not None:
+        genome['release'] = release
+    if len(ontology_terms_not_found) > 0:
+        report.write("\nThere were ontologies in the source file that were not found in the onology database.\n\
+These are like to be deprecated terms.\n\
+Below is a list of the term and the countof the number of features that contained that term:\n")
+
+        for term in ontology_terms_not_found:
+            report.write("{} --- {}\n".format(term,str(ontology_terms_not_found[term])))
+        report.write("\n")
+
+#    print "Genome id %s" % (genome['id'])
+ 
+    logger.info("Attempting Genome save for %s" % (genome_object_name))
+#    while genome_annotation_not_saved:
+#        try:
+    genome_annotation_info =  ws_client.save_objects({"workspace":workspace_name,
+                                                      "objects":[ { "type":"KBaseGenomes.Genome",
+                                                                    "data":genome,
+                                                                    "name": genome_object_name,
+                                                                    "provenance":genome_annotation_provenance,
+                                                                    "meta":usermeta
+                                                                }]}) 
+#            genome_annotation_not_saved = False 
+    logger.info("Genome saved for %s" % (genome_object_name))
+#        except biokbase.workspace.client.ServerError as err: 
+#            raise 
+
+#    if not make_sql_in_memory:
+#        os.remove(db_name) 
+
+    logger.info("Conversions completed.")
+    report.write("\n\nGENOME AND ASSEMBLY OBJECTS HAVE BEEN SUCESSFULLY SAVED.")
+
+
+    output_data_ref = "{}/{}".format(workspace_name,genome_object_name)
+    reportObj = {
+        'objects_created':[{'ref':output_data_ref, 'description':'Assembled contigs'}],
+        'text_message':report.getvalue()
+    }
+    report_kb = KBaseReport(callback_url)
+    report_info = report_kb.create({'report':reportObj, 'workspace_name':workspace_name})
+    report.close
+
+    return {
+        'genome_info': genome_annotation_info[0],
+        'report_name': report_info['name'],
+        'report_ref': report_info['ref']
+    }
+
+
+
+def _find_input_file(input_directory, logger, report):
+    logger.info("Scanning for Genbank Format files.") 
+    valid_extensions = [".gbff",".gbk",".gb",".genbank",".dat"] 
+ 
+    files = os.listdir(os.path.abspath(input_directory)) 
+    print "FILES : " + str(files)
+    genbank_files = [x for x in files if os.path.splitext(x)[-1] in valid_extensions] 
+
+    if (len(genbank_files) == 0): 
+        raise Exception("The input directory does not have one of the following extensions %s." % (",".join(valid_extensions))) 
+  
+    logger.info("Found {0}".format(str(genbank_files))) 
+ 
+    input_file_name = os.path.join(input_directory,genbank_files[0]) 
+ 
+    if len(genbank_files) > 1: 
+        # TODO if multiple files - CONCATENATE FILES HERE (sort by name)? OR Change how the byte coordinates work.
+        report.write("Not sure how to handle multiple Genbank files in this context. Using {0}.\n\n".format(input_file_name))
+        logger.warning("Not sure how to handle multiple Genbank files in this context. Using {0}".format(input_file_name))
+
+    return input_file_name
+
+
+
+def _load_ontology_sources(ws_client, exclude_ontologies, ontology_wsname,
+                           ontology_GO_obj_name, ontology_PO_obj_name, logger):
     ontology_sources = dict()
 
     if exclude_ontologies == 0:
@@ -154,15 +479,12 @@ def upload_genome(shock_service_url=None,
 #    ontology_sources["PO"] = po_ontologies[0]['data']['term_hash']
 #    del go_ontologies
 #    del po_ontologies
+    return ontology_sources
 
-    logger.info("Scanning for Genbank Format files.") 
+
+
+def _validate_generic_code(genetic_code, logger):
     logger.info("GENETIC_CODE ENTERED : {}".format(str(genetic_code)))
-    valid_extensions = [".gbff",".gbk",".gb",".genbank",".dat"] 
- 
-    files = os.listdir(os.path.abspath(input_directory)) 
-    print "FILES : " + str(files)
-    genbank_files = [x for x in files if os.path.splitext(x)[-1] in valid_extensions] 
-
     genetic_code_supplied = False
     if genetic_code is not None:
         genetic_code_supplied = True
@@ -171,31 +493,17 @@ def upload_genome(shock_service_url=None,
             raise Exception("The entered genetic code of {} is not a valid genetic code, please see http://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi".format(str(genetic_code)))
     else:
         genetic_code = 1
+    return [genetic_code, genetic_code_supplied]
 
 
-    if generate_ids_if_needed is not None:
-        if generate_ids_if_needed != 1:
-            generate_ids_if_needed = 0
-    else:
-        generate_ids_if_needed = 0
 
-    if (len(genbank_files) == 0): 
-        raise Exception("The input directory does not have one of the following extensions %s." % (",".join(valid_extensions))) 
-  
-    logger.info("Found {0}".format(str(genbank_files))) 
- 
-    source_file_name = genbank_files[0]
-    input_file_name = os.path.join(input_directory,genbank_files[0]) 
- 
-    if len(genbank_files) > 1: 
-        # TODO if multiple files - CONCATENATE FILES HERE (sort by name)? OR Change how the byte coordinates work.
-        report.write("Not sure how to handle multiple Genbank files in this context. Using {0}.\n\n".format(input_file_name))
-        logger.warning("Not sure how to handle multiple Genbank files in this context. Using {0}".format(input_file_name))
-
-    print "INPUT FILE NAME :" + input_file_name + ":"
-
-    genbank_file_boundaries = list()  
-    #list of tuples: (first value record start byte position, second value record stop byte position)
+def _strip_lines(input_file_name):
+    """ Applies strip to each line of input file.
+    Args:
+        input_file_name: Path to input file in Genbank format.
+    Returns:
+        Path to resulting file (currenly it's the same file as input).
+    """
 
     if os.path.isfile(input_file_name):
         print "Found Genbank_File" 
@@ -203,8 +511,8 @@ def upload_genome(shock_service_url=None,
         dir_name = os.path.dirname(input_file_name)
 
         #take in Genbank file and remove all empty lines from it.
-        os.rename(input_file_name,"%s/temp_file_name" % (dir_name))
         temp_file = "%s/temp_file_name" % (dir_name)
+        os.rename(input_file_name, temp_file)
 
         with open(temp_file,'r') as f_in:
             with open(input_file_name,'w', buffering=2**20 ) as f_out:
@@ -212,32 +520,48 @@ def upload_genome(shock_service_url=None,
                     if line.strip():
                         f_out.write(line)
         os.remove(temp_file)
-
-        #If file is over a 1GB need to do SQLLite on disc
-#        if os.stat(input_file_name) > 1073741824 :
-#            make_sql_in_memory = True
-            
-        genbank_file_handle = TextFileDecoder.open_textdecoder(input_file_name, 'ISO-8859-1') 
-        start_position = 0
-        current_line = genbank_file_handle.readline()
-        last_line = None
-        while (current_line != ''):
-            last_line = current_line 
-            if current_line.startswith("//"):
-                end_position =  genbank_file_handle.tell() - len(current_line)
-                genbank_file_boundaries.append([start_position,end_position])
-#                last_start_position = start_position
-                start_position = genbank_file_handle.tell()
-            current_line = genbank_file_handle.readline()
-
-        if not last_line.startswith("//"):
-            end_position = genbank_file_handle.tell()
-            genbank_file_boundaries.append([start_position,end_position])
+        return input_file_name
     else:
         raise ValueError("NO GENBANK FILE")
 
-    print "Number of contigs : " + str(len(genbank_file_boundaries))
-   
+
+
+def _load_contig_boundaries(genbank_file_handle):
+    """ Loads boundaries of contigs (text blocks separated by '//' line)
+    Args:
+        genbank_file_handle: File handle of input file in Genbank format.
+    Returns:
+        List of tuples (where each tuple is [start,end] pair of to 
+        pointers to file position).
+    """
+    genbank_file_boundaries = list()  
+    #list of tuples: (first value record start byte position, second value record stop byte position)
+
+    #If file is over a 1GB need to do SQLLite on disc
+    #if os.stat(input_file_name) > 1073741824 :
+    #    make_sql_in_memory = True
+        
+    start_position = 0
+    current_line = genbank_file_handle.readline()
+    last_line = None
+    while (current_line != ''):
+        last_line = current_line 
+        if current_line.startswith("//"):
+            end_position =  genbank_file_handle.tell() - len(current_line)
+            genbank_file_boundaries.append([start_position,end_position])
+#                last_start_position = start_position
+            start_position = genbank_file_handle.tell()
+        current_line = genbank_file_handle.readline()
+
+    if not last_line.startswith("//"):
+        end_position = genbank_file_handle.tell()
+        genbank_file_boundaries.append([start_position,end_position])
+
+    return genbank_file_boundaries
+
+
+
+def _load_organism_info(genbank_file_handle, genbank_file_boundaries):
     organism_dict = dict() 
     organism = None
     if len(genbank_file_boundaries) < 1 :
@@ -255,18 +579,17 @@ def upload_genome(shock_service_url=None,
                 print "Organism :" + organism + ":"
                 organism_dict[organism] = 1
                 break
+        return [organism_dict, organism]
 
+
+
+def _load_taxonomy_info(ws_client, taxon_wsname, taxon_lookup_obj_name, taxon_reference,
+                        organism, genetic_code_supplied, taxon_workspace_id, logger,
+                        report, genome):
     tax_id = 0;
     tax_lineage = None;
 
-    genome = {
-        'notes':''
-    }
-
-    display_sc_name = None
-
     genomes_without_taxon_refs = list()
-
 
     logger.info("Looking up taxonomy")
     if taxon_reference is None:
@@ -353,19 +676,11 @@ def upload_genome(shock_service_url=None,
 
     genome['taxonomy'] = taxon_info[0]["data"]["scientific_lineage"]
 
-#EARLY BAILOUT FOR TESTING
-#    sys.exit(1)
+    return [tax_id, tax_lineage, taxon_id]
 
 
-#import re  
-#s = "$abcdef::1234'ghi^_+jkl_mnop" 
-#s = re.sub(r'[\W_]+', '_', s) 
- 
-#    core_scientific_name = re.sub(r'[\W_]+', '_', display_sc_name)
-    core_scientific_name = re.sub(r'[\W_]+', '_', genome['scientific_name'])
 
-    #CORE OBJECT NAME WILL BE EITHER PASSED IN GENERATED (TaxID_Source)
-    #Fasta file name format is taxID_source_timestamp
+def _setup_object_names(core_genome_name, source, tax_id, core_scientific_name):
     time_string = str(datetime.datetime.fromtimestamp(time.time()).strftime('%Y_%m_%d_%H_%M_%S'))
     if core_genome_name is None:
         if source is None:
@@ -384,329 +699,40 @@ def upload_genome(shock_service_url=None,
             source_name = "unknown_source"
         else:
             source_name = source
+    return [time_string, core_genome_name, fasta_file_name, source_name]
 
-    print "Core Genome Name :"+ core_genome_name + ":"
-    print "FASTA FILE Name :"+ fasta_file_name + ":"
 
-    now_date = datetime.datetime.now()
-        
-    #Parse LOCUS line from each file and grab that meta data (also establish order of the contigs)
-    locus_name_order = list() #for knowing order of the genbank files/contigs
-    genbank_metadata_objects = dict() #the data structure for holding the top level metadata information of each genbank file
-    contig_information_dict = dict() #the data structure for holding the top level metadata information of each genbank file for the stuff needed for making the assembly.
 
-    #HAD TO ADD "CON" as a possible division set.  Even though that does not exist according to this documentation:
-    #http://www.ncbi.nlm.nih.gov/Sitemap/samplerecord.html#GenBankDivisionB
-    #Found this http://www.ncbi.nlm.nih.gov/Web/Newsltr/Fall99/contig.html , oddly suggests no sequence should be associated with this.
-    genbank_division_set = {'PRI','ROD','MAM','VRT','INV','PLN','BCT','VRL','PHG','SYN','UNA','EST','PAT','STS','GSS','HTG','HTC','ENV','CON'}
+def _load_blocks_for_contig(genbank_file_handle, byte_coordinates):
+    genbank_file_handle.seek(byte_coordinates[0]) 
+    genbank_record = genbank_file_handle.read(byte_coordinates[1] - byte_coordinates[0]) 
+    try:
+        annotation_part, sequence_part = genbank_record.rsplit("ORIGIN",1)
+    except Exception, e:
+        #sequence does not exist.
+        raise Exception("This Genbank file has at least one record without a sequence.")
 
-    #Make the Fasta file for the sequences to be written to
-    os.makedirs("temp_fasta_file_dir")
-    fasta_file_name = "temp_fasta_file_dir/" +fasta_file_name
-    fasta_file_handle = open(fasta_file_name, 'w')
-    
-    min_date = None
-    max_date = None
-    genbank_time_string = None
-    genome_publication_dict = dict()
+    #done with need for variable genbank_record. Freeing up memory
+    genbank_record = None
+    metadata_part, features_part = annotation_part.rsplit("FEATURES             Location/Qualifiers",1)
+    return [metadata_part, features_part, sequence_part]
 
-#    #Create a SQLLite database and connection.
-#    if make_sql_in_memory:
-#        sql_conn = sqlite3.connect(':memory:') 
-#    else:
-#        db_name = "GenomeAnnotation_{}.db".format(time_string) 
-#        sql_conn = sqlite3.connect(db_name) 
 
-#    sql_cursor = sql_conn.cursor() 
 
-    #Create a protein and feature table.
-#    sql_cursor.execute('''CREATE TABLE features (feature_id text, feature_type text, sequence_length integer, feature_data blob)''')
-#    sql_cursor.execute('''CREATE INDEX feature_id_idx ON features (feature_id)''')
-#    sql_cursor.execute('''CREATE INDEX feature_type_idx ON features (feature_type)''')
-#    sql_cursor.execute('''CREATE INDEX seq_len_idx ON features (sequence_length)''')
-#    sql_cursor.execute('''PRAGMA synchronous=OFF''') 
-
-    #Feature Data structures
-    list_of_features = list()
-
-#    #Key is the gene tag (ex: gene="NAC001"), the value is a dict with feature type as the key. The value is a list of maps (one for each feature with that gene value).  
-#    #The internal map stores all the key value pairs of that feature.
-#    features_grouping_dict = dict() 
-    
-    #Feature_type_id_counter_dict  keeps track of the count of each time a specific id needed to be generated by the uploader and not the file.
-    feature_type_id_counter_dict = dict()
-
-    #Key is feature type, value is the number of occurances of this type. Lets me know the feature containers that will need 
-    #to be made and a check to insure the counts are accurate.
-    feature_type_counts = dict() 
-
-    #key feature id to be used, value 1
-    feature_ids = dict()
-
-    #integers used for stripping text 
-    complement_len = len("complement(")
-    join_len = len("join(")
-    order_len = len("order(")
-
-    genome["num_contigs"] = len(genbank_file_boundaries)
-
-    print "NUMBER OF GENBANK RECORDS: " + str(len(genbank_file_boundaries))
+def _process_contigs(genbank_file_handle, genbank_file_boundaries, tax_lineage, genbank_division_set, min_date,
+                     max_date, organism_dict, now_date, complement_len, join_len, order_len, source, 
+                     exclude_ontologies, ontology_sources, time_string, genetic_code, generate_ids_if_needed,
+                     # Output part:
+                     list_of_features, genbank_metadata_objects, contig_information_dict, locus_name_order, 
+                     genome_publication_dict, genome, fasta_file_handle, report, feature_ids, 
+                     feature_type_counts, feature_type_id_counter_dict, ontology_terms_not_found):
     for byte_coordinates in genbank_file_boundaries: 
-        genbank_file_handle.seek(byte_coordinates[0]) 
-        genbank_record = genbank_file_handle.read(byte_coordinates[1] - byte_coordinates[0]) 
-        try:
-            annotation_part, sequence_part = genbank_record.rsplit("ORIGIN",1)
-        except Exception, e:
-            #sequence does not exist.
-            fasta_file_handle.close() 
-            raise Exception("This Genbank file has at least one record without a sequence.")
+        [metadata_part, features_part, sequence_part] = _load_blocks_for_contig(genbank_file_handle, byte_coordinates)
 
-        #done with need for variable genbank_record. Freeing up memory
-        genbank_record = None
-        metadata_part, features_part = annotation_part.rsplit("FEATURES             Location/Qualifiers",1) 
-
-        metadata_lines = metadata_part.split("\n")
-
-        ##########################################
-        #METADATA PARSING PORTION
-        ##########################################
-        for metadata_line in metadata_lines: 
-            if metadata_line.startswith("ACCESSION   "): 
-                temp = metadata_line[12:]
-                accession = temp.split(' ', 1)[0]
-                break
-
-        #LOCUS line parsing
-        locus_line_info = metadata_lines[0].split()
-        genbank_metadata_objects[accession] = dict()
-        contig_information_dict[accession] = dict()
-        locus_name_order.append(accession)
-        genbank_metadata_objects[accession]["number_of_basepairs"] = locus_line_info[2]
-        date_text = None
-        if ((len(locus_line_info)!= 7) and (len(locus_line_info)!= 8)): 
-            fasta_file_handle.close()
-            raise Exception("Error the record with the Locus Name of %s does not have a valid Locus line.  It has %s space separated elements when 6 to 8 are expected (typically 8)." % (locus_info_line[1],str(len(locus_line_info))))
-        if locus_line_info[4].upper() != 'DNA':
-            if (locus_line_info[4].upper() == 'RNA') or (locus_line_info[4].upper() == 'SS-RNA') or (locus_line_info[4].upper() == 'SS-DNA'):
-                if not tax_lineage.lower().startswith("viruses") and not tax_lineage.lower().startswith("viroids"):
-                    fasta_file_handle.close()
-                    raise Exception("Error the record with the Locus Name of %s is RNA, but the organism does not belong to Viruses or Viroids." % (locus_line_info[1]))
-            else:
-                fasta_file_handle.close()
-                raise Exception("Error the record with the Locus Name of %s is not valid as the molecule type of '%s' , is not 'DNA' or 'RNA'.  If it is RNA it must be a virus or a viroid." % (locus_line_info[1],locus_line_info[4]))
-        if ((locus_line_info[5] in genbank_division_set) and (len(locus_line_info) == 7)) :
-            genbank_metadata_objects[accession]["is_circular"] = "Unknown"
-            contig_information_dict[accession]["is_circular"] = "Unknown"
-            date_text = locus_line_info[6]
-        elif (locus_line_info[6] in genbank_division_set  and (len(locus_line_info) == 8)) :
-            date_text = locus_line_info[7]
-            if locus_line_info[5] == "circular":
-                genbank_metadata_objects[accession]["is_circular"] = "True"
-                contig_information_dict[accession]["is_circular"] = "True"
-            elif locus_line_info[5] == "linear":
-                genbank_metadata_objects[accession]["is_circular"] = "False"
-                contig_information_dict[accession]["is_circular"] = "False"
-            else:
-                genbank_metadata_objects[accession]["is_circular"] = "Unknown"
-                contig_information_dict[accession]["is_circular"] = "Unknown"
-        else:
-            date_text = locus_line_info[5]
-
-        try:
-            record_time = datetime.datetime.strptime(date_text, '%d-%b-%Y')
-            if min_date == None:
-                min_date = record_time
-            elif record_time < min_date:
-                min_date = record_time
-            if max_date == None:
-                max_date = record_time
-            elif record_time > max_date:
-                max_date = record_time
-
-        except ValueError:
-            fasta_file_handle.close()
-            exception_string = "Incorrect date format, should be 'DD-MON-YYYY' , attempting to parse the following as a date: %s , the locus line elements: %s " % (date_text, ":".join(locus_line_info))
-#            raise ValueError("Incorrect date format, should be 'DD-MON-YYYY' , attempting to parse the following as a date:" + date_text)
-            raise ValueError(exception_string)
-
-        genbank_metadata_objects[accession]["external_source_origination_date"] = date_text
-
-        num_metadata_lines = len(metadata_lines)
-        metadata_line_counter = 0
-
-        for metadata_line in metadata_lines:
-            if metadata_line.startswith("DEFINITION  "):
-                definition = metadata_line[12:]
-                definition_loop_counter = 1
-                if ((metadata_line_counter + definition_loop_counter)<= num_metadata_lines):
-                    next_line = metadata_lines[metadata_line_counter + definition_loop_counter]
-                    while (next_line.startswith("            ")) and ((metadata_line_counter + definition_loop_counter)<= num_metadata_lines) :
-                        definition = "%s %s" % (definition,next_line[12:])
-                        definition_loop_counter += 1
-                        if ((metadata_line_counter + definition_loop_counter)<= num_metadata_lines):
-                            next_line = metadata_lines[metadata_line_counter + definition_loop_counter]
-                        else:
-                            break
-                genbank_metadata_objects[accession]["definition"] = definition 
-                contig_information_dict[accession]["definition"] = definition 
-            elif metadata_line.startswith("  ORGANISM  "): 
-                organism = metadata_line[12:] 
-                if organism not in organism_dict:
-                    fasta_file_handle.close()
-                    raise ValueError("There is more than one organism represented in these Genbank files, they do not represent single genome. First record's organism is %s , but %s was also found" 
-                                     % (str(organism_dict.keys()),organism)) 
-            elif metadata_line.startswith("COMMENT     "):
-                comment = metadata_line[12:] 
-                comment_loop_counter = 1 
-                if ((metadata_line_counter + comment_loop_counter)<= num_metadata_lines):
-                    next_line = metadata_lines[metadata_line_counter + comment_loop_counter] 
-                    while (next_line.startswith("            ")) : 
-                        comment = "%s %s" % (comment,next_line[12:]) 
-                        comment_loop_counter += 1 
-                        if ((metadata_line_counter + comment_loop_counter)<= num_metadata_lines):
-                            next_line = metadata_lines[metadata_line_counter + comment_loop_counter]
-                        else:
-                            break
-#                genome_comment = "%s<%s :: %s> " % (genome_comment,accession,comment)
-#                genome_comment_io.write("<%s :: %s> " % (accession,comment))
-            elif metadata_line.startswith("REFERENCE   "):
-                #PUBLICATION SECTION (long)
-                authors = ''
-                title = ''
-                journal = ''
-                pubmed = ''
-                consortium = ''
-                publication_key = metadata_line
-
-                reference_loop_counter = 1
-                if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines): 
-                    next_line = metadata_lines[metadata_line_counter + reference_loop_counter] 
-                # while (next_line and re.match(r'\s', next_line) and not nextline[0].isalpha()):
-                while (next_line and re.match(r'\s', next_line)):
-                    publication_key += next_line
-                    if next_line.startswith("  AUTHORS   "):
-                        authors = next_line[12:] 
-                        reference_loop_counter += 1
-                        if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines):
-                            next_line = metadata_lines[metadata_line_counter + reference_loop_counter] 
-                        else:
-                            break
-                        while (next_line.startswith("            ")) :     
-                            authors = "%s %s" % (authors,next_line[12:]) 
-                            reference_loop_counter += 1
-                            if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines): 
-                                next_line = metadata_lines[metadata_line_counter + reference_loop_counter] 
-                            else: 
-                                break 
-                    elif next_line.startswith("  TITLE     "):
-                        title = next_line[12:]
-                        reference_loop_counter += 1
-                        if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines):
-                            next_line = metadata_lines[metadata_line_counter + reference_loop_counter]
-                        else:
-                            break
-                        while (next_line.startswith("            ")) :
-                            title = "%s %s" % (title,next_line[12:])
-                            reference_loop_counter += 1
-                            if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines):
-                                next_line = metadata_lines[metadata_line_counter + reference_loop_counter]
-                            else:
-                                break
-                    elif next_line.startswith("  JOURNAL   "):
-                        journal = next_line[12:]
-                        reference_loop_counter += 1
-                        if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines):
-                            next_line = metadata_lines[metadata_line_counter + reference_loop_counter]
-                        else:
-                            break
-                        while (next_line.startswith("            ")) :
-                            journal = "%s %s" % (journal,next_line[12:])
-                            reference_loop_counter += 1
-                            if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines):
-                                next_line = metadata_lines[metadata_line_counter + reference_loop_counter]
-                            else:
-                                break
-                    elif next_line.startswith("   PUBMED   "): 
-                        pubmed = next_line[12:] 
-                        reference_loop_counter += 1
-                        if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines):
-                            next_line = metadata_lines[metadata_line_counter + reference_loop_counter]
-                        else:
-                            break
-                        while (next_line.startswith("            ")) : 
-                            pubmed = "%s %s" % (journal,next_line[12:]) 
-                            reference_loop_counter += 1
-                            if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines): 
-                                next_line = metadata_lines[metadata_line_counter + reference_loop_counter] 
-                            else: 
-                                break 
-                    elif next_line.startswith("  CONSRTM   "):
-                        consortium = next_line[12:]
-                        reference_loop_counter += 1
-                        if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines): 
-                            next_line = metadata_lines[metadata_line_counter + reference_loop_counter]
-                        else:
-                            break 
-                        while (next_line.startswith("            ")) : 
-                            consortium = "%s %s" % (journal,next_line[12:]) 
-                            reference_loop_counter += 1
-                            if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines):
-                                next_line = metadata_lines[metadata_line_counter + reference_loop_counter]
-                            else:
-                                break
-                    else:
-                        reference_loop_counter += 1
-                        if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines):
-                            next_line = metadata_lines[metadata_line_counter + reference_loop_counter]
-                        else:
-                            break
-                #Done grabbing reference lines, time to build the reference object.
-
-                pubmed_link = ''
-                publication_source = ''
-                publication_date = ''
-                if pubmed != '':
-                    publication_source = "PubMed"
-                elif consortium != '':
-                    publication_source = consortium
-                try:
-                    pubmed = int(pubmed)
-                except ValueError:
-                    pubmed = 0
-                if pubmed != 0:
-                    pubmed_link = "http://www.ncbi.nlm.nih.gov/pubmed/%s" % str(pubmed)
-                if journal != '':
-                    potential_date_regex = r'(?<=\().+?(?=\))'
-                    potential_dates = re.findall(potential_date_regex, journal)
-                    
-                    for potential_date in reversed(potential_dates):                        
-                        try:
-                            record_time = datetime.datetime.strptime(potential_date, '%d-%b-%Y')
-                            if now_date > record_time:
-                                publication_date = potential_date
-                                break
-                        except ValueError:
-                            try:
-                                record_time = datetime.datetime.strptime(potential_date, '%b-%Y')
-                                if now_date > record_time:
-                                    publication_date = potential_date
-                                    break       
-                            except ValueError:
-                                try:
-                                    record_time = datetime.datetime.strptime(potential_date, '%Y')
-                                    if now_date > record_time:
-                                        publication_date = potential_date
-                                        break
-                                except ValueError:
-                                    next
-                publication = [pubmed,publication_source,title,pubmed_link,publication_date,authors,journal]
-                genome_publication_dict[publication_key] = publication
-                #END OF PUBLICATION SECTION
-
-            metadata_line_counter += 1
-
-        if len(genome_publication_dict) > 0 :
-            genome["publications"] = genome_publication_dict.values() 
+        [min_date, max_date, accession] = _process_metadata(metadata_part, tax_lineage, genbank_division_set, 
+                                                            min_date, max_date, organism_dict, now_date, 
+                                                            genbank_metadata_objects, contig_information_dict, 
+                                                            locus_name_order, genome_publication_dict, genome)
 
         ##################################################################################################
         #MAKE SEQUENCE PART INTO CONTIG WITH NO INTERVENING SPACES OR NUMBERS
@@ -750,18 +776,309 @@ def upload_genome(shock_service_url=None,
         
         #Go through each feature and determine key value pairs, properties and importantly the id to use to group for interfeature_relationships.
         for feature_text in features_list:
+            feature_object = _create_feature_object(feature_text, complement_len, join_len, order_len, 
+                                                    contig_length, accession, sequence_part, source, 
+                                                    exclude_ontologies, ontology_sources, time_string, 
+                                                    genetic_code, generate_ids_if_needed, report, 
+                                                    feature_ids, feature_type_counts, 
+                                                    feature_type_id_counter_dict, 
+                                                    ontology_terms_not_found)
+            if feature_object is not None:
+                list_of_features.append(feature_object)
+            
+#        for feature_type in feature_type_counts:
+#            print "Feature " + feature_type + "  count: " + str(feature_type_counts[feature_type])
+
+
+        ##################################################################################################
+        #SEQUENCE PARSING PORTION  - Write out to Fasta File
+        ##################################################################################################
+
+#        print "The len of sequence part is: " + str(len(sequence_part))
+#        print "The number from the record: " + genbank_metadata_objects[accession]["number_of_basepairs"]        
+#        print "First 100 of sequence part : " + sequence_part[0:100] 
+        fasta_file_handle.write(">{}\n".format(accession))
+        #write 80 nucleotides per line
+        fasta_file_handle.write(insert_newlines(sequence_part,80))
+        
+    return [min_date, max_date]
+
+
+
+def _process_metadata(metadata_part, tax_lineage, genbank_division_set, 
+                      min_date, max_date, organism_dict, now_date,
+                      genbank_metadata_objects, contig_information_dict, 
+                      locus_name_order, genome_publication_dict, genome):
+    metadata_lines = metadata_part.split("\n")
+
+    ##########################################
+    #METADATA PARSING PORTION
+    ##########################################
+    accession = None
+    for metadata_line in metadata_lines: 
+        if metadata_line.startswith("ACCESSION   "): 
+            accession = metadata_line[12:].split(' ', 1)[0]
+            break
+    # TODO: raise an error if accession is not set
+
+    #LOCUS line parsing
+    locus_line_info = metadata_lines[0].split()
+    genbank_metadata_objects[accession] = dict()
+    contig_information_dict[accession] = dict()
+    locus_name_order.append(accession)
+    genbank_metadata_objects[accession]["number_of_basepairs"] = locus_line_info[2]
+    date_text = None
+    if ((len(locus_line_info)!= 7) and (len(locus_line_info)!= 8)): 
+        raise Exception("Error the record with the Locus Name of %s does not have a valid Locus line.  It has %s space separated elements when 6 to 8 are expected (typically 8)." % (locus_line_info[1],str(len(locus_line_info))))
+    if locus_line_info[4].upper() != 'DNA':
+        if (locus_line_info[4].upper() == 'RNA') or (locus_line_info[4].upper() == 'SS-RNA') or (locus_line_info[4].upper() == 'SS-DNA'):
+            if not tax_lineage.lower().startswith("viruses") and not tax_lineage.lower().startswith("viroids"):
+                raise Exception("Error the record with the Locus Name of %s is RNA, but the organism does not belong to Viruses or Viroids." % (locus_line_info[1]))
+        else:
+            raise Exception("Error the record with the Locus Name of %s is not valid as the molecule type of '%s' , is not 'DNA' or 'RNA'.  If it is RNA it must be a virus or a viroid." % (locus_line_info[1],locus_line_info[4]))
+    if ((locus_line_info[5] in genbank_division_set) and (len(locus_line_info) == 7)) :
+        genbank_metadata_objects[accession]["is_circular"] = "Unknown"
+        contig_information_dict[accession]["is_circular"] = "Unknown"
+        date_text = locus_line_info[6]
+    elif (locus_line_info[6] in genbank_division_set  and (len(locus_line_info) == 8)) :
+        date_text = locus_line_info[7]
+        if locus_line_info[5] == "circular":
+            genbank_metadata_objects[accession]["is_circular"] = "True"
+            contig_information_dict[accession]["is_circular"] = "True"
+        elif locus_line_info[5] == "linear":
+            genbank_metadata_objects[accession]["is_circular"] = "False"
+            contig_information_dict[accession]["is_circular"] = "False"
+        else:
+            genbank_metadata_objects[accession]["is_circular"] = "Unknown"
+            contig_information_dict[accession]["is_circular"] = "Unknown"
+    else:
+        date_text = locus_line_info[5]
+
+    try:
+        record_time = datetime.datetime.strptime(date_text, '%d-%b-%Y')
+        if min_date == None:
+            min_date = record_time
+        elif record_time < min_date:
+            min_date = record_time
+        if max_date == None:
+            max_date = record_time
+        elif record_time > max_date:
+            max_date = record_time
+
+    except ValueError:
+        exception_string = "Incorrect date format, should be 'DD-MON-YYYY' , attempting to parse the following as a date: %s , the locus line elements: %s " % (date_text, ":".join(locus_line_info))
+#            raise ValueError("Incorrect date format, should be 'DD-MON-YYYY' , attempting to parse the following as a date:" + date_text)
+        raise ValueError(exception_string)
+
+    genbank_metadata_objects[accession]["external_source_origination_date"] = date_text
+
+    num_metadata_lines = len(metadata_lines)
+    metadata_line_counter = 0
+
+    for metadata_line in metadata_lines:
+        if metadata_line.startswith("DEFINITION  "):
+            definition = metadata_line[12:]
+            definition_loop_counter = 1
+            if ((metadata_line_counter + definition_loop_counter)<= num_metadata_lines):
+                next_line = metadata_lines[metadata_line_counter + definition_loop_counter]
+                while (next_line.startswith("            ")) and ((metadata_line_counter + definition_loop_counter)<= num_metadata_lines) :
+                    definition = "%s %s" % (definition,next_line[12:])
+                    definition_loop_counter += 1
+                    if ((metadata_line_counter + definition_loop_counter)<= num_metadata_lines):
+                        next_line = metadata_lines[metadata_line_counter + definition_loop_counter]
+                    else:
+                        break
+            genbank_metadata_objects[accession]["definition"] = definition 
+            contig_information_dict[accession]["definition"] = definition 
+        elif metadata_line.startswith("  ORGANISM  "): 
+            organism = metadata_line[12:] 
+            if organism not in organism_dict:
+                raise ValueError("There is more than one organism represented in these Genbank files, they do not represent single genome. First record's organism is %s , but %s was also found" 
+                                 % (str(organism_dict.keys()),organism)) 
+        elif metadata_line.startswith("COMMENT     "):
+            comment = metadata_line[12:] 
+            comment_loop_counter = 1 
+            if ((metadata_line_counter + comment_loop_counter)<= num_metadata_lines):
+                next_line = metadata_lines[metadata_line_counter + comment_loop_counter] 
+                while (next_line.startswith("            ")) : 
+                    comment = "%s %s" % (comment,next_line[12:]) 
+                    comment_loop_counter += 1 
+                    if ((metadata_line_counter + comment_loop_counter)<= num_metadata_lines):
+                        next_line = metadata_lines[metadata_line_counter + comment_loop_counter]
+                    else:
+                        break
+#                genome_comment = "%s<%s :: %s> " % (genome_comment,accession,comment)
+#                genome_comment_io.write("<%s :: %s> " % (accession,comment))
+        elif metadata_line.startswith("REFERENCE   "):
+            _load_publication_info(metadata_lines, metadata_line_counter, now_date, 
+                                   genome_publication_dict)
+
+        metadata_line_counter += 1
+
+    if len(genome_publication_dict) > 0 :
+        genome["publications"] = genome_publication_dict.values() 
+
+    return [min_date, max_date, accession]
+
+
+
+def _load_publication_info(metadata_lines, metadata_line_counter, now_date,
+                           genome_publication_dict):
+    num_metadata_lines = len(metadata_lines)
+    metadata_line = metadata_lines[metadata_line_counter]
+    #PUBLICATION SECTION (long)
+    authors = ''
+    title = ''
+    journal = ''
+    pubmed = ''
+    consortium = ''
+    publication_key = metadata_line
+
+    reference_loop_counter = 1
+    if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines): 
+        next_line = metadata_lines[metadata_line_counter + reference_loop_counter] 
+    # while (next_line and re.match(r'\s', next_line) and not nextline[0].isalpha()):
+    while (next_line and re.match(r'\s', next_line)):
+        publication_key += next_line
+        if next_line.startswith("  AUTHORS   "):
+            authors = next_line[12:] 
+            reference_loop_counter += 1
+            if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines):
+                next_line = metadata_lines[metadata_line_counter + reference_loop_counter] 
+            else:
+                break
+            while (next_line.startswith("            ")) :     
+                authors = "%s %s" % (authors,next_line[12:]) 
+                reference_loop_counter += 1
+                if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines): 
+                    next_line = metadata_lines[metadata_line_counter + reference_loop_counter] 
+                else: 
+                    break 
+        elif next_line.startswith("  TITLE     "):
+            title = next_line[12:]
+            reference_loop_counter += 1
+            if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines):
+                next_line = metadata_lines[metadata_line_counter + reference_loop_counter]
+            else:
+                break
+            while (next_line.startswith("            ")) :
+                title = "%s %s" % (title,next_line[12:])
+                reference_loop_counter += 1
+                if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines):
+                    next_line = metadata_lines[metadata_line_counter + reference_loop_counter]
+                else:
+                    break
+        elif next_line.startswith("  JOURNAL   "):
+            journal = next_line[12:]
+            reference_loop_counter += 1
+            if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines):
+                next_line = metadata_lines[metadata_line_counter + reference_loop_counter]
+            else:
+                break
+            while (next_line.startswith("            ")) :
+                journal = "%s %s" % (journal,next_line[12:])
+                reference_loop_counter += 1
+                if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines):
+                    next_line = metadata_lines[metadata_line_counter + reference_loop_counter]
+                else:
+                    break
+        elif next_line.startswith("   PUBMED   "): 
+            pubmed = next_line[12:] 
+            reference_loop_counter += 1
+            if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines):
+                next_line = metadata_lines[metadata_line_counter + reference_loop_counter]
+            else:
+                break
+            while (next_line.startswith("            ")) : 
+                pubmed = "%s %s" % (journal,next_line[12:]) 
+                reference_loop_counter += 1
+                if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines): 
+                    next_line = metadata_lines[metadata_line_counter + reference_loop_counter] 
+                else: 
+                    break 
+        elif next_line.startswith("  CONSRTM   "):
+            consortium = next_line[12:]
+            reference_loop_counter += 1
+            if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines): 
+                next_line = metadata_lines[metadata_line_counter + reference_loop_counter]
+            else:
+                break 
+            while (next_line.startswith("            ")) : 
+                consortium = "%s %s" % (journal,next_line[12:]) 
+                reference_loop_counter += 1
+                if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines):
+                    next_line = metadata_lines[metadata_line_counter + reference_loop_counter]
+                else:
+                    break
+        else:
+            reference_loop_counter += 1
+            if ((metadata_line_counter + reference_loop_counter)<= num_metadata_lines):
+                next_line = metadata_lines[metadata_line_counter + reference_loop_counter]
+            else:
+                break
+    #Done grabbing reference lines, time to build the reference object.
+
+    pubmed_link = ''
+    publication_source = ''
+    publication_date = ''
+    if pubmed != '':
+        publication_source = "PubMed"
+    elif consortium != '':
+        publication_source = consortium
+    try:
+        pubmed = int(pubmed)
+    except ValueError:
+        pubmed = 0
+    if pubmed != 0:
+        pubmed_link = "http://www.ncbi.nlm.nih.gov/pubmed/%s" % str(pubmed)
+    if journal != '':
+        potential_date_regex = r'(?<=\().+?(?=\))'
+        potential_dates = re.findall(potential_date_regex, journal)
+        
+        for potential_date in reversed(potential_dates):                        
+            try:
+                record_time = datetime.datetime.strptime(potential_date, '%d-%b-%Y')
+                if now_date > record_time:
+                    publication_date = potential_date
+                    break
+            except ValueError:
+                try:
+                    record_time = datetime.datetime.strptime(potential_date, '%b-%Y')
+                    if now_date > record_time:
+                        publication_date = potential_date
+                        break       
+                except ValueError:
+                    try:
+                        record_time = datetime.datetime.strptime(potential_date, '%Y')
+                        if now_date > record_time:
+                            publication_date = potential_date
+                            break
+                    except ValueError:
+                        next
+    publication = [pubmed,publication_source,title,pubmed_link,publication_date,authors,journal]
+    genome_publication_dict[publication_key] = publication
+    #END OF PUBLICATION SECTION
+
+
+
+def _create_feature_object(feature_text, complement_len, join_len, order_len, contig_length,
+                         accession, sequence_part, source, exclude_ontologies, ontology_sources,
+                         time_string, genetic_code, generate_ids_if_needed, 
+                         # Output part:
+                         report, feature_ids, feature_type_counts, feature_type_id_counter_dict,
+                         ontology_terms_not_found):
             feature_object = dict()
             #split the feature into the key value pairs. "/" denotes start of a new key value pair.
             feature_key_value_pairs_list = feature_text.split("                     /")
             feature_header = feature_key_value_pairs_list.pop(0)
             if len(feature_header[:5].strip()) != 0:
-                continue
+                return None
             coordinates_info = feature_header[21:] 
             feature_type = feature_header[:21] 
             feature_type = feature_type.strip().replace(" ","_")
             if feature_type not in ['CDS','gene']:
                 #skip non core feature types. We currently decided to not include mRNA
-                continue
+                return None
             feature_object["type"] = feature_type
 
             quality_warnings = list() #list of warnings about the feature. Can do more with this at a later time.
@@ -803,9 +1120,181 @@ def upload_genome(shock_service_url=None,
                 #annotation_metadata_warnings.append(temp_warning)
 #                sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,))
             coordinates_list = coordinates_info.split(",")
+            
+            [locations, dna_sequence_length, dna_sequence,
+             can_not_process_feature] = _load_feature_locations(coordinates_list, complement_len, 
+                                                                feature_text, contig_length, 
+                                                                accession, sequence_part, 
+                                                                apply_complement_to_all, 
+                                                                can_not_process_feature, report)
+
+            if has_odd_coordinates:
+                    quality_warnings.insert(0,"Note this feature contains some atypical coordinates, see the rest of the warnings for details : %s" % (original_coordinates))
+            if can_not_process_feature: 
+                #skip source feature types.
+                return None
+            
+            dna_sequence = dna_sequence.upper()
+
+            if len(locations) > 0:
+                if need_to_reverse_locations and (len(locations) > 1):
+                    locations.reverse()
+            feature_object["location"]=locations
+
+            feature_object["dna_sequence_length"] = dna_sequence_length
+            feature_object["dna_sequence"] = dna_sequence
+            try:
+                feature_object["md5"] = hashlib.md5(dna_sequence).hexdigest() 
+            except Exception, e:
+#                print "THE FEATURE TEXT IS : %s" % (feature_text)
+#                print "THE FEATURE SEQUENCE IS : %s : " % (dna_sequence)
+#                print "Help %s" % help(dna_sequence)
+                raise Exception(e)
+
+            [alias_dict, feature_id, product, pseudo_non_gene, 
+             has_protein_id, ontology_terms] = _load_feature_properties(feature_key_value_pairs_list, 
+                                                                        feature_type, source, exclude_ontologies, 
+                                                                        ontology_sources, time_string, 
+                                                                        # Output part:
+                                                                        feature_object, quality_warnings, 
+                                                                        feature_ids, ontology_terms_not_found)
+
+#            if len(additional_properties) > 0:
+#                feature_object["additional_properties"] = additional_properties
+#            if len(notes) > 0:
+#                feature_object["notes"] = notes
+#            if len(inference) > 0:
+#                feature_object["inference"] = inference
+            if len(alias_dict) > 0:
+                feature_object["aliases"] = alias_dict.keys()
+            if ("function" not in feature_object) and (product is not None):
+                feature_object["function"] = product
+
+            if feature_type == 'CDS':
+                #GET TRANSLATION OF THE CDS.  IF THE GENBANK FILE DOES NOT HAVE IT.  
+                coding_dna = Seq(feature_object["dna_sequence"], generic_dna)
+                aa_seq = coding_dna.translate(table=genetic_code, to_stop=True)
+                aa_trans_seq = str(aa_seq[0:].upper())
+
+                if "protein_translation" in feature_object:
+                    if aa_trans_seq != feature_object["protein_translation"].upper():
+                        temp_warning = "%s translated amino acid sequence does not match the supplied amino acid sequence.\n\n" % (feature_id) 
+                        report.write(temp_warning)
+#                        quality_warnings.append(temp_warning) 
+#                        sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,)) 
+                else:
+                    if not pseudo_non_gene:
+                        raise Exception("Error: CDS with the text : {} has no protein translation".format(feature_text))
+#                    if "dna_sequence" in feature_object:
+#                        feature_object["protein_translation"] = aa_trans_seq
+#                        feature_object["protein_translation_length"] = len(aa_trans_seq)
+            
+            if pseudo_non_gene:
+                if feature_type == "CDS" and has_protein_id:
+                    report.write("Feature text : {} is a CDS with pseudo and protein_id.\n\n".format(feature_text))
+                    #don not include this feature.
+                return None
+
+            if feature_object["type"] in feature_type_counts:
+                feature_type_counts[feature_object["type"]] += 1
+            else:
+                feature_type_counts[feature_object["type"]] = 1     
+
+            if feature_id is None:
+                if generate_ids_if_needed == 1:
+                    #MAKE AUTOGENERATED ID
+                    #MAKING ALL IDS UNIQUE ACROSS THE GENOME.
+                    if feature_type not in feature_type_id_counter_dict:
+                        feature_type_id_counter_dict[feature_object["type"]] = 1;
+                        feature_id = "%s_%s" % (feature_object["type"],str(1)) 
+                    else: 
+                        feature_type_id_counter_dict[feature_object["type"]] += 1; 
+                        feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_object["type"]]))
+                else:
+                    #Throw an error informing user they can set the generate ids if needed checkbox
+                    #do specific errors so they know where we look for the ids.
+                    raise Exception("There was no feature specific id for {}.  \
+For gene type we take the id from the locus tag \
+(except for Ensembl, then the gene field)\
+For CDS type we take the id from the protein id field. \
+NOTE IF YOU WANT THIS STILL UPLOADED GO TO THE \
+ADVANCED OPTIONS AND CHECK THE\
+\"Generate IDs if needed\" checkbox".format(feature_text))
+
+#            feature_object["quality_warnings"] = quality_warnings
+
+#            ############################################
+#            #DETERMINE ID TO USE FOR THE FEATURE OBJECT
+#            ############################################
+#            if feature_type not in features_type_containers_dict:
+#                features_type_containers_dict[feature_type] = dict()
+#            feature_id = None
+
+#OLD WAY TRIED TO USE ID FROM THE FEATURE, UNIQUENESS ONLY GUARANTEED WITH FEATURE CONTAINER AND NOT ACROSS THE GENOME ANNOTATION
+#            if "feature_specific_id" not in feature_object:
+#                if "locus_tag" not in feature_object:
+#                    if feature_type not in feature_type_id_counter_dict:
+#                        feature_type_id_counter_dict[feature_type] = 1;
+#                        feature_id = "%s_%s" % (feature_type,str(1))
+#                    else:
+#                        feature_type_id_counter_dict[feature_type] += 1;
+#                        feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_type]))
+#                else:
+#                    feature_id = feature_object["locus_tag"]
+#            else:
+#                feature_id = feature_object["feature_specific_id"]
+#            if feature_id in features_type_containers_dict[feature_type]:
+#                #Insure that no duplicate ids exist
+#                if feature_type not in feature_type_id_counter_dict:
+#                    feature_type_id_counter_dict[feature_type] = 1;
+#                    feature_id = "%s_%s" % (feature_type,str(1))
+#                else: 
+#                    feature_type_id_counter_dict[feature_type] += 1;
+#                    feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_type]))
+#END OLD WAY
+
+
+##NEW WAY:  MAKING ALL IDS UNIQUE ACROSS THE GENOME.
+#            if feature_type not in feature_type_id_counter_dict:
+#                feature_type_id_counter_dict[feature_type] = 1;
+#                feature_id = "%s_%s" % (feature_type,str(1))
+#            else: 
+#                feature_type_id_counter_dict[feature_type] += 1;
+#                feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_type]))
+##END NEW WAY
+            if len(ontology_terms) > 0:
+                feature_object["ontology_terms"]=ontology_terms
+            feature_object["id"] = feature_id
+
+            ########################################
+            #CLEAN UP UNWANTED FEATURE KEYS
+            #######################################
+            if "locus_tag" in feature_object: 
+                del feature_object["locus_tag"]
+            if "gene" in feature_object: 
+                del feature_object["gene"]
+            if "feature_specific_id" in feature_object: 
+                del feature_object["feature_specific_id"]
+
+#            feature_object["quality_warnings"] = quality_warnings
+
+            #MAKE ENTRY INTO THE FEATURE TABLE
+#            pickled_feature = cPickle.dumps(feature_object, cPickle.HIGHEST_PROTOCOL) 
+#            sql_cursor.execute("insert into features values(:feature_id, :feature_type , :sequence_length, :feature_data)", 
+#                               (feature_id, feature_object["type"], feature_object["dna_sequence_length"], sqlite3.Binary(pickled_feature),))
+
+            return feature_object
+
+
+
+def _load_feature_locations(coordinates_list, complement_len, feature_text,
+                            contig_length, accession, sequence_part,
+                            apply_complement_to_all, can_not_process_feature,
+                            report):
             last_coordinate = 0
             dna_sequence_length = 0
             dna_sequence = ''
+
             locations = list()#list of location objects
             for coordinates in coordinates_list:
                 apply_complement_to_current = False
@@ -853,7 +1342,6 @@ def upload_genome(shock_service_url=None,
                 if not can_not_process_feature:
                     if (represents_int(start_pos) and represents_int(end_pos)):
                         if int(start_pos) > int(end_pos):
-                            fasta_file_handle.close() 
                             print "FEATURE TEXT: " + feature_text
                             raise Exception("The genbank record %s has coordinates that are out of order. Start coordinate %s is bigger than End coordinate %s. Should be ascending order." % (accession, str(start_pos), str(end_pos)))
 
@@ -863,7 +1351,6 @@ def upload_genome(shock_service_url=None,
 #                        raise Exception("The genbank record %s has coordinates that are out of order. Start coordinate %s and/or End coordinate %s is larger than the previous coordinate %s within this feature. Should be ascending order since this is not a trans_splicing feature." % (accession, str(start_pos), str(end_pos),str(last_coordinate)))
 
                         if (int(start_pos) > contig_length) or (int(end_pos) > contig_length):
-                            fasta_file_handle.close() 
                             raise Exception("The genbank record %s has coordinates (start: %s , end: %s) that are longer than the sequence length %s." % \
                                             (accession,str(start_pos), int(end_pos),str(contig_length)))
 
@@ -887,34 +1374,18 @@ def upload_genome(shock_service_url=None,
                     else:
                         #no valid coordinates
                         print "Feature text : {} :".format(feature_text)
-                        fasta_file_handle.close() 
                         raise Exception("The genbank record %s contains coordinates that are not valid number(s).  Feature text is : %s" % (accession,feature_text)) 
 
                     last_coordinate = int(end_pos)
+            return [locations, dna_sequence_length, dna_sequence, can_not_process_feature]
 
-            if has_odd_coordinates:
-                    quality_warnings.insert(0,"Note this feature contains some atypical coordinates, see the rest of the warnings for details : %s" % (original_coordinates))
-            if can_not_process_feature: 
-                #skip source feature types.
-                continue
-            
-            dna_sequence = dna_sequence.upper()
 
-            if len(locations) > 0:
-                if need_to_reverse_locations and (len(locations) > 1):
-                    locations.reverse()
-            feature_object["location"]=locations
 
-            feature_object["dna_sequence_length"] = dna_sequence_length
-            feature_object["dna_sequence"] = dna_sequence
-            try:
-                feature_object["md5"] = hashlib.md5(dna_sequence).hexdigest() 
-            except Exception, e:
-#                print "THE FEATURE TEXT IS : %s" % (feature_text)
-#                print "THE FEATURE SEQUENCE IS : %s : " % (dna_sequence)
-#                print "Help %s" % help(dna_sequence)
-                raise Exception(e)
-
+def _load_feature_properties(feature_key_value_pairs_list, feature_type, source,
+                             exclude_ontologies, ontology_sources, time_string,
+                             # Output part:
+                             feature_object, quality_warnings, feature_ids,
+                             ontology_terms_not_found):
             #Need to determine id for the feature : order selected by gene, then locus.
             alias_dict = dict() #contains locus_tag, gene, gene_synonym, dbxref, then value is 1 (old way value is a list of sources).
             inference = ""
@@ -927,7 +1398,6 @@ def upload_genome(shock_service_url=None,
             pseudo_non_gene = False
             has_protein_id = False
             ontology_terms = dict()
-            ontology_terms_not_found = dict() #Term and then count of occurences
 
             for feature_key_value_pair in feature_key_value_pairs_list:
                 #the key value pair removing unnecessary white space (including new lines as these often span multiple lines)
@@ -1068,305 +1538,7 @@ def upload_genome(shock_service_url=None,
 #                        additional_properties[key] =  "%s::%s" % (additional_properties[key],value)
 #                    else:
 #                        additional_properties[key] = value
-
-
-#            if len(additional_properties) > 0:
-#                feature_object["additional_properties"] = additional_properties
-#            if len(notes) > 0:
-#                feature_object["notes"] = notes
-#            if len(inference) > 0:
-#                feature_object["inference"] = inference
-            if len(alias_dict) > 0:
-                feature_object["aliases"] = alias_dict.keys()
-            if ("function" not in feature_object) and (product is not None):
-                feature_object["function"] = product
-
-            if feature_type == 'CDS':
-                #GET TRANSLATION OF THE CDS.  IF THE GENBANK FILE DOES NOT HAVE IT.  
-                coding_dna = Seq(feature_object["dna_sequence"], generic_dna)
-                aa_seq = coding_dna.translate(table=genetic_code, to_stop=True)
-                aa_trans_seq = str(aa_seq[0:].upper())
-
-                if "protein_translation" in feature_object:
-                    if aa_trans_seq != feature_object["protein_translation"].upper():
-                        temp_warning = "%s translated amino acid sequence does not match the supplied amino acid sequence.\n\n" % (feature_id) 
-                        report.write(temp_warning)
-#                        quality_warnings.append(temp_warning) 
-#                        sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,)) 
-                else:
-                    if not pseudo_non_gene:
-                        raise Exception("Error: CDS with the text : {} has no protein translation".format(feature_text))
-#                    if "dna_sequence" in feature_object:
-#                        feature_object["protein_translation"] = aa_trans_seq
-#                        feature_object["protein_translation_length"] = len(aa_trans_seq)
-            
-            if pseudo_non_gene:
-                if feature_type == "CDS" and has_protein_id:
-                    read.write("Feature text : {} is a CDS with pseudo and protein_id.\n\n".format(feature_text))
-                    #don not include this feature.
-                continue
-
-            if feature_object["type"] in feature_type_counts:
-                feature_type_counts[feature_object["type"]] += 1
-            else:
-                feature_type_counts[feature_object["type"]] = 1     
-
-            if feature_id is None:
-                if generate_ids_if_needed == 1:
-                    #MAKE AUTOGENERATED ID
-                    #MAKING ALL IDS UNIQUE ACROSS THE GENOME.
-                    if feature_type not in feature_type_id_counter_dict:
-                        feature_type_id_counter_dict[feature_object["type"]] = 1;
-                        feature_id = "%s_%s" % (feature_object["type"],str(1)) 
-                    else: 
-                        feature_type_id_counter_dict[feature_object["type"]] += 1; 
-                        feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_object["type"]]))
-                else:
-                    #Throw an error informing user they can set the generate ids if needed checkbox
-                    #do specific errors so they know where we look for the ids.
-                    raise Exception("There was no feature specific id for {}.  \
-For gene type we take the id from the locus tag \
-(except for Ensembl, then the gene field)\
-For CDS type we take the id from the protein id field. \
-NOTE IF YOU WANT THIS STILL UPLOADED GO TO THE \
-ADVANCED OPTIONS AND CHECK THE\
-\"Generate IDs if needed\" checkbox".format(feature_text))
-
-#            feature_object["quality_warnings"] = quality_warnings
-
-#            ############################################
-#            #DETERMINE ID TO USE FOR THE FEATURE OBJECT
-#            ############################################
-#            if feature_type not in features_type_containers_dict:
-#                features_type_containers_dict[feature_type] = dict()
-#            feature_id = None
-
-#OLD WAY TRIED TO USE ID FROM THE FEATURE, UNIQUENESS ONLY GUARANTEED WITH FEATURE CONTAINER AND NOT ACROSS THE GENOME ANNOTATION
-#            if "feature_specific_id" not in feature_object:
-#                if "locus_tag" not in feature_object:
-#                    if feature_type not in feature_type_id_counter_dict:
-#                        feature_type_id_counter_dict[feature_type] = 1;
-#                        feature_id = "%s_%s" % (feature_type,str(1))
-#                    else:
-#                        feature_type_id_counter_dict[feature_type] += 1;
-#                        feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_type]))
-#                else:
-#                    feature_id = feature_object["locus_tag"]
-#            else:
-#                feature_id = feature_object["feature_specific_id"]
-#            if feature_id in features_type_containers_dict[feature_type]:
-#                #Insure that no duplicate ids exist
-#                if feature_type not in feature_type_id_counter_dict:
-#                    feature_type_id_counter_dict[feature_type] = 1;
-#                    feature_id = "%s_%s" % (feature_type,str(1))
-#                else: 
-#                    feature_type_id_counter_dict[feature_type] += 1;
-#                    feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_type]))
-#END OLD WAY
-
-
-##NEW WAY:  MAKING ALL IDS UNIQUE ACROSS THE GENOME.
-#            if feature_type not in feature_type_id_counter_dict:
-#                feature_type_id_counter_dict[feature_type] = 1;
-#                feature_id = "%s_%s" % (feature_type,str(1))
-#            else: 
-#                feature_type_id_counter_dict[feature_type] += 1;
-#                feature_id = "%s_%s" % (feature_type,str(feature_type_id_counter_dict[feature_type]))
-##END NEW WAY
-            if len(ontology_terms) > 0:
-                feature_object["ontology_terms"]=ontology_terms
-            feature_object["id"] = feature_id
-
-            ########################################
-            #CLEAN UP UNWANTED FEATURE KEYS
-            #######################################
-            if "locus_tag" in feature_object: 
-                del feature_object["locus_tag"]
-            if "gene" in feature_object: 
-                del feature_object["gene"]
-            if "feature_specific_id" in feature_object: 
-                del feature_object["feature_specific_id"]
-
-#            feature_object["quality_warnings"] = quality_warnings
-
-            #MAKE ENTRY INTO THE FEATURE TABLE
-#            pickled_feature = cPickle.dumps(feature_object, cPickle.HIGHEST_PROTOCOL) 
-#            sql_cursor.execute("insert into features values(:feature_id, :feature_type , :sequence_length, :feature_data)", 
-#                               (feature_id, feature_object["type"], feature_object["dna_sequence_length"], sqlite3.Binary(pickled_feature),))
-
-            list_of_features.append(feature_object)
-            
-#        for feature_type in feature_type_counts:
-#            print "Feature " + feature_type + "  count: " + str(feature_type_counts[feature_type])
-
-
-        ##################################################################################################
-        #SEQUENCE PARSING PORTION  - Write out to Fasta File
-        ##################################################################################################
-
-#        print "The len of sequence part is: " + str(len(sequence_part))
-#        print "The number from the record: " + genbank_metadata_objects[accession]["number_of_basepairs"]        
-#        print "First 100 of sequence part : " + sequence_part[0:100] 
-        fasta_file_handle.write(">{}\n".format(accession))
-        #write 80 nucleotides per line
-        fasta_file_handle.write(insert_newlines(sequence_part,80))
-        
-    fasta_file_handle.close()
-    if min_date == max_date:
-        genbank_time_string = min_date.strftime('%d-%b-%Y').upper()
-    else:
-        genbank_time_string = "%s to %s" %(min_date.strftime('%d-%b-%Y').upper(), max_date.strftime('%d-%b-%Y').upper())
-
-    ##########################################
-    #ASSEMBLY CREATION PORTION  - consume Fasta File
-    ##########################################
-
-    logger.info("Calling FASTA to Assembly Uploader")
-    assembly_reference = "%s/%s_assembly" % (workspace_name,core_genome_name)
-    try:
-        fasta_working_dir = str(os.getcwd()) + "/temp_fasta_file_dir"
-
-        print "HANDLE SERVICE URL " + handle_service_url
-        assembly.upload_assembly(shock_service_url = shock_service_url,
-                                 handle_service_url = handle_service_url,
-                                 input_directory = fasta_working_dir,
-                                 #                  shock_id = args.shock_id,
-                                 #                  handle_id = args.handle_id,
-                                 #                  input_mapping = args.input_mapping, 
-                                 workspace_name = workspace_name,
-                                 workspace_service_url = workspace_service_url,
-                                 taxon_reference = taxon_id,
-                                 assembly_name = "%s_assembly" % (core_genome_name),
-                                 source = source_name,
-                                 contig_information_dict = contig_information_dict,
-                                 date_string = genbank_time_string,
-                                 logger = logger)
-        shutil.rmtree(fasta_working_dir)
-    except Exception, e: 
-        logger.exception(e) 
-        sys.exit(1) 
-
-    logger.info("Assembly Uploaded")
-
-#    sys.exit(1)
-
-    #Do size check of the features
-#    sql_cursor.execute("select sum(length(feature_data)) from features where feature_type = ?", (feature_type,))
-#    sql_cursor.execute("select sum(length(feature_data)) from features")
-#    for row in sql_cursor:
-#        data_length = row[0]
-
-#    if data_length < 900000000:
-        #Size is probably ok Try the save
-        #Retrieve the features from the sqllite DB
-#        sql_cursor.execute("select feature_id, feature_data from features")
-
-#        for row in sql_cursor: 
-#            feature_id = row[0]
-#            feature_data = cPickle.loads(str(row[1])) 
-#            list_of_features.append(feature_data)
-
-#    else:
-        #Features too large
-        #raising an error for now.
-#        raise Exception("This genome can not be saved due to the resulting object being too large for the workspace")
-
-    #Save genome
-    #Then Finally store the GenomeAnnotation.                                                                            
-
-    shock_id = None
-    handle_id = None
-    if shock_id is None:
-        shock_info = script_utils.upload_file_to_shock(logger, shock_service_url, input_file_name, token=token)
-        shock_id = shock_info["id"]
-        handles = script_utils.getHandles(logger, shock_service_url, handle_service_url, [shock_id], [handle_id], token)   
-        handle_id = handles[0]
-
-    genome['genbank_handle_ref'] = handle_id
-    # setup provenance
-    provenance_action = {"script": __file__, "script_ver": "0.1", "description": "features from upload from %s" % (source_name)}
-    genome_annotation_provenance = []
-    if provenance is not None:
-        genome_annotation_provenance = provenance
-    genome_annotation_provenance.append(provenance_action)
-    genome_object_name = core_genome_name 
-    genome['type'] = type 
-    if type == "Reference":
-        genome['reference_annotation'] = 1
-    else:
-        genome['reference_annotation'] = 0
-    genome['taxon_ref'] = taxon_id
-    genome['original_source_file_name'] = source_file_name
-    genome['assembly_ref'] =  assembly_reference 
-    genome['id'] = genome_object_name
-    genome['source'] = source_name
-    temp_source_id = locus_name_order[0]
-    if len(locus_name_order) > 1:
-        temp_source_id += ' (' + str(len(locus_name_order) - 1) + ' more accessions)'
-    genome['source_id'] = temp_source_id
-    genome['external_source_origination_date'] = genbank_time_string
-    genome['features'] = list_of_features
-    if release is not None:
-        genome['release'] = release
-    if len(ontology_terms_not_found) > 0:
-        report.write("\nThere were ontologies in the source file that were not found in the onology database.\n\
-These are like to be deprecated terms.\n\
-Below is a list of the term and the countof the number of features that contained that term:\n")
-
-        for term in ontology_terms_not_found:
-            report.write("{} --- {}\n".format(term,str(ontology_terms_not_found[term])))
-        report.write("\n")
-
-#    print "Genome id %s" % (genome['id'])
- 
-    logger.info("Attempting Genome save for %s" % (genome_object_name))
-#    while genome_annotation_not_saved:
-#        try:
-    genome_annotation_info =  ws_client.save_objects({"workspace":workspace_name,
-                                                      "objects":[ { "type":"KBaseGenomes.Genome",
-                                                                    "data":genome,
-                                                                    "name": genome_object_name,
-                                                                    "provenance":genome_annotation_provenance,
-                                                                    "meta":usermeta
-                                                                }]}) 
-#            genome_annotation_not_saved = False 
-    logger.info("Genome saved for %s" % (genome_object_name))
-#        except biokbase.workspace.client.ServerError as err: 
-#            raise 
-
-#    if not make_sql_in_memory:
-#        os.remove(db_name) 
-
-    logger.info("Conversions completed.")
-    report.write("\n\nGENOME AND ASSEMBLY OBJECTS HAVE BEEN SUCESSFULLY SAVED.")
-
-
-    output_data_ref = "{}/{}".format(workspace_name,genome_object_name)
-    reportObj = {
-        'objects_created':[{'ref':output_data_ref, 'description':'Assembled contigs'}],
-        'text_message':report.getvalue()
-    }
-    report_kb = KBaseReport(callback_url)
-    report_info = report_kb.create({'report':reportObj, 'workspace_name':workspace_name})
-    report.close
-
-    return {
-        'genome_info': genome_annotation_info[0],
-        'report_name': report_info['name'],
-        'report_ref': report_info['ref']
-    }
-
-
-
-
-
-
-
-
-
-
-
-
+            return [alias_dict, feature_id, product, pseudo_non_gene, has_protein_id, ontology_terms]
 
 
 

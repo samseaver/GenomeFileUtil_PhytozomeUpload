@@ -20,6 +20,9 @@ from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 
+from GenomeFileUtil.JsonIOHelper import (download_genome_to_json_files,
+                                         compare_genome_json_files)
+
 
 class MinimalGenbankUploadTest(unittest.TestCase):
 
@@ -116,6 +119,13 @@ class MinimalGenbankUploadTest(unittest.TestCase):
         self.assertTrue('mydata' in metadata_saved)
         self.assertTrue('otherdata' in metadata_saved)
         self.assertEquals(metadata_saved['mydata'], 'yay')
+        target_dir = os.path.join("/kb/module/work/tmp", "minimal")
+        download_genome_to_json_files(self.getContext()['token'], result['genome_ref'],
+                                      target_dir)
+        self.assertEqual(0, len(compare_genome_json_files(target_dir, 
+                                                          os.path.join("/kb/module/test/data", 
+                                                                       "minimal"))))
+
 
 
 
