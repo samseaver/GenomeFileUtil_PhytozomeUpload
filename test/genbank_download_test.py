@@ -10,11 +10,14 @@ try:
 except:
     from configparser import ConfigParser  # py3
 
+from pprint import pprint
+
 from biokbase.workspace.client import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 
 from DataFileUtil.DataFileUtilClient import DataFileUtil
+from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -77,17 +80,25 @@ class GenomeFileUtilTest(unittest.TestCase):
         return self.__class__.ctx
 
 
-    def load_test_genome_direct(self, filename):
+    def load_test_genome_direct(self, filename, assembly_filename, obj_name):
+        au = AssemblyUtil(os.environ['SDK_CALLBACK_URL'])
+        assembly_ref = au.save_assembly_from_fasta({'workspace_name': self.getWsName(),
+                                                    'assembly_name': obj_name + '.assembly',
+                                                    'file': {'path': assembly_filename}
+                                                    })
+        pprint('created test assembly: ' + assembly_ref)
+
         with open(filename, 'r') as file:
             data_str = file.read()
         data = json.loads(data_str)
+        data['assembly_ref'] = assembly_ref
         # save to ws
         save_info = {
                 'workspace': self.getWsName(),
                 'objects': [{
                     'type': 'KBaseGenomes.Genome',
                     'data': data,
-                    'name': 'e_coli'
+                    'name': obj_name + '.genome'
                 }]
             }
         result = self.ws.save_objects(save_info)
@@ -139,7 +150,9 @@ class GenomeFileUtilTest(unittest.TestCase):
 
     def test_check_for_taxonomy_bug(self):
         # load test data data
-        e_coli_ref = self.load_test_genome_direct('data/taxonomy_bug_test_genome.json')
+        assembly_file_path = os.path.join(self.cfg['scratch'], 'e_coli_assembly.fasta')
+        shutil.copy('data/e_coli_assembly.fasta', assembly_file_path)
+        e_coli_ref = self.load_test_genome_direct('data/taxonomy_bug_test_genome.json', assembly_file_path, 'tax_bug_test')
         # run the test
         genomeFileUtil = self.getImpl()
         print('testing Genbank download by building the file')
