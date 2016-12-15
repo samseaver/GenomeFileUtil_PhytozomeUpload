@@ -108,13 +108,19 @@ class GenbankAnnotations(object):
     def __init__(self, genome=None):
         self._contents = StringIO.StringIO()
         self._ga = genome
+        print('downloading assembly')
         self._asm = self._ga.get_assembly()
         self._contigs = self._asm.get_contigs()
+        print('extracting taxonomy information')
         self._taxa = self._ga.get_taxon()
         self._tax_lineage = self._taxa.get_scientific_lineage()
+
+        print('assembling feature and protein data')
         self._genome_name = str(self._ga.get_id())
         self._proteins = self._ga.get_proteins()
         self._features = self._ga.get_features()
+
+        print('writing file')
 
         # organize features by location
         feature_ids_by_region = self._ga.get_feature_ids(group_by="region")["by_region"]
@@ -357,6 +363,8 @@ class GenbankAnnotations(object):
                         self._contents.write("{}/{}=\"{}\"\n".format(STD_PREFIX, key, id))
 
     def _add_contig_header(self, contig_id=None):
+        if contig_id not in self._contigs:
+            raise ValueError('ContigID (' + str(contig_id) + ') was not found in the assembly.  This may be a corrupted genome.')
         self._contents.write("LOCUS{}{}{}{} bp    DNA\n".format(" " * 7,
                                                                 contig_id,
                                                                 " " * 13,
