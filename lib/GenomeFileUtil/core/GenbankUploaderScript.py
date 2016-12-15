@@ -125,7 +125,7 @@ def upload_genome(shock_service_url=None,
     
     [genome, taxon_id, source_name, genbank_time_string, contig_information_dict,
      source_file_name, input_file_name, locus_name_order, list_of_features,
-     ontology_terms_not_found, list_of_genes] = _load_data(
+     ontology_terms_not_found, list_of_genes, list_of_rnas] = _load_data(
                         exclude_ontologies, generate_ids_if_needed, input_directory,
                         genetic_code, core_genome_name, source, ws_client, 
                         ontology_wsname, ontology_GO_obj_name, ontology_PO_obj_name, 
@@ -136,7 +136,8 @@ def upload_genome(shock_service_url=None,
                       contig_information_dict, provenance, source_file_name, input_file_name, 
                       locus_name_order, list_of_features, release, ontology_terms_not_found, 
                       type, usermeta, token, ws_client, workspace_name, workspace_service_url, 
-                      handle_service_url, shock_service_url, callback_url, report, logger)        
+                      handle_service_url, shock_service_url, callback_url, 
+                      list_of_genes, list_of_rnas, report, logger)        
 
 
 
@@ -273,7 +274,7 @@ def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, gene
         fasta_file_handle.close()
         genbank_file_handle.close()
 
-    list_of_genes = _propagate_genes_to_cdss(list_of_features)
+    [list_of_genes, list_of_rnas] = _propagate_genes_to_cdss(list_of_features, logger)
 
     genbank_time_string = "Unknown"
     if min_date and max_date:
@@ -282,50 +283,89 @@ def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, gene
         else:
             genbank_time_string = "%s to %s" %(min_date.strftime('%d-%b-%Y').upper(), max_date.strftime('%d-%b-%Y').upper())
     
-    return [genome, taxon_id, source_name, genbank_time_string, contig_information_dict, source_file_name, 
-            input_file_name, locus_name_order, list_of_features, ontology_terms_not_found, list_of_genes]
+    return [genome, taxon_id, source_name, genbank_time_string, contig_information_dict, 
+            source_file_name, input_file_name, locus_name_order, list_of_features, 
+            ontology_terms_not_found, list_of_genes, list_of_rnas]
 
 
 
-def _propagate_genes_to_cdss(list_of_features):
+def _propagate_genes_to_cdss(list_of_features, logger):
     id_to_gene_map = {}  # feature_id -> gene
     list_of_genes = []
+    list_of_rnas = []
     for feature in list_of_features:
         if feature["type"] == "gene":
             id_to_gene_map[feature["id"]] = feature
             list_of_genes.append(feature)
+        elif "RNA" in feature["type"].upper():
+            list_of_rnas.append(feature)
+    _log_report(logger, None, "Number of genes: " + str(len(list_of_genes)))
+    _log_report(logger, None, "Number of RNAs: " + str(len(list_of_rnas)))
     # Filtering out all other features except CDSs
     list_of_features[:] = [feature for feature in list_of_features if feature["type"] == "CDS"]
+    _log_report(logger, None, "Number of CDSs: " + str(len(list_of_features)))
     # Propagate gene properties to CDSs
-    id_to_cdss_map = {}  # feature_id -> list<CDS>
     for cds in list_of_features:
+        if cds["id"]:
+            cds["cds_id"] = cds["id"]
         if "gene_id" in cds:
             gene = id_to_gene_map.get(cds["gene_id"])
             if gene:
                 cds["id"] = gene["id"]  # It doesn't guarantee uniqueness. See below...
                 # Merge cds["aliases"] and gene["aliases"]
                 # Merge cds["ontology_terms"] and gene["ontology_terms"]
-        if cds["id"] in id_to_cdss_map:
-            id_to_cdss_map[cds["id"]].append(cds)
+    _rename_duplicated_ids(list_of_features, "id")
+    _rename_duplicated_ids(list_of_features, "cds_id")
+    return [list_of_genes, list_of_rnas]
+
+
+
+def _rename_duplicated_ids(list_of_features, id_field):
+    id_to_cdss_map = {}  # feature_id -> list<CDS>
+    for cds in list_of_features:
+        if id_field not in cds or not(cds[id_field]):
+            continue
+        id_value = cds[id_field]
+        if id_value in id_to_cdss_map:
+            id_to_cdss_map[id_value].append(cds)
         else:
-            id_to_cdss_map[cds["id"]] = [cds]
+            id_to_cdss_map[id_value] = [cds]
+    used_cds_ids = {key: True for key in id_to_cdss_map}
     # Make IDs of CDSs unique:
     for cds_id in id_to_cdss_map:
         cds_list = id_to_cdss_map[cds_id]
         if len(cds_list) > 1:
-            for pos in range(0, len(cds_list)):
-                suffix = chr(ord('A') + pos) if pos < 26 else (chr(ord('A') + (int)(pos / 26)) + 
-                                                               chr(ord('A') + pos))
-                cds_list[pos] = cds_id + '_' + suffix
-    return list_of_genes
+            pos = 0
+            for cds in cds_list:
+                new_id = None
+                while True:
+                    new_id = cds_id + '_' + _generate_alphabetic_suffix(pos)
+                    if new_id not in used_cds_ids:
+                        break
+                    pos += 1
+                cds[id_field] = new_id
+                used_cds_ids[new_id] = True     # Not necessary but it's cleaner
+                pos += 1
 
+
+
+def _generate_alphabetic_suffix(pos):
+    alphabet_size = 26
+    ret = ""
+    while True:
+        ret = chr(ord('A') + (pos % alphabet_size)) + ret
+        pos = int(pos / alphabet_size)
+        if pos == 0:
+            break
+    return ret
                 
 
 def _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_string, 
                contig_information_dict, provenance, source_file_name, input_file_name,
                locus_name_order, list_of_features, release, ontology_terms_not_found,
                genome_type, usermeta, token, ws_client, workspace_name, workspace_service_url,
-               handle_service_url, shock_service_url, callback_url, report, logger):
+               handle_service_url, shock_service_url, callback_url, 
+               list_of_genes, list_of_rnas, report, logger):
     ##########################################
     #ASSEMBLY CREATION PORTION  - consume Fasta File
     ##########################################
@@ -415,6 +455,8 @@ def _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_str
     genome['source_id'] = temp_source_id
     genome['external_source_origination_date'] = genbank_time_string
     genome['features'] = list_of_features
+    genome['genes'] = list_of_genes
+    genome['rnas'] = list_of_rnas
     if release is not None:
         genome['release'] = release
     if len(ontology_terms_not_found) > 0:
