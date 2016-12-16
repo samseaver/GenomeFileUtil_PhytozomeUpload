@@ -125,7 +125,7 @@ def upload_genome(shock_service_url=None,
     
     [genome, taxon_id, source_name, genbank_time_string, contig_information_dict,
      source_file_name, input_file_name, locus_name_order, list_of_features,
-     ontology_terms_not_found, list_of_genes, list_of_rnas] = _load_data(
+     ontology_terms_not_found, list_of_genes] = _load_data(
                         exclude_ontologies, generate_ids_if_needed, input_directory,
                         genetic_code, core_genome_name, source, ws_client, 
                         ontology_wsname, ontology_GO_obj_name, ontology_PO_obj_name, 
@@ -137,7 +137,7 @@ def upload_genome(shock_service_url=None,
                       locus_name_order, list_of_features, release, ontology_terms_not_found, 
                       type, usermeta, token, ws_client, workspace_name, workspace_service_url, 
                       handle_service_url, shock_service_url, callback_url, 
-                      list_of_genes, list_of_rnas, report, logger)        
+                      list_of_genes, report, logger)        
 
 
 
@@ -175,9 +175,10 @@ def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, gene
 
     genome = {'notes': ''}
     [tax_id, tax_lineage, taxon_id] = _load_taxonomy_info(ws_client, taxon_wsname, 
-                                                          taxon_lookup_obj_name, taxon_reference, 
+                                                          taxon_lookup_obj_name, taxon_reference,
                                                           organism, genetic_code_supplied, 
-                                                          taxon_workspace_id, logger, report, genome)
+                                                          genetic_code, taxon_workspace_id,
+                                                          logger, report, genome)
 
     core_scientific_name = re.sub(r'[\W_]+', '_', genome['scientific_name'])
 
@@ -274,7 +275,7 @@ def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, gene
         fasta_file_handle.close()
         genbank_file_handle.close()
 
-    [list_of_genes, list_of_rnas] = _propagate_genes_to_cdss(list_of_features, logger)
+    list_of_genes = _propagate_genes_to_cdss(list_of_features, logger)
     _rename_duplicated_ids(list_of_features, "id")
     _rename_duplicated_ids(list_of_features, "cds_id")
 
@@ -287,27 +288,26 @@ def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, gene
     
     return [genome, taxon_id, source_name, genbank_time_string, contig_information_dict, 
             source_file_name, input_file_name, locus_name_order, list_of_features, 
-            ontology_terms_not_found, list_of_genes, list_of_rnas]
+            ontology_terms_not_found, list_of_genes]
 
 
 
 def _propagate_genes_to_cdss(list_of_features, logger):
     id_to_gene_map = {}  # feature_id -> gene
     list_of_genes = []
-    list_of_rnas = []
     for feature in list_of_features:
         if feature["type"] == "gene":
             id_to_gene_map[feature["id"]] = feature
             list_of_genes.append(feature)
-        elif "RNA" in feature["type"].upper():
-            list_of_rnas.append(feature)
     _log_report(logger, None, "Number of genes: " + str(len(list_of_genes)))
-    _log_report(logger, None, "Number of RNAs: " + str(len(list_of_rnas)))
     # Filtering out all other features except CDSs
-    list_of_features[:] = [feature for feature in list_of_features if feature["type"] == "CDS"]
-    _log_report(logger, None, "Number of CDSs: " + str(len(list_of_features)))
+    list_of_features[:] = [feature for feature in list_of_features if feature["type"] != "gene"]
+    _log_report(logger, None, "Number of CDSs+RNAs: " + str(len(list_of_features)))
     # Propagate gene properties to CDSs
-    for cds in list_of_features:
+    for feature in list_of_features:
+        if feature["type"] != "CDS":
+            continue
+        cds = feature
         if cds["id"]:
             cds["cds_id"] = cds["id"]
         if "gene_id" in cds:
@@ -330,7 +330,11 @@ def _propagate_genes_to_cdss(list_of_features, logger):
                                 terms[source].update(terms2[source])
                             else:
                                 terms[source] = terms2[source]
-    return [list_of_genes, list_of_rnas]
+    # Let's delete "ontology_terms" data from genes
+    for gene in list_of_genes:
+        if "ontology_terms" in gene:
+            del gene["ontology_terms"]
+    return list_of_genes
 
 
 
@@ -380,7 +384,7 @@ def _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_str
                locus_name_order, list_of_features, release, ontology_terms_not_found,
                genome_type, usermeta, token, ws_client, workspace_name, workspace_service_url,
                handle_service_url, shock_service_url, callback_url, 
-               list_of_genes, list_of_rnas, report, logger):
+               list_of_genes, report, logger):
     ##########################################
     #ASSEMBLY CREATION PORTION  - consume Fasta File
     ##########################################
@@ -471,7 +475,6 @@ def _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_str
     genome['external_source_origination_date'] = genbank_time_string
     genome['features'] = list_of_features
     genome['genes'] = list_of_genes
-    genome['rnas'] = list_of_rnas
     if release is not None:
         genome['release'] = release
     if len(ontology_terms_not_found) > 0:
@@ -680,8 +683,8 @@ def _load_organism_info(genbank_file_handle, genbank_file_boundaries):
 
 
 def _load_taxonomy_info(ws_client, taxon_wsname, taxon_lookup_obj_name, taxon_reference,
-                        organism, genetic_code_supplied, taxon_workspace_id, logger,
-                        report, genome):
+                        organism, genetic_code_supplied, genetic_code, taxon_workspace_id, 
+                        logger, report, genome):
     tax_id = 0;
     tax_lineage = None;
 
@@ -1429,9 +1432,9 @@ def _load_feature_locations(coordinates_list, complement_len, feature_text,
                 #Look for and handle odd coordinates
                 if (("<" in coordinates) or (">" in coordinates)):
                     has_odd_coordinates = True
-                    temp_warning = "Feature with the text %s has a '<' or a '>' in the coordinates.  This means the feature starts or ends beyond the known sequence.\n\n" % (feature_text)
+                    #temp_warning = "Feature with the text %s has a '<' or a '>' in the coordinates.  This means the feature starts or ends beyond the known sequence.\n\n" % (feature_text)
                     #quality_warnings.append(temp_warning)
-                    report.write(temp_warning)
+                    #report.write(temp_warning)
                     #annotation_metadata_warnings.append(temp_warning)
 #                    sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,))
                     coordinates= re.sub('<', '', coordinates)
