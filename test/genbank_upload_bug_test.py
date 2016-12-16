@@ -80,7 +80,6 @@ class GenomeFileUtilTest(unittest.TestCase):
 
     def test_feature_id_duplication_bug(self):
         gbk_path = "data/duplication.gbff"
-        #gbk_url = "ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/825/225/GCF_000825225.1_XAC4311/GCF_000825225.1_XAC4311_genomic.gbff.gz"
         ws_obj_name = 'BugGenome.2'
         result = self.getImpl().genbank_to_genome(self.getContext(), 
             {
@@ -97,5 +96,18 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertEqual(0, len(compare_genome_json_files(target_dir,
                                                           os.path.join("/kb/module/test/data",
                                                                        "duplication"))))
+        self.assertTrue(int(result['genome_info'][10]['Number features']) > 0)
+
+    def test_ftp_upload_bug(self):
+        gbk_url = "ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/001/589/275/GCF_001589275.1_sce3192.1/GCF_001589275.1_sce3192.1_genomic.gbff.gz"
+        ws_obj_name = 'BugGenome.2'
+        result = self.getImpl().genbank_to_genome(self.getContext(), 
+            {
+                'file' : {'ftp_url': gbk_url 
+                          },
+                'workspace_name': self.getWsName(),
+                'genome_name': ws_obj_name,
+                'generate_ids_if_needed': 1
+            })[0]
         self.assertTrue(int(result['genome_info'][10]['Number features']) > 0)
         
