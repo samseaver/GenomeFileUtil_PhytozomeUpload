@@ -110,4 +110,17 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'generate_ids_if_needed': 1
             })[0]
         self.assertTrue(int(result['genome_info'][10]['Number features']) > 0)
+
+    def test_ftp_upload_bug2(self):
+        gbk_url = "ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/825/625/GCF_000825625.1_XACLD7/GCF_000825625.1_XACLD7_genomic.gbff.gz"
+        ws_obj_name = 'BugGenome.3'
+        result = self.getImpl().genbank_to_genome(self.getContext(), 
+            {
+                'file' : {'ftp_url': gbk_url 
+                          },
+                'workspace_name': self.getWsName(),
+                'genome_name': ws_obj_name,
+                'generate_ids_if_needed': 1
+            })[0]
+        self.assertTrue(int(result['genome_info'][10]['Number features']) > 0)
         

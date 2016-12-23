@@ -125,7 +125,7 @@ def upload_genome(shock_service_url=None,
     
     [genome, taxon_id, source_name, genbank_time_string, contig_information_dict,
      source_file_name, input_file_name, locus_name_order, list_of_features,
-     ontology_terms_not_found, list_of_genes] = _load_data(
+     ontology_terms_not_found, cds_list, mrna_list] = _load_data(
                         exclude_ontologies, generate_ids_if_needed, input_directory,
                         genetic_code, core_genome_name, source, ws_client, 
                         ontology_wsname, ontology_GO_obj_name, ontology_PO_obj_name, 
@@ -137,7 +137,7 @@ def upload_genome(shock_service_url=None,
                       locus_name_order, list_of_features, release, ontology_terms_not_found, 
                       type, usermeta, token, ws_client, workspace_name, workspace_service_url, 
                       handle_service_url, shock_service_url, callback_url, 
-                      list_of_genes, report, logger)        
+                      cds_list, mrna_list, report, logger)        
 
 
 
@@ -258,6 +258,7 @@ def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, gene
 
     print "NUMBER OF GENBANK RECORDS: " + str(len(genbank_file_boundaries))
     
+    cds_mrna_pairs = []  # list<tuple<cds_feature, mrna_feature>>
     try:
         [min_date, max_date] = _process_contigs(genbank_file_handle, genbank_file_boundaries, tax_lineage, 
                                                 genbank_division_set, min_date, max_date, organism_dict, 
@@ -270,71 +271,147 @@ def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, gene
                                                 genome_publication_dict, genome, fasta_file_handle, 
                                                 feature_ids, feature_type_counts, 
                                                 feature_type_id_counter_dict, ontology_terms_not_found,
-                                                logger, report)
+                                                cds_mrna_pairs, logger, report)
     finally:
         fasta_file_handle.close()
         genbank_file_handle.close()
 
-    list_of_genes = _propagate_genes_to_cdss(list_of_features, logger)
-    _rename_duplicated_ids(list_of_features, "id")
-    _rename_duplicated_ids(list_of_features, "cds_id")
+    [cds_list, mrna_list] = _extract_cdss_mrnas(list_of_features, cds_mrna_pairs, 
+                                                feature_type_id_counter_dict, logger)
 
     genbank_time_string = "Unknown"
     if min_date and max_date:
         if min_date == max_date:
             genbank_time_string = min_date.strftime('%d-%b-%Y').upper()
         else:
-            genbank_time_string = "%s to %s" %(min_date.strftime('%d-%b-%Y').upper(), max_date.strftime('%d-%b-%Y').upper())
+            genbank_time_string = "%s to %s" %(min_date.strftime('%d-%b-%Y').upper(), 
+                                               max_date.strftime('%d-%b-%Y').upper())
     
     return [genome, taxon_id, source_name, genbank_time_string, contig_information_dict, 
             source_file_name, input_file_name, locus_name_order, list_of_features, 
-            ontology_terms_not_found, list_of_genes]
+            ontology_terms_not_found, cds_list, mrna_list]
 
 
 
-def _propagate_genes_to_cdss(list_of_features, logger):
+def _extract_cdss_mrnas(list_of_features, cds_mrna_pairs, feature_type_id_counter_dict, logger):
     id_to_gene_map = {}  # feature_id -> gene
-    list_of_genes = []
+    cds_list = []
+    mrna_list = []
     for feature in list_of_features:
         if feature["type"] == "gene":
             id_to_gene_map[feature["id"]] = feature
-            list_of_genes.append(feature)
-    _log_report(logger, None, "Number of genes: " + str(len(list_of_genes)))
+        elif feature["type"] == "CDS":
+            cds_list.append(feature)
+        elif feature["type"] == "mRNA":
+            mrna_list.append(feature)
+    _log_report(logger, None, "Number of CDSs: " + str(len(cds_list)))
+    _log_report(logger, None, "Number of mRNAs: " + str(len(mrna_list)))
     # Filtering out all other features except CDSs
-    list_of_features[:] = [feature for feature in list_of_features if feature["type"] != "gene"]
-    _log_report(logger, None, "Number of CDSs+RNAs: " + str(len(list_of_features)))
-    # Propagate gene properties to CDSs
-    for feature in list_of_features:
-        if feature["type"] != "CDS":
-            continue
-        cds = feature
-        if cds["id"]:
-            cds["cds_id"] = cds["id"]
-        if "gene_id" in cds:
-            gene = id_to_gene_map.get(cds["gene_id"])
-            if gene:
-                cds["id"] = gene["id"]  # It doesn't guarantee uniqueness. See below...
-                # Merge gene["aliases"] -> cds["aliases"]
-                alias_dict = {alias: True for alias in cds["aliases"] if len(alias) > 0}
-                alias_dict.update({alias: True for alias in gene["aliases"] if len(alias) > 0})
-                cds["aliases"] = alias_dict.keys()
-                # Merge gene["ontology_terms"] -> cds["ontology_terms"]
-                terms2 = gene.get("ontology_terms")
-                if terms2 is not None:
-                    terms = cds.get("ontology_terms")
-                    if terms is None:
-                        cds["ontology_terms"] = terms2
-                    else:
-                        for source in terms2:
-                            if source in terms:
-                                terms[source].update(terms2[source])
-                            else:
-                                terms[source] = terms2[source]
-    # Let's delete "ontology_terms" data from genes
-    for gene in list_of_genes:
-        if "ontology_terms" in gene:
-            del gene["ontology_terms"]
-    return list_of_genes
+    list_of_features[:] = [feature for feature in list_of_features if (feature["type"] != "CDS" and
+                                                                       feature["type"] != "mRNA")]
+    _log_report(logger, None, "Number of other features: " + str(len(list_of_features)))
+
+    for cds_mrna_pair in cds_mrna_pairs:
+        cds = cds_mrna_pair[0]
+        cds["parent_mrna"] = "found"
+        mrna = cds_mrna_pair[1]
+        keys_to_del = [key for key in mrna if key not in ["id", "location", "md5", "parent_gene"]]
+        for key in keys_to_del:
+            del mrna[key]
+        
+    # Check integrity between genes, CDSs and mRNAs
+    for cds in cds_list:
+        gene = None
+        gene_id = None
+        if "parent_gene" in cds:
+            gene_id = cds["parent_gene"]
+            gene = id_to_gene_map.get(gene_id)
+        if gene:
+            _propagate_cds_props_to_gene(cds, gene)
+        else:  # We generate new Gene base on CDS
+            if not gene_id:
+                gene_id = _generate_feature_id_by_type("gene", feature_type_id_counter_dict)
+            
+            gene = cds.copy()  # I don't think we need deepcopy here (but we should be careful)
+            gene["id"] = gene_id
+            list_of_features.append(gene)
+            id_to_gene_map[gene_id] = gene
+            
+        cds["parent_gene"] = gene_id
+        
+        if "parent_mrna" not in cds:  # mRNA was not found for CDS
+            mrna = {"id": _generate_feature_id_by_type("mRNA", feature_type_id_counter_dict),
+                    "location": cds["location"], "md5": "", "parent_gene": gene_id}
+            mrna_list.append(mrna)
+            cds_mrna_pairs.append([cds, mrna])
+
+        if "ontology_terms" not in cds:
+            cds["ontology_terms"] = {}
+        if "function" not in cds:
+            cds["function"] = ""
+        if "aliases" not in cds:
+            cds["aliases"] = []
+
+    _rename_duplicated_ids(cds_list, "id")
+    _rename_duplicated_ids(mrna_list, "id")
+    
+    # Now we can add cross-refs between genes, CDSs and mRNAs
+    for cds_mrna_pair in cds_mrna_pairs:
+        cds = cds_mrna_pair[0]
+        mrna = cds_mrna_pair[1]
+        cds["parent_mrna"] = mrna["id"]
+        mrna["cds"] = cds["id"]
+        mrna["parent_gene"] = cds["parent_gene"]
+        gene = id_to_gene_map[cds["parent_gene"]]
+        if "cdss" in gene:
+            gene["cdss"].append(cds["id"])
+        else:
+            gene["cdss"] = [cds["id"]]
+        if "mrnas" in gene:
+            gene["mrnas"].append(mrna["id"])
+        else:
+            gene["mrnas"] = [mrna["id"]]
+
+    return [cds_list, mrna_list]
+
+
+
+def _propagate_cds_props_to_gene(cds, gene):
+    # Check gene function
+    if "function" not in gene or gene["function"] is None or len(gene["function"]) == 0:
+        gene["function"] = cds.get("function", "")
+    # Put longest protein_translation to gene
+    if "protein_translation" not in gene or (len(gene["protein_translation"]) <
+                                             len(cds["protein_translation"])):
+        gene["protein_translation"] = cds["protein_translation"]
+        gene["protein_translation_length"] = len(cds["protein_translation"])
+    # Merge cds["aliases"] -> gene["aliases"]
+    alias_dict = {alias: True for alias in cds["aliases"] if len(alias) > 0}
+    alias_dict.update({alias: True for alias in gene["aliases"] if len(alias) > 0})
+    gene["aliases"] = alias_dict.keys()
+    # Merge cds["ontology_terms"] -> gene["ontology_terms"]
+    terms2 = cds.get("ontology_terms")
+    if terms2 is not None:
+        terms = gene.get("ontology_terms")
+        if terms is None:
+            gene["ontology_terms"] = terms2
+        else:
+            for source in terms2:
+                if source in terms:
+                    terms[source].update(terms2[source])
+                else:
+                    terms[source] = terms2[source]
+
+
+
+def _generate_feature_id_by_type(feature_type, feature_type_id_counter_dict):
+    if feature_type not in feature_type_id_counter_dict:
+        feature_type_id_counter_dict[feature_type] = 1;
+        feature_id = "%s_%s" % (feature_type, str(1)) 
+    else: 
+        feature_type_id_counter_dict[feature_type] += 1; 
+        feature_id = "%s_%s" % (feature_type, str(feature_type_id_counter_dict[feature_type]))
+    return feature_id
 
 
 
@@ -384,7 +461,7 @@ def _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_str
                locus_name_order, list_of_features, release, ontology_terms_not_found,
                genome_type, usermeta, token, ws_client, workspace_name, workspace_service_url,
                handle_service_url, shock_service_url, callback_url, 
-               list_of_genes, report, logger):
+               cds_list, mrna_list, report, logger):
     ##########################################
     #ASSEMBLY CREATION PORTION  - consume Fasta File
     ##########################################
@@ -474,7 +551,8 @@ def _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_str
     genome['source_id'] = temp_source_id
     genome['external_source_origination_date'] = genbank_time_string
     genome['features'] = list_of_features
-    genome['genes'] = list_of_genes
+    genome['cdss'] = cds_list
+    genome['mrnas'] = mrna_list
     if release is not None:
         genome['release'] = release
     if len(ontology_terms_not_found) > 0:
@@ -832,7 +910,7 @@ def _process_contigs(genbank_file_handle, genbank_file_boundaries, tax_lineage, 
                      list_of_features, genbank_metadata_objects, contig_information_dict, locus_name_order, 
                      genome_publication_dict, genome, fasta_file_handle, feature_ids, 
                      feature_type_counts, feature_type_id_counter_dict, ontology_terms_not_found,
-                     logger, report):
+                     cds_mrna_pairs, logger, report):
     good_contig_count = 0;
     for contig_pos, byte_coordinates in enumerate(genbank_file_boundaries): 
         [metadata_part, features_part, sequence_part] = _load_blocks_for_contig(genbank_file_handle, byte_coordinates)
@@ -888,6 +966,7 @@ def _process_contigs(genbank_file_handle, genbank_file_boundaries, tax_lineage, 
                 feature_line_counter += 1 
                 feature_line = features_lines[feature_line_counter]
         
+        gene_product_cds_mrna_map = {}  # {<gene_id> -> {<product> -> {'cds_list': [], 'mrna_list': []}}
         #Go through each feature and determine key value pairs, properties and importantly the id to use to group for interfeature_relationships.
         for feature_text in features_list:
             feature_object = _create_feature_object(feature_text, complement_len, join_len, order_len, 
@@ -896,9 +975,27 @@ def _process_contigs(genbank_file_handle, genbank_file_boundaries, tax_lineage, 
                                                     genetic_code, generate_ids_if_needed, report, 
                                                     feature_ids, feature_type_counts, 
                                                     feature_type_id_counter_dict, 
-                                                    ontology_terms_not_found)
+                                                    ontology_terms_not_found, gene_product_cds_mrna_map)
             if feature_object is not None:
                 list_of_features.append(feature_object)
+        
+        # Let's group CDSs and mRNSs by pairs:
+        for gene_id in gene_product_cds_mrna_map:
+            unprocessed_cds_list = []
+            unprocessed_mrna_list = []
+            for product in gene_product_cds_mrna_map[gene_id]:
+                cds_list = gene_product_cds_mrna_map[gene_id][product]['cds_list']
+                mrna_list = gene_product_cds_mrna_map[gene_id][product]['mrna_list']
+                if len(cds_list) == 1 and len(mrna_list) == 1:
+                    cds_mrna_pairs.append([cds_list[0], mrna_list[0]])
+                else:
+                    unprocessed_cds_list.extend(cds_list)
+                    unprocessed_mrna_list.extend(mrna_list)
+            if len(unprocessed_cds_list) == 1 and len(unprocessed_mrna_list) == 1:
+                cds_mrna_pairs.append([unprocessed_cds_list[0], unprocessed_mrna_list[0]])
+            elif len(unprocessed_cds_list) > 0 and len(unprocessed_mrna_list) > 0:
+                _log_report(logger, report, "Couldn't identify relationship between mRNA and " +
+                            "CDS features for gene ID=" + gene_id + " based on 'product' field")
             
 #        for feature_type in feature_type_counts:
 #            print "Feature " + feature_type + "  count: " + str(feature_type_counts[feature_type])
@@ -1019,8 +1116,10 @@ def _process_metadata(contig_pos,
         elif metadata_line.startswith("  ORGANISM  "): 
             organism = metadata_line[12:] 
             if organism not in organism_dict:
-                raise ValueError("There is more than one organism represented in these Genbank files, they do not represent single genome. First record's organism is %s , but %s was also found" 
-                                 % (str(organism_dict.keys()),organism)) 
+                _log_report(logger, report, ("There is more than one organism represented in " +
+                            "these Genbank files, they do not represent single genome. First " +
+                            "record's organism is %s , but %s was also found")
+                            % (str(organism_dict.keys()),organism))
         elif metadata_line.startswith("COMMENT     "):
             comment = metadata_line[12:] 
             comment_loop_counter = 1 
@@ -1192,7 +1291,7 @@ def _create_feature_object(feature_text, complement_len, join_len, order_len, co
                          time_string, genetic_code, generate_ids_if_needed, 
                          # Output part:
                          report, feature_ids, feature_type_counts, feature_type_id_counter_dict,
-                         ontology_terms_not_found):
+                         ontology_terms_not_found, gene_product_cds_mrna_map):
             feature_object = dict()
             #split the feature into the key value pairs. "/" denotes start of a new key value pair.
             feature_key_value_pairs_list = feature_text.split("                     /")
@@ -1285,7 +1384,25 @@ def _create_feature_object(feature_text, complement_len, join_len, order_len, co
                     feature_object, quality_warnings, feature_ids, ontology_terms_not_found)
 
             if gene_feature_id:
-                feature_object["gene_id"] = gene_feature_id
+                feature_object["parent_gene"] = gene_feature_id
+                # Let's fullfil mapping structure for product-based CDS<->mRNA connections
+                if product and (feature_type == "CDS" or feature_type == "mRNA"):
+                    product_cds_mrna_map = None
+                    if gene_feature_id in gene_product_cds_mrna_map:
+                        product_cds_mrna_map = gene_product_cds_mrna_map[gene_feature_id]
+                    else:
+                        product_cds_mrna_map = {}
+                        gene_product_cds_mrna_map[gene_feature_id] = product_cds_mrna_map
+                    cds_mrna_map = None
+                    if product in product_cds_mrna_map:
+                        cds_mrna_map = product_cds_mrna_map[product]
+                    else:
+                        cds_mrna_map = {'cds_list': [], 'mrna_list': []}
+                        product_cds_mrna_map[product] = cds_mrna_map
+                    if feature_type == "CDS":
+                        cds_mrna_map['cds_list'].append(feature_object)
+                    else:
+                        cds_mrna_map['mrna_list'].append(feature_object)
 
 #            if len(additional_properties) > 0:
 #                feature_object["additional_properties"] = additional_properties
@@ -1562,7 +1679,7 @@ def _load_feature_properties(feature_key_value_pairs_list, feature_type, source,
                             else:
                                 feature_id = value
                                 feature_ids[value] = 1
-                        elif feature_type == "CDS":
+                        elif feature_type == "CDS" or feature_type == "mRNA":
                             gene_feature_id = value
 #Kept lines, for dealing with aliases if keeping track of sources/source field
 #                    if value in alias_dict and ("Genbank Gene" not in alias_dict[value]) :
@@ -1579,7 +1696,7 @@ def _load_feature_properties(feature_key_value_pairs_list, feature_type, source,
                             else:
                                 feature_id = value
                                 feature_ids[value] = 1
-                        elif feature_type == "CDS":
+                        elif feature_type == "CDS" or feature_type == "mRNA":
                             gene_feature_id = value
 #                    if feature_type == "gene":
 #                        feature_object["feature_specific_id"] = value
@@ -1593,6 +1710,8 @@ def _load_feature_properties(feature_key_value_pairs_list, feature_type, source,
                 elif (key == "transcript_id"):
 #                    if feature_type == "mRNA":
 #                        feature_object["feature_specific_id"] = value 
+                    if feature_type == "mRNA":
+                        feature_id = value
                     alias_dict[value]=1 
                 elif (key == "protein_id"):
 #                    if feature_type == "CDS":
