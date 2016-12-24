@@ -294,6 +294,7 @@ def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, gene
 
 
 def _extract_cdss_mrnas(list_of_features, cds_mrna_pairs, feature_type_id_counter_dict, logger):
+    _log_report(logger, None, "CDS-mRNA links: " + str(len(cds_mrna_pairs)))
     id_to_gene_map = {}  # feature_id -> gene
     cds_list = []
     mrna_list = []
@@ -371,6 +372,9 @@ def _extract_cdss_mrnas(list_of_features, cds_mrna_pairs, feature_type_id_counte
             gene["mrnas"].append(mrna["id"])
         else:
             gene["mrnas"] = [mrna["id"]]
+
+    # Let's delete orphan mRNAs
+    mrna_list[:] = [mrna for mrna in mrna_list if 'cds' in mrna]
 
     return [cds_list, mrna_list]
 
@@ -1301,8 +1305,8 @@ def _create_feature_object(feature_text, complement_len, join_len, order_len, co
             coordinates_info = feature_header[21:] 
             feature_type = feature_header[:21] 
             feature_type = feature_type.strip().replace(" ","_")
-            if feature_type not in ['CDS','gene']:
-                #skip non core feature types. We currently decided to not include mRNA
+            if feature_type not in ['CDS','gene', 'mRNA']:
+                #skip non core feature types.
                 return None
             feature_object["type"] = feature_type
 
