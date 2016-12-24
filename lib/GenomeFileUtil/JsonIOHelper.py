@@ -50,7 +50,7 @@ def download_genome_to_json_files(token, genome_ref, target_dir):
             taxon_obj['parent_taxon_ref'] = ""
     for target_file_name in file_name_to_data_map:
         with open(os.path.join(target_dir, target_file_name), 'w') as f:
-            json.dump(file_name_to_data_map[target_file_name], f)
+            json.dump(file_name_to_data_map[target_file_name], f, sort_keys=True, indent=4)
 
 
 def compare_genome_json_files(dir1, dir2):

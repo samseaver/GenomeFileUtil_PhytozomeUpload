@@ -46,6 +46,7 @@ FEATURES             Location/Qualifiers
                      /db_xref="something:1"
      CDS             687..3158
                      /gene="AXL2"
+                     /locus_tag="b1"
                      /note="plasma membrane glycoprotein"
                      /codon_start=1
                      /function="required for axial budding pattern of S.
@@ -76,6 +77,7 @@ FEATURES             Location/Qualifiers
                      /db_xref="something:2"
      CDS             complement(3300..4037)
                      /gene="REV7"
+                     /locus_tag="b2"
                      /codon_start=1
                      /product="Rev7p"
                      /protein_id="AAA98667.1"
