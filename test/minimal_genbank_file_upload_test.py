@@ -145,6 +145,8 @@ class MinimalGenbankUploadTest(unittest.TestCase):
         self.assertEquals(genome_info[10]['Genetic code'],'1')
         self.assertEquals(genome_info[10]['Name'],'Saccharomyces cerevisiae')
         self.assertEquals(genome_info[10]['Source'],'Genbank')
+        self.assertTrue("GC content" in genome_info[10])
+        self.assertTrue("Size" in genome_info[10])
         #self.assertEquals(genome_info[10]['Taxonomy'],
         #    'cellular organisms; Eukaryota; Opisthokonta; Fungi; Dikarya; Ascomycota; '+
         #    'saccharomyceta; Saccharomycotina; Saccharomycetes; Saccharomycetales; '+

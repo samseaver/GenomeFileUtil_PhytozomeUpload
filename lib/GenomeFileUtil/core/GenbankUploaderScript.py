@@ -496,6 +496,12 @@ def _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_str
         raise
 
     logger.info("Assembly Uploaded")
+    
+    assembly_info = ws_client.get_object_info_new({'objects': [{'ref': assembly_reference}],
+                                                   'includeMetadata': 1})[0]
+    assembly_meta = assembly_info[10]
+    gc_content = float(assembly_meta.get("GC content"))
+    dna_size = int(assembly_meta.get("Size"))
 
 #    sys.exit(1)
 
@@ -557,6 +563,8 @@ def _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_str
     genome['features'] = list_of_features
     genome['cdss'] = cds_list
     genome['mrnas'] = mrna_list
+    genome['gc_content'] = gc_content
+    genome['dna_size'] = dna_size
     if release is not None:
         genome['release'] = release
     if len(ontology_terms_not_found) > 0:
