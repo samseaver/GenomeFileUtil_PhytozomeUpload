@@ -83,3 +83,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         #                                                  os.path.join("/kb/module/test/data/fungi",
         #                                                               "GCF_000002945"))))
         self.assertTrue(int(result['genome_info'][10]['Number features']) > 0)
+        
+        res1 = self.getImpl().genome_to_gff(self.getContext(),
+            { 'genome_ref': result['genome_ref'] })[0]
