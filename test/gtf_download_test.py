@@ -114,6 +114,10 @@ class GenomeFileUtilTest(unittest.TestCase):
         res1 = genomeFileUtil.genome_to_gff(self.getContext(),
             { 'genome_ref':self.rhodobacter_ref })[0]
         self.assertEqual(res1['from_cache'], 0)
+        res2 = genomeFileUtil.genome_to_gff(self.getContext(),
+            { 'genome_ref':self.rhodobacter_ref, 
+             'target_dir': '/kb/module/work/tmp/rhodo_gft', 'is_gtf': 1 })[0]
+        self.assertEqual(res2['from_cache'], 0)
 
     def test_simple_gff_download_from_cache(self):
         genomeFileUtil = self.getImpl()

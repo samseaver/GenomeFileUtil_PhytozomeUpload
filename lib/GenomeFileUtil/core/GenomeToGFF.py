@@ -57,20 +57,23 @@ class GenomeToGFF:
 
         is_gtf = params.get('is_gtf', 0)
 
-        temp_dir = os.path.join(self.cfg.sharedFolder, "gff_" + str(int(time.time() * 1000)))
-        os.makedirs(temp_dir)
+        target_dir = params.get('target_dir')
+        if not target_dir:
+            target_dir = os.path.join(self.cfg.sharedFolder, "gff_" + str(int(time.time() * 1000)))
+        if not os.path.exists(target_dir):
+            os.makedirs(target_dir)
 
         # 4) if the GFF handle is there, get it and return
         if is_gtf != 1:
             print('checking if GFF file is cached...')
-            result = self.get_gff_handle(data, temp_dir)
+            result = self.get_gff_handle(data, target_dir)
             if result is not None:
                 result['from_cache'] = 1
                 return result
             print('not cached, building file...')
 
         # 5) otherwise, build the GFF file and return it
-        result = self.build_gff_file(getGenomeOptions, temp_dir, info[1], is_gtf == 1)
+        result = self.build_gff_file(getGenomeOptions, target_dir, info[1], is_gtf == 1)
         if result is None:
             raise ValueError('Unable to generate file.  Something went wrong')
         result['from_cache'] = 0
@@ -98,9 +101,13 @@ class GenomeToGFF:
     def build_gff_file(self, getGenomeOptions, output_dir, output_filename, is_gtf):
 
         # first get subdata needed; forget about the metadata
-        getGenomeOptions['included_fields'] = []
-        getGenomeOptions['included_feature_fields'] = ['id', 'type', 'location']
+        #getGenomeOptions['included_fields'] = []
+        #getGenomeOptions['included_feature_fields'] = ['id', 'type', 'location']
         getGenomeOptions['no_metadata'] = 1
+        if 'included_fields' in getGenomeOptions:
+            del getGenomeOptions['included_fields']
+        if 'included_feature_fields' in getGenomeOptions:
+            del getGenomeOptions['included_feature_fields']
 
         api = GenomeAnnotationAPI(self.cfg.callbackURL)
         genome_data = api.get_genome_v1(getGenomeOptions)['genomes'][0]['data']
@@ -128,8 +135,8 @@ class GenomeToGFF:
             gene_map = {}   ## gene_id -> <gene>
                             ## gene is {'id': <>, 'location': [[contig,start,strand,len], ...], 
                             ##          'mrna_cds_pairs': [[<mRNA>, <CDS>], ...]}
-            gene_id_generation = 1
-            mrna_id_generation = 1
+            #gene_id_generation = 1
+            #mrna_id_generation = 1
             for f in features:
                 if f['type'] == 'mRNA':
                     mrna_map[f['id']] = f
@@ -142,10 +149,12 @@ class GenomeToGFF:
                     gene = None
                     if gene_id:
                         gene = gene_map.get(gene_id)
+                    rename_cds = False
                     if gene is None:
                         if gene_id is None:
-                            gene_id = 'gene_' + str(gene_id_generation)
-                            gene_id_generation += 1
+                            gene_id = f['id']  #'gene_' + str(gene_id_generation)
+                            #gene_id_generation += 1
+                            rename_cds = True
                         gene = {'id': gene_id, 'location': self.get_common_location(f['location'])}
                         gene_map[gene_id] = gene
                     mrna_id = f.get('parent_mrna')
@@ -154,10 +163,12 @@ class GenomeToGFF:
                         mrna = mrna_map.get(mrna_id)
                     if mrna is None:
                         if mrna_id is None:
-                            mrna_id = 'mRNA_' + str(mrna_id_generation)
-                            mrna_id_generation += 1
+                            mrna_id = f['id'] + '_mRNA'  # 'mRNA_' + str(mrna_id_generation)
+                            #mrna_id_generation += 1
                         mrna = {'id': mrna_id, 'location': f['location']}
                         mrna_map[mrna_id] = mrna
+                    if rename_cds:
+                        f['id'] = f['id'] + '_CDS'
                     mrna_cds_pairs = gene.get('mrna_cds_pairs')
                     if mrna_cds_pairs is None:
                         mrna_cds_pairs = []
@@ -174,7 +185,9 @@ class GenomeToGFF:
                 if contig is None:
                     contig = {'id': contig_id, 'genes': []}
                     contig_map[contig_id] = contig
+                    contigs.append(contig)
                 contig['genes'].append(gene)
+
             for contig in contigs:
                 contig['genes'].sort(key=lambda gene: gene['start'])
 
