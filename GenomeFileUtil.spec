@@ -56,9 +56,17 @@ module GenomeFileUtil {
     funcdef genbank_to_genome(GenbankToGenomeParams params)
                 returns (GenomeSaveResult result) authentication required;
 
+    /*
+        is_gtf - optional flag switching export to GTF format (default is 0, 
+            which means GFF)
+        target_dir - optional target directory to create file in (default is
+            temporary folder with name 'gff_<timestamp>' created in scratch)
+    */
     typedef structure {
         string genome_ref;
         list <string> ref_path_to_genome;
+        boolean is_gtf;
+        string target_dir;
     } GenomeToGFFParams;
 
     /* from_cache is 1 if the file already exists and was just returned, 0 if
