@@ -140,20 +140,15 @@ class MinimalGenbankUploadTest(unittest.TestCase):
         genome_info = result['genome_info']
         self.assertEquals(genome_info[10]['Number contigs'],'1')
         self.assertEquals(genome_info[10]['Number features'],'3')
-        #self.assertEquals(genome_info[10]['Domain'],'Eukaryota')
-        self.assertEquals(genome_info[10]['Domain'],'Unknown')
+        self.assertEquals(genome_info[10]['Domain'],'Eukaryota')
         self.assertEquals(genome_info[10]['Genetic code'],'1')
         self.assertEquals(genome_info[10]['Name'],'Saccharomyces cerevisiae')
         self.assertEquals(genome_info[10]['Source'],'Genbank')
         self.assertTrue("GC content" in genome_info[10])
         self.assertTrue("Size" in genome_info[10])
-        #self.assertEquals(genome_info[10]['Taxonomy'],
-        #    'cellular organisms; Eukaryota; Opisthokonta; Fungi; Dikarya; Ascomycota; '+
-        #    'saccharomyceta; Saccharomycotina; Saccharomycetes; Saccharomycetales; '+
-        #    'Saccharomycetaceae; Saccharomyces')
         self.assertEquals(genome_info[10]['Taxonomy'],
-            'Opisthokonta; Fungi; Dikarya; Ascomycota; ' + 
-            'saccharomyceta; Saccharomycotina; Saccharomycetes; Saccharomycetales; ' + 
+            'cellular organisms; Eukaryota; Opisthokonta; Fungi; Dikarya; Ascomycota; '+
+            'saccharomyceta; Saccharomycotina; Saccharomycetes; Saccharomycetales; '+
             'Saccharomycetaceae; Saccharomyces')
 
 

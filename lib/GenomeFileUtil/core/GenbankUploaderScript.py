@@ -159,11 +159,11 @@ def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, gene
     else:
         generate_ids_if_needed = 0
 
-    input_file_name = _find_input_file(input_directory, logger, report)
+    input_files = _find_input_files(input_directory, logger, report)
+
+    input_file_name = _join_files_skip_empty_lines(input_files)
     source_file_name = os.path.basename(input_file_name)
     print "INPUT FILE NAME :" + input_file_name + ":"
-
-    input_file_name = _strip_lines(input_file_name)
 
     genbank_file_handle = TextFileDecoder.open_textdecoder(input_file_name, 'ISO-8859-1') 
 
@@ -258,7 +258,6 @@ def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, gene
 
     print "NUMBER OF GENBANK RECORDS: " + str(len(genbank_file_boundaries))
     
-    cds_mrna_pairs = []  # list<tuple<cds_feature, mrna_feature>>
     try:
         [min_date, max_date] = _process_contigs(genbank_file_handle, genbank_file_boundaries, tax_lineage, 
                                                 genbank_division_set, min_date, max_date, organism_dict, 
@@ -271,13 +270,21 @@ def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, gene
                                                 genome_publication_dict, genome, fasta_file_handle, 
                                                 feature_ids, feature_type_counts, 
                                                 feature_type_id_counter_dict, ontology_terms_not_found,
-                                                cds_mrna_pairs, logger, report)
+                                                logger, report)
     finally:
         fasta_file_handle.close()
         genbank_file_handle.close()
 
+    _check_alternative_gene_relationship(list_of_features, feature_type_id_counter_dict)
+    # cds_mrna_pairs := list<tuple<cds_feature, mrna_feature>>
+    cds_mrna_pairs = _match_cds_mrna_pairs(list_of_features, logger, report)
+
     [cds_list, mrna_list] = _extract_cdss_mrnas(list_of_features, cds_mrna_pairs, 
                                                 feature_type_id_counter_dict, logger)
+
+    _cleanup_properties(list_of_features, ['id2'])
+    _cleanup_properties(cds_list, ['parent_gene2', 'product','transcript_id'])
+    _cleanup_properties(mrna_list, ['parent_gene2', 'product','transcript_id'])
 
     genbank_time_string = "Unknown"
     if min_date and max_date:
@@ -290,6 +297,109 @@ def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, gene
     return [genome, taxon_id, source_name, genbank_time_string, contig_information_dict, 
             source_file_name, input_file_name, locus_name_order, list_of_features, 
             ontology_terms_not_found, cds_list, mrna_list]
+
+
+
+def _check_alternative_gene_relationship(list_of_features, feature_type_id_counter_dict):
+    gene_map = {}  # gene ID -> gene
+    gene2_map = {} # gene ID2 -> gene
+    for f in list_of_features:
+        if f["type"] == "gene":
+            gene_map[f["id"]] = f
+            if "id2" in f:
+                gene2_map[f["id2"]] = f
+    for feature_object in list_of_features:
+        gene_feature_id = feature_object.get("parent_gene")
+        if (not gene_feature_id) or (gene_feature_id not in gene_map):
+            gene_feature_id2 = feature_object.get("parent_gene2")
+            if gene_feature_id2 and gene_feature_id2 in gene2_map:
+                gene = gene2_map[gene_feature_id2]
+                gene_feature_id = gene.get("id")
+                if not gene_feature_id:
+                    gene_feature_id = _generate_feature_id_by_type("gene", 
+                                                                   feature_type_id_counter_dict)
+                    gene["id"] = gene_feature_id
+                feature_object["parent_gene"] = gene_feature_id
+
+
+
+def _match_cds_mrna_pairs(list_of_features, logger, report):
+    # Let's group CDSs and mRNSs by connection to the same gene:
+    gene_cds_mrna_map = {}  # {<gene_id> -> {<product> -> {'cds_list': [], 'mrna_list': []}}
+    for feature_object in list_of_features:
+        feature_type = feature_object['type']
+        if feature_type != "CDS" and feature_type != "mRNA":
+            continue
+        gene_feature_id = feature_object.get("parent_gene")
+        if not gene_feature_id:
+            continue
+        gene_feature_list = None
+        if gene_feature_id in gene_cds_mrna_map:
+            gene_feature_list = gene_cds_mrna_map[gene_feature_id]
+        else:
+            gene_feature_list = []
+            gene_cds_mrna_map[gene_feature_id] = gene_feature_list
+        gene_feature_list.append(feature_object)
+
+    # Let's group CDSs and mRNSs by pairs:
+    cds_mrna_pairs = []  # list<tuple<cds_feature, mrna_feature>>
+    for gene_id in gene_cds_mrna_map:
+        feature_list = gene_cds_mrna_map[gene_id]
+        [unprocessed_cds_list, 
+         unprocessed_mrna_list] = _link_cds_mrna_by_property(feature_list, 
+                                                             "transcript_id", cds_mrna_pairs)
+        unprocessed_feature_list = [] + unprocessed_cds_list + unprocessed_mrna_list
+        [unprocessed_cds_list, 
+         unprocessed_mrna_list] = _link_cds_mrna_by_property(unprocessed_feature_list, 
+                                                             "product", cds_mrna_pairs)
+        if len(unprocessed_cds_list) > 0 and len(unprocessed_mrna_list) > 0:
+            _log_report(logger, report, "Couldn't identify relationship between " + 
+                        str(len(unprocessed_mrna_list)) + " mRNA(s) and " +
+                        str(len(unprocessed_cds_list)) + "CDS(s) features for gene ID=" + gene_id)
+    return cds_mrna_pairs
+
+
+
+def _link_cds_mrna_by_property(feature_list, link_property, cds_mrna_pairs):
+        value_cds_mrna_map = {}
+        unprocessed_cds_list = []
+        unprocessed_mrna_list = []
+        for feature_object in feature_list:
+            value = feature_object.get(link_property)
+            # Let's fullfil mapping structure for value-based CDS<->mRNA connections
+            if not value:
+                if feature_object['type'] == "CDS":
+                    unprocessed_cds_list.append(feature_object)
+                else:
+                    unprocessed_mrna_list.append(feature_object)
+                continue
+            cds_mrna_map = None
+            if value in value_cds_mrna_map:
+                cds_mrna_map = value_cds_mrna_map[value]
+            else:
+                cds_mrna_map = {'cds_list': [], 'mrna_list': []}
+                value_cds_mrna_map[value] = cds_mrna_map
+            if feature_object['type'] == "CDS":
+                cds_mrna_map['cds_list'].append(feature_object)
+            else:
+                cds_mrna_map['mrna_list'].append(feature_object)
+        
+        unpaired_cds_list = []
+        unpaired_mrna_list = []
+        for value in value_cds_mrna_map:
+            cds_list = value_cds_mrna_map[value]['cds_list']
+            mrna_list = value_cds_mrna_map[value]['mrna_list']
+            if len(cds_list) == 1 and len(mrna_list) == 1:
+                cds_mrna_pairs.append([cds_list[0], mrna_list[0]])
+            else:
+                unpaired_cds_list.extend(cds_list)
+                unpaired_mrna_list.extend(mrna_list)
+        if len(unpaired_cds_list) == 1 and len(unpaired_mrna_list) == 1:
+            cds_mrna_pairs.append([unpaired_cds_list[0], unpaired_mrna_list[0]])
+            return [[], []]
+        unprocessed_cds_list.extend(unpaired_cds_list)
+        unprocessed_mrna_list.extend(unpaired_mrna_list)
+        return [unprocessed_cds_list, unprocessed_mrna_list]
 
 
 
@@ -377,6 +487,14 @@ def _extract_cdss_mrnas(list_of_features, cds_mrna_pairs, feature_type_id_counte
     mrna_list[:] = [mrna for mrna in mrna_list if 'cds' in mrna]
 
     return [cds_list, mrna_list]
+
+
+
+def _cleanup_properties(obj_list, props_to_delete):
+    for obj in obj_list:
+        for prop in props_to_delete:
+            if prop in obj:
+                del obj[prop]
 
 
 
@@ -617,9 +735,9 @@ Below is a list of the term and the countof the number of features that containe
 
 
 
-def _find_input_file(input_directory, logger, report):
+def _find_input_files(input_directory, logger, report):
     logger.info("Scanning for Genbank Format files.") 
-    valid_extensions = [".gbff",".gbk",".gb",".genbank",".dat"] 
+    valid_extensions = [".gbff",".gbk",".gb",".genbank",".dat", ".gbf"] 
  
     files = os.listdir(os.path.abspath(input_directory)) 
     print "FILES : " + str(files)
@@ -630,14 +748,11 @@ def _find_input_file(input_directory, logger, report):
   
     logger.info("Found {0}".format(str(genbank_files))) 
  
-    input_file_name = os.path.join(input_directory,genbank_files[0]) 
+    input_files = []
+    for genbank_file in genbank_files:
+        input_files.append(os.path.join(input_directory,genbank_file)) 
  
-    if len(genbank_files) > 1: 
-        # TODO if multiple files - CONCATENATE FILES HERE (sort by name)? OR Change how the byte coordinates work.
-        report.write("Not sure how to handle multiple Genbank files in this context. Using {0}.\n\n".format(input_file_name))
-        logger.warning("Not sure how to handle multiple Genbank files in this context. Using {0}".format(input_file_name))
-
-    return input_file_name
+    return input_files
 
 
 
@@ -686,32 +801,29 @@ def _validate_generic_code(genetic_code, logger):
 
 
 
-def _strip_lines(input_file_name):
-    """ Applies strip to each line of input file.
+def _join_files_skip_empty_lines(input_files):
+    """ Applies strip to each line of each input file.
     Args:
-        input_file_name: Path to input file in Genbank format.
+        input_files: Paths to input files in Genbank format.
     Returns:
         Path to resulting file (currenly it's the same file as input).
     """
-
-    if os.path.isfile(input_file_name):
-        print "Found Genbank_File" 
-#        make_sql_in_memory = True
-        dir_name = os.path.dirname(input_file_name)
-
-        #take in Genbank file and remove all empty lines from it.
-        temp_file = "%s/temp_file_name" % (dir_name)
-        os.rename(input_file_name, temp_file)
-
-        with open(temp_file,'r') as f_in:
-            with open(input_file_name,'w', buffering=2**20 ) as f_out:
-                for line in f_in:
-                    if line.strip():
-                        f_out.write(line)
-        os.remove(temp_file)
-        return input_file_name
-    else:
+    if len(input_files) == 0:
         raise ValueError("NO GENBANK FILE")
+    temp_dir = os.path.join(os.path.dirname(input_files[0]), "combined")
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+    ret_file = os.path.join(temp_dir, os.path.basename(input_files[0]))
+
+    #take in Genbank file and remove all empty lines from it.
+    with open(ret_file,'w', buffering=2**20 ) as f_out:
+        for input_file in input_files:
+            with open(input_file,'r') as f_in:
+                for line in f_in:
+                    line = line.rstrip('\r\n')
+                    if line.strip():
+                        f_out.write(line + '\n')
+    return ret_file
 
 
 
@@ -922,7 +1034,7 @@ def _process_contigs(genbank_file_handle, genbank_file_boundaries, tax_lineage, 
                      list_of_features, genbank_metadata_objects, contig_information_dict, locus_name_order, 
                      genome_publication_dict, genome, fasta_file_handle, feature_ids, 
                      feature_type_counts, feature_type_id_counter_dict, ontology_terms_not_found,
-                     cds_mrna_pairs, logger, report):
+                     logger, report):
     good_contig_count = 0;
     for contig_pos, byte_coordinates in enumerate(genbank_file_boundaries): 
         [metadata_part, features_part, sequence_part] = _load_blocks_for_contig(genbank_file_handle, byte_coordinates)
@@ -978,7 +1090,6 @@ def _process_contigs(genbank_file_handle, genbank_file_boundaries, tax_lineage, 
                 feature_line_counter += 1 
                 feature_line = features_lines[feature_line_counter]
         
-        gene_product_cds_mrna_map = {}  # {<gene_id> -> {<product> -> {'cds_list': [], 'mrna_list': []}}
         #Go through each feature and determine key value pairs, properties and importantly the id to use to group for interfeature_relationships.
         for feature_text in features_list:
             feature_object = _create_feature_object(feature_text, complement_len, join_len, order_len, 
@@ -987,31 +1098,12 @@ def _process_contigs(genbank_file_handle, genbank_file_boundaries, tax_lineage, 
                                                     genetic_code, generate_ids_if_needed, report, 
                                                     feature_ids, feature_type_counts, 
                                                     feature_type_id_counter_dict, 
-                                                    ontology_terms_not_found, gene_product_cds_mrna_map)
+                                                    ontology_terms_not_found)
             if feature_object is not None:
                 list_of_features.append(feature_object)
-        
-        # Let's group CDSs and mRNSs by pairs:
-        for gene_id in gene_product_cds_mrna_map:
-            unprocessed_cds_list = []
-            unprocessed_mrna_list = []
-            for product in gene_product_cds_mrna_map[gene_id]:
-                cds_list = gene_product_cds_mrna_map[gene_id][product]['cds_list']
-                mrna_list = gene_product_cds_mrna_map[gene_id][product]['mrna_list']
-                if len(cds_list) == 1 and len(mrna_list) == 1:
-                    cds_mrna_pairs.append([cds_list[0], mrna_list[0]])
-                else:
-                    unprocessed_cds_list.extend(cds_list)
-                    unprocessed_mrna_list.extend(mrna_list)
-            if len(unprocessed_cds_list) == 1 and len(unprocessed_mrna_list) == 1:
-                cds_mrna_pairs.append([unprocessed_cds_list[0], unprocessed_mrna_list[0]])
-            elif len(unprocessed_cds_list) > 0 and len(unprocessed_mrna_list) > 0:
-                _log_report(logger, report, "Couldn't identify relationship between mRNA and " +
-                            "CDS features for gene ID=" + gene_id + " based on 'product' field")
             
 #        for feature_type in feature_type_counts:
 #            print "Feature " + feature_type + "  count: " + str(feature_type_counts[feature_type])
-
 
         ##################################################################################################
         #SEQUENCE PARSING PORTION  - Write out to Fasta File
@@ -1303,7 +1395,7 @@ def _create_feature_object(feature_text, complement_len, join_len, order_len, co
                          time_string, genetic_code, generate_ids_if_needed, 
                          # Output part:
                          report, feature_ids, feature_type_counts, feature_type_id_counter_dict,
-                         ontology_terms_not_found, gene_product_cds_mrna_map):
+                         ontology_terms_not_found):
             feature_object = dict()
             #split the feature into the key value pairs. "/" denotes start of a new key value pair.
             feature_key_value_pairs_list = feature_text.split("                     /")
@@ -1388,33 +1480,26 @@ def _create_feature_object(feature_text, complement_len, join_len, order_len, co
 #                print "Help %s" % help(dna_sequence)
                 raise Exception(e)
 
-            [alias_dict, feature_id, product, pseudo_non_gene, 
-             has_protein_id, ontology_terms, gene_feature_id] = _load_feature_properties(
+            [alias_dict, feature_id, product, pseudo_non_gene, has_protein_id, 
+             ontology_terms, gene_feature_id, gene_feature_id2, transcript_id, 
+             feature_id2] = _load_feature_properties(
                     feature_key_value_pairs_list, feature_type, source, exclude_ontologies, 
                     ontology_sources, time_string, 
                     # Output part:
                     feature_object, quality_warnings, feature_ids, ontology_terms_not_found)
 
-            if gene_feature_id:
-                feature_object["parent_gene"] = gene_feature_id
-                # Let's fullfil mapping structure for product-based CDS<->mRNA connections
-                if product and (feature_type == "CDS" or feature_type == "mRNA"):
-                    product_cds_mrna_map = None
-                    if gene_feature_id in gene_product_cds_mrna_map:
-                        product_cds_mrna_map = gene_product_cds_mrna_map[gene_feature_id]
-                    else:
-                        product_cds_mrna_map = {}
-                        gene_product_cds_mrna_map[gene_feature_id] = product_cds_mrna_map
-                    cds_mrna_map = None
-                    if product in product_cds_mrna_map:
-                        cds_mrna_map = product_cds_mrna_map[product]
-                    else:
-                        cds_mrna_map = {'cds_list': [], 'mrna_list': []}
-                        product_cds_mrna_map[product] = cds_mrna_map
-                    if feature_type == "CDS":
-                        cds_mrna_map['cds_list'].append(feature_object)
-                    else:
-                        cds_mrna_map['mrna_list'].append(feature_object)
+            if feature_type == 'mRNA' or feature_type == 'CDS':
+                if gene_feature_id:
+                    feature_object['parent_gene'] = gene_feature_id
+                if gene_feature_id2:
+                    feature_object['parent_gene2'] = gene_feature_id2
+                if product:
+                    feature_object['product'] = product
+                if feature_type == 'CDS' and transcript_id:
+                    feature_object['transcript_id'] = transcript_id
+            
+            if feature_type == 'gene' and feature_id2:  # Alternative potential gene ID
+                feature_object['id2'] = feature_id2
 
 #            if len(additional_properties) > 0:
 #                feature_object["additional_properties"] = additional_properties
@@ -1655,7 +1740,10 @@ def _load_feature_properties(feature_key_value_pairs_list, feature_type, source,
             pseudo_non_gene = False
             has_protein_id = False
             ontology_terms = dict()
+            feature_id2 = None        # This is optional gene ID (defined based in "gene" property)
             gene_feature_id = None    # This is feature_id of parent gene for current CDS feature
+            gene_feature_id2 = None   # This is optional feature_id of parent gene for current CDS feature
+            transcript_id = None      # This is optional reference from CDS to mRNA
 
             for feature_key_value_pair in feature_key_value_pairs_list:
                 #the key value pair removing unnecessary white space (including new lines as these often span multiple lines)
@@ -1693,6 +1781,11 @@ def _load_feature_properties(feature_key_value_pairs_list, feature_type, source,
                                 feature_ids[value] = 1
                         elif feature_type == "CDS" or feature_type == "mRNA":
                             gene_feature_id = value
+                    else:
+                        if feature_type == "gene":
+                            feature_id2 = value
+                        elif feature_type == "CDS" or feature_type == "mRNA":
+                            gene_feature_id2 = value
 #Kept lines, for dealing with aliases if keeping track of sources/source field
 #                    if value in alias_dict and ("Genbank Gene" not in alias_dict[value]) :
 #                        alias_dict[value].append("Genbank Gene")
@@ -1724,6 +1817,8 @@ def _load_feature_properties(feature_key_value_pairs_list, feature_type, source,
 #                        feature_object["feature_specific_id"] = value 
                     if feature_type == "mRNA":
                         feature_id = value
+                    elif feature_type == "CDS":
+                        transcript_id = value
                     alias_dict[value]=1 
                 elif (key == "protein_id"):
 #                    if feature_type == "CDS":
@@ -1805,8 +1900,14 @@ def _load_feature_properties(feature_key_value_pairs_list, feature_type, source,
 #                        additional_properties[key] =  "%s::%s" % (additional_properties[key],value)
 #                    else:
 #                        additional_properties[key] = value
+            
+            if feature_type == 'gene' and (not feature_id) and feature_id2:
+                if feature_id2 not in feature_ids:
+                    feature_id = feature_id2
+                    feature_ids[feature_id2] = 1
+
             return [alias_dict, feature_id, product, pseudo_non_gene, has_protein_id, 
-                    ontology_terms, gene_feature_id]
+                    ontology_terms, gene_feature_id, gene_feature_id2, transcript_id, feature_id2]
 
 
 
