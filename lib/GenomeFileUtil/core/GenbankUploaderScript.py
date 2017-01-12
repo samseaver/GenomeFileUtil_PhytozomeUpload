@@ -737,7 +737,7 @@ Below is a list of the term and the countof the number of features that containe
 
 def _find_input_files(input_directory, logger, report):
     logger.info("Scanning for Genbank Format files.") 
-    valid_extensions = [".gbff",".gbk",".gb",".genbank",".dat"] 
+    valid_extensions = [".gbff",".gbk",".gb",".genbank",".dat", ".gbf"] 
  
     files = os.listdir(os.path.abspath(input_directory)) 
     print "FILES : " + str(files)
