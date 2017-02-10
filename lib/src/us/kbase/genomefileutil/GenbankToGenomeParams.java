@@ -18,6 +18,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * workspace_name - the name of the workspace it gets saved to.
  * source - Source of the file typically something like RefSeq or Ensembl
  * taxon_ws_name - where the reference taxons are : ReferenceTaxons
+ *     taxon_reference - if defined, will try to link the Genome to the specified
+ * taxonomy object insteas of performing the lookup during upload
  * release - Release or version number of the data 
  *   per example Ensembl has numbered releases of all their data: Release 31
  * generate_ids_if_needed - If field used for feature id is not there, 
@@ -36,6 +38,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "workspace_name",
     "source",
     "taxon_wsname",
+    "taxon_reference",
     "release",
     "generate_ids_if_needed",
     "genetic_code",
@@ -59,6 +62,8 @@ public class GenbankToGenomeParams {
     private java.lang.String source;
     @JsonProperty("taxon_wsname")
     private java.lang.String taxonWsname;
+    @JsonProperty("taxon_reference")
+    private java.lang.String taxonReference;
     @JsonProperty("release")
     private java.lang.String release;
     @JsonProperty("generate_ids_if_needed")
@@ -156,6 +161,21 @@ public class GenbankToGenomeParams {
         return this;
     }
 
+    @JsonProperty("taxon_reference")
+    public java.lang.String getTaxonReference() {
+        return taxonReference;
+    }
+
+    @JsonProperty("taxon_reference")
+    public void setTaxonReference(java.lang.String taxonReference) {
+        this.taxonReference = taxonReference;
+    }
+
+    public GenbankToGenomeParams withTaxonReference(java.lang.String taxonReference) {
+        this.taxonReference = taxonReference;
+        return this;
+    }
+
     @JsonProperty("release")
     public java.lang.String getRelease() {
         return release;
@@ -243,7 +263,7 @@ public class GenbankToGenomeParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((("GenbankToGenomeParams"+" [file=")+ file)+", genomeName=")+ genomeName)+", workspaceName=")+ workspaceName)+", source=")+ source)+", taxonWsname=")+ taxonWsname)+", release=")+ release)+", generateIdsIfNeeded=")+ generateIdsIfNeeded)+", geneticCode=")+ geneticCode)+", type=")+ type)+", metadata=")+ metadata)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((("GenbankToGenomeParams"+" [file=")+ file)+", genomeName=")+ genomeName)+", workspaceName=")+ workspaceName)+", source=")+ source)+", taxonWsname=")+ taxonWsname)+", taxonReference=")+ taxonReference)+", release=")+ release)+", generateIdsIfNeeded=")+ generateIdsIfNeeded)+", geneticCode=")+ geneticCode)+", type=")+ type)+", metadata=")+ metadata)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }
