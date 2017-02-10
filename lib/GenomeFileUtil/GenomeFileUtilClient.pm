@@ -128,6 +128,7 @@ GenbankToGenomeParams is a reference to a hash where the following keys are defi
 	workspace_name has a value which is a string
 	source has a value which is a string
 	taxon_wsname has a value which is a string
+	taxon_reference has a value which is a string
 	release has a value which is a string
 	generate_ids_if_needed has a value which is a string
 	genetic_code has a value which is an int
@@ -155,6 +156,7 @@ GenbankToGenomeParams is a reference to a hash where the following keys are defi
 	workspace_name has a value which is a string
 	source has a value which is a string
 	taxon_wsname has a value which is a string
+	taxon_reference has a value which is a string
 	release has a value which is a string
 	generate_ids_if_needed has a value which is a string
 	genetic_code has a value which is an int
@@ -243,6 +245,9 @@ $result is a GenomeFileUtil.GenomeToGFFResult
 GenomeToGFFParams is a reference to a hash where the following keys are defined:
 	genome_ref has a value which is a string
 	ref_path_to_genome has a value which is a reference to a list where each element is a string
+	is_gtf has a value which is a GenomeFileUtil.boolean
+	target_dir has a value which is a string
+boolean is an int
 GenomeToGFFResult is a reference to a hash where the following keys are defined:
 	gff_file has a value which is a GenomeFileUtil.File
 	from_cache has a value which is a GenomeFileUtil.boolean
@@ -250,7 +255,6 @@ File is a reference to a hash where the following keys are defined:
 	path has a value which is a string
 	shock_id has a value which is a string
 	ftp_url has a value which is a string
-boolean is an int
 
 </pre>
 
@@ -263,6 +267,9 @@ $result is a GenomeFileUtil.GenomeToGFFResult
 GenomeToGFFParams is a reference to a hash where the following keys are defined:
 	genome_ref has a value which is a string
 	ref_path_to_genome has a value which is a reference to a list where each element is a string
+	is_gtf has a value which is a GenomeFileUtil.boolean
+	target_dir has a value which is a string
+boolean is an int
 GenomeToGFFResult is a reference to a hash where the following keys are defined:
 	gff_file has a value which is a GenomeFileUtil.File
 	from_cache has a value which is a GenomeFileUtil.boolean
@@ -270,7 +277,6 @@ File is a reference to a hash where the following keys are defined:
 	path has a value which is a string
 	shock_id has a value which is a string
 	ftp_url has a value which is a string
-boolean is an int
 
 
 =end text
@@ -716,6 +722,8 @@ genome_name - becomes the name of the object
 workspace_name - the name of the workspace it gets saved to.
 source - Source of the file typically something like RefSeq or Ensembl
 taxon_ws_name - where the reference taxons are : ReferenceTaxons
+    taxon_reference - if defined, will try to link the Genome to the specified
+taxonomy object insteas of performing the lookup during upload
 release - Release or version number of the data 
   per example Ensembl has numbered releases of all their data: Release 31
 generate_ids_if_needed - If field used for feature id is not there, 
@@ -736,6 +744,7 @@ genome_name has a value which is a string
 workspace_name has a value which is a string
 source has a value which is a string
 taxon_wsname has a value which is a string
+taxon_reference has a value which is a string
 release has a value which is a string
 generate_ids_if_needed has a value which is a string
 genetic_code has a value which is an int
@@ -754,6 +763,7 @@ genome_name has a value which is a string
 workspace_name has a value which is a string
 source has a value which is a string
 taxon_wsname has a value which is a string
+taxon_reference has a value which is a string
 release has a value which is a string
 generate_ids_if_needed has a value which is a string
 genetic_code has a value which is an int
@@ -803,6 +813,14 @@ genome_ref has a value which is a string
 
 
 
+=item Description
+
+is_gtf - optional flag switching export to GTF format (default is 0, 
+    which means GFF)
+target_dir - optional target directory to create file in (default is
+    temporary folder with name 'gff_<timestamp>' created in scratch)
+
+
 =item Definition
 
 =begin html
@@ -811,6 +829,8 @@ genome_ref has a value which is a string
 a reference to a hash where the following keys are defined:
 genome_ref has a value which is a string
 ref_path_to_genome has a value which is a reference to a list where each element is a string
+is_gtf has a value which is a GenomeFileUtil.boolean
+target_dir has a value which is a string
 
 </pre>
 
@@ -821,6 +841,8 @@ ref_path_to_genome has a value which is a reference to a list where each element
 a reference to a hash where the following keys are defined:
 genome_ref has a value which is a string
 ref_path_to_genome has a value which is a reference to a list where each element is a string
+is_gtf has a value which is a GenomeFileUtil.boolean
+target_dir has a value which is a string
 
 
 =end text

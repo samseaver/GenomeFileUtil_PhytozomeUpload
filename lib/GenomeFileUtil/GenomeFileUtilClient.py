@@ -39,21 +39,24 @@ class GenomeFileUtil(object):
            - becomes the name of the object workspace_name - the name of the
            workspace it gets saved to. source - Source of the file typically
            something like RefSeq or Ensembl taxon_ws_name - where the
-           reference taxons are : ReferenceTaxons release - Release or
-           version number of the data per example Ensembl has numbered
-           releases of all their data: Release 31 generate_ids_if_needed - If
-           field used for feature id is not there, generate ids (default
-           behavior is raising an exception) genetic_code - Genetic code of
-           organism. Overwrites determined GC from taxon object type -
-           Reference, Representative or User upload) -> structure: parameter
-           "file" of type "File" -> structure: parameter "path" of String,
-           parameter "shock_id" of String, parameter "ftp_url" of String,
-           parameter "genome_name" of String, parameter "workspace_name" of
-           String, parameter "source" of String, parameter "taxon_wsname" of
-           String, parameter "release" of String, parameter
-           "generate_ids_if_needed" of String, parameter "genetic_code" of
-           Long, parameter "type" of String, parameter "metadata" of type
-           "usermeta" -> mapping from String to String
+           reference taxons are : ReferenceTaxons taxon_reference - if
+           defined, will try to link the Genome to the specified taxonomy
+           object insteas of performing the lookup during upload release -
+           Release or version number of the data per example Ensembl has
+           numbered releases of all their data: Release 31
+           generate_ids_if_needed - If field used for feature id is not
+           there, generate ids (default behavior is raising an exception)
+           genetic_code - Genetic code of organism. Overwrites determined GC
+           from taxon object type - Reference, Representative or User upload)
+           -> structure: parameter "file" of type "File" -> structure:
+           parameter "path" of String, parameter "shock_id" of String,
+           parameter "ftp_url" of String, parameter "genome_name" of String,
+           parameter "workspace_name" of String, parameter "source" of
+           String, parameter "taxon_wsname" of String, parameter
+           "taxon_reference" of String, parameter "release" of String,
+           parameter "generate_ids_if_needed" of String, parameter
+           "genetic_code" of Long, parameter "type" of String, parameter
+           "metadata" of type "usermeta" -> mapping from String to String
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
            "genome_ref" of String
         """
@@ -63,9 +66,14 @@ class GenomeFileUtil(object):
 
     def genome_to_gff(self, params, context=None):
         """
-        :param params: instance of type "GenomeToGFFParams" -> structure:
-           parameter "genome_ref" of String, parameter "ref_path_to_genome"
-           of list of String
+        :param params: instance of type "GenomeToGFFParams" (is_gtf -
+           optional flag switching export to GTF format (default is 0, which
+           means GFF) target_dir - optional target directory to create file
+           in (default is temporary folder with name 'gff_<timestamp>'
+           created in scratch)) -> structure: parameter "genome_ref" of
+           String, parameter "ref_path_to_genome" of list of String,
+           parameter "is_gtf" of type "boolean" (A boolean - 0 for false, 1
+           for true. @range (0, 1)), parameter "target_dir" of String
         :returns: instance of type "GenomeToGFFResult" (from_cache is 1 if
            the file already exists and was just returned, 0 if the file was
            generated during this call.) -> structure: parameter "gff_file" of
