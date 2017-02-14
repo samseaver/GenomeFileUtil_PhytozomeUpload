@@ -719,9 +719,12 @@ Below is a list of the term and the countof the number of features that containe
 
 
     output_data_ref = "{}/{}".format(workspace_name,genome_object_name)
+    reportValue = report.getvalue()
+    if len(reportValue) > 900000:
+        reportValue = reportValue[:900000] + "\n...Report was truncated because it's too long."
     reportObj = {
         'objects_created':[{'ref':output_data_ref, 'description':'Assembled contigs'}],
-        'text_message':report.getvalue()
+        'text_message':reportValue
     }
     report_kb = KBaseReport(callback_url)
     report_info = report_kb.create({'report':reportObj, 'workspace_name':workspace_name})
@@ -1134,7 +1137,7 @@ def _process_metadata(contig_pos,
     ##########################################
     #METADATA PARSING PORTION
     ##########################################
-    accession = "Unknown_" + str(contig_pos + 1)
+    accession = None
     for metadata_line in metadata_lines: 
         if metadata_line.startswith("ACCESSION   "): 
             accession = metadata_line[12:].split(' ', 1)[0]
@@ -1143,44 +1146,52 @@ def _process_metadata(contig_pos,
 
     #LOCUS line parsing
     locus_line_info = metadata_lines[0].split()
+    if (not accession) and len(locus_line_info) >= 2 and locus_line_info[0] == 'LOCUS':
+        accession = locus_line_info[1]
+    
+    if not accession:
+        accession = "Unknown_" + str(contig_pos + 1)
+    
     genbank_metadata_objects[accession] = dict()
     contig_information_dict[accession] = dict()
     locus_name_order.append(accession)
     if (len(locus_line_info) < 5):
-        raise Exception("Error the record with the Locus Name of %s does not have a valid Locus" +
-                        "line.  It has %s space separated elements when 6 to 8 are expected " +
-                        "(typically 8)." % (locus_line_info[1],str(len(locus_line_info))))
-    genbank_metadata_objects[accession]["number_of_basepairs"] = locus_line_info[2]
-    if locus_line_info[4].upper() != 'DNA':
-        if ((locus_line_info[4].upper() == 'RNA') or (locus_line_info[4].upper() == 'SS-RNA') or 
-            (locus_line_info[4].upper() == 'SS-DNA')):
-            if ((not tax_lineage.lower().startswith("viruses")) and 
-                (not tax_lineage.lower().startswith("viroids"))):
+        _log_report(logger, report, 
+                    "Warning: the record with the Locus Name of %s does not have a valid Locus" +
+                    "line.  It has %s space separated elements when 6 to 8 are expected " +
+                    "(typically 8)." % (locus_line_info[1],str(len(locus_line_info))))
+    else:
+        genbank_metadata_objects[accession]["number_of_basepairs"] = locus_line_info[2]
+        if locus_line_info[4].upper() != 'DNA':
+            if (locus_line_info[4].upper() == 'RNA' or 
+                locus_line_info[4].upper() == 'SS-RNA' or 
+                locus_line_info[4].upper() == 'SS-DNA'):
+                if ((not tax_lineage.lower().startswith("viruses")) and 
+                    (not tax_lineage.lower().startswith("viroids"))):
+                    _log_report(logger, report, 
+                                "Warning: the record with the Locus Name of %s is RNA, but the " +
+                                "organism does not belong to Viruses or Viroids." % 
+                                (locus_line_info[1]))
+            else:
                 _log_report(logger, report, 
-                            "Error the record with the Locus Name of %s is RNA, but the organism" +
-                            " does not belong to Viruses or Viroids." % (locus_line_info[1]))
-                return [None, None, None]
-        else:
-            _log_report(logger, report, 
-                        "Error the record with the Locus Name of %s is not valid as the molecule" +
-                        " type of '%s' , is not 'DNA' or 'RNA'.  If it is RNA it must be a virus" +
-                        " or a viroid." % (locus_line_info[1],locus_line_info[4]))
-            return [None, None, None]
-    genbank_metadata_objects[accession]["is_circular"] = "Unknown"
-    contig_information_dict[accession]["is_circular"] = "Unknown"
-    date_text = ''
-    if ((len(locus_line_info) == 7) and (locus_line_info[5] in genbank_division_set)) :
-        date_text = locus_line_info[6]
-    elif ((len(locus_line_info) == 8) and (locus_line_info[6] in genbank_division_set)) :
-        date_text = locus_line_info[7]
-        if locus_line_info[5] == "circular":
-            genbank_metadata_objects[accession]["is_circular"] = "True"
-            contig_information_dict[accession]["is_circular"] = "True"
-        elif locus_line_info[5] == "linear":
-            genbank_metadata_objects[accession]["is_circular"] = "False"
-            contig_information_dict[accession]["is_circular"] = "False"
-    elif len(locus_line_info) >= 6:
-        date_text = locus_line_info[5]
+                            "Warning: the record with the Locus Name of %s is not valid as the " +
+                            "molecule type of '%s' , is not 'DNA' or 'RNA'. If it is RNA it must" +
+                            " be a virus or a viroid." % (locus_line_info[1],locus_line_info[4]))
+        genbank_metadata_objects[accession]["is_circular"] = "Unknown"
+        contig_information_dict[accession]["is_circular"] = "Unknown"
+        date_text = ''
+        if ((len(locus_line_info) == 7) and (locus_line_info[5] in genbank_division_set)) :
+            date_text = locus_line_info[6]
+        elif ((len(locus_line_info) == 8) and (locus_line_info[6] in genbank_division_set)) :
+            date_text = locus_line_info[7]
+            if locus_line_info[5] == "circular":
+                genbank_metadata_objects[accession]["is_circular"] = "True"
+                contig_information_dict[accession]["is_circular"] = "True"
+            elif locus_line_info[5] == "linear":
+                genbank_metadata_objects[accession]["is_circular"] = "False"
+                contig_information_dict[accession]["is_circular"] = "False"
+        elif len(locus_line_info) >= 6:
+            date_text = locus_line_info[5]
 
     try:
         record_time = datetime.datetime.strptime(date_text, '%d-%b-%Y')
@@ -1193,7 +1204,9 @@ def _process_metadata(contig_pos,
         elif record_time > max_date:
             max_date = record_time
     except ValueError:
-        exception_string = "Incorrect date format, should be 'DD-MON-YYYY' , attempting to parse the following as a date: %s , the locus line elements: %s " % (date_text, ":".join(locus_line_info))
+        exception_string = ("Warning: incorrect date format, should be 'DD-MON-YYYY', attempting" +
+                            " to parse the following as a date: %s, the locus line elements: %s " %
+                            (date_text, ":".join(locus_line_info)))
 #            raise ValueError("Incorrect date format, should be 'DD-MON-YYYY' , attempting to parse the following as a date:" + date_text)
         _log_report(logger, report, exception_string)
 
@@ -1525,11 +1538,9 @@ def _create_feature_object(feature_text, complement_len, join_len, order_len, co
 #                        quality_warnings.append(temp_warning) 
 #                        sql_cursor.execute("insert into annotation_metadata_warnings values(:warning)",(temp_warning,)) 
                 else:
-                    if not pseudo_non_gene:
-                        raise Exception("Error: CDS with the text : {} has no protein translation".format(feature_text))
-#                    if "dna_sequence" in feature_object:
-#                        feature_object["protein_translation"] = aa_trans_seq
-#                        feature_object["protein_translation_length"] = len(aa_trans_seq)
+                    if "dna_sequence" in feature_object:
+                        feature_object["protein_translation"] = aa_trans_seq
+                        feature_object["protein_translation_length"] = len(aa_trans_seq)
             
             if pseudo_non_gene:
                 if feature_type == "CDS" and has_protein_id:
@@ -1805,7 +1816,7 @@ def _load_feature_properties(feature_key_value_pairs_list, feature_type, source,
                             gene_feature_id = value
 #                    if feature_type == "gene":
 #                        feature_object["feature_specific_id"] = value
-                elif key == "old_locus_tag" or key == "standard_name":
+                elif key == "old_locus_tag" or key == "standard_name" or key == "EC_number":
                     alias_dict[value]=1 
                 elif key == "gene_synonym":
                     synonyms = value.split(';') 
