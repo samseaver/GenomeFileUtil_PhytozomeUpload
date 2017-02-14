@@ -67,8 +67,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         return self.__class__.ctx
 
     def test_prokka(self):
-        #gbk_path = "data/prokka/PROKKA_01232017.gbk.gz"
-        gbk_path = "data/prokka/K12_10142016.gbk"
+        gbk_path = "data/prokka/PROKKA_01232017.gbk.gz"
         ws_obj_name = 'CustomGenome.1'
         result = self.getImpl().genbank_to_genome(self.getContext(), 
             {
