@@ -30,11 +30,11 @@ suggestions :
 parameters :
     ftpFolder :
         ui-name : |
-            Name of FTP file
+            URL of data file
         short-hint : |
-            Enter the path to the URL/FTP containing the GenBank file.
+            Enter the URL (HTTP or FTP) of the GenBank file.
         long-hint  : |
-            Enter the path to the URL/FTP containing the GenBank file.
+            Enter the URL (HTTP or FTP) of the GenBank file.
 
     outputObject :
         ui-name : |
