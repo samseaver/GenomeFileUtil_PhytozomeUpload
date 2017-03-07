@@ -213,6 +213,13 @@ class GenomeFileUtil:
           result['file_path'],
           os.path.join(export_package_dir, os.path.basename(result['file_path'])))
 
+        # Make warning file about genes only.
+        warning_filename = "warning.txt"
+        with open(os.path.join(export_package_dir, warning_filename), 'wb') as temp_file:
+            temp_file.write("The GenBank representation of the object currently " +
+                            "will only show gene feature types. CDS and mRNA will not be included." +
+                            "We hope to address this issue in the future.")
+
         # package it up and be done
         dfUtil = DataFileUtil(self.cfg.callbackURL)
         package_details = dfUtil.package_for_download({
