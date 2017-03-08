@@ -52,7 +52,7 @@ class GenomeToGenbank(object):
 
         # 4) build the genbank file and return it
         print('not cached, building file...')
-        result = self.build_genbank_file(getGenomeOptions, info[1])
+        result = self.build_genbank_file(getGenomeOptions, "KBase_derived_" + info[1])
         if result is None:
             raise ValueError('Unable to generate file.  Something went wrong')
         result['from_cache'] = 0
@@ -125,7 +125,7 @@ class GenomeToGenbank(object):
 
         return {
             'genbank_file': {
-                'file_path': "KBase_derived_" + str(output_filename)
+                'file_path': str(output_filename)
             }
         }
 
