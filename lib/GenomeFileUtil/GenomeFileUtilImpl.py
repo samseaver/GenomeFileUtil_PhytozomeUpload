@@ -200,11 +200,15 @@ class GenomeFileUtil:
         info = ws.get_object_info_new({'objects':[{'ref': params['input_ref'] }],'includeMetadata':0, 'ignoreErrors':0})[0]
 
         genome_to_genbank_params = {
-          'genome_ref': params['input_ref']
+            'genome_ref': params['input_ref']
         }
 
-        # export to file
+        # export to file (building from KBase Genome Object)
         result = self.genome_to_genbank(ctx, genome_to_genbank_params)[0]['genbank_file'];
+
+        # export original uploaded GenBank file if it existed.
+        exporter = GenomeToGenbank(self.cfg)
+        original_result = exporter.export_original_genbank(ctx, params)
 
         # create the output directory and move the file there
         export_package_dir = os.path.join(self.cfg.sharedFolder, info[1])
@@ -212,12 +216,16 @@ class GenomeFileUtil:
         shutil.move(
           result['file_path'],
           os.path.join(export_package_dir, os.path.basename(result['file_path'])))
+        if original_result is not None:
+            shutil.move(
+              result['file_path'],
+              os.path.join(export_package_dir, os.path.basename(result['file_path'])))
 
         # Make warning file about genes only.
         warning_filename = "warning.txt"
         with open(os.path.join(export_package_dir, warning_filename), 'wb') as temp_file:
-            temp_file.write("The GenBank representation of the object currently " +
-                            "will only show gene feature types. CDS and mRNA will not be included." +
+            temp_file.write("The KBase derived GenBank representation of the object currently " +
+                            "will only show gene feature types. CDS and mRNA will not be included. " +
                             "We hope to address this issue in the future.")
 
         # package it up and be done

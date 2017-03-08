@@ -16,6 +16,7 @@ from GenomeAnnotationAPI.GenomeAnnotationAPIClient import GenomeAnnotationAPI
 
 STD_PREFIX = " " * 21
 
+
 class GenomeToGenbank(object):
 
     def __init__(self, sdk_config):
@@ -26,6 +27,38 @@ class GenomeToGenbank(object):
             raise ValueError('required "genome_ref" field was not defined')
 
     def export(self, ctx, params):
+        # 1) validate parameters and extract defaults
+        self.validate_params(params)
+
+        # 2) get genome genbank handle reference
+        getGenomeOptions = {
+            'genomes': [{
+                'ref': params['genome_ref']
+            }],
+            'included_fields': ['genbank_handle_ref'],
+            'ignore_errors': 0  # if we can't find the genome, throw an error
+        }
+        if 'ref_path_to_genome' in params:
+            getGenomeOptions['genomes'][0]['ref_path_to_genome'] = params['ref_path_to_genome']
+
+        api = GenomeAnnotationAPI(self.cfg.callbackURL)
+        genome_data = api.get_genome_v1(getGenomeOptions)['genomes'][0]
+        info = genome_data['info']
+        data = genome_data['data']
+
+        # 3) make sure the type is valid
+        if info[2].split('-')[0] != 'KBaseGenomes.Genome':
+            raise ValueError('Object is not a Genome, it is a:' + str(info[2]))
+
+        # 4) build the genbank file and return it
+        print('not cached, building file...')
+        result = self.build_genbank_file(getGenomeOptions, info[1])
+        if result is None:
+            raise ValueError('Unable to generate file.  Something went wrong')
+        result['from_cache'] = 0
+        return result
+
+    def export_original_genbank(self, ctx, params):
         # 1) validate parameters and extract defaults
         self.validate_params(params)
 
@@ -52,16 +85,9 @@ class GenomeToGenbank(object):
         # 4) if the genbank handle is there, get it and return
         print('checking if genbank file is cached...')
         result = self.get_genbank_handle(data)
-        if result is not None:
-            result['from_cache'] = 1
-            return result
-
-        # 5) otherwise, build the genbank file and return it
-        print('not cached, building file...')
-        result = self.build_genbank_file(getGenomeOptions, info[1])
-        if result is None:
-            raise ValueError('Unable to generate file.  Something went wrong')
-        result['from_cache'] = 0
+#        if result is not None:
+#            result['from_cache'] = 1
+#            return result
         return result
 
     def get_genbank_handle(self, data):
@@ -99,7 +125,7 @@ class GenomeToGenbank(object):
 
         return {
             'genbank_file': {
-                'file_path': str(output_filename)
+                'file_path': "KBase_derived_" + str(output_filename)
             }
         }
 
@@ -122,15 +148,27 @@ class GenbankAnnotations(object):
 
         print('writing file')
 
+        contigs = self._ga.get_assembly().get_contigs()
+        contig_length_dict = dict()
+        for contig_id in contigs:
+            contig_length_dict[contig_id] = contigs[contig_id]["length"]
+        del contigs
+        contigs_tuples = sorted(contig_length_dict.items(), key=lambda x:x[1], reverse=True)
+#       print("Contig tuples : " + str(contigs_tuples))
+
         # organize features by location
         feature_ids_by_region = self._ga.get_feature_ids(group_by="region")["by_region"]
+        # print('FEATURE IDS BY REGION :: ' + str(feature_ids_by_region))
 
         # flatten the last level of the results to get a contiguous list per contig/strand
         feature_ids_by_contig = {}
-        for cid in feature_ids_by_region:
+        #for cid in feature_ids_by_region:
+        for contig_tuple in contigs_tuples:
+            cid = contig_tuple[0]
             feature_ids_by_contig[cid] = {}
-
+            print("CONTIG ID : " + str(cid))
             if "+" in feature_ids_by_region[cid]:
+                print("IN POSITIVE STRAND")
                 sorted_regions = sorted(feature_ids_by_region[cid]["+"].keys(),
                                         cmp=lambda x,y: cmp(int(x.split("-")[0]),
                                                             int(y.split("-")[0])))
@@ -144,7 +182,8 @@ class GenbankAnnotations(object):
             else:
                 feature_ids_by_contig[cid]["+"] = []
 
-            if "-" in feature_ids_by_contig[cid]:
+            if "-" in feature_ids_by_region[cid]:
+                print("IN NEGATIVE STRAND")
                 sorted_regions = sorted(feature_ids_by_region[cid]["-"].keys(),
                                         cmp=lambda x, y: cmp(int(x.split("-")[0]),
                                                              int(y.split("-")[0])))
