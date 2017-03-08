@@ -52,7 +52,7 @@ class GenomeToGenbank(object):
 
         # 4) build the genbank file and return it
         print('not cached, building file...')
-        result = self.build_genbank_file(getGenomeOptions, "KBase_derived_" + info[1])
+        result = self.build_genbank_file(getGenomeOptions, "KBase_derived_" + info[1] + ".gbff")
         if result is None:
             raise ValueError('Unable to generate file.  Something went wrong')
         result['from_cache'] = 0
@@ -167,35 +167,36 @@ class GenbankAnnotations(object):
             cid = contig_tuple[0]
             feature_ids_by_contig[cid] = {}
             print("CONTIG ID : " + str(cid))
-            if "+" in feature_ids_by_region[cid]:
-                print("IN POSITIVE STRAND")
-                sorted_regions = sorted(feature_ids_by_region[cid]["+"].keys(),
-                                        cmp=lambda x,y: cmp(int(x.split("-")[0]),
-                                                            int(y.split("-")[0])))
+            if cid in feature_ids_by_region:
+                if "+" in feature_ids_by_region[cid]:
+                    print("IN POSITIVE STRAND")
+                    sorted_regions = sorted(feature_ids_by_region[cid]["+"].keys(),
+                                            cmp=lambda x,y: cmp(int(x.split("-")[0]),
+                                                                int(y.split("-")[0])))
 
-                sorted_ids = []
-                for region in sorted_regions:
-                    for fid in self._sort_feature_ids(feature_ids_by_region[cid]["+"][region]):
-                        sorted_ids.append(fid)
+                    sorted_ids = []
+                    for region in sorted_regions:
+                        for fid in self._sort_feature_ids(feature_ids_by_region[cid]["+"][region]):
+                            sorted_ids.append(fid)
 
-                feature_ids_by_contig[cid]["+"] = sorted_ids
-            else:
-                feature_ids_by_contig[cid]["+"] = []
+                    feature_ids_by_contig[cid]["+"] = sorted_ids
+                else:
+                    feature_ids_by_contig[cid]["+"] = []
 
-            if "-" in feature_ids_by_region[cid]:
-                print("IN NEGATIVE STRAND")
-                sorted_regions = sorted(feature_ids_by_region[cid]["-"].keys(),
-                                        cmp=lambda x, y: cmp(int(x.split("-")[0]),
-                                                             int(y.split("-")[0])))
+                if "-" in feature_ids_by_region[cid]:
+                    print("IN NEGATIVE STRAND")
+                    sorted_regions = sorted(feature_ids_by_region[cid]["-"].keys(),
+                                            cmp=lambda x, y: cmp(int(x.split("-")[0]),
+                                                                 int(y.split("-")[0])))
 
-                sorted_ids = []
-                for region in sorted_regions:
-                    for fid in self._sort_feature_ids(feature_ids_by_region[cid]["-"][region]):
-                        sorted_ids.append(fid)
+                    sorted_ids = []
+                    for region in sorted_regions:
+                        for fid in self._sort_feature_ids(feature_ids_by_region[cid]["-"][region]):
+                            sorted_ids.append(fid)
 
-                feature_ids_by_contig[cid]["-"] = sorted_ids
-            else:
-                feature_ids_by_contig[cid]["-"] = []
+                    feature_ids_by_contig[cid]["-"] = sorted_ids
+                else:
+                    feature_ids_by_contig[cid]["-"] = []
 
         for cid in feature_ids_by_contig:
             # add a header for the contig
