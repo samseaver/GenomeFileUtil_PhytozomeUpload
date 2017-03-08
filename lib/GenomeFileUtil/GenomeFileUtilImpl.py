@@ -208,7 +208,7 @@ class GenomeFileUtil:
 
         # export original uploaded GenBank file if it existed.
         exporter = GenomeToGenbank(self.cfg)
-        original_result = exporter.export_original_genbank(ctx, params)
+        original_result = exporter.export_original_genbank(ctx, genome_to_genbank_params)[0]['genbank_file'];
 
         # create the output directory and move the file there
         export_package_dir = os.path.join(self.cfg.sharedFolder, info[1])
