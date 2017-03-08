@@ -206,20 +206,21 @@ class GenomeFileUtil:
         # export to file (building from KBase Genome Object)
         result = self.genome_to_genbank(ctx, genome_to_genbank_params)[0]['genbank_file'];
 
-        # export original uploaded GenBank file if it existed.
-        exporter = GenomeToGenbank(self.cfg)
-        original_result = exporter.export_original_genbank(ctx, genome_to_genbank_params)[0]['genbank_file'];
-
         # create the output directory and move the file there
         export_package_dir = os.path.join(self.cfg.sharedFolder, info[1])
         os.makedirs(export_package_dir)
         shutil.move(
           result['file_path'],
           os.path.join(export_package_dir, os.path.basename(result['file_path'])))
-        if original_result is not None:
+
+        # export original uploaded GenBank file if it existed.
+        exporter = GenomeToGenbank(self.cfg)
+        original_result_full = exporter.export_original_genbank(ctx, genome_to_genbank_params)
+        if original_result_full is not None:
+            original_result = original_result_full['genbank_file']
             shutil.move(
-              result['file_path'],
-              os.path.join(export_package_dir, os.path.basename(result['file_path'])))
+              original_result['file_path'],
+              os.path.join(export_package_dir, os.path.basename(original_result['file_path'])))
 
         # Make warning file about genes only.
         warning_filename = "warning.txt"
