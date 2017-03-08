@@ -203,12 +203,14 @@ class GenbankAnnotations(object):
             self._add_contig_header(cid)
 
             # add positive strand features
-            for fid in feature_ids_by_contig[cid]["+"]:
-                self._add_feature(fid)
+            if "+" in feature_ids_by_contig[cid]:
+                for fid in feature_ids_by_contig[cid]["+"]:
+                    self._add_feature(fid)
 
             # add minus strand features
-            for fid in feature_ids_by_contig[cid]["-"]:
-                self._add_feature(fid)
+            if "-" in feature_ids_by_contig[cid]:
+                for fid in feature_ids_by_contig[cid]["-"]:
+                    self._add_feature(fid)
 
             self._add_contig_sequence(cid)
 
