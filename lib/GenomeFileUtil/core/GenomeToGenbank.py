@@ -85,9 +85,6 @@ class GenomeToGenbank(object):
         # 4) if the genbank handle is there, get it and return
         print('checking if genbank file is cached...')
         result = self.get_genbank_handle(data)
-#        if result is not None:
-#            result['from_cache'] = 1
-#            return result
         return result
 
     def get_genbank_handle(self, data):
