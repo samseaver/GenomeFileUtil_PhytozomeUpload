@@ -225,9 +225,14 @@ class GenomeFileUtil:
         # Make warning file about genes only.
         warning_filename = "warning.txt"
         with open(os.path.join(export_package_dir, warning_filename), 'wb') as temp_file:
-            temp_file.write("The KBase derived GenBank representation of the object currently " +
-                            "will only show gene feature types. CDS and mRNA will not be included. " +
-                            "We hope to address this issue in the future.")
+            temp_file.write('Please note: the KBase-derived GenBank file for annotated genome ' +
+                            'objects currently only shows "gene" features. CDS and mRNA ' +
+                            'feature types are not currently included in the GenBank download, ' +
+                            'but are in the KBase Genome object. ' +
+                            'We hope to address this issue in the future.\n\n' +
+                            'This directory includes the KBase-derived GenBank file and also ' +
+                            '(if you originally uploaded the genome from an annotated ' +
+                            'GenBank file) the original GenBank input.')
 
         # package it up and be done
         dfUtil = DataFileUtil(self.cfg.callbackURL)
