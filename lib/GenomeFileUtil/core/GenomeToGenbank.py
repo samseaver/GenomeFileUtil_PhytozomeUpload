@@ -154,7 +154,7 @@ class GenbankAnnotations(object):
             contig_length_dict[contig_id] = contigs[contig_id]["length"]
         del contigs
         contigs_tuples = sorted(contig_length_dict.items(), key=lambda x:x[1], reverse=True)
-#       print("Contig tuples : " + str(contigs_tuples))
+        # print("Contig tuples : " + str(contigs_tuples))
 
         # organize features by location
         feature_ids_by_region = self._ga.get_feature_ids(group_by="region")["by_region"]
@@ -162,7 +162,6 @@ class GenbankAnnotations(object):
 
         # flatten the last level of the results to get a contiguous list per contig/strand
         feature_ids_by_contig = {}
-        #for cid in feature_ids_by_region:
         for contig_tuple in contigs_tuples:
             cid = contig_tuple[0]
             feature_ids_by_contig[cid] = {}
