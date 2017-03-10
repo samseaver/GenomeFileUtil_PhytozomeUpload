@@ -162,10 +162,8 @@ class GenbankAnnotations(object):
         for contig_tuple in contigs_tuples:
             cid = contig_tuple[0]
             feature_ids_by_contig[cid] = {}
-            print("CONTIG ID : " + str(cid))
             if cid in feature_ids_by_region:
                 if "+" in feature_ids_by_region[cid]:
-                    print("IN POSITIVE STRAND")
                     sorted_regions = sorted(feature_ids_by_region[cid]["+"].keys(),
                                             cmp=lambda x,y: cmp(int(x.split("-")[0]),
                                                                 int(y.split("-")[0])))
@@ -180,7 +178,6 @@ class GenbankAnnotations(object):
                     feature_ids_by_contig[cid]["+"] = []
 
                 if "-" in feature_ids_by_region[cid]:
-                    print("IN NEGATIVE STRAND")
                     sorted_regions = sorted(feature_ids_by_region[cid]["-"].keys(),
                                             cmp=lambda x, y: cmp(int(x.split("-")[0]),
                                                                  int(y.split("-")[0])))
