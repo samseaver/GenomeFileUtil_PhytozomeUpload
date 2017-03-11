@@ -20,7 +20,7 @@ from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
 
 DEPLOY = 'KB_DEPLOYMENT_CONFIG'
 SERVICE = 'KB_SERVICE_NAME'
-AUTH = 'auth-server-url'
+AUTH = 'auth-service-url'
 
 # Note that the error fields do not match the 2.0 JSONRPC spec
 
@@ -109,7 +109,11 @@ class JSONRPCServiceCustom(JSONRPCService):
             # Exception was raised inside the method.
             newerr = JSONServerError()
             newerr.trace = traceback.format_exc()
-            newerr.data = e.message
+            if isinstance(e.message, basestring):
+                newerr.data = e.message
+            else:
+                # Some exceptions embed other exceptions as the message
+                newerr.data = repr(e.message)
             raise newerr
         return result
 
@@ -332,19 +336,19 @@ class Application(object):
         self.rpc_service.add(impl_GenomeFileUtil.genbank_to_genome,
                              name='GenomeFileUtil.genbank_to_genome',
                              types=[dict])
-        self.method_authentication['GenomeFileUtil.genbank_to_genome'] = 'required' # noqa
+        self.method_authentication['GenomeFileUtil.genbank_to_genome'] = 'required'  # noqa
         self.rpc_service.add(impl_GenomeFileUtil.genome_to_gff,
                              name='GenomeFileUtil.genome_to_gff',
                              types=[dict])
-        self.method_authentication['GenomeFileUtil.genome_to_gff'] = 'required' # noqa
+        self.method_authentication['GenomeFileUtil.genome_to_gff'] = 'required'  # noqa
         self.rpc_service.add(impl_GenomeFileUtil.genome_to_genbank,
                              name='GenomeFileUtil.genome_to_genbank',
                              types=[dict])
-        self.method_authentication['GenomeFileUtil.genome_to_genbank'] = 'required' # noqa
+        self.method_authentication['GenomeFileUtil.genome_to_genbank'] = 'required'  # noqa
         self.rpc_service.add(impl_GenomeFileUtil.export_genome_as_genbank,
                              name='GenomeFileUtil.export_genome_as_genbank',
                              types=[dict])
-        self.method_authentication['GenomeFileUtil.export_genome_as_genbank'] = 'required' # noqa
+        self.method_authentication['GenomeFileUtil.export_genome_as_genbank'] = 'required'  # noqa
         self.rpc_service.add(impl_GenomeFileUtil.status,
                              name='GenomeFileUtil.status',
                              types=[dict])
