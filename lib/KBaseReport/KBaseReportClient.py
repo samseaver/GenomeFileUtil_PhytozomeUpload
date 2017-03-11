@@ -29,7 +29,7 @@ class KBaseReport(object):
             async_job_check_time_ms=100, async_job_check_time_scale_percent=150, 
             async_job_check_max_time_ms=300000):
         if url is None:
-            url = 'https://kbase.us/services/njs_wrapper'
+            raise ValueError('A url is required')
         self._service_ver = service_ver
         self._client = _BaseClient(
             url, timeout=timeout, user_id=user_id, password=password,
@@ -70,14 +70,15 @@ class KBaseReport(object):
            parameter "ref" of type "ws_id" (@id ws), parameter "description"
            of String, parameter "file_links" of list of type "LinkedFile"
            (Represents a file or html archive that the report should like to
-           @optional description) -> structure: parameter "handle" of type
-           "handle_ref" (Reference to a handle @id handle), parameter
+           @optional description label) -> structure: parameter "handle" of
+           type "handle_ref" (Reference to a handle @id handle), parameter
            "description" of String, parameter "name" of String, parameter
-           "URL" of String, parameter "html_links" of list of type
-           "LinkedFile" (Represents a file or html archive that the report
-           should like to @optional description) -> structure: parameter
-           "handle" of type "handle_ref" (Reference to a handle @id handle),
-           parameter "description" of String, parameter "name" of String,
+           "label" of String, parameter "URL" of String, parameter
+           "html_links" of list of type "LinkedFile" (Represents a file or
+           html archive that the report should like to @optional description
+           label) -> structure: parameter "handle" of type "handle_ref"
+           (Reference to a handle @id handle), parameter "description" of
+           String, parameter "name" of String, parameter "label" of String,
            parameter "URL" of String, parameter "direct_html" of String,
            parameter "direct_html_link_index" of Long, parameter
            "workspace_name" of String
@@ -129,22 +130,26 @@ class KBaseReport(object):
            list of paths or shock node IDs pointing to a single flat file The
            following parameters indicate where the report object should be
            saved in the workspace: string report_object_name - name to use
-           for the report object (job ID is used if left unspecified) string
-           workspace_name - name of workspace where object should be saved)
-           -> structure: parameter "message" of String, parameter
-           "objects_created" of list of type "WorkspaceObject" (Represents a
-           Workspace object with some brief description text that can be
-           associated with the object. @optional description) -> structure:
-           parameter "ref" of type "ws_id" (@id ws), parameter "description"
-           of String, parameter "warnings" of list of String, parameter
-           "html_links" of list of type "File" -> structure: parameter "path"
-           of String, parameter "shock_id" of String, parameter "name" of
-           String, parameter "description" of String, parameter "direct_html"
-           of String, parameter "direct_html_link_index" of Long, parameter
-           "file_links" of list of type "File" -> structure: parameter "path"
-           of String, parameter "shock_id" of String, parameter "name" of
-           String, parameter "description" of String, parameter
-           "report_object_name" of String, parameter "workspace_name" of
+           for the report object (job ID is used if left unspecified)
+           html_window_height - height of the html window in the narrative
+           output widget summary_window_height - height of summary window in
+           the narrative output widget string workspace_name - name of
+           workspace where object should be saved) -> structure: parameter
+           "message" of String, parameter "objects_created" of list of type
+           "WorkspaceObject" (Represents a Workspace object with some brief
+           description text that can be associated with the object. @optional
+           description) -> structure: parameter "ref" of type "ws_id" (@id
+           ws), parameter "description" of String, parameter "warnings" of
+           list of String, parameter "html_links" of list of type "File" ->
+           structure: parameter "path" of String, parameter "shock_id" of
+           String, parameter "name" of String, parameter "description" of
+           String, parameter "direct_html" of String, parameter
+           "direct_html_link_index" of Long, parameter "file_links" of list
+           of type "File" -> structure: parameter "path" of String, parameter
+           "shock_id" of String, parameter "name" of String, parameter
+           "description" of String, parameter "report_object_name" of String,
+           parameter "html_window_height" of Double, parameter
+           "summary_window_height" of Double, parameter "workspace_name" of
            String
         :returns: instance of type "ReportInfo" (The reference to the saved
            KBaseReport.  The structure is: reportInfo = { ref:

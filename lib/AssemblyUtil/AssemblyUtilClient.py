@@ -57,7 +57,7 @@ class AssemblyUtil(object):
            filename) -> structure: parameter "ref" of String, parameter
            "filename" of String
         :returns: instance of type "FastaAssemblyFile" -> structure:
-           parameter "path" of String
+           parameter "path" of String, parameter "assembly_name" of String
         """
         job_id = self._get_assembly_as_fasta_submit(params, context)
         async_job_check_time = self._client.async_job_check_time
@@ -120,9 +120,9 @@ class AssemblyUtil(object):
            contig_information_dict: A mapping that has is_circular and
            description information (Optional)) -> structure: parameter "file"
            of type "FastaAssemblyFile" -> structure: parameter "path" of
-           String, parameter "shock_id" of type "ShockNodeId", parameter
-           "ftp_url" of String, parameter "workspace_name" of String,
-           parameter "assembly_name" of String
+           String, parameter "assembly_name" of String, parameter "shock_id"
+           of type "ShockNodeId", parameter "ftp_url" of String, parameter
+           "workspace_name" of String, parameter "assembly_name" of String
         :returns: instance of String
         """
         job_id = self._save_assembly_from_fasta_submit(params, context)
