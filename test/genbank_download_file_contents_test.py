@@ -85,10 +85,8 @@ class GenomeFileUtilTest(unittest.TestCase):
         pprint(result)
         self.assertIsNotNone(result['genome_ref'])
         print('testing Genbank download by building the file')
-        res1 = genomeFileUtil.export_genome_as_genbank(self.getContext(),
+        genomeFileUtil.export_genome_as_genbank(self.getContext(),
             {'input_ref': result['genome_ref']})[0]
-        self.assertEqual(0, 0)
-        # print("DIR CONTENTS: " + str(os.listdir("/kb/module/work/tmp/TestEcoliAltered")))
         file_path = "/kb/module/work/tmp/TestEcoliAltered/KBase_derived_TestEcoliAltered.gbff"
         gb_file = open(file_path, 'r').read()
         gene_any_count = gb_file.count("gene")  #  4555
