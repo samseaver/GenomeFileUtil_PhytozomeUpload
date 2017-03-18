@@ -135,7 +135,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         print('created test genome with gbff cache: ' + ref + ' from file ' + filename)
         return ref
 
-
     def test_simple_genbank_download(self):
         # load test data data
         assembly_file_path = os.path.join(self.cfg['scratch'], 'e_coli_assembly.fasta')
@@ -149,7 +148,6 @@ class GenomeFileUtilTest(unittest.TestCase):
             {'genome_ref': e_coli_ref})[0]
         self.assertEqual(res1['from_cache'], 0)
 
-
     def test_check_for_taxonomy_bug(self):
         # load test data data
         assembly_file_path = os.path.join(self.cfg['scratch'], 'e_coli_assembly.fasta')
@@ -162,30 +160,5 @@ class GenomeFileUtilTest(unittest.TestCase):
             {'genome_ref': e_coli_ref})[0]
         self.assertEqual(res1['from_cache'], 0)
 
-
-
-
-    def test_simple_genbank_download_with_cache(self):
-
-        # load test data data
-        target_file_path = os.path.join(self.cfg['scratch'], 'GCF_000005845.2_ASM584v2_genomic.gbff')
-        shutil.copy('data/GCF_000005845.2_ASM584v2_genomic.gbff', target_file_path)
-        e_coli_ref_with_genbank = self.load_test_genome_with_cache('data/e_coli.json', target_file_path)
-
-        # run the test
-        genomeFileUtil = self.getImpl()
-        print('testing Genbank download from cached file')
-        res2 = genomeFileUtil.genome_to_genbank(self.getContext(),
-            {'genome_ref': e_coli_ref_with_genbank})[0]
-        self.assertEqual(res2['from_cache'], 1)
-        self.assertTrue('genbank_file' in res2)
-        self.assertTrue('file_path' in res2['genbank_file'])
-        self.assertTrue(bool(res2['genbank_file']['file_path']))
-        genomeFileUtil = self.getImpl()
-        print('testing Genbank export from cached file')
-        res = genomeFileUtil.export_genome_as_genbank(self.getContext(),
-            {'input_ref': e_coli_ref_with_genbank})[0]
-        self.assertTrue('shock_id' in res)
-        self.assertTrue(bool(res['shock_id']))
 
 

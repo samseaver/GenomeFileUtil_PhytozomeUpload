@@ -200,10 +200,10 @@ class GenomeFileUtil:
         info = ws.get_object_info_new({'objects':[{'ref': params['input_ref'] }],'includeMetadata':0, 'ignoreErrors':0})[0]
 
         genome_to_genbank_params = {
-          'genome_ref': params['input_ref']
+            'genome_ref': params['input_ref']
         }
 
-        # export to file
+        # export to file (building from KBase Genome Object)
         result = self.genome_to_genbank(ctx, genome_to_genbank_params)[0]['genbank_file'];
 
         # create the output directory and move the file there
@@ -213,12 +213,26 @@ class GenomeFileUtil:
           result['file_path'],
           os.path.join(export_package_dir, os.path.basename(result['file_path'])))
 
+        # export original uploaded GenBank file if it existed.
+        exporter = GenomeToGenbank(self.cfg)
+        original_result_full = exporter.export_original_genbank(ctx, genome_to_genbank_params)
+        if original_result_full is not None:
+            original_result = original_result_full['genbank_file']
+            shutil.move(
+              original_result['file_path'],
+              os.path.join(export_package_dir, os.path.basename(original_result['file_path'])))
+
         # Make warning file about genes only.
         warning_filename = "warning.txt"
         with open(os.path.join(export_package_dir, warning_filename), 'wb') as temp_file:
-            temp_file.write("The GenBank representation of the object currently " +
-                            "will only show gene feature types. CDS and mRNA will not be included." +
-                            "We hope to address this issue in the future.")
+            temp_file.write('Please note: the KBase-derived GenBank file for annotated genome ' +
+                            'objects currently only shows "gene" features. CDS and mRNA ' +
+                            'feature types are not currently included in the GenBank download, ' +
+                            'but are in the KBase Genome object. ' +
+                            'We hope to address this issue in the future.\n\n' +
+                            'This directory includes the KBase-derived GenBank file and also ' +
+                            '(if you originally uploaded the genome from an annotated ' +
+                            'GenBank file) the original GenBank input.')
 
         # package it up and be done
         dfUtil = DataFileUtil(self.cfg.callbackURL)
