@@ -6,11 +6,13 @@ import sys
 import shutil
 import traceback
 import uuid
+import json
 from pprint import pprint, pformat
 
 from GenomeFileUtil.core.GenbankToGenome import GenbankToGenome
 from GenomeFileUtil.core.GenomeToGFF import GenomeToGFF
 from GenomeFileUtil.core.GenomeToGenbank import GenomeToGenbank
+from GenomeFileUtil.core.FastaGFFToGenome import FastaGFFToGenome
 
 from biokbase.workspace.client import Workspace
 
@@ -44,9 +46,9 @@ class GenomeFileUtil:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "0.5.6"
-    GIT_URL = "https://github.com/rsutormin/GenomeFileUtil"
-    GIT_COMMIT_HASH = "27eacd25c17824219ccd2ea81b8f6f2340e3887a"
+    VERSION = "0.5.8"
+    GIT_URL = "https://github.com/Tianhao-Gu/GenomeFileUtil.git"
+    GIT_COMMIT_HASH = "d8ce5660c8995b514bbc9d2b2ec2b401624dfdad"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -253,6 +255,55 @@ class GenomeFileUtil:
                              'output is not type dict as required.')
         # return the results
         return [output]
+
+    def fasta_gff_to_genome(self, ctx, params):
+        """
+        :param params: instance of type "FastaGFFToGenomeParams" (genome_name
+           - becomes the name of the object workspace_name - the name of the
+           workspace it gets saved to. source - Source of the file typically
+           something like RefSeq or Ensembl taxon_ws_name - where the
+           reference taxons are : ReferenceTaxons taxon_reference - if
+           defined, will try to link the Genome to the specified taxonomy
+           object insteas of performing the lookup during upload release -
+           Release or version number of the data per example Ensembl has
+           numbered releases of all their data: Release 31 genetic_code -
+           Genetic code of organism. Overwrites determined GC from taxon
+           object type - Reference, Representative or User upload) ->
+           structure: parameter "fasta_file" of type "File" -> structure:
+           parameter "path" of String, parameter "shock_id" of String,
+           parameter "ftp_url" of String, parameter "gff_file" of type "File"
+           -> structure: parameter "path" of String, parameter "shock_id" of
+           String, parameter "ftp_url" of String, parameter "genome_name" of
+           String, parameter "workspace_name" of String, parameter "source"
+           of String, parameter "taxon_wsname" of String, parameter
+           "taxon_reference" of String, parameter "release" of String,
+           parameter "genetic_code" of Long, parameter "type" of String,
+           parameter "metadata" of type "usermeta" -> mapping from String to
+           String
+        :returns: instance of type "GenomeSaveResult" -> structure: parameter
+           "genome_ref" of String
+        """
+        # ctx is the context object
+        # return variables are: returnVal
+        #BEGIN fasta_gff_to_genome
+        print '--->\nRunning GenomeFileUtil.fasta_gff_to_genome\nparams:'
+        print json.dumps(params, indent=1)
+
+        for key, value in params.iteritems():
+            if isinstance(value, basestring):
+                params[key] = value.strip()
+
+        importer = FastaGFFToGenome(self.cfg)
+        returnVal = importer.import_file(params)
+        #END fasta_gff_to_genome
+
+        # At some point might do deeper type checking...
+        if not isinstance(returnVal, dict):
+            raise ValueError('Method fasta_gff_to_genome return value ' +
+                             'returnVal is not type dict as required.')
+        # return the results
+        return [returnVal]
+
     def status(self, ctx):
         #BEGIN_STATUS
         returnVal = {'state': "OK", 'message': "", 'version': self.VERSION, 

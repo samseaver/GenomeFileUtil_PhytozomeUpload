@@ -18,14 +18,14 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * workspace_name - the name of the workspace it gets saved to.
  * source - Source of the file typically something like RefSeq or Ensembl
  * taxon_ws_name - where the reference taxons are : ReferenceTaxons
- *     taxon_reference - if defined, will try to link the Genome to the specified
- * taxonomy object insteas of performing the lookup during upload
+ * taxon_reference - if defined, will try to link the Genome to the specified
+ *     taxonomy object insteas of performing the lookup during upload
  * release - Release or version number of the data 
- *   per example Ensembl has numbered releases of all their data: Release 31
+ *       per example Ensembl has numbered releases of all their data: Release 31
  * generate_ids_if_needed - If field used for feature id is not there, 
- *   generate ids (default behavior is raising an exception)
+ *       generate ids (default behavior is raising an exception)
  * genetic_code - Genetic code of organism. Overwrites determined GC from 
- *   taxon object
+ *       taxon object
  * type - Reference, Representative or User upload
  * </pre>
  * 
