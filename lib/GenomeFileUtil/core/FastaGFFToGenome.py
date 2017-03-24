@@ -65,8 +65,6 @@ class FastaGFFToGenome:
             source=params['source'],
             genome_type=params['type'],
             release=params['release']
-            # provenance=ctx['provenance'],
-            # usermeta=parsed_params['metadata']
         )
 
         # 5) generate report
@@ -263,6 +261,7 @@ class FastaGFFToGenome:
     def _retrieve_taxon(self, taxon_reference, taxon_wsname, scientific_name):
         """
         _retrieve_taxon: retrieve taxonomy and taxon_reference
+
         """
         taxon_id = -1
         taxon_object_name = "unknown_taxon"
@@ -300,6 +299,7 @@ class FastaGFFToGenome:
         """
         _retrieve_fasta_file: retrieve info from fasta_file
                               https://www.biostars.org/p/710/
+
         """
         log("Reading FASTA file")
 
@@ -485,6 +485,7 @@ class FastaGFFToGenome:
         return feature_list
 
     def _retrieve_feature_identifiers(self, feature_list):
+
         features_identifiers_dict = dict()
         features_identifiers_list = list()
         features_identifiers_count = dict()
@@ -731,6 +732,7 @@ class FastaGFFToGenome:
                          source, assembly, taxon_reference, taxonomy, input_gff_file):
         """
         _gen_genome_info: generate genome info
+
         """
         genome = dict()
         genome["id"] = core_genome_name

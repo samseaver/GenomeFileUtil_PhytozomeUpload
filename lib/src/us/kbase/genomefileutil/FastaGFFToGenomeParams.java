@@ -41,6 +41,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "release",
     "genetic_code",
     "type",
+    "scientific_name",
     "metadata"
 })
 public class FastaGFFToGenomeParams {
@@ -75,6 +76,8 @@ public class FastaGFFToGenomeParams {
     private Long geneticCode;
     @JsonProperty("type")
     private java.lang.String type;
+    @JsonProperty("scientific_name")
+    private java.lang.String scientificName;
     @JsonProperty("metadata")
     private Map<String, String> metadata;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
@@ -249,6 +252,21 @@ public class FastaGFFToGenomeParams {
         return this;
     }
 
+    @JsonProperty("scientific_name")
+    public java.lang.String getScientificName() {
+        return scientificName;
+    }
+
+    @JsonProperty("scientific_name")
+    public void setScientificName(java.lang.String scientificName) {
+        this.scientificName = scientificName;
+    }
+
+    public FastaGFFToGenomeParams withScientificName(java.lang.String scientificName) {
+        this.scientificName = scientificName;
+        return this;
+    }
+
     @JsonProperty("metadata")
     public Map<String, String> getMetadata() {
         return metadata;
@@ -276,7 +294,7 @@ public class FastaGFFToGenomeParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((("FastaGFFToGenomeParams"+" [fastaFile=")+ fastaFile)+", gffFile=")+ gffFile)+", genomeName=")+ genomeName)+", workspaceName=")+ workspaceName)+", source=")+ source)+", taxonWsname=")+ taxonWsname)+", taxonReference=")+ taxonReference)+", release=")+ release)+", geneticCode=")+ geneticCode)+", type=")+ type)+", metadata=")+ metadata)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((("FastaGFFToGenomeParams"+" [fastaFile=")+ fastaFile)+", gffFile=")+ gffFile)+", genomeName=")+ genomeName)+", workspaceName=")+ workspaceName)+", source=")+ source)+", taxonWsname=")+ taxonWsname)+", taxonReference=")+ taxonReference)+", release=")+ release)+", geneticCode=")+ geneticCode)+", type=")+ type)+", scientificName=")+ scientificName)+", metadata=")+ metadata)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

@@ -133,6 +133,7 @@ module GenomeFileUtil {
         string release;
         int    genetic_code;
         string type;
+        string scientific_name;
         usermeta metadata;
     } FastaGFFToGenomeParams;
 

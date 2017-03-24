@@ -4,6 +4,7 @@ import os  # noqa: F401
 import json  # noqa: F401
 import time
 import shutil
+import re
 
 from os import environ
 try:
@@ -17,9 +18,9 @@ from biokbase.workspace.client import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import SDKConfig
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
-from DataFileUtil.DataFileUtilClient import DataFileUtil
-from GenomeFileUtil.core.FastaGFFToGenome import FastaGFFToGenome
 from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
+from GenomeFileUtil.core.FastaGFFToGenome import FastaGFFToGenome
+from DataFileUtil.DataFileUtilClient import DataFileUtil
 
 
 class FastaGFFToGenomeUploadTest(unittest.TestCase):
@@ -84,15 +85,56 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
     def prepare_data(cls):
         cls.importer = FastaGFFToGenome(cls.gfu_cfg)
 
-        cls.gff_filename = 'Test_v1.0.gene.gff3'
+        cls.gff_filename = 'Test_v1.0.gene.gff3.gz'
         cls.gff_path = os.path.join(cls.scratch, cls.gff_filename)
-        shutil.copy(os.path.join("data", "fasta_gff", cls.gff_filename), cls.gff_path)
+        shutil.copy(os.path.join("data", "fasta_gff", "Plant_Data", cls.gff_filename), cls.gff_path)
 
-        cls.fa_filename = 'Test_v1.0.fa'
+        cls.fa_filename = 'Test_v1.0.fa.gz'
         cls.fa_path = os.path.join(cls.scratch, cls.fa_filename)
-        shutil.copy(os.path.join("data", "fasta_gff", cls.fa_filename), cls.fa_path)
+        shutil.copy(os.path.join("data", "fasta_gff", "Plant_Data", cls.fa_filename), cls.fa_path)
+
+        cls.fungal_gff_filename = 'Neucr2.filtered_proteins.BroadModels.gff3.gz'
+        cls.fungal_gff_path = os.path.join(cls.scratch, cls.fungal_gff_filename)
+        shutil.copy(os.path.join("data", "fasta_gff", "Fungal_Data", cls.fungal_gff_filename),
+                    cls.fungal_gff_path)
+
+        cls.fungal_fa_filename = 'Neucr2_AssemblyScaffolds.fasta.gz'
+        cls.fungal_fa_path = os.path.join(cls.scratch, cls.fungal_fa_filename)
+        shutil.copy(os.path.join("data", "fasta_gff", "Fungal_Data", cls.fungal_fa_filename),
+                    cls.fungal_fa_path)
 
     def check_minimal_items_exist(self, result):
+
+        self.assertTrue('genome_info' in result)
+        self.assertTrue('genome_ref' in result)
+        self.assertTrue('report_name' in result)
+        self.assertTrue('report_ref' in result)
+
+        genome_info = result['genome_info']
+        self.assertEquals(genome_info[10]['Domain'], 'Eukaryota')
+        self.assertEquals(genome_info[10]['Genetic code'], '1')
+        self.assertEquals(genome_info[10]['Name'], 'unknown_taxon')
+        self.assertEquals(genome_info[10]['Source'], 'Genbank')
+        self.assertTrue('GC content' in genome_info[10])
+        self.assertTrue(re.match("^\d+?\.\d+?$", genome_info[10]['GC content']) is not None)
+        self.assertTrue('Number features' in genome_info[10])
+        self.assertTrue(genome_info[10]['Number features'].isdigit())
+        self.assertTrue('Size' in genome_info[10])
+        self.assertTrue(genome_info[10]['Size'].isdigit())
+        self.assertEquals(genome_info[10]['Taxonomy'], 'Unknown')
+
+    def test_simple_fasta_gff_to_genome(self):
+        input_params = {
+            'fasta_file': {'path': self.fa_path},
+            'gff_file': {'path': self.gff_path},
+            'genome_name': 'MyGenome',
+            'workspace_name': self.getWsName(),
+            'source': 'Genbank',
+            'type': 'Reference',
+            'scientific_name': 'Populus trichocarpa'
+        }
+
+        result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
 
         self.assertTrue('genome_info' in result)
         self.assertTrue('genome_ref' in result)
@@ -103,11 +145,74 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         self.assertEquals(genome_info[10]['Number features'], '1028')
         self.assertEquals(genome_info[10]['Domain'], 'Eukaryota')
         self.assertEquals(genome_info[10]['Genetic code'], '1')
-        self.assertEquals(genome_info[10]['Name'], 'unknown_taxon')
+        self.assertEquals(genome_info[10]['Name'], 'Populus trichocarpa')
         self.assertEquals(genome_info[10]['Source'], 'Genbank')
-        self.assertTrue("GC content" in genome_info[10])
-        self.assertTrue("Size" in genome_info[10])
-        self.assertEquals(genome_info[10]['Taxonomy'], 'Unknown')
+        self.assertTrue('GC content' in genome_info[10])
+        self.assertTrue(re.match("^\d+?\.\d+?$", genome_info[10]['GC content']) is not None)
+        self.assertTrue('Number features' in genome_info[10])
+        self.assertTrue(genome_info[10]['Number features'].isdigit())
+        self.assertTrue('Size' in genome_info[10])
+        self.assertTrue(genome_info[10]['Size'].isdigit())
+        self.assertEquals(genome_info[10]['Taxonomy'],
+                          'cellular organisms; Eukaryota; Viridiplantae; Streptophyta; ' +
+                          'Streptophytina; Embryophyta; Tracheophyta; Euphyllophyta; ' +
+                          'Spermatophyta; Magnoliophyta; Mesangiospermae; eudicotyledons; ' +
+                          'Gunneridae; Pentapetalae; rosids; fabids; Malpighiales; Salicaceae; ' +
+                          'Saliceae; Populus')
+
+    def test_taxon_reference_fasta_gff_to_genome(self):
+        taxon_wsname = 'ReferenceTaxons'
+        taxon_object_name = "unknown_taxon"
+        taxon_info = self.dfu.get_objects({'object_refs': [taxon_wsname+"/"+taxon_object_name],
+                                           'ignore_errors': 0})['data'][0]
+        taxon_reference = "{}/{}/{}".format(taxon_info['info'][6],
+                                            taxon_info['info'][0],
+                                            taxon_info['info'][4])
+
+        input_params = {
+            'fasta_file': {'path': self.fa_path},
+            'gff_file': {'path': self.gff_path},
+            'genome_name': 'MyGenome',
+            'workspace_name': self.getWsName(),
+            'source': 'Genbank',
+            'taxon_reference': taxon_reference,
+            'type': 'Reference'
+        }
+
+        result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
+
+        self.check_minimal_items_exist(result)
+
+    def test_shock_fasta_gff_to_genome(self):
+        gff_shock_id = self.dfu.file_to_shock({'file_path': self.gff_path})['shock_id']
+        fa_shock_id = self.dfu.file_to_shock({'file_path': self.fa_path})['shock_id']
+
+        input_params = {
+            'workspace_name': self.getWsName(),
+            'genome_name': 'MyGenome',
+            'fasta_file': {'shock_id': fa_shock_id},
+            'gff_file': {'shock_id': gff_shock_id},
+            'source': 'Genbank',
+            'type': 'Reference'
+        }
+
+        result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
+
+        self.check_minimal_items_exist(result)
+
+    def test_fungal_fasta_gff_to_genome(self):
+        input_params = {
+            'workspace_name': self.getWsName(),
+            'genome_name': 'MyGenome',
+            'fasta_file': {'path': self.fungal_fa_path},
+            'gff_file': {'path': self.fungal_gff_path},
+            'source': 'Genbank',
+            'type': 'Reference'
+        }
+
+        result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
+
+        self.check_minimal_items_exist(result)
 
     def test_bad_fasta_gff_to_genome_params(self):
         invalidate_input_params = {
@@ -236,14 +341,14 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
 
         file_paths = self.importer._stage_input(input_params, input_directory)
 
-        self.assertTrue(self.gff_filename in os.listdir(input_directory))
-        self.assertTrue(self.fa_filename in os.listdir(input_directory))
+        self.assertTrue(self.gff_filename.rpartition('.')[0] in os.listdir(input_directory))
+        self.assertTrue(self.fa_filename.rpartition('.')[0] in os.listdir(input_directory))
         self.assertTrue('gff_file' in file_paths)
         self.assertTrue('fasta_file' in file_paths)
         self.assertEquals(file_paths.get('gff_file'),
-                          os.path.join(input_directory, self.gff_filename))
+                          os.path.join(input_directory, self.gff_filename).rpartition('.')[0])
         self.assertEquals(file_paths.get('fasta_file'),
-                          os.path.join(input_directory, self.fa_filename))
+                          os.path.join(input_directory, self.fa_filename).rpartition('.')[0])
 
         # test shock id
         gff_shock_id = self.dfu.file_to_shock({'file_path': self.gff_path})['shock_id']
@@ -260,14 +365,14 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
 
         file_paths = self.importer._stage_input(input_params, input_directory)
 
-        self.assertTrue(self.gff_filename in os.listdir(input_directory))
-        self.assertTrue(self.fa_filename in os.listdir(input_directory))
+        self.assertTrue(self.gff_filename.rpartition('.')[0] in os.listdir(input_directory))
+        self.assertTrue(self.fa_filename.rpartition('.')[0] in os.listdir(input_directory))
         self.assertTrue('gff_file' in file_paths)
         self.assertTrue('fasta_file' in file_paths)
         self.assertEquals(file_paths.get('gff_file'),
-                          os.path.join(input_directory, self.gff_filename))
+                          os.path.join(input_directory, self.gff_filename).rpartition('.')[0])
         self.assertEquals(file_paths.get('fasta_file'),
-                          os.path.join(input_directory, self.fa_filename))
+                          os.path.join(input_directory, self.fa_filename).rpartition('.')[0])
 
     def test_FastaGFFToGenome_set_parsed_params(self):
         input_params = {
@@ -331,7 +436,8 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         self.assertTrue(expect_taxon_reference)
 
     def test_FastaGFFToGenome_retrieve_fasta_file(self):
-        input_fasta_file = self.fa_path
+
+        input_fasta_file = self.dfu.unpack_file({'file_path': self.fa_path})['file_path']
         core_genome_name = 'MyGenome'
         scientific_name = 'unknown_taxon'
         source = 'Genbank'
@@ -368,70 +474,121 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         self.assertIsInstance(assembly['contigs'], dict)
 
     def test_FastaGFFToGenome_retrieve_gff_file(self):
-        input_gff_file = self.gff_path
+
+        input_gff_file = self.dfu.unpack_file({'file_path': self.gff_path})['file_path']
 
         feature_list = self.importer._retrieve_gff_file(input_gff_file)
 
         self.assertIsInstance(feature_list, dict)
 
-    def test_simple_fasta_gff_to_genome(self):
-        input_params = {
-            'workspace_name': self.getWsName(),
-            'genome_name': 'MyGenome',
-            'fasta_file': {'path': self.fa_path},
-            'gff_file': {'path': self.gff_path},
-            'source': 'Genbank',
-            'type': 'Reference'
-        }
+    def test_FastaGFFToGenome_retrieve_feature_identifiers(self):
+        feature_list = {'Chr01':
+                        [
+                            {'end': 8201443,
+                             'Name': 'Potri.001G102800',
+                             'start': 8200895,
+                             'score': '.',
+                             'phase': '.',
+                             'contig': 'Chr01',
+                             'type': 'gene',
+                             'ID': 'Potri.001G102800.v3.0',
+                             'strand': '-'},
+                            {'end': 8201443,
+                             'Name': 'Potri.001G102800.1',
+                             'Parent': 'Potri.001G102800.v3.0',
+                             'pacid': '27047128',
+                             'start': 8200895,
+                             'score': '.',
+                             'longest': '1',
+                             'phase': '.',
+                             'contig': 'Chr01',
+                             'type': 'mRNA',
+                             'ID': 'Potri.001G102800.1.v3.0',
+                             'strand': '-'},
+                            {'end': 8201443,
+                             'Parent': 'Potri.001G102800.1.v3.0',
+                             'pacid': '27047128',
+                             'start': 8200895,
+                             'score': '.',
+                             'phase': '0',
+                             'contig': 'Chr01',
+                             'type': 'CDS',
+                             'ID': 'Potri.001G102800.1.v3.0.CDS.1',
+                             'strand': '-'}
+                        ]}
 
-        result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)
-        self.check_minimal_items_exist(result[0])
+        (features_identifiers_dict,
+         features_identifiers_list,
+         features_identifiers_count) = self.importer._retrieve_feature_identifiers(feature_list)
 
-    def test_shock_fasta_gff_to_genome(self):
-        gff_shock_id = self.dfu.file_to_shock({'file_path': self.gff_path})['shock_id']
-        fa_shock_id = self.dfu.file_to_shock({'file_path': self.fa_path})['shock_id']
+        expect_features_identifiers_dict = {'Potri.001G102800':
+                                            {'Potri.001G102800.1':
+                                             {'Potri.001G102800.1.CDS.1': 1}}}
 
-        input_params = {
-            'workspace_name': self.getWsName(),
-            'genome_name': 'MyGenome',
-            'fasta_file': {'shock_id': fa_shock_id},
-            'gff_file': {'shock_id': gff_shock_id},
-            'source': 'Genbank',
-            'type': 'Reference'
-        }
+        expect_features_identifiers_count = {'Potri.001G102800.1.CDS.1': 2,
+                                             'Potri.001G102800.1': 1,
+                                             'Potri.001G102800': 0, }
 
-        result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)
-        self.check_minimal_items_exist(result[0])
+        self.assertEquals(features_identifiers_dict, expect_features_identifiers_dict)
+        self.assertEquals(features_identifiers_count, expect_features_identifiers_count)
+        self.assertEquals(features_identifiers_list, feature_list['Chr01'])
 
-    # def test_FastaGFFToGenome_retrieve_feature_identifiers(self):
-    #     feature_list = {}
+    def test_FastaGFFToGenome_update_feature_identifiers(self):
+        features_identifiers_dict = {'Potri.001G102800':
+                                     {'Potri.001G102800.1':
+                                      {'Potri.001G102800.1.CDS.1': 1}}}
+        features_identifiers_count = {'Potri.001G102800.1.CDS.1': 2,
+                                      'Potri.001G102800.1': 1,
+                                      'Potri.001G102800': 0, }
+        features_identifiers_list = [{'end': 8201443,
+                                      'Name': 'Potri.001G102800',
+                                      'start': 8200895,
+                                      'score': '.',
+                                      'phase': '.',
+                                      'contig': 'Chr01',
+                                      'type': 'gene',
+                                      'ID': 'Potri.001G102800.v3.0',
+                                      'strand': '-'},
+                                     {'end': 8201443,
+                                      'Name': 'Potri.001G102800.1',
+                                      'Parent': 'Potri.001G102800.v3.0',
+                                      'pacid': '27047128',
+                                      'start': 8200895,
+                                      'score': '.',
+                                      'longest': '1',
+                                      'phase': '.',
+                                      'contig': 'Chr01',
+                                      'type': 'mRNA',
+                                      'ID': 'Potri.001G102800.1.v3.0',
+                                      'strand': '-'},
+                                     {'end': 8201443,
+                                      'Parent': 'Potri.001G102800.1.v3.0',
+                                      'pacid': '27047128',
+                                      'start': 8200895,
+                                      'score': '.',
+                                      'phase': '0',
+                                      'contig': 'Chr01',
+                                      'type': 'CDS',
+                                      'ID': 'Potri.001G102800.1.v3.0.CDS.1',
+                                      'strand': '-'}]
 
-    #     (features_identifiers_dict,
-    #      features_identifiers_list,
-    #      features_identifiers_count) = self._retrieve_feature_identifiers(feature_list)
+        (updated_features_identifiers_dict,
+         updated_features_list,
+         updated_features_identifiers_count) = self.importer._update_feature_identifiers(
+                                                                features_identifiers_dict,
+                                                                features_identifiers_list,
+                                                                features_identifiers_count)
 
-    # def test_FastaGFFToGenome_update_feature_identifiers(self):
-    #     features_identifiers_dict = dict()
-    #     features_identifiers_list = list()
-    #     features_identifiers_count = dict()
+        expect_updated_features_identifiers_dict = {'Potri.001G102800.v3.0':
+                                                    {'Potri.001G102800.1.v3.0':
+                                                     {'Potri.001G102800.1.v3.0.CDS.1': 1}}}
 
-    #     (updated_features_identifiers_dict,
-    #      updated_features_list,
-    #      updated_features_identifiers_count) = self._update_feature_identifiers(
-    #                                                             features_identifiers_dict,
-    #                                                             features_identifiers_list,
-    #                                                             features_identifiers_count)
+        expect_updated_features_identifiers_count = {'Potri.001G102800.1.v3.0.CDS.1': 2,
+                                                     'Potri.001G102800.1.v3.0': 1,
+                                                     'Potri.001G102800.v3.0': 0}
 
-    # def test_FastaGFFToGenome_retrieve_genome_feature_list(self):
-    #     updated_features_identifiers_dict = dict()
-    #     updated_features_list = list()
-    #     updated_features_identifiers_count = dict()
-    #     assembly = dict()
-
-    #     (genome_features_list,
-    #      genome_cdss_list,
-    #      genome_mrnas_list) = self._retrieve_genome_feature_list(
-    #                                                             updated_features_identifiers_dict,
-    #                                                             updated_features_list,
-    #                                                             updated_features_identifiers_count,
-    #                                                             assembly)
+        self.assertEquals(updated_features_identifiers_dict,
+                          expect_updated_features_identifiers_dict)
+        self.assertEquals(updated_features_identifiers_count,
+                          expect_updated_features_identifiers_count)
+        self.assertEquals(updated_features_list, features_identifiers_list)

@@ -48,7 +48,7 @@ class GenomeFileUtil:
     ######################################### noqa
     VERSION = "0.5.8"
     GIT_URL = "https://github.com/Tianhao-Gu/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "d8ce5660c8995b514bbc9d2b2ec2b401624dfdad"
+    GIT_COMMIT_HASH = "1e77c041b1bcc53d282e990da98460449e8b665a"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -278,8 +278,8 @@ class GenomeFileUtil:
            of String, parameter "taxon_wsname" of String, parameter
            "taxon_reference" of String, parameter "release" of String,
            parameter "genetic_code" of Long, parameter "type" of String,
-           parameter "metadata" of type "usermeta" -> mapping from String to
-           String
+           parameter "scientific_name" of String, parameter "metadata" of
+           type "usermeta" -> mapping from String to String
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
            "genome_ref" of String
         """

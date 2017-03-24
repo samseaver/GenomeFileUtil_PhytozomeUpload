@@ -81,20 +81,19 @@ sub new
     # We create an auth token, passing through the arguments that we were (hopefully) given.
 
     {
-	my $token = Bio::KBase::AuthToken->new(@args);
-	
-	if (!$token->error_message)
-	{
-	    $self->{token} = $token->token;
-	    $self->{client}->{token} = $token->token;
+	my %arg_hash2 = @args;
+	if (exists $arg_hash2{"token"}) {
+	    $self->{token} = $arg_hash2{"token"};
+	} elsif (exists $arg_hash2{"user_id"}) {
+	    my $token = Bio::KBase::AuthToken->new(@args);
+	    if (!$token->error_message) {
+	        $self->{token} = $token->token;
+	    }
 	}
-        else
-        {
-	    #
-	    # All methods in this module require authentication. In this case, if we
-	    # don't have a token, we can't continue.
-	    #
-	    die "Authentication failed: " . $token->error_message;
+	
+	if (exists $self->{token})
+	{
+	    $self->{client}->{token} = $self->{token};
 	}
     }
 
@@ -555,6 +554,7 @@ FastaGFFToGenomeParams is a reference to a hash where the following keys are def
 	release has a value which is a string
 	genetic_code has a value which is an int
 	type has a value which is a string
+	scientific_name has a value which is a string
 	metadata has a value which is a GenomeFileUtil.usermeta
 File is a reference to a hash where the following keys are defined:
 	path has a value which is a string
@@ -583,6 +583,7 @@ FastaGFFToGenomeParams is a reference to a hash where the following keys are def
 	release has a value which is a string
 	genetic_code has a value which is an int
 	type has a value which is a string
+	scientific_name has a value which is a string
 	metadata has a value which is a GenomeFileUtil.usermeta
 File is a reference to a hash where the following keys are defined:
 	path has a value which is a string
@@ -1181,6 +1182,7 @@ taxon_reference has a value which is a string
 release has a value which is a string
 genetic_code has a value which is an int
 type has a value which is a string
+scientific_name has a value which is a string
 metadata has a value which is a GenomeFileUtil.usermeta
 
 </pre>
@@ -1200,6 +1202,7 @@ taxon_reference has a value which is a string
 release has a value which is a string
 genetic_code has a value which is an int
 type has a value which is a string
+scientific_name has a value which is a string
 metadata has a value which is a GenomeFileUtil.usermeta
 
 

@@ -137,8 +137,8 @@ class GenomeFileUtil(object):
            of String, parameter "taxon_wsname" of String, parameter
            "taxon_reference" of String, parameter "release" of String,
            parameter "genetic_code" of Long, parameter "type" of String,
-           parameter "metadata" of type "usermeta" -> mapping from String to
-           String
+           parameter "scientific_name" of String, parameter "metadata" of
+           type "usermeta" -> mapping from String to String
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
            "genome_ref" of String
         """
