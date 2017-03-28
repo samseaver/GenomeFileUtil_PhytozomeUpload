@@ -46,9 +46,9 @@ class GenomeFileUtil:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "0.5.8"
+    VERSION = "0.6.1"
     GIT_URL = "https://github.com/Tianhao-Gu/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "1e77c041b1bcc53d282e990da98460449e8b665a"
+    GIT_COMMIT_HASH = "db5cef91adb9b85cd96cfda0a84f672c0adf40e1"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -303,7 +303,6 @@ class GenomeFileUtil:
                              'returnVal is not type dict as required.')
         # return the results
         return [returnVal]
-
     def status(self, ctx):
         #BEGIN_STATUS
         returnVal = {'state': "OK", 'message': "", 'version': self.VERSION, 
