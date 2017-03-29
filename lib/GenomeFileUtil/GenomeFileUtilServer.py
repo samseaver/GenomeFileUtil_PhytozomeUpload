@@ -349,6 +349,10 @@ class Application(object):
                              name='GenomeFileUtil.export_genome_as_genbank',
                              types=[dict])
         self.method_authentication['GenomeFileUtil.export_genome_as_genbank'] = 'required'  # noqa
+        self.rpc_service.add(impl_GenomeFileUtil.fasta_gff_to_genome,
+                             name='GenomeFileUtil.fasta_gff_to_genome',
+                             types=[dict])
+        self.method_authentication['GenomeFileUtil.fasta_gff_to_genome'] = 'required'  # noqa
         self.rpc_service.add(impl_GenomeFileUtil.status,
                              name='GenomeFileUtil.status',
                              types=[dict])

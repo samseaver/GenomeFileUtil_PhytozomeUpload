@@ -81,20 +81,19 @@ sub new
     # We create an auth token, passing through the arguments that we were (hopefully) given.
 
     {
-	my $token = Bio::KBase::AuthToken->new(@args);
-	
-	if (!$token->error_message)
-	{
-	    $self->{token} = $token->token;
-	    $self->{client}->{token} = $token->token;
+	my %arg_hash2 = @args;
+	if (exists $arg_hash2{"token"}) {
+	    $self->{token} = $arg_hash2{"token"};
+	} elsif (exists $arg_hash2{"user_id"}) {
+	    my $token = Bio::KBase::AuthToken->new(@args);
+	    if (!$token->error_message) {
+	        $self->{token} = $token->token;
+	    }
 	}
-        else
-        {
-	    #
-	    # All methods in this module require authentication. In this case, if we
-	    # don't have a token, we can't continue.
-	    #
-	    die "Authentication failed: " . $token->error_message;
+	
+	if (exists $self->{token})
+	{
+	    $self->{client}->{token} = $self->{token};
 	}
     }
 
@@ -529,6 +528,128 @@ ExportOutput is a reference to a hash where the following keys are defined:
     }
 }
  
+
+
+=head2 fasta_gff_to_genome
+
+  $returnVal = $obj->fasta_gff_to_genome($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a GenomeFileUtil.FastaGFFToGenomeParams
+$returnVal is a GenomeFileUtil.GenomeSaveResult
+FastaGFFToGenomeParams is a reference to a hash where the following keys are defined:
+	fasta_file has a value which is a GenomeFileUtil.File
+	gff_file has a value which is a GenomeFileUtil.File
+	genome_name has a value which is a string
+	workspace_name has a value which is a string
+	source has a value which is a string
+	taxon_wsname has a value which is a string
+	taxon_reference has a value which is a string
+	release has a value which is a string
+	genetic_code has a value which is an int
+	type has a value which is a string
+	scientific_name has a value which is a string
+	metadata has a value which is a GenomeFileUtil.usermeta
+File is a reference to a hash where the following keys are defined:
+	path has a value which is a string
+	shock_id has a value which is a string
+	ftp_url has a value which is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+GenomeSaveResult is a reference to a hash where the following keys are defined:
+	genome_ref has a value which is a string
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a GenomeFileUtil.FastaGFFToGenomeParams
+$returnVal is a GenomeFileUtil.GenomeSaveResult
+FastaGFFToGenomeParams is a reference to a hash where the following keys are defined:
+	fasta_file has a value which is a GenomeFileUtil.File
+	gff_file has a value which is a GenomeFileUtil.File
+	genome_name has a value which is a string
+	workspace_name has a value which is a string
+	source has a value which is a string
+	taxon_wsname has a value which is a string
+	taxon_reference has a value which is a string
+	release has a value which is a string
+	genetic_code has a value which is an int
+	type has a value which is a string
+	scientific_name has a value which is a string
+	metadata has a value which is a GenomeFileUtil.usermeta
+File is a reference to a hash where the following keys are defined:
+	path has a value which is a string
+	shock_id has a value which is a string
+	ftp_url has a value which is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+GenomeSaveResult is a reference to a hash where the following keys are defined:
+	genome_ref has a value which is a string
+
+
+=end text
+
+=item Description
+
+
+
+=back
+
+=cut
+
+ sub fasta_gff_to_genome
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function fasta_gff_to_genome (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to fasta_gff_to_genome:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'fasta_gff_to_genome');
+	}
+    }
+
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "GenomeFileUtil.fasta_gff_to_genome",
+	    params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'fasta_gff_to_genome',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method fasta_gff_to_genome",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'fasta_gff_to_genome',
+				       );
+    }
+}
+ 
   
 sub status
 {
@@ -572,16 +693,16 @@ sub version {
             Bio::KBase::Exceptions::JSONRPC->throw(
                 error => $result->error_message,
                 code => $result->content->{code},
-                method_name => 'export_genome_as_genbank',
+                method_name => 'fasta_gff_to_genome',
             );
         } else {
             return wantarray ? @{$result->result} : $result->result->[0];
         }
     } else {
         Bio::KBase::Exceptions::HTTP->throw(
-            error => "Error invoking method export_genome_as_genbank",
+            error => "Error invoking method fasta_gff_to_genome",
             status_line => $self->{client}->status_line,
-            method_name => 'export_genome_as_genbank',
+            method_name => 'fasta_gff_to_genome',
         );
     }
 }
@@ -722,14 +843,14 @@ genome_name - becomes the name of the object
 workspace_name - the name of the workspace it gets saved to.
 source - Source of the file typically something like RefSeq or Ensembl
 taxon_ws_name - where the reference taxons are : ReferenceTaxons
-    taxon_reference - if defined, will try to link the Genome to the specified
-taxonomy object insteas of performing the lookup during upload
+taxon_reference - if defined, will try to link the Genome to the specified
+    taxonomy object insteas of performing the lookup during upload
 release - Release or version number of the data 
-  per example Ensembl has numbered releases of all their data: Release 31
+      per example Ensembl has numbered releases of all their data: Release 31
 generate_ids_if_needed - If field used for feature id is not there, 
-  generate ids (default behavior is raising an exception)
+      generate ids (default behavior is raising an exception)
 genetic_code - Genetic code of organism. Overwrites determined GC from 
-  taxon object
+      taxon object
 type - Reference, Representative or User upload
 
 
@@ -1016,6 +1137,73 @@ shock_id has a value which is a string
 
 a reference to a hash where the following keys are defined:
 shock_id has a value which is a string
+
+
+=end text
+
+=back
+
+
+
+=head2 FastaGFFToGenomeParams
+
+=over 4
+
+
+
+=item Description
+
+genome_name - becomes the name of the object
+workspace_name - the name of the workspace it gets saved to.
+source - Source of the file typically something like RefSeq or Ensembl
+taxon_ws_name - where the reference taxons are : ReferenceTaxons
+taxon_reference - if defined, will try to link the Genome to the specified
+    taxonomy object insteas of performing the lookup during upload
+release - Release or version number of the data 
+      per example Ensembl has numbered releases of all their data: Release 31
+genetic_code - Genetic code of organism. Overwrites determined GC from 
+      taxon object
+type - Reference, Representative or User upload
+
+
+=item Definition
+
+=begin html
+
+<pre>
+a reference to a hash where the following keys are defined:
+fasta_file has a value which is a GenomeFileUtil.File
+gff_file has a value which is a GenomeFileUtil.File
+genome_name has a value which is a string
+workspace_name has a value which is a string
+source has a value which is a string
+taxon_wsname has a value which is a string
+taxon_reference has a value which is a string
+release has a value which is a string
+genetic_code has a value which is an int
+type has a value which is a string
+scientific_name has a value which is a string
+metadata has a value which is a GenomeFileUtil.usermeta
+
+</pre>
+
+=end html
+
+=begin text
+
+a reference to a hash where the following keys are defined:
+fasta_file has a value which is a GenomeFileUtil.File
+gff_file has a value which is a GenomeFileUtil.File
+genome_name has a value which is a string
+workspace_name has a value which is a string
+source has a value which is a string
+taxon_wsname has a value which is a string
+taxon_reference has a value which is a string
+release has a value which is a string
+genetic_code has a value which is an int
+type has a value which is a string
+scientific_name has a value which is a string
+metadata has a value which is a GenomeFileUtil.usermeta
 
 
 =end text
