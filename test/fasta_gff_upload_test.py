@@ -123,6 +123,42 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         self.assertTrue(genome_info[10]['Size'].isdigit())
         self.assertEquals(genome_info[10]['Taxonomy'], 'Unknown')
 
+    def test_simple_fasta_gff_to_genome_w_null_params(self):
+
+        input_params = {
+            "fasta_file": {'path': self.fa_path},
+            "gff_file": {'path': self.gff_path},
+            "workspace_name": self.getWsName(),
+            "genome_name": 'MyGenome',
+            "scientific_name": None,
+            "taxon_reference": None,
+            "genetic_code": None,
+            "source": None,
+            "taxon_wsname": None,
+            "release": None,
+            "type": None
+        }
+
+        result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
+
+        self.assertTrue('genome_info' in result)
+        self.assertTrue('genome_ref' in result)
+        self.assertTrue('report_name' in result)
+        self.assertTrue('report_ref' in result)
+
+        genome_info = result['genome_info']
+        self.assertEquals(genome_info[10]['Domain'], 'Eukaryota')
+        self.assertEquals(genome_info[10]['Genetic code'], '1')
+        self.assertEquals(genome_info[10]['Name'], 'unknown_taxon')
+        self.assertEquals(genome_info[10]['Source'], 'User')
+        self.assertTrue('GC content' in genome_info[10])
+        self.assertTrue(re.match("^\d+?\.\d+?$", genome_info[10]['GC content']) is not None)
+        self.assertTrue('Number features' in genome_info[10])
+        self.assertTrue(genome_info[10]['Number features'].isdigit())
+        self.assertTrue('Size' in genome_info[10])
+        self.assertTrue(genome_info[10]['Size'].isdigit())
+        self.assertEquals(genome_info[10]['Taxonomy'], 'Unknown')
+
     def test_simple_fasta_gff_to_genome(self):
         input_params = {
             'fasta_file': {'path': self.fa_path},

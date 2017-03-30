@@ -46,9 +46,9 @@ class GenomeFileUtil:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "0.6.1"
+    VERSION = "0.6.2"
     GIT_URL = "https://github.com/Tianhao-Gu/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "db5cef91adb9b85cd96cfda0a84f672c0adf40e1"
+    GIT_COMMIT_HASH = "384ebde50b72496dec4751a05daca6d325c38a71"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -288,6 +288,10 @@ class GenomeFileUtil:
         #BEGIN fasta_gff_to_genome
         print '--->\nRunning GenomeFileUtil.fasta_gff_to_genome\nparams:'
         print json.dumps(params, indent=1)
+
+        for key in params.keys():
+            if params[key] is None:
+                del params[key]
 
         for key, value in params.iteritems():
             if isinstance(value, basestring):

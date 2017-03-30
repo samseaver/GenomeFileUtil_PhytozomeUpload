@@ -194,7 +194,7 @@ class FastaGFFToGenome:
 
         # check for valid type param
         valid_types = ['Reference', 'User upload', 'Representative']
-        if 'type' in params and params['type'] not in valid_types:
+        if params.get('type') and params['type'] not in valid_types:
             error_msg = 'Entered value for type is not one of the valid entries of '
             error_msg += '[' + ''.join('"' + str(e) + '", ' for e in valid_types)[0: -2] + ']'
             raise ValueError(error_msg)
