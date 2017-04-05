@@ -429,14 +429,12 @@ class GenbankAnnotations(object):
                     currentLine = ancestor + ";"
                 else:
                     currentLine += ancestor + ";"
-
-            if prefix + currentLine != lineage[-1]:
-                lineage.append(prefix + currentLine)
-
-            if len(lineage) > 0 and lineage[-1][-1] == ';':
-                lineage[-1] = lineage[-1][:-1]
-
-            self._contents.write("{}.\n".format("\n".join(lineage)))
+            if len(lineage) > 0:
+                if prefix + currentLine != lineage[-1]:
+                    lineage.append(prefix + currentLine)
+                if lineage[-1][-1] == ';':
+                    lineage[-1] = lineage[-1][:-1]
+                self._contents.write("{}.\n".format("\n".join(lineage)))
 
         self._contents.write("COMMENT{}Exported from the DOE KnowledgeBase.\n".format(" " * 5))
         self._contents.write("FEATURES{}Location/Qualifiers\n".format(" " * 13))
