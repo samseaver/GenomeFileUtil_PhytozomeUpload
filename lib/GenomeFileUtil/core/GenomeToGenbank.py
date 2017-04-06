@@ -413,10 +413,6 @@ class GenbankAnnotations(object):
                                                                      " " * bp_field_padding,
                                                                      self._contigs[contig_id]["length"],
                                                                      " " * 27))
-        self._contents.write("Contig id length : " + str(len(temp_contig_id)))
-        self._contents.write("contig_spaces_padding : " + str(contig_spaces_padding))
-        self._contents.write("BP length : " + str(len(str(self._contigs[contig_id]["length"]))))
-        self._contents.write("bp_field_padding : " + str(bp_field_padding))
         sn = self._taxa.get_scientific_name()
         self._contents.write("DEFINITION  {} genome.\n".format(sn))
         self._contents.write("SOURCE      {}\n".format(sn))
