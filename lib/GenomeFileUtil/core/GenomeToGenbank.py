@@ -406,7 +406,7 @@ class GenbankAnnotations(object):
         if len(contig_id) > contig_id_field_length:
             temp_contig_id = contig_id[-16:]
         contig_spaces_padding = contig_id_field_length - len(temp_contig_id)
-        bp_field_padding = bp_field_length - len(self._contigs[contig_id]["length"])
+        bp_field_padding = bp_field_length - len(str(self._contigs[contig_id]["length"]))
         self._contents.write("LOCUS{}{}{} {}{} bp    DNA{}\n".format(" " * 7,
                                                                      temp_contig_id,
                                                                      " " * contig_spaces_padding,
@@ -415,7 +415,7 @@ class GenbankAnnotations(object):
                                                                      " " * 27))
         self._contents.write("Contig id length : " + str(len(temp_contig_id)))
         self._contents.write("contig_spaces_padding : " + str(contig_spaces_padding))
-        self._contents.write("BP length : " + str(len(self._contigs[contig_id]["length"])))
+        self._contents.write("BP length : " + str(len(str(self._contigs[contig_id]["length"]))))
         self._contents.write("bp_field_padding : " + str(bp_field_padding))
         sn = self._taxa.get_scientific_name()
         self._contents.write("DEFINITION  {} genome.\n".format(sn))
