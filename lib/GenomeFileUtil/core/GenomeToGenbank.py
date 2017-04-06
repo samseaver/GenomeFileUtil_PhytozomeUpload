@@ -400,11 +400,19 @@ class GenbankAnnotations(object):
     def _add_contig_header(self, contig_id=None):
         if contig_id not in self._contigs:
             raise ValueError('ContigID (' + str(contig_id) + ') was not found in the assembly.  This may be a corrupted genome.')
-        self._contents.write("LOCUS{}{}{}{} bp    DNA\n".format(" " * 7,
-                                                                contig_id,
-                                                                " " * 13,
-                                                                self._contigs[contig_id]["length"]))
-
+        contig_id_field_length = 16
+        bp_field_length = 11
+        temp_contig_id = contig_id
+        if len(contig_id) > contig_id_field_length:
+            temp_contig_id = contig_id[-16:]
+        contig_spaces_padding = contig_id_field_length - len(temp_contig_id)
+        bp_field_padding = bp_field_length - len(self._contigs[contig_id]["length"])
+        self._contents.write("LOCUS{}{}{} {}{} bp    DNA{}\n".format(" " * 7,
+                                                                     temp_contig_id,
+                                                                     " " * contig_spaces_padding,
+                                                                     " " * bp_field_padding,
+                                                                     self._contigs[contig_id]["length"],
+                                                                     " " * 27))
         sn = self._taxa.get_scientific_name()
         self._contents.write("DEFINITION  {} genome.\n".format(sn))
         self._contents.write("SOURCE      {}\n".format(sn))
