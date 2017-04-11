@@ -34,7 +34,7 @@ from Bio.Alphabet import IUPAC, generic_dna
 import biokbase.Transform.script_utils as script_utils
 import biokbase.Transform.TextFileDecoder as TextFileDecoder
 import biokbase.workspace.client 
-import trns_transform_FASTA_DNA_Assembly_to_KBaseGenomeAnnotations_Assembly as assembly
+from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from KBaseReport.KBaseReportClient import KBaseReport
 #from doekbase.data_api.annotation.genome_annotation.api import GenomeAnnotationAPI, GenomeAnnotationClientAPI
 
@@ -125,7 +125,7 @@ def upload_genome(shock_service_url=None,
     
     [genome, taxon_id, source_name, genbank_time_string, contig_information_dict,
      source_file_name, input_file_name, locus_name_order, list_of_features,
-     ontology_terms_not_found, cds_list, mrna_list] = _load_data(
+     ontology_terms_not_found, cds_list, mrna_list, fasta_file_name] = _load_data(
                         exclude_ontologies, generate_ids_if_needed, input_directory,
                         genetic_code, core_genome_name, source, ws_client, 
                         ontology_wsname, ontology_GO_obj_name, ontology_PO_obj_name, 
@@ -137,7 +137,7 @@ def upload_genome(shock_service_url=None,
                       locus_name_order, list_of_features, release, ontology_terms_not_found, 
                       type, usermeta, token, ws_client, workspace_name, workspace_service_url, 
                       handle_service_url, shock_service_url, callback_url, 
-                      cds_list, mrna_list, report, logger)        
+                      cds_list, mrna_list, report, input_directory, fasta_file_name, logger)        
 
 
 
@@ -204,10 +204,7 @@ def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, gene
     genbank_division_set = {'PRI','ROD','MAM','VRT','INV','PLN','BCT','VRL','PHG','SYN','UNA','EST','PAT','STS','GSS','HTG','HTC','ENV','CON'}
 
     #Make the Fasta file for the sequences to be written to
-    if not os.path.exists("temp_fasta_file_dir"):
-        os.makedirs("temp_fasta_file_dir")
-    fasta_file_name = "temp_fasta_file_dir/" +fasta_file_name
-    fasta_file_handle = open(fasta_file_name, 'w')
+    fasta_file_handle = open(os.path.join(input_directory, fasta_file_name), 'w')
     
     min_date = None
     max_date = None
@@ -296,7 +293,7 @@ def _load_data(exclude_ontologies, generate_ids_if_needed, input_directory, gene
     
     return [genome, taxon_id, source_name, genbank_time_string, contig_information_dict, 
             source_file_name, input_file_name, locus_name_order, list_of_features, 
-            ontology_terms_not_found, cds_list, mrna_list]
+            ontology_terms_not_found, cds_list, mrna_list, fasta_file_name]
 
 
 
@@ -583,7 +580,7 @@ def _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_str
                locus_name_order, list_of_features, release, ontology_terms_not_found,
                genome_type, usermeta, token, ws_client, workspace_name, workspace_service_url,
                handle_service_url, shock_service_url, callback_url, 
-               cds_list, mrna_list, report, logger):
+               cds_list, mrna_list, report, input_directory, fasta_file_name, logger):
     ##########################################
     #ASSEMBLY CREATION PORTION  - consume Fasta File
     ##########################################
@@ -591,24 +588,20 @@ def _save_data(genome, core_genome_name, taxon_id, source_name, genbank_time_str
     logger.info("Calling FASTA to Assembly Uploader")
     assembly_reference = "%s/%s_assembly" % (workspace_name,core_genome_name)
     try:
-        fasta_working_dir = str(os.getcwd()) + "/temp_fasta_file_dir"
+        fasta_file_path = os.path.join(input_directory, fasta_file_name)
 
         print "HANDLE SERVICE URL " + handle_service_url
-        assembly.upload_assembly(shock_service_url = shock_service_url,
-                                 handle_service_url = handle_service_url,
-                                 input_directory = fasta_working_dir,
-                                 #                  shock_id = args.shock_id,
-                                 #                  handle_id = args.handle_id,
-                                 #                  input_mapping = args.input_mapping, 
-                                 workspace_name = workspace_name,
-                                 workspace_service_url = workspace_service_url,
-                                 taxon_reference = taxon_id,
-                                 assembly_name = "%s_assembly" % (core_genome_name),
-                                 source = source_name,
-                                 contig_information_dict = contig_information_dict,
-                                 date_string = genbank_time_string,
-                                 logger = logger)
-        shutil.rmtree(fasta_working_dir)
+
+        aUtil = AssemblyUtil(callback_url)
+        assembly_ref = aUtil.save_assembly_from_fasta(
+                                                {'file':
+                                                    {'path': fasta_file_path},
+                                                 'workspace_name': workspace_name,
+                                                 'assembly_name': "%s_assembly" % (core_genome_name),
+                                                 'taxon_ref': taxon_id,
+                                                 'contig_info': contig_information_dict})
+        # Note: still missing source and date_string fields
+
     except Exception, e: 
         logger.exception(e) 
         raise
@@ -1178,7 +1171,6 @@ def _process_metadata(contig_pos,
                             "molecule type of '%s' , is not 'DNA' or 'RNA'. If it is RNA it must" +
                             " be a virus or a viroid." % (locus_line_info[1],locus_line_info[4]))
         genbank_metadata_objects[accession]["is_circular"] = "Unknown"
-        contig_information_dict[accession]["is_circular"] = "Unknown"
         date_text = ''
         if ((len(locus_line_info) == 7) and (locus_line_info[5] in genbank_division_set)) :
             date_text = locus_line_info[6]
@@ -1186,10 +1178,10 @@ def _process_metadata(contig_pos,
             date_text = locus_line_info[7]
             if locus_line_info[5] == "circular":
                 genbank_metadata_objects[accession]["is_circular"] = "True"
-                contig_information_dict[accession]["is_circular"] = "True"
+                contig_information_dict[accession]["is_circ"] = 1
             elif locus_line_info[5] == "linear":
                 genbank_metadata_objects[accession]["is_circular"] = "False"
-                contig_information_dict[accession]["is_circular"] = "False"
+                contig_information_dict[accession]["is_circ"] = 0
         elif len(locus_line_info) >= 6:
             date_text = locus_line_info[5]
 
@@ -1229,7 +1221,7 @@ def _process_metadata(contig_pos,
                     else:
                         break
             genbank_metadata_objects[accession]["definition"] = definition 
-            contig_information_dict[accession]["definition"] = definition 
+            contig_information_dict[accession]["description"] = definition
         elif metadata_line.startswith("  ORGANISM  "): 
             organism = metadata_line[12:] 
             if organism not in organism_dict:
