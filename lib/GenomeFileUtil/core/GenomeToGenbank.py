@@ -9,9 +9,12 @@ import os
 import string
 import cStringIO as StringIO
 
+from Bio import SeqIO
+
 # Local
 from doekbase.data_api.annotation.genome_annotation.api import GenomeAnnotationAPI as GenomeAnnotationAPI_local
 from DataFileUtil.DataFileUtilClient import DataFileUtil
+from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from GenomeAnnotationAPI.GenomeAnnotationAPIClient import GenomeAnnotationAPI
 
 STD_PREFIX = " " * 21
@@ -117,7 +120,7 @@ class GenomeToGenbank(object):
         genome = GenomeAnnotationAPI_local(services=services,
                                            token=os.environ['KB_AUTH_TOKEN'],
                                            ref=ref)
-        g = GenbankAnnotations(genome)
+        g = GenbankAnnotations(genome, self.cfg.callbackURL)
         g.to_file(output_filename)
 
         return {
@@ -128,12 +131,16 @@ class GenomeToGenbank(object):
 
 
 class GenbankAnnotations(object):
-    def __init__(self, genome=None):
+    def __init__(self, genome=None, callbackURL=''):
         self._contents = StringIO.StringIO()
         self._ga = genome
         print('downloading assembly')
-        self._asm = self._ga.get_assembly()
-        self._contigs = self._asm.get_contigs()
+        au = AssemblyUtil(callbackURL)
+        assembly_info = self._ga.get_assembly().get_info()
+        assembly_ref = str(assembly_info['workspace_id']) + '/' + str(assembly_info['object_id']) + '/' + str(assembly_info['version'])
+        print('Assembly reference = ' + assembly_ref)
+        assembly_file_path = au.get_assembly_as_fasta({'ref': assembly_ref})['path']
+
         print('extracting taxonomy information')
         self._taxa = self._ga.get_taxon()
         self._tax_lineage = self._taxa.get_scientific_lineage()
@@ -144,8 +151,19 @@ class GenbankAnnotations(object):
         self._features = self._ga.get_features()
 
         print('writing file')
-
-        contigs = self._ga.get_assembly().get_contigs()
+        # read in fasta file to build the contig index
+        contigs = {}
+        for record in SeqIO.parse(assembly_file_path, "fasta"):
+            # SeqRecord(seq=Seq('TTAT...', SingleLetterAlphabet()),
+            #           id='gi|113968346|ref|NC_008321.1|',
+            #           name='gi|113968346|ref|NC_008321.1|',
+            #           description='gi|113968346|ref|NC_008321.1| Shewanella sp. MR-4 chromosome, complete genome',
+            #           dbxrefs=[])
+            contigs[record.id] = {
+                'length': len(record.seq),
+                'sequence': str(record.seq)
+            }
+        self._contigs = contigs
         contig_length_dict = dict()
         for contig_id in contigs:
             contig_length_dict[contig_id] = contigs[contig_id]["length"]
