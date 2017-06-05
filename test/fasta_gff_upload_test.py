@@ -87,21 +87,41 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
 
         cls.gff_filename = 'Test_v1.0.gene.gff3.gz'
         cls.gff_path = os.path.join(cls.scratch, cls.gff_filename)
-        shutil.copy(os.path.join("data", "fasta_gff", "Plant_Data", cls.gff_filename), cls.gff_path)
+        shutil.copy(os.path.join("data", "fasta_gff", "JGI", "Plant_Data", cls.gff_filename), cls.gff_path)
 
         cls.fa_filename = 'Test_v1.0.fa.gz'
         cls.fa_path = os.path.join(cls.scratch, cls.fa_filename)
-        shutil.copy(os.path.join("data", "fasta_gff", "Plant_Data", cls.fa_filename), cls.fa_path)
+        shutil.copy(os.path.join("data", "fasta_gff", "JGI", "Plant_Data", cls.fa_filename), cls.fa_path)
 
         cls.fungal_gff_filename = 'Neucr2.filtered_proteins.BroadModels.gff3.gz'
         cls.fungal_gff_path = os.path.join(cls.scratch, cls.fungal_gff_filename)
-        shutil.copy(os.path.join("data", "fasta_gff", "Fungal_Data", cls.fungal_gff_filename),
+        shutil.copy(os.path.join("data", "fasta_gff", "JGI", "Fungal_Data", cls.fungal_gff_filename),
                     cls.fungal_gff_path)
 
         cls.fungal_fa_filename = 'Neucr2_AssemblyScaffolds.fasta.gz'
         cls.fungal_fa_path = os.path.join(cls.scratch, cls.fungal_fa_filename)
-        shutil.copy(os.path.join("data", "fasta_gff", "Fungal_Data", cls.fungal_fa_filename),
+        shutil.copy(os.path.join("data", "fasta_gff", "JGI", "Fungal_Data", cls.fungal_fa_filename),
                     cls.fungal_fa_path)
+
+        cls.jgi_bacterial_gff_filename = 'Bacterial_Data/2547132501.gff.gz'
+        cls.jgi_bacterial_gff_path = os.path.join(cls.scratch, cls.jgi_bacterial_gff_filename)
+        shutil.copy(os.path.join("data", "fasta_gff", "JGI", "Bacterial_Data", cls.jgi_bacterial_gff_filename),
+                    cls.jgi_bacterial_gff_path)
+
+        cls.jgi_bacterial_fa_filename = 'Bacterial_Data/2547132501.fna.gz'
+        cls.jgi_bacterial_fa_path = os.path.join(cls.scratch, cls.jgi_bacterial_fa_filename)
+        shutil.copy(os.path.join("data", "fasta_gff", "JGI", "Bacterial_Data", cls.jgi_bacterial_fa_filename),
+                    cls.jgi_bacterial_fa_path)
+
+        cls.patric_bacterial_gff_filename = 'Ecoli_O104/1240778.3.PATRIC.gff.gz'
+        cls.patric_bacterial_gff_path = os.path.join(cls.scratch, cls.patric_bacterial_gff_filename)
+        shutil.copy(os.path.join("data", "fasta_gff", "PATRIC", "Bacterial_Data", cls.patric_bacterial_gff_filename),
+                    cls.patric_bacterial_gff_path)
+
+        cls.patric_bacterial_fa_filename = 'Ecoli_O104/1240778.3.fna.gz'
+        cls.patric_bacterial_fa_path = os.path.join(cls.scratch, cls.patric_bacterial_fa_filename)
+        shutil.copy(os.path.join("data", "fasta_gff", "PATRIC", "Bacterial_Data", cls.patric_bacterial_fa_filename),
+                    cls.patric_bacterial_fa_path)
 
     def check_minimal_items_exist(self, result):
 
@@ -242,6 +262,34 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
             'genome_name': 'MyGenome',
             'fasta_file': {'path': self.fungal_fa_path},
             'gff_file': {'path': self.fungal_gff_path},
+            'source': 'Genbank',
+            'type': 'Reference'
+        }
+
+        result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
+
+        self.check_minimal_items_exist(result)
+
+    def test_jgi_bacterial_fasta_gff_to_genome(self):
+        input_params = {
+            'workspace_name': self.getWsName(),
+            'genome_name': 'MyGenome',
+            'fasta_file': {'path': self.jgi_bacterial_fa_path},
+            'gff_file': {'path': self.jgi_bacterial_gff_path},
+            'source': 'Genbank',
+            'type': 'Reference'
+        }
+
+        result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
+
+        self.check_minimal_items_exist(result)
+
+    def test_patric_bacterial_fasta_gff_to_genome(self):
+        input_params = {
+            'workspace_name': self.getWsName(),
+            'genome_name': 'MyGenome',
+            'fasta_file': {'path': self.patric_bacterial_fa_path},
+            'gff_file': {'path': self.patric_bacterial_gff_path},
             'source': 'Genbank',
             'type': 'Reference'
         }

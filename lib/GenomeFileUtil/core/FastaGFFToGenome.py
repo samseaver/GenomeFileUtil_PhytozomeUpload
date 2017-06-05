@@ -376,7 +376,8 @@ class FastaGFFToGenome:
     
         feature_list = dict()
         is_phytozome = 0
-    
+        is_patric = 0
+
         gff_file_handle = open(input_gff_file, 'rb')
         current_line = gff_file_handle.readline()
         line_count = 0
@@ -451,6 +452,30 @@ class FastaGFFToGenome:
             self._print_phytozome_gff(input_gff_file,feature_list)
 
         return feature_list
+
+    def _generate_feature_hierarchy(self,feature_list):
+
+        feature_hierarchy = { contig : {} for contig in feature_list }
+
+        #Need to remember mRNA/gene links for CDSs
+        mRNA_gene_dict = {}
+        mRNA_position_dict = {}
+
+        for contig in feature_list:
+            for i in range(len(feature_list[contig])):
+                ftr = feature_list[contig][i]
+            
+                if("gene" in ftr["type"]):
+                    feature_hierarchy[contig][ftr["ID"]]={"mrnas":[],"cdss":[],"index":i}
+
+                if("RNA" in ftr["type"]):
+                    feature_hierarchy[contig][ftr["Parent"]]["mrnas"].append( { "id" : ftr["ID"], "index" : i, "cdss" : [] } )
+                    mRNA_gene_dict[ftr["ID"]]=ftr["Parent"]
+                    mRNA_position_dict[ftr["ID"]]=len(feature_hierarchy[contig][ftr["Parent"]]["mrnas"])-1
+                if("CDS" in ftr["type"]):
+                    feature_hierarchy[contig][mRNA_gene_dict[ftr["Parent"]]]["mrnas"][mRNA_position_dict[ftr["Parent"]]]["cdss"].append( { "id": ftr["ID"], "index" : i } )
+                                                                                      
+        return feature_hierarchy
 
     def _add_missing_parents(self,feature_list):
 
@@ -577,7 +602,7 @@ class FastaGFFToGenome:
             gff_file_handle.close()
         return
 
-    def _retrieve_genome_feature_list(feature_list, feature_hierarchy, assembly):
+    def _retrieve_genome_feature_list(self, feature_list, feature_hierarchy, assembly):
 
         genome_features_list = list()
         genome_mrnas_list = list()
