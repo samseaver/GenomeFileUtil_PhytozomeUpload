@@ -116,8 +116,8 @@ class FastaGFFToGenome:
 
         # retrieve genome feature list
         (genome_features_list,
-         genome_cdss_list,
-         genome_mrnas_list) = self._retrieve_genome_feature_list(feature_list, feature_hierarchy, assembly)
+         genome_mrnas_list,
+         genome_cdss_list) = self._retrieve_genome_feature_list(feature_list, feature_hierarchy, assembly)
 
         # remove sequences before loading
         for contig in assembly["contigs"]:
@@ -414,8 +414,8 @@ class FastaGFFToGenome:
                     feature_list[contig_id] = list()
 
                 #Populating basic feature object
-                    ftr = {'contig': contig_id, 'source': source_id, 'type': feature_type, 'start': int(start), 'end': int(end),
-                           'score': score, 'strand': strand, 'phase': phase, 'attributes': attributes}
+                ftr = {'contig': contig_id, 'source': source_id, 'type': feature_type, 'start': int(start), 'end': int(end),
+                       'score': score, 'strand': strand, 'phase': phase, 'attributes': attributes}
 
                 #Populating with attribute key-value pair
                 #This is where the feature id is from
@@ -639,6 +639,8 @@ class FastaGFFToGenome:
                     #If there are CDS, then New CDS ID without incrementation as they were aggregated
                     if(len(mRNA['cdss'])>0):
                         mRNA_ftr['cds'] = mRNA_ftr['id']+".CDS"
+                    else:
+                        mRNA_ftr['cds'] = ""
 
                     #Remove DNA
                     del mRNA_ftr["dna_sequence"]
@@ -767,7 +769,7 @@ class FastaGFFToGenome:
             Parent_mRNA=ftr["Parent"]
 
             contig_sequence = assembly["contigs"][ftr["contig"]]["sequence"]
-            CDS_ftr = _convert_ftr_object(ftr, contig_sequence)
+            CDS_ftr = self._convert_ftr_object(ftr, contig_sequence)
             exons.append(len(CDS_ftr["dna_sequence"]))
 
             # Remove base(s) according to phase, but only for first CDS
