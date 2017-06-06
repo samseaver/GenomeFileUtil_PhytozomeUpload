@@ -118,7 +118,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         shutil.copy(os.path.join("data", "fasta_gff", "PATRIC", "Ecoli_O104", cls.patric_bacterial_gff_filename),
                     cls.patric_bacterial_gff_path)
 
-        cls.patric_bacterial_fa_filename = 'Ecoli_O104/1240778.3.fna.gz'
+        cls.patric_bacterial_fa_filename = '1240778.3.fna.gz'
         cls.patric_bacterial_fa_path = os.path.join(cls.scratch, cls.patric_bacterial_fa_filename)
         shutil.copy(os.path.join("data", "fasta_gff", "PATRIC", "Ecoli_O104", cls.patric_bacterial_fa_filename),
                     cls.patric_bacterial_fa_path)
