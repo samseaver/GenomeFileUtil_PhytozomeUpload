@@ -420,12 +420,21 @@ class FastaGFFToGenome:
                 #Populating with attribute key-value pair
                 #This is where the feature id is from
                 for attribute in attributes.split(";"):
-                    #Sometimes empty string or lack of "="
-                    if(attribute == "" or "=" not in attribute):
+                    attribute=attribute.strip()
+
+                    #Sometimes empty string
+                    if(attribute == ""):
                         continue
 
                     #Use of 1 to limit split as '=' character can also be made available later
-                    key, value = attribute.split("=", 1)
+                    #Sometimes lack of "=", assume spaces instead
+                    if("=" in attribute):
+                        key, value = attribute.split("=", 1)
+                    elif(" " in attribute):
+                        key, value = attribute.split(" ", 1)
+                    else:
+                        log("Warning: attribute "+attribute+" cannot be separated into key,value pair")
+
                     ftr[key] = value
 
                 feature_list[contig_id].append(ftr)
@@ -433,6 +442,9 @@ class FastaGFFToGenome:
             current_line = gff_file_handle.readline()
 
         gff_file_handle.close()
+
+        #Some GFF/GTF files don't use "ID" so we go through the possibilities        
+        feature_list = self._add_missing_identifiers(feature_list)
 
         #Most bacterial files have only CDSs
         #In order to work with prokaryotic and eukaryotic gene structure synonymously
@@ -451,6 +463,25 @@ class FastaGFFToGenome:
         if(is_phytozome):
             self._print_phytozome_gff(input_gff_file,feature_list)
 
+        return feature_list
+
+    def _add_missing_identifiers(self,feature_list):
+
+        #General rule is to iterate through a range of possibilities if "ID" is missing
+        for contig in feature_list.keys():
+            for i in range(len(feature_list[contig])):
+                if("ID" not in feature_list[contig][i]):
+                    for key in ("transcriptId", "proteinId", "PACid", "pacid", "Parent"):
+                        if(key in feature_list[contig][i]):
+                            feature_list[contig][i]['ID']=feature_list[contig][i][key]
+                            break
+
+                    #If the process fails, throw an error
+                    if("ID" not in feature_list[contig][i]):
+                        log("Error, cannot find unique ID to utilize in GFF attributes: "+ \
+                                feature_list[contig][i]['contig']+ \
+                                feature_list[contig][i]['source']+ \
+                                feature_list[contig][i]['attributes'])
         return feature_list
 
     def _generate_feature_hierarchy(self,feature_list):
@@ -584,12 +615,21 @@ class FastaGFFToGenome:
                 #Re-build attributes
                 attributes_dict = {}
                 for attribute in ftr["attributes"].split(";"):
-                    #Sometimes empty string or lack of "="
-                    if(attribute == "" or "=" not in attribute):
+                    attribute=attribute.strip()
+
+                    #Sometimes empty string
+                    if(attribute == ""):
                         continue
 
                     #Use of 1 to limit split as '=' character can also be made available later
-                    key, value = attribute.split("=", 1)
+                    #Sometimes lack of "=", assume spaces instead
+                    if("=" in attribute):
+                        key, value = attribute.split("=", 1)
+                    elif(" " in attribute):
+                        key, value = attribute.split(" ", 1)
+                    else:
+                        log("Warning: attribute "+attribute+" cannot be separated into key,value pair")
+
                     if(ftr[key] != value):
                         value = ftr[key]
                     attributes_dict[key]=value
