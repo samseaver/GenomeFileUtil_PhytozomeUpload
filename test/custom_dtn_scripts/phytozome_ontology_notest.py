@@ -285,7 +285,6 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
             #Load Genome Object
             Genome_Result = self.dfu.get_objects({'object_refs':['Phytozome_Genomes/'+Genome_Name]})['data'][0]
             Genome_Object = Genome_Result['data']
-            Genome_Meta = Genome_Result['info'][10]
 
             time_string = str(datetime.datetime.fromtimestamp(time.time()).strftime('%Y_%m_%d_%H_%M_%S'))
 
@@ -318,15 +317,10 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
             genome_file.write(genome_string)
             genome_file.close()
 
+            Genome_Meta = Genome_Result['info'][10]
+            Workspace_ID = Genome_Result['info'][6]
+
             print "Saving: "+Genome_Name
             print "With Meta: ",Genome_Meta
-
-#typedef structure {
-#        int id;
-#        list<ObjectSaveData> objects;
-#    } SaveObjectsParams;
-
-#            self.wsClient.save_objects({'workspace' : 'Phytozome_Genomes', 'objects' : {'type': 'KBaseGenomes.Genome',
-#                                                                                        'data': Genome_Object,
-#                                                                                        'name' : Genome_Name,
-#                                                                                        'meta' : Genome_Meta}})
+            self.dfu.save_objects({'id':Workspace_ID, 'objects' : [ {'type': 'KBaseGenomes.Genome', 'data': Genome_Object,
+                                                                     'meta' : Genome_Meta, 'name' : Genome_Name} ]})
