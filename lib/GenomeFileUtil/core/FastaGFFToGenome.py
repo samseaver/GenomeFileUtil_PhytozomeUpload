@@ -608,7 +608,12 @@ class FastaGFFToGenome:
 
         #Write modified feature ids to new file
         input_gff_file = input_gff_file.replace("gene", "edited_gene")+".gz"
-        gff_file_handle = gzip.open(input_gff_file, 'wb')
+        try:
+            print "Printing to new file: "+input_gff_file
+            gff_file_handle = gzip.open(input_gff_file, 'wb')
+        except:
+            print "Failed to open"
+
         for contig in sorted(feature_list.iterkeys()):
             for ftr in feature_list[contig]:
 
@@ -639,7 +644,7 @@ class FastaGFFToGenome:
                 new_line = "\t".join( str(ftr[key]) for key in ['contig', 'source', 'type', 'start', 'end',
                                                                 'score', 'strand', 'phase', 'attributes'])
                 gff_file_handle.write(new_line)
-            gff_file_handle.close()
+        gff_file_handle.close()
         return
 
     def _retrieve_genome_feature_list(self, feature_list, feature_hierarchy, assembly):
@@ -696,7 +701,16 @@ class FastaGFFToGenome:
                     if(len(mRNA['cdss'])==0):
                         continue
 
-                    protein_sequence = self._cds_aggregation_translation(mRNA["cdss"],feature_list[contig],assembly,genome_translation_issues)
+                    locations_array,protein_sequence = self._cds_aggregation_translation(mRNA["cdss"],feature_list[contig],assembly,genome_translation_issues)
+
+                    #Add array of locations of introns
+                    mRNA_ftr["location"] = locations_array
+
+                    #Remove asterix representing stop codon if present
+                    if(len(protein_sequence)>0 and protein_sequence[-1] == '*'):
+                        protein_sequence = protein_sequence[:-1]
+
+                    #Save longest sequence
                     if(len(protein_sequence) > longest_protein_length):
                         longest_protein_length = len(protein_sequence)
                         longest_protein_sequence = protein_sequence
@@ -789,6 +803,12 @@ class FastaGFFToGenome:
         new_ftr["location"] = [[old_ftr["contig"], old_ftr["start"], 
                                 old_ftr["strand"], len(dna_sequence)]]
         new_ftr["type"]=old_ftr["type"]
+
+        new_ftr["aliases"]=list()
+        for key in ("transcriptId", "proteinId", "PACid", "pacid"):
+            if(key in old_ftr.keys()):
+                new_ftr["aliases"].append(old_ftr[key])
+
         return new_ftr
 
     def _cds_aggregation_translation(self, cds_list, feature_list, assembly, issues):
@@ -845,4 +865,4 @@ class FastaGFFToGenome:
         except CodonTable.TranslationError as te:
             log("TranslationError for: "+feature_object["id"], phases, exons, " : "+str(te))
 
-        return str(protein_sequence).upper()
+        return locations,str(protein_sequence).upper()
