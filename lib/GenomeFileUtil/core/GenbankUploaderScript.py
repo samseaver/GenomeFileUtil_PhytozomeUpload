@@ -1134,6 +1134,8 @@ def _process_metadata(contig_pos,
             accession = metadata_line[12:].split(' ', 1)[0]
             break
     # TODO: raise an error if accession is not set
+    if accession == "unknown":
+        accession = None
 
     #LOCUS line parsing
     locus_line_info = metadata_lines[0].split()
