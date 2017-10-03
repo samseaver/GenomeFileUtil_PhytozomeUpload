@@ -353,6 +353,10 @@ class Application(object):
                              name='GenomeFileUtil.fasta_gff_to_genome',
                              types=[dict])
         self.method_authentication['GenomeFileUtil.fasta_gff_to_genome'] = 'required'  # noqa
+        self.rpc_service.add(impl_GenomeFileUtil.save_one_genome,
+                             name='GenomeFileUtil.save_one_genome',
+                             types=[dict])
+        self.method_authentication['GenomeFileUtil.save_one_genome'] = 'required'  # noqa
         self.rpc_service.add(impl_GenomeFileUtil.status,
                              name='GenomeFileUtil.status',
                              types=[dict])
