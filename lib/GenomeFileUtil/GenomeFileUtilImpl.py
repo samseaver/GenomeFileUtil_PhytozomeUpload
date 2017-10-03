@@ -521,7 +521,6 @@ class GenomeFileUtil:
         #BEGIN save_one_genome
 
         genome_interface = GenomeInterface(self.cfg)
-        # returnVal = genome_interface.save_one_genome(ctx, params)
         returnVal = genome_interface.save_one_genome(params)
         #END save_one_genome
 
