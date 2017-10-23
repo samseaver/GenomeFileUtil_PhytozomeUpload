@@ -246,6 +246,23 @@ public class GenomeFileUtilClient {
         return res.get(0);
     }
 
+    /**
+     * <p>Original spec-file function name: save_one_genome</p>
+     * <pre>
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.genomefileutil.SaveOneGenomeParams SaveOneGenomeParams}
+     * @return   parameter "returnVal" of type {@link us.kbase.genomefileutil.SaveGenomeResult SaveGenomeResult}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public SaveGenomeResult saveOneGenome(SaveOneGenomeParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<SaveGenomeResult>> retType = new TypeReference<List<SaveGenomeResult>>() {};
+        List<SaveGenomeResult> res = caller.jsonrpcCall("GenomeFileUtil.save_one_genome", args, retType, true, true, jsonRpcContext, this.serviceVersion);
+        return res.get(0);
+    }
+
     public Map<String, Object> status(RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         TypeReference<List<Map<String, Object>>> retType = new TypeReference<List<Map<String, Object>>>() {};
