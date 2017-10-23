@@ -26,14 +26,13 @@ except:
     from StringIO import StringIO
 
 # 3rd party imports
-import simplejson
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC, generic_dna
 
 # KBase imports
 import biokbase.Transform.script_utils as script_utils
 import biokbase.Transform.TextFileDecoder as TextFileDecoder
-import biokbase.workspace.client 
+from Workspace.WorkspaceClient import Workspace
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from KBaseReport.KBaseReportClient import KBaseReport
 #from doekbase.data_api.annotation.genome_annotation.api import GenomeAnnotationAPI, GenomeAnnotationClientAPI
@@ -111,7 +110,7 @@ def upload_genome(shock_service_url=None,
     logger.info("SHOCK URL : " + str(shock_service_url))
     logger.info("CALLBACK URL : " + str(callback_url))
 
-    ws_client = biokbase.workspace.client.Workspace(workspace_service_url)
+    ws_client = Workspace(workspace_service_url)
     workspace_object = ws_client.get_workspace_info({'workspace':workspace_name}) 
     workspace_name = workspace_object[1] 
     taxon_workspace_object = ws_client.get_workspace_info({'workspace':taxon_wsname}) 

@@ -2,16 +2,12 @@
 import os
 import sys
 import shutil
-import traceback
 import uuid
 import urllib2
 
 from urlparse import urlparse
-from pprint import pprint, pformat
 
-from biokbase.workspace.client import Workspace
 from DataFileUtil.DataFileUtilClient import DataFileUtil
-
 from GenomeFileUtil.core.GenbankUploaderScript import upload_genome
 
 class GenbankToGenome:

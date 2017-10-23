@@ -2,7 +2,6 @@
 import os
 import time
 
-from biokbase.workspace.client import Workspace
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 
 from GenomeAnnotationAPI.GenomeAnnotationAPIClient import GenomeAnnotationAPI

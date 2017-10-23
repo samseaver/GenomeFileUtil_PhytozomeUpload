@@ -12,7 +12,7 @@ except:
 
 from pprint import pprint
 
-from biokbase.workspace.client import Workspace as workspaceService
+from Workspace.WorkspaceClient import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 

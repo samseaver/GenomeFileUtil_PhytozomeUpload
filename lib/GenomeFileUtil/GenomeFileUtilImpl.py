@@ -2,12 +2,9 @@
 #BEGIN_HEADER
 
 import os
-import sys
 import shutil
-import traceback
-import uuid
 import json
-from pprint import pprint, pformat
+from pprint import pprint
 
 from GenomeFileUtil.core.GenbankToGenome import GenbankToGenome
 from GenomeFileUtil.core.GenomeToGFF import GenomeToGFF
@@ -15,8 +12,7 @@ from GenomeFileUtil.core.GenomeToGenbank import GenomeToGenbank
 from GenomeFileUtil.core.FastaGFFToGenome import FastaGFFToGenome
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
 
-from biokbase.workspace.client import Workspace
-
+from Workspace.WorkspaceClient import Workspace
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 
 # Used to store and pass around configuration URLs more easily

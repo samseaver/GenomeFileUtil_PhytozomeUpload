@@ -17,7 +17,7 @@ except:
 
 from pprint import pprint  # noqa: F401
 
-from biokbase.workspace.client import Workspace as workspaceService
+from Workspace.WorkspaceClient import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import SDKConfig
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
