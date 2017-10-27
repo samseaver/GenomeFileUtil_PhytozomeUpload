@@ -22,7 +22,6 @@ from Bio.Data import CodonTable
 
 codon_table = CodonTable.ambiguous_generic_by_name["Standard"]
 
-
 def log(message, prefix_newline=False):
     """Logging function, provides a hook to suppress or redirect log messages."""
     print(('\n' if prefix_newline else '') + '{0:.2f}'.format(time.time()) + ': ' + str(message))
@@ -392,11 +391,6 @@ class FastaGFFToGenome:
                 (contig_id, source_id, feature_type, start, end,
                  score, strand, phase, attributes) = current_line.split('\t')
 
-                #Only allow certain types for the time being
-                if("RNA" not in feature_type and "CDS" not in feature_type and "gene" not in feature_type):
-                    current_line = gff_file_handle.readline()
-                    continue
-
                 #Checking to see if Phytozome
                 if("phytozome" in source_id or "Phytozome" in source_id):
                     is_phytozome=1
@@ -477,11 +471,16 @@ class FastaGFFToGenome:
                             break
 
                     #If the process fails, throw an error
-                    if("ID" not in feature_list[contig][i]):
-                        log("Error, cannot find unique ID to utilize in GFF attributes: "+ \
-                                feature_list[contig][i]['contig']+ \
-                                feature_list[contig][i]['source']+ \
-                                feature_list[contig][i]['attributes'])
+                    for ftr_type in ("gene", "mRNA", "CDS"):
+                        if(ftr_type not in feature_list[contig][i]):
+                            continue
+
+                        if("ID" not in feature_list[contig][i]):
+                            log("Error: Cannot find unique ID to utilize in GFF attributes: "+ \
+                                    feature_list[contig][i]['contig']+"."+ \
+                                    feature_list[contig][i]['source']+"."+ \
+                                    feature_list[contig][i]['type']+": "+ \
+                                    feature_list[contig][i]['attributes'])
         return feature_list
 
     def _generate_feature_hierarchy(self,feature_list):
@@ -490,21 +489,26 @@ class FastaGFFToGenome:
 
         #Need to remember mRNA/gene links for CDSs
         mRNA_gene_dict = {}
-        mRNA_position_dict = {}
+        exon_list_position_dict = {}
 
         for contig in feature_list:
             for i in range(len(feature_list[contig])):
                 ftr = feature_list[contig][i]
             
                 if("gene" in ftr["type"]):
-                    feature_hierarchy[contig][ftr["ID"]]={"mrnas":[],"cdss":[],"index":i}
+                    feature_hierarchy[contig][ftr["ID"]]={"utrs":[], "mrnas":[], "cdss":[], "index":i}
+
+                if("UTR" in ftr["type"]):
+                    feature_hierarchy[contig][mRNA_gene_dict[ftr["Parent"]]]["utrs"].append( { "id" : ftr["ID"], "index" : i } )
 
                 if("RNA" in ftr["type"]):
                     feature_hierarchy[contig][ftr["Parent"]]["mrnas"].append( { "id" : ftr["ID"], "index" : i, "cdss" : [] } )
                     mRNA_gene_dict[ftr["ID"]]=ftr["Parent"]
-                    mRNA_position_dict[ftr["ID"]]=len(feature_hierarchy[contig][ftr["Parent"]]["mrnas"])-1
+                    exon_list_position_dict[ftr["ID"]]=len(feature_hierarchy[contig][ftr["Parent"]]["mrnas"])-1
+
                 if("CDS" in ftr["type"]):
-                    feature_hierarchy[contig][mRNA_gene_dict[ftr["Parent"]]]["mrnas"][mRNA_position_dict[ftr["Parent"]]]["cdss"].append( { "id": ftr["ID"], "index" : i } )
+                    feature_hierarchy[contig][mRNA_gene_dict[ftr["Parent"]]]["mrnas"]\
+                        [exon_list_position_dict[ftr["Parent"]]]["cdss"].append( { "id": ftr["ID"], "index" : i } )
                                                                                       
         return feature_hierarchy
 
@@ -518,13 +522,13 @@ class FastaGFFToGenome:
                 if("Parent" not in ftrs[i]):
                     #Assuming parent doesn't exist at all, so create de novo instead of trying to find it
                     if("RNA" in ftrs[i]["type"] or "CDS" in ftrs[i]["type"]):
-                        new_gene_ftr = copy.copy(ftrs[i])
+                        new_gene_ftr = copy.deepcopy(ftrs[i])
                         new_gene_ftr["type"] = "gene"
                         ftrs[i]["Parent"]=new_gene_ftr["ID"]
                         new_ftrs.append(new_gene_ftr)
 
                     if("CDS" in ftrs[i]["type"]):
-                        new_rna_ftr = copy.copy(ftrs[i])
+                        new_rna_ftr = copy.deepcopy(ftrs[i])
                         new_rna_ftr["type"] = "mRNA"
                         new_ftrs.append(new_rna_ftr)
                         ftrs[i]["Parent"]=new_rna_ftr["ID"]
@@ -550,7 +554,8 @@ class FastaGFFToGenome:
                         break
                 if(old_id is None):
                     #This should be an error
-                    print ("Cannot find unique ID, PACid, or pacid in GFF attributes: "+feature_list[contig][i][contig],feature_list[contig][i][source],feature_list[contig][i][attributes])
+                    print ("Cannot find unique ID, PACid, or pacid in GFF attributes: ",\
+                               feature_list[contig][i][contig],feature_list[contig][i][source],feature_list[contig][i][attributes])
                     continue
 
                 #Retain old_id
@@ -662,7 +667,7 @@ class FastaGFFToGenome:
 
                 ftr = feature_list[contig][feature_hierarchy[contig][gene]["index"]]
                 contig_sequence = assembly["contigs"][ftr["contig"]]["sequence"]
-                gene_ftr = self._convert_ftr_object(ftr, contig_sequence)
+                gene_ftr = self._convert_ftr_object(ftr, contig_sequence) #reverse-complementation for negative strands done here
 
                 #Add non-optional terms
                 gene_ftr["mrnas"] = list()
@@ -673,9 +678,13 @@ class FastaGFFToGenome:
                 longest_protein_length = 0
                 longest_protein_sequence = ""
                 for mRNA in feature_hierarchy[contig][gene]["mrnas"]:
+
+                    ########################################################
+                    # Construct mRNA Ftr
+                    ########################################################
                     ftr = feature_list[contig][mRNA["index"]]
                     contig_sequence = assembly["contigs"][ftr["contig"]]["sequence"]
-                    mRNA_ftr = self._convert_ftr_object(ftr, contig_sequence)
+                    mRNA_ftr = self._convert_ftr_object(ftr, contig_sequence) #reverse-complementation for negative strands done here
 
                     #Modify mrna object for use in mrna array
                     #Objects will be un-used until further notice
@@ -687,24 +696,44 @@ class FastaGFFToGenome:
                     else:
                         mRNA_ftr['cds'] = ""
 
-                    #Remove DNA
-                    del mRNA_ftr["dna_sequence"]
-                    del mRNA_ftr["dna_sequence_length"]
-
                     #Add to mrnas array
                     genome_mrnas_list.append(mRNA_ftr)
 
                     #Add ids to gene_ftr arrays
                     gene_ftr["mrnas"].append(mRNA_ftr["id"])
 
-                    #Checks to see if there's any CDS first, possible there isn't
-                    if(len(mRNA['cdss'])==0):
+                    ########################################################
+                    # Construct transcript, protein sequence, UTR, CDS locations
+                    ########################################################
+
+                    #At time of writing, all of this aggregation should probably be done in a single function
+                    (cds_exons_locations_array, cds_cdna_sequence, protein_sequence) = \
+                    self._cds_aggregation_translation(mRNA["cdss"],feature_list[contig],assembly,genome_translation_issues)
+                    
+                    UTRs=list()
+                    if("utrs" in feature_hierarchy[contig][gene] and len(feature_hierarchy[contig][gene]["utrs"])>0):
+                        for UTR in feature_hierarchy[contig][gene]["utrs"]:
+                            ftr = feature_list[contig][UTR["index"]]
+                            if("Parent" in ftr and ftr["Parent"] == mRNA_ftr["id"]):
+                                UTRs.append(ftr)
+
+                    mrna_exons_locations_array = copy.deepcopy(cds_exons_locations_array)
+                    if(len(UTRs)>0):
+                        (mrna_exons_locations_array,mrna_transcript_sequence) = self._utr_aggregation(UTRs,assembly,mrna_exons_locations_array,cds_cdna_sequence)
+
+                    #Update sequence and locations
+                    mRNA_ftr["dna_sequence"]=mrna_transcript_sequence
+                    mRNA_ftr["dna_sequence_length"]=len(mrna_transcript_sequence)
+                    mRNA_ftr["location"]=mrna_exons_locations_array
+                    mRNA_ftr["md5"] = hashlib.md5(mRNA_ftr["dna_sequence"]).hexdigest()
+
+                    #Remove DNA
+                    del mRNA_ftr["dna_sequence"]
+                    del mRNA_ftr["dna_sequence_length"]
+
+                    #Skip CDS if not present
+                    if(len(mRNA["cdss"])==0):
                         continue
-
-                    locations_array,protein_sequence = self._cds_aggregation_translation(mRNA["cdss"],feature_list[contig],assembly,genome_translation_issues)
-
-                    #Add array of locations of introns
-                    mRNA_ftr["location"] = locations_array
 
                     #Remove asterix representing stop codon if present
                     if(len(protein_sequence)>0 and protein_sequence[-1] == '*'):
@@ -715,21 +744,30 @@ class FastaGFFToGenome:
                         longest_protein_length = len(protein_sequence)
                         longest_protein_sequence = protein_sequence
 
-                    #Modify mrna object for use in cds array
-                    #Objects will be un-used until further notice
-                    CDS_ftr = copy.deepcopy(mRNA_ftr)
+                    ########################################################
+                    # Construct CDS Ftr
+                    ########################################################
+                    CDS_ftr = dict()
+                    CDS_ftr['type']='CDS'
 
                     #New CDS ID without incrementation as they were aggregated
                     CDS_ftr['id'] = mRNA_ftr['id']+'.CDS'
 
-                    #Remove CDS link and add mrna link
-                    del CDS_ftr['cds']
+                    #Add gene/mrna links
+                    CDS_ftr['parent_gene']=gene_ftr['id']
                     CDS_ftr['parent_mrna']=mRNA_ftr['id']
+
+                    #Update sequence and locations
+                    CDS_ftr["dna_sequence"]=cds_cdna_sequence
+                    CDS_ftr["dna_sequence_length"]=len(cds_cdna_sequence)
+                    CDS_ftr["location"]=cds_exons_locations_array
+                    CDS_ftr["md5"] = hashlib.md5(CDS_ftr["dna_sequence"]).hexdigest()
 
                     #Add protein
                     CDS_ftr["protein_translation"] = str(protein_sequence).upper()
                     CDS_ftr["protein_translation_length"] = len(CDS_ftr["protein_translation"])
-                    CDS_ftr["md5"] = hashlib.md5(CDS_ftr["protein_translation"]).hexdigest()
+                    #Only generate md5 for dna sequences
+                    #CDS_ftr["md5"] = hashlib.md5(CDS_ftr["protein_translation"]).hexdigest()
 
                     #Add empty non-optional fields for populating in future
                     CDS_ftr["ontology_terms"] = dict()
@@ -795,7 +833,9 @@ class FastaGFFToGenome:
         # reverse complement
         if(old_ftr["strand"] == "-"):
             dna_sequence = dna_sequence.reverse_complement()
+            old_start = old_ftr["start"]
             old_ftr["start"] = old_ftr["end"]
+            old_ftr["end"]=old_start
 
         new_ftr["dna_sequence"] = str(dna_sequence).upper()
         new_ftr["dna_sequence_length"] = len(dna_sequence)
@@ -807,9 +847,75 @@ class FastaGFFToGenome:
         new_ftr["aliases"]=list()
         for key in ("transcriptId", "proteinId", "PACid", "pacid"):
             if(key in old_ftr.keys()):
-                new_ftr["aliases"].append(old_ftr[key])
+                new_ftr["aliases"].append(key+":"+old_ftr[key])
 
         return new_ftr
+
+    def _utr_aggregation(self, utr_list, assembly, exons, exon_sequence):
+
+        #create copies of locations and transcript
+        utrs_exons = list(exons)
+        utr_exon_sequence = exon_sequence
+
+        five_prime_dna_sequence = ""
+        three_prime_dna_sequence = ""
+        five_prime_locations = list()
+        three_prime_locations = list()
+
+        for UTR in (utr_list):
+            Parent_mRNA=UTR["Parent"]
+
+            contig_sequence = assembly["contigs"][UTR["contig"]]["sequence"]
+            UTR_ftr = self._convert_ftr_object(UTR, contig_sequence)  #reverse-complementation for negative strands done here
+
+            #aggregate sequences and locations
+            if("five_prime" in UTR_ftr["id"]):
+                five_prime_dna_sequence += UTR_ftr["dna_sequence"]
+                five_prime_locations.append(UTR_ftr["location"][0])
+            if("three_prime" in UTR_ftr["id"]):
+                three_prime_dna_sequence += UTR_ftr["dna_sequence"]
+                three_prime_locations.append(UTR_ftr["location"][0])
+
+        #Handle five_prime UTRs
+        if(len(five_prime_locations)>0):
+
+            #Sort UTRs by "start" (reverse-complement UTRs in Phytozome appear to be incorrectly ordered in the GFF file
+            five_prime_locations = sorted(five_prime_locations, key=lambda x: x[1])
+
+            #Merge last UTR with CDS if "next" to each other
+            if(five_prime_locations[-1][1]+five_prime_locations[-1][3] == utrs_exons[0][1]):
+                utrs_exons[0][1]=five_prime_locations[-1][1]
+                utrs_exons[0][3]+=five_prime_locations[-1][3]
+
+                #remove last UTR
+                five_prime_locations = five_prime_locations[:-1]
+                        
+            #Prepend other UTRs if available
+            if(len(five_prime_locations)>0):
+                utrs_exons = five_prime_locations + utrs_exons
+
+        utr_exon_sequence = five_prime_dna_sequence+utr_exon_sequence
+
+        #Handle three_prime UTRs
+        if(len(three_prime_locations)>0):
+
+            #Sort UTRs by "start" (reverse-complement UTRs in Phytozome appear to be incorrectly ordered in the GFF file
+            three_prime_locations = sorted(three_prime_locations, key=lambda x: x[1])
+
+            #Merge first UTR with CDS if "next to each other
+            if(utrs_exons[-1][1]+utrs_exons[-1][3] == three_prime_locations[0][1]):
+                utrs_exons[0][3]+=three_prime_locations[0][3]
+
+                #remove last UTR
+                three_prime_locations = three_prime_locations[1:]
+
+        #Append other UTRs if available
+        if(len(three_prime_locations)>0):
+            utrs_exons = utrs_exons + three_prime_locations
+
+        utr_exon_sequence += three_prime_dna_sequence
+
+        return (utrs_exons, utr_exon_sequence)
 
     def _cds_aggregation_translation(self, cds_list, feature_list, assembly, issues):
 
@@ -829,7 +935,7 @@ class FastaGFFToGenome:
             Parent_mRNA=ftr["Parent"]
 
             contig_sequence = assembly["contigs"][ftr["contig"]]["sequence"]
-            CDS_ftr = self._convert_ftr_object(ftr, contig_sequence)
+            CDS_ftr = self._convert_ftr_object(ftr, contig_sequence) #reverse-complementation for negative strands done here
             exons.append(len(CDS_ftr["dna_sequence"]))
 
             # Remove base(s) according to phase, but only for first CDS
@@ -865,4 +971,4 @@ class FastaGFFToGenome:
         except CodonTable.TranslationError as te:
             log("TranslationError for: "+feature_object["id"], phases, exons, " : "+str(te))
 
-        return locations,str(protein_sequence).upper()
+        return (locations,dna_sequence.upper(),str(protein_sequence).upper())
