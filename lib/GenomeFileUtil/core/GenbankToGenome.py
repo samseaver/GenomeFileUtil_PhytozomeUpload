@@ -29,6 +29,7 @@ class GenbankToGenome:
         self.dfu = DataFileUtil(config.callbackURL)
         self.aUtil = AssemblyUtil(config.callbackURL)
         self.report_client = KBaseReport(config.callbackURL)
+        self._messages = []
         self.default_params = {
             'source': 'Genbank',
             'taxon_wsname': self.cfg.raw['taxon-workspace-name'],
@@ -46,6 +47,14 @@ class GenbankToGenome:
             'type': 'User upload',
             'metadata': {}
         }
+
+    def log(self, message):
+        self._messages.append(message)
+        print message
+
+    @property
+    def messages(self):
+        return "\n".join(self._messages)
 
     def import_file(self, ctx, params):
 
@@ -138,22 +147,23 @@ class GenbankToGenome:
         params = self.default_params
 
         # 4) Do the upload
-        files = _find_input_files(input_directory)
+        files = self._find_input_files(input_directory)
         if len(files) > 1:
             raise ValueError("Currently only able to parse files one at a time")
-        genome, message = self.parse_genbank(files[0], params)
-        print genome
+        genome = self.parse_genbank(files[0], params)
+        #print genome
         result = self.gi.save_one_genome({
             'workspace': params['workspace_name'],
             'name': params['genome_name'],
             'data': genome})
         ref = "{}/{}/{}".format(result['info'][6], result['info'][0],
                                 result['info'][4])
+        self.log("Genome saved to {}".format(ref))
 
         # 5) Generate Report
         reportObj = {'objects_created': [
             {'ref': ref, 'description': 'KBase Genome object'}],
-                     'text_message': message}
+                     'text_message': self.messages}
         report_info = self.report_client.create({
             'report': reportObj,
             'workspace_name': params['workspace_name']
@@ -165,7 +175,7 @@ class GenbankToGenome:
         # 7) return the result
         info = result['info']
         details = {
-            'genome_ref': str(info[6]) + '/' + str(info[0]) + '/' + str(info[4]),
+            'genome_ref': ref,
             'genome_info': info,
             'report_name': report_info['name'],
             'report_ref': report_info['ref']
@@ -303,7 +313,7 @@ class GenbankToGenome:
         for record in contigs:
             genome['contig_ids'].append(record.id)
             genome['contig_lengths'].append(len(record))
-            for k, v in _parse_features(record).items():
+            for k, v in self._parse_features(record).items():
                 genome[k].extend(v)
 
             if "source_id" in genome:
@@ -315,9 +325,9 @@ class GenbankToGenome:
                 genome['scientific_name'])
             genome['domain'] = genome['taxonomy'].split("; ")[1]
             genome['notes'] = record.annotations.get('comment', "")
-            genome["genome_publications"] = _get_pubs(record)
+            genome["genome_publications"] = self._get_pubs(record)
         genome['num_contigs'] = len(genome['contig_ids'])
-        return genome, ""
+        return genome
 
     def _save_assembly(self, contigs, params):
         print("Saving sequence as Assembly object")
@@ -331,208 +341,207 @@ class GenbankToGenome:
             {'file': {'path': fasta_file},
              'workspace_name': params['workspace_name'],
              'assembly_name': assembly_id})
-        print("Assembly saved to {}".format(assembly_ref))
+        self.log("Assembly saved to {}".format(assembly_ref))
         return assembly_ref
 
+    def _find_input_files(self, input_directory):
+        print("Scanning for Genbank Format files.")
+        valid_extensions = [".gbff", ".gbk", ".gb", ".genbank", ".dat", ".gbf"]
 
-def _find_input_files(input_directory):
-    print("Scanning for Genbank Format files.")
-    valid_extensions = [".gbff", ".gbk", ".gb", ".genbank", ".dat", ".gbf"]
+        files = os.listdir(os.path.abspath(input_directory))
+        self.log("Genbank Files : " + ", ".join(files))
+        genbank_files = [x for x in files if
+                         os.path.splitext(x)[-1] in valid_extensions]
 
-    files = os.listdir(os.path.abspath(input_directory))
-    print("FILES : " + str(files))
-    genbank_files = [x for x in files if
-                     os.path.splitext(x)[-1] in valid_extensions]
+        if len(genbank_files) == 0:
+            raise Exception(
+                "The input directory does not have any files with one of the "
+                "following extensions %s." % (",".join(valid_extensions)))
 
-    if len(genbank_files) == 0:
-        raise Exception(
-            "The input directory does not have one of the following extensions %s." % (
-            ",".join(valid_extensions)))
+        self.log("Found {} genbank files".format(len(genbank_files)))
 
-    print("Found {0}".format(str(genbank_files)))
+        input_files = []
+        for genbank_file in genbank_files:
+            input_files.append(os.path.join(input_directory, genbank_file))
 
-    input_files = []
-    for genbank_file in genbank_files:
-        input_files.append(os.path.join(input_directory, genbank_file))
+        return input_files
 
-    return input_files
-
-
-def _get_pubs(record):
-    pub_list = []
-    for in_pub in record.annotations.get('references', []):
-        out_pub = [
-            0,  # pmid
-            "",  # source
-            in_pub.title,
-            "",  # web address
-            "",  # date
-            in_pub.authors,
-            in_pub.journal,
-        ]
-        date_match = re.match("\((\d{4})\)", in_pub.journal)
-        if date_match:
-            out_pub[4] = date_match.group(1)
-        if in_pub.pubmed_id:
-            out_pub[0:3] = [
-                in_pub.pubmed_id,
-                "PubMed",
+    def _get_pubs(self, record):
+        pub_list = []
+        for in_pub in record.annotations.get('references', []):
+            out_pub = [
+                0,  # pmid
+                "",  # source
                 in_pub.title,
-                "http://www.ncbi.nlm.nih.gov/pubmed/{}".format(
-                    in_pub.pubmed_id)]
-        pub_list.append(out_pub)
-    return pub_list
+                "",  # web address
+                "",  # date
+                in_pub.authors,
+                in_pub.journal,
+            ]
+            date_match = re.match("\((\d{4})\)", in_pub.journal)
+            if date_match:
+                out_pub[4] = date_match.group(1)
+            if in_pub.pubmed_id:
+                out_pub[0:3] = [
+                    in_pub.pubmed_id,
+                    "PubMed",
+                    in_pub.title,
+                    "http://www.ncbi.nlm.nih.gov/pubmed/{}".format(
+                        in_pub.pubmed_id)]
+            pub_list.append(out_pub)
+        self.log("Parsed {} publication records".format(len(pub_list)))
+        return pub_list
 
+    def _parse_features(self, record):
+        def _location(seq, feat):
+            strand_trans = ("", "+", "-")
+            loc = []
+            for part in feat.location.parts:
+                if part.strand:
+                    begin = int(part.start)
+                else:
+                    begin = int(part.end)
+                loc.append([
+                        seq.id,
+                        begin,
+                        strand_trans[part.strand],
+                        len(part)])
+            return loc
 
-def _parse_features(record):
-    def _location(seq, feat):
-        strand_trans = ("", "+", "-")
-        loc = []
-        for part in feat.location.parts:
-            if part.strand:
-                begin = int(part.start)
-            else:
-                begin = int(part.end)
-            loc.append([
-                    seq.id,
-                    begin,
-                    strand_trans[part.strand],
-                    len(part)])
-        return loc
+        def _aliases(feat):
+            keys = ('locus_tag', 'old_locus_tag', 'db_xref', 'protein_id')
+            aliases = []
+            for k, v in feat.qualifiers.items():
+                if k in keys:
+                    aliases.extend(v)
+            return aliases
 
-    def _aliases(feat):
-        keys = ('locus_tag', 'old_locus_tag', 'db_xref', 'protein_id')
-        aliases = []
-        for k, v in feat.qualifiers.items():
-            if k in keys:
-                aliases.extend(v)
-        return aliases
+        def _is_parent(feat1, feat2):
+            def _contains(loc1, loc2):
+                if loc1[2] != loc2[2]:  # different strands
+                    return False
+                elif loc1[2] == "+":
+                    return loc2[1] >= loc1[1] and (
+                    loc2[1] + loc2[3] <= loc1[1] + loc1[3])
+                else:
+                    return loc2[1] <= loc1[1] and (
+                    loc2[1] - loc2[3] >= loc1[1] - loc1[3])
 
-    def _is_parent(feat1, feat2):
-        def _contains(loc1, loc2):
-            if loc1[2] != loc2[2]:  # different strands
-                return False
-            elif loc1[2] == "+":
-                return loc2[1] >= loc1[1] and (
-                loc2[1] + loc2[3] <= loc1[1] + loc1[3])
-            else:
-                return loc2[1] <= loc1[1] and (
-                loc2[1] - loc2[3] >= loc1[1] - loc1[3])
+            # if any location in the CDS in contained by any location of the gene
+            return any([_contains(x, y) for x, y in
+                        itertools.product(feat1['location'], feat2['location'])])
 
-        # if any location in the CDS in contained by any location of the gene
-        return any([_contains(x, y) for x, y in
-                    itertools.product(feat1['location'], feat2['location'])])
+        def _propagate_cds_props_to_gene(cds, gene):
+            # Check gene function
+            if "function" not in gene or gene["function"] is None or len(
+                    gene["function"]) == 0:
+                gene["function"] = cds.get("function", "")
+            # Put longest protein_translation to gene
+            if "protein_translation" not in gene or (
+                len(gene["protein_translation"]) <
+                len(cds["protein_translation"])):
+                gene["protein_translation"] = cds["protein_translation"]
+                gene["protein_translation_length"] = len(
+                    cds["protein_translation"])
+            # Merge cds["aliases"] -> gene["aliases"]
+            gene["aliases"] = list(set(cds['aliases']+gene['aliases']))
+            # Merge cds["ontology_terms"] -> gene["ontology_terms"]
+            terms2 = cds.get("ontology_terms")
+            if terms2 is not None:
+                terms = gene.get("ontology_terms")
+                if terms is None:
+                    gene["ontology_terms"] = terms2
+                else:
+                    for source in terms2:
+                        if source in terms:
+                            terms[source].update(terms2[source])
+                        else:
+                            terms[source] = terms2[source]
 
-    def _propagate_cds_props_to_gene(cds, gene):
-        # Check gene function
-        if "function" not in gene or gene["function"] is None or len(
-                gene["function"]) == 0:
-            gene["function"] = cds.get("function", "")
-        # Put longest protein_translation to gene
-        if "protein_translation" not in gene or (
-            len(gene["protein_translation"]) <
-            len(cds["protein_translation"])):
-            gene["protein_translation"] = cds["protein_translation"]
-            gene["protein_translation_length"] = len(
-                cds["protein_translation"])
-        # Merge cds["aliases"] -> gene["aliases"]
-        gene["aliases"] = list(set(cds['aliases']+gene['aliases']))
-        # Merge cds["ontology_terms"] -> gene["ontology_terms"]
-        terms2 = cds.get("ontology_terms")
-        if terms2 is not None:
-            terms = gene.get("ontology_terms")
-            if terms is None:
-                gene["ontology_terms"] = terms2
-            else:
-                for source in terms2:
-                    if source in terms:
-                        terms[source].update(terms2[source])
-                    else:
-                        terms[source] = terms2[source]
-
-    skiped_features = Counter()
-    excluded_features = ('source',)
-    genes, cds, mrna = [], [], []
-    for in_feature in record.features:
-        if in_feature.type in excluded_features:
-            continue
-        feat_seq = in_feature.extract(record)
-        if in_feature.type == 'CDS':
-            out_feature = {
-                "id": "CDS_{}".format(len(cds)+1),
-                "type": 'CDS',
-                'aliases': _aliases(in_feature),
-                "location": _location(feat_seq, in_feature),
-                "dna_sequence": str(feat_seq.seq),
-                "dna_sequence_length": len(feat_seq),
-                "function": in_feature.qualifiers.get("product", [""])[0],
-                "note": in_feature.qualifiers.get("note", ""),
-                "protein_translation": in_feature.qualifiers.get(
-                    "translation", [""])[0],
-                "md5": hashlib.md5(str(feat_seq)).hexdigest(),
-                "parent_mrna": "",
-                "ontology_terms": {},
-            }
-            out_feature['protein_translation_length'] = len(
-                out_feature['protein_translation'])
-            # TODO: parent_mrna & ontology_terms;
-
-            # we start by assuming sorted order for genes and cdss
-            if not genes:
-                print("WARNING: {} has no genes".format(out_feature['id']))
+        skiped_features = Counter()
+        excluded_features = ('source', 'exon')
+        genes, cdss, mrnas = [], [], []
+        for in_feature in record.features:
+            if in_feature.type in excluded_features:
                 continue
-            if _is_parent(genes[-1], out_feature):
-                genes[-1]['cdss'].append(out_feature['id'])
-                _propagate_cds_props_to_gene(out_feature, genes[-1])
-                out_feature['parent_gene'] = genes[-1]['id']
-            cds.append(out_feature)
+            feat_seq = in_feature.extract(record)
+            if in_feature.type == 'CDS':
+                out_feature = {
+                    "id": "CDS_{}".format(len(cdss)),
+                    "type": 'CDS',
+                    'aliases': _aliases(in_feature),
+                    "location": _location(feat_seq, in_feature),
+                    "dna_sequence": str(feat_seq.seq),
+                    "dna_sequence_length": len(feat_seq),
+                    "function": in_feature.qualifiers.get("product", [""])[0],
+                    "note": in_feature.qualifiers.get("note", ""),
+                    "protein_translation": in_feature.qualifiers.get(
+                        "translation", [""])[0],
+                    "md5": hashlib.md5(str(feat_seq)).hexdigest(),
+                    "parent_mrna": "",
+                    "ontology_terms": {},
+                }
+                out_feature['protein_translation_length'] = len(
+                    out_feature['protein_translation'])
+                # TODO: parent_mrna & ontology_terms;
 
-        elif in_feature.type == 'gene':
-            out_feature = {
-                "id": "GENE_{}".format(len(genes) + 1),
-                "type": 'gene',
-                'aliases': _aliases(in_feature),
-                "location": _location(feat_seq, in_feature),
-                "dna_sequence": str(feat_seq.seq),
-                "dna_sequence_length": len(feat_seq),
-                "function": in_feature.qualifiers.get("product", [""])[0],
-                "note": in_feature.qualifiers.get("note", ""),
-                "protein_translation": "",
-                "protein_translation_length": 0,
-                "md5": hashlib.md5(str(feat_seq)).hexdigest(),
-                "mrnas": [],
-                'cdss': [],
-            }
-            genes.append(out_feature)
+                # we start by assuming sorted order for genes and cdss
+                if not genes:
+                    print("WARNING: {} has no genes".format(out_feature['id']))
+                    continue
+                if _is_parent(genes[-1], out_feature):
+                    genes[-1]['cdss'].append(out_feature['id'])
+                    _propagate_cds_props_to_gene(out_feature, genes[-1])
+                    out_feature['parent_gene'] = genes[-1]['id']
+                cdss.append(out_feature)
 
-        elif in_feature.type == 'mRNA':
-            out_feature = {
-                "id": "RNA_{}".format(len(genes) + 1),
-                "location": _location(feat_seq, in_feature),
-                "md5": hashlib.md5(str(feat_seq)).hexdigest(),
-                "parent_gene": "",
-                "cds": "",
-            }
-            # TODO: assign cdss
-            if not genes:
-                print("WARNING: {} has no genes".format(out_feature['id']))
-                continue
-            if _is_parent(genes[-1], out_feature):
-                genes[-1]['mrnas'].append(out_feature['id'])
-                out_feature['parent_gene'] = genes[-1]['id']
-            mrna.append(out_feature)
+            elif in_feature.type == 'gene':
+                out_feature = {
+                    "id": "GENE_{}".format(len(genes) + 1),
+                    "type": 'gene',
+                    'aliases': _aliases(in_feature),
+                    "location": _location(feat_seq, in_feature),
+                    "dna_sequence": str(feat_seq.seq),
+                    "dna_sequence_length": len(feat_seq),
+                    "function": in_feature.qualifiers.get("product", [""])[0],
+                    "note": in_feature.qualifiers.get("note", ""),
+                    "protein_translation": "",
+                    "protein_translation_length": 0,
+                    "md5": hashlib.md5(str(feat_seq)).hexdigest(),
+                    "mrnas": [],
+                    'cdss': [],
+                }
+                genes.append(out_feature)
 
-        else:
-            skiped_features[in_feature.type] += 1
-    coding, noncoding = [], []
-    for g in genes:
-        if len(g['cdss']):
-            coding.append(g)
-        else:
-            del g['protein_translation'], g['protein_translation_length'], \
-                g['mrnas'], g['cdss']
-            noncoding.append(g)
-    print("Features skipped\n{}".format("\n".join(["{}: {}".format(k, v) for k,v in skiped_features.items()])))
+            elif in_feature.type == 'mRNA':
+                out_feature = {
+                    "id": "RNA_{}".format(len(genes) + 1),
+                    "location": _location(feat_seq, in_feature),
+                    "md5": hashlib.md5(str(feat_seq)).hexdigest(),
+                    "parent_gene": "",
+                    "cds": "",
+                }
+                # TODO: assign cdss
+                if not genes:
+                    print("WARNING: {} has no genes".format(out_feature['id']))
+                    continue
+                if _is_parent(genes[-1], out_feature):
+                    genes[-1]['mrnas'].append(out_feature['id'])
+                    out_feature['parent_gene'] = genes[-1]['id']
+                mrnas.append(out_feature)
 
-    return {'features': coding, 'non_coding_features': noncoding, 'cdss': cds,
-            'mrnas': mrna}
+            else:
+                skiped_features[in_feature.type] += 1
+        coding, noncoding = [], []
+        for g in genes:
+            if len(g['cdss']):
+                coding.append(g)
+            else:
+                del g['protein_translation'], g['protein_translation_length'],\
+                    g['mrnas'], g['cdss']
+                noncoding.append(g)
+        self.log("Features skipped\n{}".format("\n".join([
+            "{}: {}".format(k, v) for k,v in skiped_features.items()])))
+
+        return {'features': coding, 'non_coding_features': noncoding, 'cdss': cdss,
+                'mrnas': mrnas}

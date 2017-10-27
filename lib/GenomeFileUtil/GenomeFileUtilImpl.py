@@ -96,7 +96,7 @@ class GenomeFileUtil:
         pprint(params)
 
         importer = GenbankToGenome(self.cfg)
-        result = importer.import_file(ctx, params)
+        result = importer.refactored_import(ctx, params)
 
         print('import complete -- result = ')
         pprint(result)
