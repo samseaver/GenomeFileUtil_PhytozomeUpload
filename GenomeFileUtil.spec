@@ -1,6 +1,9 @@
 /*
 
 */
+#include <KBaseGenomes.spec>
+#include <workspace.spec>
+
 module GenomeFileUtil {
 
     /* A boolean - 0 for false, 1 for true.
@@ -139,4 +142,18 @@ module GenomeFileUtil {
 
     funcdef fasta_gff_to_genome(FastaGFFToGenomeParams params)
                 returns (GenomeSaveResult returnVal) authentication required;
+
+    typedef structure {
+        string workspace;
+        string name;
+        KBaseGenomes.Genome data;
+        boolean hidden;
+    } SaveOneGenomeParams;
+
+    typedef structure {
+        Workspace.object_info info;
+    } SaveGenomeResult;
+
+    funcdef save_one_genome(SaveOneGenomeParams params)
+                returns (SaveGenomeResult returnVal) authentication required;
 };
