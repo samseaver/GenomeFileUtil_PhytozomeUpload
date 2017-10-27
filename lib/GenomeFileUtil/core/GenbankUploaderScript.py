@@ -972,10 +972,8 @@ def _load_taxonomy_info(ws_client, taxon_wsname, taxon_lookup_obj_name, taxon_re
         genome['domain'] = taxon_info[0]['data']['domain']
 
     genome['taxonomy'] = taxon_info[0]["data"]["scientific_lineage"]
-
+    tax_lineage = genome['taxonomy']
     return [tax_id, tax_lineage, taxon_id]
-
-
 
 def _setup_object_names(core_genome_name, source, tax_id, core_scientific_name):
     time_string = str(datetime.datetime.fromtimestamp(time.time()).strftime('%Y_%m_%d_%H_%M_%S'))
@@ -1136,6 +1134,8 @@ def _process_metadata(contig_pos,
             accession = metadata_line[12:].split(' ', 1)[0]
             break
     # TODO: raise an error if accession is not set
+    if accession == "unknown":
+        accession = None
 
     #LOCUS line parsing
     locus_line_info = metadata_lines[0].split()
@@ -1156,7 +1156,13 @@ def _process_metadata(contig_pos,
     else:
         genbank_metadata_objects[accession]["number_of_basepairs"] = locus_line_info[2]
         if locus_line_info[4].upper() != 'DNA':
-            if (locus_line_info[4].upper() == 'RNA' or 
+            if tax_lineage is None:
+                _log_report(logger, report, 
+                                "Warning: the record molecule type of %s " +
+                                "is not DNA and there is no tax_lineage found " +
+                                "check if it is a virus" % 
+                                (locus_line_info[4]))
+            elif (locus_line_info[4].upper() == 'RNA' or 
                 locus_line_info[4].upper() == 'SS-RNA' or 
                 locus_line_info[4].upper() == 'SS-DNA'):
                 if ((not tax_lineage.lower().startswith("viruses")) and 
