@@ -245,32 +245,18 @@ class GenbankToGenome:
             genbank_file_path = os.path.join(input_directory, file_name)
 
         if 'ftp_url' in file and file['ftp_url'] is not None:
-            # Note that the Transform originally had a script_utils.download_from_urls method
-            # that, if the url is a folder, pulls all subfiles.  That code recently broke when
-            # fetching from NCBI (not clear if it is our issue or NCBI), but for now just
-            # support the most common case- an FTP to a single file.
             print('Downloading file from: ' + str(file['ftp_url']))
-            sys.stdout.flush()
-
-            url = urlparse(file['ftp_url'])
-            if url.scheme != 'ftp' and url.scheme != 'http':
-                raise ValueError('Only FTP/HTTP servers are supported')
-            file_name = 'genome.gbk'
-            if url.path != '':
-                file_name = url.path.split('/')[-1]
-
-            req = urllib2.Request(file['ftp_url'])
-            response = urllib2.urlopen(req)
-            file_data = response.read()
-
-            genbank_file_path = os.path.join(input_directory, file_name)
-            with open(genbank_file_path, "w") as genbank_file:
-                genbank_file.write(file_data)
+            local_file_path = self.dfu.download_web_file({
+                'file_url': file['ftp_url'],
+                'download_type': 'FTP'
+            })['copy_file_path']
+            genbank_file_path = os.path.join(input_directory,
+                                             os.path.basename(local_file_path))
+            shutil.copy2(local_file_path, genbank_file_path)
 
         # extract the file if it is compressed
         if genbank_file_path is not None:
             print("staged input file =" + genbank_file_path)
-            sys.stdout.flush()
             self.dfu.unpack_file({'file_path': genbank_file_path})
 
         else:
@@ -541,7 +527,7 @@ class GenbankToGenome:
                     g['mrnas'], g['cdss']
                 noncoding.append(g)
         self.log("Features skipped\n{}".format("\n".join([
-            "{}: {}".format(k, v) for k,v in skiped_features.items()])))
+            "{}: {}\n".format(k, v) for k, v in skiped_features.items()])))
 
         return {'features': coding, 'non_coding_features': noncoding, 'cdss': cdss,
                 'mrnas': mrnas}
