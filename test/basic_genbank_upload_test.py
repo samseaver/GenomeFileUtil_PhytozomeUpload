@@ -73,19 +73,18 @@ class GenomeFileUtilTest(unittest.TestCase):
     def getContext(self):
         return self.__class__.ctx
 
-    def test_simple_upload(self):
+    def test_simple_local_upload(self):
         # fetch the test files and set things up
-        genomeFileUtil = self.getImpl()
         gbk_path = "data/GCF_000005845.2_ASM584v2_genomic.gbff"
 
         ### Test for a Local Function Call
         print('attempting upload via local function directly')
         ws_obj_name = 'MyGenome'
-        result = genomeFileUtil.genbank_to_genome(self.getContext(), 
+        result = self.getImpl().genbank_to_genome(self.getContext(),
             {
-                'file' : { 'path': gbk_path },
-                'workspace_name':self.getWsName(),
-                'genome_name':ws_obj_name
+                'file': {'path': gbk_path },
+                'workspace_name': self.getWsName(),
+                'genome_name': ws_obj_name
             })[0]
         pprint(result)
         self.assertIsNotNone(result['genome_ref'])
@@ -97,38 +96,37 @@ class GenomeFileUtilTest(unittest.TestCase):
         #                                                               "GCF_000005845"))))
         # todo: add test that result is correct
 
+    def test_simple_shock_upload(self):
         ### Test for upload from SHOCK - upload the file to shock first
         print('attempting upload through shock')
-        data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'], 
-                                token=self.__class__.ctx['token'],
-                                service_ver='dev')
+        gbk_path = "data/GCF_000005845.2_ASM584v2_genomic.gbff"
+        data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
         shutil.copy(gbk_path, self.__class__.cfg['scratch'])
         shock_id = data_file_cli.file_to_shock({
             'file_path': os.path.join(self.__class__.cfg['scratch'], gbk_path.split("/")[-1])
         })['shock_id']
+        print("Running test")
         ws_obj_name2 = 'MyGenome.2'
-        result2 = genomeFileUtil.genbank_to_genome(self.getContext(), 
-            {
-                'file': {'shock_id':shock_id},
-                'workspace_name':self.getWsName(),
-                'genome_name':ws_obj_name2,
+        result = self.getImpl().genbank_to_genome(self.getContext(), {
+                'file': {'shock_id': shock_id},
+                'workspace_name': self.getWsName(),
+                'genome_name': ws_obj_name2,
             })[0]
-        pprint(result2)
+        pprint(result)
         self.assertIsNotNone(result['genome_ref'])
         # todo: add test that result is correct
 
+    def test_simple_ftp_upload(self):
         ### Test for upload via FTP- use something from genbank
         print('attempting upload through ftp url')
         ws_obj_name3 = 'MyGenome.3'
-        result3 = genomeFileUtil.genbank_to_genome(self.getContext(), 
-            {
-                'file':{'ftp_url': self.__class__.TEST_ECOLI_FILE_FTP},
+        result = self.getImpl().genbank_to_genome(self.getContext(), {
+                'file': {'ftp_url': self.__class__.TEST_ECOLI_FILE_FTP},
                 'workspace_name': self.getWsName(),
                 'genome_name': ws_obj_name3,
             })[0]
-        pprint(result3)
-
-        self.assertIsNotNone(result3['genome_ref'])
+        pprint(result)
+        self.assertIsNotNone(result['genome_ref'])
 
 
 

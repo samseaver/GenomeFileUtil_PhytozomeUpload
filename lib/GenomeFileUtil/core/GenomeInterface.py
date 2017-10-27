@@ -151,3 +151,42 @@ class GenomeInterface:
         returnVal = {'info': dfu_oi}
 
         return returnVal
+
+    def retrieve_taxon(self, taxon_reference, taxon_wsname, scientific_name):
+        """
+        _retrieve_taxon: retrieve taxonomy and taxon_reference
+
+        """
+        taxon_id = -1
+        taxon_object_name = "unknown_taxon"
+
+        # retrieve lookup object if scientific name provided
+        if (
+                        taxon_reference is None and scientific_name is not "unknown_taxon"):
+            # retrieve taxon lookup object then find taxon id
+            taxon_lookup = self.dfu.get_objects(
+                {'object_refs': [taxon_wsname + "/taxon_lookup"],
+                 'ignore_errors': 0})['data'][0]['data']['taxon_lookup']
+
+            if (scientific_name[0:3] in taxon_lookup and
+                        scientific_name in taxon_lookup[scientific_name[0:3]]):
+                taxon_id = taxon_lookup[scientific_name[0:3]][scientific_name]
+                taxon_object_name = "{}_taxon".format(str(taxon_id))
+
+        # retrieve Taxon object
+        taxon_info = {}
+        if (taxon_reference is None):
+            taxon_info = self.dfu.get_objects(
+                {'object_refs': [taxon_wsname + "/" + taxon_object_name],
+                 'ignore_errors': 0})['data'][0]
+            taxon_reference = "{}/{}/{}".format(taxon_info['info'][6],
+                                                taxon_info['info'][0],
+                                                taxon_info['info'][4])
+        else:
+            taxon_info = \
+                self.dfu.get_objects({"object_refs": [taxon_reference],
+                                      'ignore_errors': 0})['data'][0]
+
+        taxonomy = taxon_info['data']['scientific_lineage']
+
+        return taxonomy, taxon_reference
