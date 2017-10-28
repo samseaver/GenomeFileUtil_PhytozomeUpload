@@ -151,7 +151,7 @@ class GenbankToGenome:
         if len(files) > 1:
             raise ValueError("Currently only able to parse files one at a time")
         genome = self.parse_genbank(files[0], params)
-        #print genome
+        print genome
         result = self.gi.save_one_genome({
             'workspace': params['workspace_name'],
             'name': params['genome_name'],
@@ -203,13 +203,16 @@ class GenbankToGenome:
         if 'ftp_url' in file and file['ftp_url'] is not None:
             n_valid_fields += 1
         if n_valid_fields < 1:
-            raise ValueError('required "file" field must include one source: path | shock_id | ftp_url')
+            raise ValueError('required "file" field must include one source: '
+                             'path | shock_id | ftp_url')
         if n_valid_fields > 1:
-            raise ValueError('required "file" field has too many sources specified: ' + str(file.keys()))
+            raise ValueError('required "file" field has too many sources '
+                             'specified: ' + str(file.keys()))
 
-        valid_types = ['Reference','User upload','Representative']
+        valid_types = ['Reference', 'User upload', 'Representative']
         if 'type' in params and params['type'] not in valid_types:
-            raise ValueError('Entered value for type is not one of the valid entries of "Reference", "Representative" or "User upload"')
+            raise ValueError('Entered value for type is not one of the valid '
+                             'entries: {}'.format(", ".join(valid_types)))
 
     def stage_input(self, params):
         ''' Setup the input_directory by fetching the files and uncompressing if needed. '''
@@ -235,10 +238,10 @@ class GenbankToGenome:
 
         if 'shock_id' in file and file['shock_id'] is not None:
             # handle shock file
-            print('Downloading file from SHOCK node: ' + str(self.cfg.shockURL) + ' - ' + str(file['shock_id']))
+            print('Downloading file from SHOCK node: {} - {}'.format(
+                self.cfg.shockURL, file['shock_id']))
             sys.stdout.flush()
-            dfUtil = DataFileUtil(self.cfg.callbackURL)
-            file_name = dfUtil.shock_to_file({
+            file_name = self.dfu.shock_to_file({
                                     'file_path': input_directory,
                                     'shock_id': file['shock_id']
                                 })['node_file_name']
@@ -287,6 +290,7 @@ class GenbankToGenome:
             "dna_size": assembly_data['dna_size'],
             "md5": assembly_data['md5'],
             "genbank_handle_ref": shock_res['handle']['hid'],
+            "genome_publications": set(),
             "contig_ids": [],
             "contig_lengths": [],
             "features": [],
@@ -301,6 +305,7 @@ class GenbankToGenome:
             genome['contig_lengths'].append(len(record))
             for k, v in self._parse_features(record).items():
                 genome[k].extend(v)
+            genome["genome_publications"] |= self._get_pubs(record)
 
             if "source_id" in genome:
                 continue  # only do the following once
@@ -311,7 +316,6 @@ class GenbankToGenome:
                 genome['scientific_name'])
             genome['domain'] = genome['taxonomy'].split("; ")[1]
             genome['notes'] = record.annotations.get('comment', "")
-            genome["genome_publications"] = self._get_pubs(record)
         genome['num_contigs'] = len(genome['contig_ids'])
         return genome
 
@@ -374,9 +378,9 @@ class GenbankToGenome:
                     in_pub.title,
                     "http://www.ncbi.nlm.nih.gov/pubmed/{}".format(
                         in_pub.pubmed_id)]
-            pub_list.append(out_pub)
+            pub_list.append(tuple(out_pub))
         self.log("Parsed {} publication records".format(len(pub_list)))
-        return pub_list
+        return set(pub_list)
 
     def _parse_features(self, record):
         def _location(seq, feat):
@@ -387,11 +391,11 @@ class GenbankToGenome:
                     begin = int(part.start)
                 else:
                     begin = int(part.end)
-                loc.append([
+                loc.append((
                         seq.id,
                         begin,
                         strand_trans[part.strand],
-                        len(part)])
+                        len(part)))
             return loc
 
         def _aliases(feat):
@@ -446,14 +450,18 @@ class GenbankToGenome:
 
         skiped_features = Counter()
         excluded_features = ('source', 'exon')
-        genes, cdss, mrnas = [], [], []
+        genes, cdss, mrnas = {}, {}, {}
         for in_feature in record.features:
             if in_feature.type in excluded_features:
                 continue
             feat_seq = in_feature.extract(record)
+            _id = in_feature.qualifiers.get("locus_tag", [""])[0]
+            if not _id:
+                _id = in_feature.qualifiers.get("gene", [""])[0]
+
             if in_feature.type == 'CDS':
                 out_feature = {
-                    "id": "CDS_{}".format(len(cdss)),
+                    "id": "CDS_{}".format(_id),
                     "type": 'CDS',
                     'aliases': _aliases(in_feature),
                     "location": _location(feat_seq, in_feature),
@@ -469,21 +477,18 @@ class GenbankToGenome:
                 }
                 out_feature['protein_translation_length'] = len(
                     out_feature['protein_translation'])
-                # TODO: parent_mrna & ontology_terms;
-
-                # we start by assuming sorted order for genes and cdss
-                if not genes:
-                    print("WARNING: {} has no genes".format(out_feature['id']))
-                    continue
-                if _is_parent(genes[-1], out_feature):
-                    genes[-1]['cdss'].append(out_feature['id'])
-                    _propagate_cds_props_to_gene(out_feature, genes[-1])
-                    out_feature['parent_gene'] = genes[-1]['id']
-                cdss.append(out_feature)
+                if _id in genes:
+                    genes[_id]['cdss'].append(out_feature['id'])
+                    _propagate_cds_props_to_gene(out_feature, genes[_id])
+                    out_feature['parent_gene'] = _id
+                if "mRNA_{}".format(_id) in mrnas:
+                    mrnas["mRNA_{}".format(_id)]['cds'] = out_feature['_id']
+                    out_feature['parent_mrna'] = "mRNA_{}".format(_id)
+                cdss["CDS_{}".format(_id)] = out_feature
 
             elif in_feature.type == 'gene':
                 out_feature = {
-                    "id": "GENE_{}".format(len(genes) + 1),
+                    "id": _id,
                     "type": 'gene',
                     'aliases': _aliases(in_feature),
                     "location": _location(feat_seq, in_feature),
@@ -497,37 +502,33 @@ class GenbankToGenome:
                     "mrnas": [],
                     'cdss': [],
                 }
-                genes.append(out_feature)
+                genes[_id] = out_feature
 
             elif in_feature.type == 'mRNA':
                 out_feature = {
-                    "id": "RNA_{}".format(len(genes) + 1),
+                    "id": "mRNA_{}".format(_id),
                     "location": _location(feat_seq, in_feature),
                     "md5": hashlib.md5(str(feat_seq)).hexdigest(),
                     "parent_gene": "",
                     "cds": "",
                 }
-                # TODO: assign cdss
-                if not genes:
-                    print("WARNING: {} has no genes".format(out_feature['id']))
-                    continue
-                if _is_parent(genes[-1], out_feature):
-                    genes[-1]['mrnas'].append(out_feature['id'])
-                    out_feature['parent_gene'] = genes[-1]['id']
-                mrnas.append(out_feature)
+                if _id in genes:
+                    genes[_id]['mrnas'].append(out_feature['id'])
+                    out_feature['parent_gene'] = _id
 
             else:
                 skiped_features[in_feature.type] += 1
+
         coding, noncoding = [], []
-        for g in genes:
+        for g in genes.values():
             if len(g['cdss']):
                 coding.append(g)
             else:
                 del g['protein_translation'], g['protein_translation_length'],\
                     g['mrnas'], g['cdss']
                 noncoding.append(g)
-        self.log("Features skipped\n{}".format("\n".join([
-            "{}: {}\n".format(k, v) for k, v in skiped_features.items()])))
+        self.log("Features skipped\n{}\n".format("\n".join([
+            "{}: {}".format(k, v) for k, v in skiped_features.items()])))
 
-        return {'features': coding, 'non_coding_features': noncoding, 'cdss': cdss,
-                'mrnas': mrnas}
+        return {'features': coding, 'non_coding_features': noncoding,
+                'cdss': cdss.values(), 'mrnas': mrnas.values()}
