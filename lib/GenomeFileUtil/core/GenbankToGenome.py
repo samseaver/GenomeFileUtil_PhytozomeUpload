@@ -6,10 +6,9 @@ import re
 import sys
 import shutil
 import uuid
-import urllib2
 import hashlib
 import itertools
-from collections import Counter
+from collections import Counter, defaultdict
 
 from urlparse import urlparse
 import Bio.SeqIO
@@ -30,6 +29,11 @@ class GenbankToGenome:
         self.aUtil = AssemblyUtil(config.callbackURL)
         self.report_client = KBaseReport(config.callbackURL)
         self._messages = []
+        self.time_string = str(datetime.datetime.fromtimestamp(
+            time.time()).strftime('%Y_%m_%d_%H_%M_%S'))
+        yml_text = open('/kb/module/kbase.yml').read()
+        self.version = re.search("module-version:\n\W+(.+)\n", yml_text).group(1)
+        self.ontologies_present = defaultdict(dict)
         self.default_params = {
             'source': 'Genbank',
             'taxon_wsname': self.cfg.raw['taxon-workspace-name'],
@@ -135,7 +139,6 @@ class GenbankToGenome:
         return details
 
     def refactored_import(self, ctx, params):
-
         # 1) validate parameters and extract defaults
         self.validate_params(params)
 
@@ -291,6 +294,11 @@ class GenbankToGenome:
             "md5": assembly_data['md5'],
             "genbank_handle_ref": shock_res['handle']['hid'],
             "genome_publications": set(),
+            "ontology_events": [{
+                "method": "GenomeFileUtils Genbank uploader from annotations",
+                "method_version": self.version,
+                "timestamp": self.time_string
+            }],
             "contig_ids": [],
             "contig_lengths": [],
             "features": [],
@@ -317,15 +325,14 @@ class GenbankToGenome:
             genome['domain'] = genome['taxonomy'].split("; ")[1]
             genome['notes'] = record.annotations.get('comment', "")
         genome['num_contigs'] = len(genome['contig_ids'])
+        genome['ontology_present'] = self.ontologies_present
         return genome
 
     def _save_assembly(self, contigs, params):
         print("Saving sequence as Assembly object")
-        time_string = str(datetime.datetime.fromtimestamp(
-            time.time()).strftime('%Y_%m_%d_%H_%M_%S'))
         assembly_id = "{}_assembly".format(params['genome_name'])
         fasta_file = "{}/{}_assembly.fasta".format(
-            self.cfg.sharedFolder, params['genome_name'], time_string)
+            self.cfg.sharedFolder, params['genome_name'], self.time_string)
         Bio.SeqIO.write(contigs, fasta_file, "fasta")
         assembly_ref = self.aUtil.save_assembly_from_fasta(
             {'file': {'path': fasta_file},
@@ -381,6 +388,15 @@ class GenbankToGenome:
             pub_list.append(tuple(out_pub))
         self.log("Parsed {} publication records".format(len(pub_list)))
         return set(pub_list)
+
+    def _get_ontology(self, feature):
+        ontology = defaultdict(dict)
+        for key in ("GO_process", "GO_function", "GO_component"):
+            if key in feature.qualifiers:
+                sp = feature.qualifiers[key][0].split(" - ")
+                ontology['GO'][sp[0]] = sp[1]
+                self.ontologies_present['GO'][sp[0]] = sp[1]
+        return dict(ontology)
 
     def _parse_features(self, record):
         def _location(seq, feat):
@@ -458,23 +474,24 @@ class GenbankToGenome:
             _id = in_feature.qualifiers.get("locus_tag", [""])[0]
             if not _id:
                 _id = in_feature.qualifiers.get("gene", [""])[0]
+            out_feature = {
+                "location": _location(feat_seq, in_feature),
+                "dna_sequence": str(feat_seq.seq),
+                "dna_sequence_length": len(feat_seq),
+                "md5": hashlib.md5(str(feat_seq)).hexdigest(),
+            }
 
             if in_feature.type == 'CDS':
-                out_feature = {
+                out_feature.update({
                     "id": "CDS_{}".format(_id),
-                    "type": 'CDS',
                     'aliases': _aliases(in_feature),
-                    "location": _location(feat_seq, in_feature),
-                    "dna_sequence": str(feat_seq.seq),
-                    "dna_sequence_length": len(feat_seq),
                     "function": in_feature.qualifiers.get("product", [""])[0],
                     "note": in_feature.qualifiers.get("note", ""),
                     "protein_translation": in_feature.qualifiers.get(
                         "translation", [""])[0],
-                    "md5": hashlib.md5(str(feat_seq)).hexdigest(),
                     "parent_mrna": "",
-                    "ontology_terms": {},
-                }
+                    "ontology_terms": {}#self._get_ontology(in_feature),
+                })
                 out_feature['protein_translation_length'] = len(
                     out_feature['protein_translation'])
                 if _id in genes:
@@ -487,31 +504,26 @@ class GenbankToGenome:
                 cdss["CDS_{}".format(_id)] = out_feature
 
             elif in_feature.type == 'gene':
-                out_feature = {
+                out_feature.update({
                     "id": _id,
                     "type": 'gene',
                     'aliases': _aliases(in_feature),
-                    "location": _location(feat_seq, in_feature),
-                    "dna_sequence": str(feat_seq.seq),
-                    "dna_sequence_length": len(feat_seq),
                     "function": in_feature.qualifiers.get("product", [""])[0],
                     "note": in_feature.qualifiers.get("note", ""),
                     "protein_translation": "",
                     "protein_translation_length": 0,
-                    "md5": hashlib.md5(str(feat_seq)).hexdigest(),
+                    "ontology_terms": {},#self._get_ontology(in_feature),
                     "mrnas": [],
                     'cdss': [],
-                }
+                })
                 genes[_id] = out_feature
 
             elif in_feature.type == 'mRNA':
-                out_feature = {
+                out_feature.update({
                     "id": "mRNA_{}".format(_id),
-                    "location": _location(feat_seq, in_feature),
-                    "md5": hashlib.md5(str(feat_seq)).hexdigest(),
                     "parent_gene": "",
                     "cds": "",
-                }
+                })
                 if _id in genes:
                     genes[_id]['mrnas'].append(out_feature['id'])
                     out_feature['parent_gene'] = _id
