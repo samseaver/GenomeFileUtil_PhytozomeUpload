@@ -2,6 +2,7 @@
 import time
 import requests
 import json
+import re
 
 from Workspace.WorkspaceClient import Workspace as Workspace
 from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
@@ -152,41 +153,24 @@ class GenomeInterface:
 
         return returnVal
 
-    def retrieve_taxon(self, taxon_reference, taxon_wsname, scientific_name):
+    def retrieve_taxon(self, taxon_wsname, scientific_name):
         """
         _retrieve_taxon: retrieve taxonomy and taxon_reference
 
         """
-        taxon_id = -1
-        taxon_object_name = "unknown_taxon"
+        solr_url = 'http://kbase.us/internal/solr-ci/search/'
+        solr_core = 'taxonomy_ci'
+        query = '/select?q=scientific_name:"{}"&fl=scientific_name%2Cscientific_lineage%2Ctaxonomy_id%2Cdomain&rows=5&wt=json'
+        match = re.match("\S+\s?\S*", scientific_name)
+        if not match:
+            return False
+        res = requests.get(solr_url+solr_core+query.format(match.group(0)))
+        results = res.json()['response']['docs']
+        if not results:
+            return False
+        taxonomy = results[0]['scientific_lineage']
+        taxon_reference = '{}/{}_taxon'.format(
+            taxon_wsname, results[0]['taxonomy_id'])
+        domain = results[0]['domain']
 
-        # retrieve lookup object if scientific name provided
-        if (
-                        taxon_reference is None and scientific_name is not "unknown_taxon"):
-            # retrieve taxon lookup object then find taxon id
-            taxon_lookup = self.dfu.get_objects(
-                {'object_refs': [taxon_wsname + "/taxon_lookup"],
-                 'ignore_errors': 0})['data'][0]['data']['taxon_lookup']
-
-            if (scientific_name[0:3] in taxon_lookup and
-                        scientific_name in taxon_lookup[scientific_name[0:3]]):
-                taxon_id = taxon_lookup[scientific_name[0:3]][scientific_name]
-                taxon_object_name = "{}_taxon".format(str(taxon_id))
-
-        # retrieve Taxon object
-        taxon_info = {}
-        if (taxon_reference is None):
-            taxon_info = self.dfu.get_objects(
-                {'object_refs': [taxon_wsname + "/" + taxon_object_name],
-                 'ignore_errors': 0})['data'][0]
-            taxon_reference = "{}/{}/{}".format(taxon_info['info'][6],
-                                                taxon_info['info'][0],
-                                                taxon_info['info'][4])
-        else:
-            taxon_info = \
-                self.dfu.get_objects({"object_refs": [taxon_reference],
-                                      'ignore_errors': 0})['data'][0]
-
-        taxonomy = taxon_info['data']['scientific_lineage']
-
-        return taxonomy, taxon_reference
+        return taxonomy, taxon_reference, domain

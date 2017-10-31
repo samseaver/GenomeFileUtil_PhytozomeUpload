@@ -10,7 +10,6 @@ import hashlib
 import itertools
 from collections import Counter, defaultdict
 
-from urlparse import urlparse
 import Bio.SeqIO
 import Bio.SeqUtils
 
@@ -151,9 +150,8 @@ class GenbankToGenome:
 
         # 4) Do the upload
         files = self._find_input_files(input_directory)
-        if len(files) > 1:
-            raise ValueError("Currently only able to parse files one at a time")
-        genome = self.parse_genbank(files[0], params)
+        consolidated_file = self._join_files_skip_empty_lines(files)
+        genome = self.parse_genbank(consolidated_file, params)
         print genome
         result = self.gi.save_one_genome({
             'workspace': params['workspace_name'],
@@ -318,11 +316,12 @@ class GenbankToGenome:
             if "source_id" in genome:
                 continue  # only do the following once
             genome["source_id"] = record.id.split('.')[0]
-            genome['scientific_name'] = record.annotations.get('organism', 'unknown_taxon')
-            genome['taxonomy'], genome['taxon_ref'] = self.gi.retrieve_taxon(
-                params['taxon_reference'], params['taxon_wsname'],
-                genome['scientific_name'])
-            genome['domain'] = genome['taxonomy'].split("; ")[1]
+            genome['scientific_name'] = record.annotations.get('organism',
+                                                               'unknown_taxon')
+            tax_info = self.gi.retrieve_taxon(params['taxon_wsname'],
+                                              genome['scientific_name'])
+            if tax_info:
+                genome['taxonomy'], genome['taxon_ref'], genome['domain'] = tax_info
             genome['notes'] = record.annotations.get('comment', "")
         genome['num_contigs'] = len(genome['contig_ids'])
         genome['ontology_present'] = self.ontologies_present
@@ -362,6 +361,30 @@ class GenbankToGenome:
             input_files.append(os.path.join(input_directory, genbank_file))
 
         return input_files
+
+    def _join_files_skip_empty_lines(self, input_files):
+            """ Applies strip to each line of each input file.
+            Args:
+                input_files: Paths to input files in Genbank format.
+            Returns:
+                Path to resulting file (currenly it's the same file as input).
+            """
+            if len(input_files) == 0:
+                raise ValueError("NO GENBANK FILE")
+            temp_dir = os.path.join(os.path.dirname(input_files[0]), "combined")
+            if not os.path.exists(temp_dir):
+                os.makedirs(temp_dir)
+            ret_file = os.path.join(temp_dir, os.path.basename(input_files[0]))
+
+            # take in Genbank file and remove all empty lines from it.
+            with open(ret_file, 'w', buffering=2 ** 20) as f_out:
+                for input_file in input_files:
+                    with open(input_file, 'r') as f_in:
+                        for line in f_in:
+                            line = line.rstrip('\r\n')
+                            if line.strip():
+                                f_out.write(line + '\n')
+            return ret_file
 
     def _get_pubs(self, record):
         pub_list = []
@@ -445,7 +468,7 @@ class GenbankToGenome:
             # Put longest protein_translation to gene
             if "protein_translation" not in gene or (
                 len(gene["protein_translation"]) <
-                len(cds["protein_translation"])):
+                    len(cds["protein_translation"])):
                 gene["protein_translation"] = cds["protein_translation"]
                 gene["protein_translation_length"] = len(
                     cds["protein_translation"])
@@ -489,6 +512,7 @@ class GenbankToGenome:
                     "note": in_feature.qualifiers.get("note", ""),
                     "protein_translation": in_feature.qualifiers.get(
                         "translation", [""])[0],
+                    "parent_gene": "",
                     "parent_mrna": "",
                     "ontology_terms": {}#self._get_ontology(in_feature),
                 })
