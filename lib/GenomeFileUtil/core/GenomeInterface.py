@@ -3,6 +3,7 @@ import time
 import requests
 import json
 import re
+import sys
 
 from Workspace.WorkspaceClient import Workspace as Workspace
 from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
@@ -130,6 +131,7 @@ class GenomeInterface:
         self._own_handle(data, 'gff_handle_ref')
 
         self._check_dna_sequence_in_features(data)
+        warnings = self.validate_genome(data)
 
         if 'hidden' in params and str(params['hidden']).lower() in ('yes', 'true', 't', '1'):
             hidden = 1
@@ -149,7 +151,7 @@ class GenomeInterface:
 
         dfu_oi = self.dfu.save_objects(dfu_save_params)[0]
 
-        returnVal = {'info': dfu_oi}
+        returnVal = {'info': dfu_oi, 'warnings': warnings}
 
         return returnVal
 
@@ -174,3 +176,30 @@ class GenomeInterface:
         domain = results[0]['domain']
 
         return taxonomy, taxon_reference, domain
+
+    def validate_genome(self, genome, print_size=True):
+        """
+        The sum of all the CDS coordinates lengths should be no larger than the corresponding Gene length corresponding mRNA length
+        """
+        def _get_size(obj):
+            return sys.getsizeof(json.dumps(obj))
+
+        log('Validating genome object contents')
+        warnings = []
+        if len(genome['cdss']) < len(genome['features']):
+            warnings.append("CDS array should be at at least as long as the "
+                            "Features array.")
+        if genome['domain'] == "Bacteria" and len(genome['cdss']) \
+                != len(genome['features']):
+            warnings.append("For prokaryotes, CDS array should be the same "
+                            "length as the Features array.")
+        if genome['mrnas'] and len(genome['mrnas']) != len(genome['cdss']):
+            warnings.append("mRNA array should be the same length as the CDS"
+                            "array if present.")
+        if print_size:
+            print("Subobject Sizes:")
+            for x in ('cdss', 'mrnas', 'features', 'non_coding_features',
+                      'ontology_present'):
+                print("{}: {} bytes".format(x, _get_size(genome[x])))
+            print("Total size {} bytes".format(_get_size(genome)))
+        return warnings
