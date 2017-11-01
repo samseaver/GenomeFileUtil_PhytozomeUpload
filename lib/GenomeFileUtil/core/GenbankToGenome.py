@@ -292,6 +292,7 @@ class GenbankToGenome:
             "md5": assembly_data['md5'],
             "genbank_handle_ref": shock_res['handle']['hid'],
             "genome_publications": set(),
+            "domain": "Unknown",
             "ontology_events": [{
                 "method": "GenomeFileUtils Genbank uploader from annotations",
                 "method_version": self.version,
@@ -324,7 +325,9 @@ class GenbankToGenome:
                 genome['taxonomy'], genome['taxon_ref'], genome['domain'] = tax_info
             genome['notes'] = record.annotations.get('comment', "")
         genome['num_contigs'] = len(genome['contig_ids'])
-        genome['ontology_present'] = self.ontologies_present
+        genome['ontology_present'] = dict(self.ontologies_present)
+        # can't serialize a set
+        genome['genome_publications'] = list(genome['genome_publications'])
         return genome
 
     def _save_assembly(self, contigs, params):
@@ -426,13 +429,13 @@ class GenbankToGenome:
             strand_trans = ("", "+", "-")
             loc = []
             for part in feat.location.parts:
-                if part.strand:
+                if part.strand >= 0:
                     begin = int(part.start)
                 else:
                     begin = int(part.end)
                 loc.append((
                         seq.id,
-                        begin,
+                        begin + 1,
                         strand_trans[part.strand],
                         len(part)))
             return loc
@@ -519,13 +522,26 @@ class GenbankToGenome:
                 out_feature['protein_translation_length'] = len(
                     out_feature['protein_translation'])
                 if _id in genes:
+                    out_feature['id'] = "CDS_{}_{}".format(
+                        _id, len(genes[_id]['cdss'])+1)
                     genes[_id]['cdss'].append(out_feature['id'])
                     _propagate_cds_props_to_gene(out_feature, genes[_id])
                     out_feature['parent_gene'] = _id
-                if "mRNA_{}".format(_id) in mrnas:
-                    mrnas["mRNA_{}".format(_id)]['cds'] = out_feature['_id']
-                    out_feature['parent_mrna'] = "mRNA_{}".format(_id)
-                cdss["CDS_{}".format(_id)] = out_feature
+                    if not _is_parent(genes[_id], out_feature):
+                        self.log("{} is annotated as the parent gene of {} "
+                                 "but coordinates do not match".format(
+                                    _id, out_feature['id']))
+
+                mrna_id = "mRNA" + out_feature['id'][3:]
+                if mrna_id in mrnas:
+                    if not _is_parent(mrnas[mrna_id], out_feature):
+                        self.log("{} is annotated as the parent transcript of "
+                                 "{} but coordinates do not match".format(
+                                    mrna_id, out_feature['id']))
+                        pass
+                    mrnas[mrna_id]['cds'] = out_feature['id']
+                    out_feature['parent_mrna'] = mrna_id
+                cdss[out_feature['id']] = out_feature
 
             elif in_feature.type == 'gene':
                 out_feature.update({
@@ -549,8 +565,16 @@ class GenbankToGenome:
                     "cds": "",
                 })
                 if _id in genes:
+                    out_feature['id'] = "mRNA_{}_{}".format(
+                        _id, len(genes[_id]['mrnas']) + 1)
                     genes[_id]['mrnas'].append(out_feature['id'])
                     out_feature['parent_gene'] = _id
+                    if not _is_parent(genes[_id], out_feature):
+                        self.log("{} is annotated as the parent gene of {} "
+                                 "but coordinates do not match".format(
+                            _id, out_feature['id']))
+                        pass
+                mrnas[out_feature['id']] = out_feature
 
             else:
                 skiped_features[in_feature.type] += 1
