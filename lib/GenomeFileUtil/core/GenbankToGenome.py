@@ -156,7 +156,9 @@ class GenbankToGenome:
         result = self.gi.save_one_genome({
             'workspace': params['workspace_name'],
             'name': params['genome_name'],
-            'data': genome})
+            'data': genome,
+            "meta": params['metadata'],
+        })
         ref = "{}/{}/{}".format(result['info'][6], result['info'][0],
                                 result['info'][4])
         self.log("Genome saved to {}".format(ref))
@@ -285,6 +287,7 @@ class GenbankToGenome:
             "id": params['genome_name'],
             "source": params['source'],
             "type": params['type'],
+            "original_source_file_name": os.path.basename(file_path),
             "genetic_code": params['genetic_code'],
             "assembly_ref": assembly_ref,
             "gc_content": assembly_data['gc_content'],
@@ -305,9 +308,13 @@ class GenbankToGenome:
             "cdss": [],
             'mrnas': [],
         }
+        dates = []
         # Parse data from genbank file
         contigs = Bio.SeqIO.parse(file_path, "genbank")
         for record in contigs:
+            if 'date' in record.annotations:
+                dates.append(time.strptime(record.annotations['date'],
+                                           "%d-%b-%Y"))
             genome['contig_ids'].append(record.id)
             genome['contig_lengths'].append(len(record))
             for k, v in self._parse_features(record).items():
@@ -325,6 +332,13 @@ class GenbankToGenome:
                 genome['taxonomy'], genome['taxon_ref'], genome['domain'] = tax_info
             genome['notes'] = record.annotations.get('comment', "")
         genome['num_contigs'] = len(genome['contig_ids'])
+        dates.sort()
+        if dates:
+            genome['external_source_origination_date'] = time.strftime(
+                "%d-%b-%Y",dates[0])
+            if dates[0] != dates[-1]:
+                genome['external_source_origination_date'] += " _ " + \
+                    time.strftime("%d-%b-%Y", dates[-1])
         genome['ontology_present'] = dict(self.ontologies_present)
         # can't serialize a set
         genome['genome_publications'] = list(genome['genome_publications'])
@@ -434,7 +448,7 @@ class GenbankToGenome:
                 else:
                     begin = int(part.end)
                 loc.append((
-                        seq.id,
+                        record.id,
                         begin + 1,
                         strand_trans[part.strand],
                         len(part)))
@@ -491,39 +505,43 @@ class GenbankToGenome:
                             terms[source] = terms2[source]
 
         skiped_features = Counter()
+        noncoding_types = Counter()
         excluded_features = ('source', 'exon')
-        genes, cdss, mrnas = {}, {}, {}
+        genes, cdss, mrnas, noncoding = {}, {}, {}, []
         for in_feature in record.features:
             if in_feature.type in excluded_features:
+                skiped_features[in_feature.type] += 1
                 continue
             feat_seq = in_feature.extract(record)
             _id = in_feature.qualifiers.get("locus_tag", [""])[0]
             if not _id:
                 _id = in_feature.qualifiers.get("gene", [""])[0]
             out_feature = {
+                "id": "_".join([in_feature.type, _id]),
                 "location": _location(feat_seq, in_feature),
                 "dna_sequence": str(feat_seq.seq),
                 "dna_sequence_length": len(feat_seq),
                 "md5": hashlib.md5(str(feat_seq)).hexdigest(),
+                "function": in_feature.qualifiers.get("product", [""])[0],
+                "ontology_terms": {},  # self._get_ontology(in_feature),
+                "note": in_feature.qualifiers.get("note", ""),
+                'aliases': _aliases(in_feature),
             }
 
             if in_feature.type == 'CDS':
                 out_feature.update({
-                    "id": "CDS_{}".format(_id),
-                    'aliases': _aliases(in_feature),
-                    "function": in_feature.qualifiers.get("product", [""])[0],
-                    "note": in_feature.qualifiers.get("note", ""),
                     "protein_translation": in_feature.qualifiers.get(
                         "translation", [""])[0],
+                    "protein_md5": hashlib.md5(str(feat_seq)).hexdigest(),
                     "parent_gene": "",
                     "parent_mrna": "",
-                    "ontology_terms": {}#self._get_ontology(in_feature),
                 })
+                out_feature["protein_md5"] = hashlib.md5(
+                    str(out_feature['protein_translation'])).hexdigest(),
                 out_feature['protein_translation_length'] = len(
                     out_feature['protein_translation'])
                 if _id in genes:
-                    out_feature['id'] = "CDS_{}_{}".format(
-                        _id, len(genes[_id]['cdss'])+1)
+                    out_feature['id'] += "_" + str(len(genes[_id]['cdss'])+1)
                     genes[_id]['cdss'].append(out_feature['id'])
                     _propagate_cds_props_to_gene(out_feature, genes[_id])
                     out_feature['parent_gene'] = _id
@@ -538,7 +556,6 @@ class GenbankToGenome:
                         self.log("{} is annotated as the parent transcript of "
                                  "{} but coordinates do not match".format(
                                     mrna_id, out_feature['id']))
-                        pass
                     mrnas[mrna_id]['cds'] = out_feature['id']
                     out_feature['parent_mrna'] = mrna_id
                 cdss[out_feature['id']] = out_feature
@@ -547,12 +564,8 @@ class GenbankToGenome:
                 out_feature.update({
                     "id": _id,
                     "type": 'gene',
-                    'aliases': _aliases(in_feature),
-                    "function": in_feature.qualifiers.get("product", [""])[0],
-                    "note": in_feature.qualifiers.get("note", ""),
                     "protein_translation": "",
                     "protein_translation_length": 0,
-                    "ontology_terms": {},#self._get_ontology(in_feature),
                     "mrnas": [],
                     'cdss': [],
                 })
@@ -560,26 +573,28 @@ class GenbankToGenome:
 
             elif in_feature.type == 'mRNA':
                 out_feature.update({
-                    "id": "mRNA_{}".format(_id),
                     "parent_gene": "",
                     "cds": "",
                 })
+                # not in this feature type
+                del out_feature['function'], out_feature['ontology_terms']
                 if _id in genes:
-                    out_feature['id'] = "mRNA_{}_{}".format(
-                        _id, len(genes[_id]['mrnas']) + 1)
+                    out_feature['id'] += "_" + str(len(genes[_id]['mrnas'])+1)
                     genes[_id]['mrnas'].append(out_feature['id'])
                     out_feature['parent_gene'] = _id
                     if not _is_parent(genes[_id], out_feature):
                         self.log("{} is annotated as the parent gene of {} "
                                  "but coordinates do not match".format(
                             _id, out_feature['id']))
-                        pass
                 mrnas[out_feature['id']] = out_feature
 
             else:
-                skiped_features[in_feature.type] += 1
+                noncoding_types[in_feature.type] += 1
+                out_feature["type"] = in_feature.type
+                out_feature['id'] += "_" + str(noncoding_types[in_feature.type])
+                noncoding.append(out_feature)
 
-        coding, noncoding = [], []
+        coding = []
         for g in genes.values():
             if len(g['cdss']):
                 coding.append(g)
@@ -589,6 +604,8 @@ class GenbankToGenome:
                 noncoding.append(g)
         self.log("Features skipped\n{}\n".format("\n".join([
             "{}: {}".format(k, v) for k, v in skiped_features.items()])))
+        self.log("Noncoding Features\n{}\n".format("\n".join([
+            "{}: {}".format(k, v) for k, v in noncoding_types.items()])))
 
         return {'features': coding, 'non_coding_features': noncoding,
                 'cdss': cdss.values(), 'mrnas': mrnas.values()}

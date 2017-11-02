@@ -125,6 +125,10 @@ class GenomeInterface:
         workspace = params['workspace']
         name = params['name']
         data = params['data']
+        if params['meta']:
+            meta = params['meta']
+        else:
+            meta = {}
 
         # check all handles point to shock nodes owned by calling user
         self._own_handle(data, 'genbank_handle_ref')
@@ -147,6 +151,7 @@ class GenomeInterface:
                            'objects': [{'type': 'KBaseGenomes.Genome',
                                         'data': data,
                                         'name': name,
+                                        'meta': meta,
                                         'hidden': hidden}]}
 
         dfu_oi = self.dfu.save_objects(dfu_save_params)[0]
