@@ -77,4 +77,6 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'genome_name': ws_obj_name,
                 'generate_ids_if_needed': 1
             })[0]
-        self.assertTrue(int(result['genome_info'][10]['Number features']) > 0)
+        self.assertEquals(result['genome_info'][10]['Number contigs'], '1')
+        self.assertEquals(result['genome_info'][10]['Number features'], '0')
+        self.assertEquals(result['genome_info'][10]['Domain'], 'Unknown')

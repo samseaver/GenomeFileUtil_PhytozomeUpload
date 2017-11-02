@@ -138,8 +138,8 @@ class GenomeFileUtilTest(unittest.TestCase):
     def test_simple_genbank_download(self):
         # load test data data
         assembly_file_path = os.path.join(self.cfg['scratch'], 'e_coli_assembly.fasta')
-        shutil.copy('data/e_coli_assembly.fasta', assembly_file_path)
-        e_coli_ref = self.load_test_genome_direct('data/e_coli.json', assembly_file_path, 'tax_bug_test')
+        shutil.copy('data/e_coli/e_coli_assembly.fasta', assembly_file_path)
+        e_coli_ref = self.load_test_genome_direct('data/e_coli/e_coli.json', assembly_file_path, 'tax_bug_test')
 
         # run the test
         genomeFileUtil = self.getImpl()
@@ -151,7 +151,7 @@ class GenomeFileUtilTest(unittest.TestCase):
     def test_check_for_taxonomy_bug(self):
         # load test data data
         assembly_file_path = os.path.join(self.cfg['scratch'], 'e_coli_assembly.fasta')
-        shutil.copy('data/e_coli_assembly.fasta', assembly_file_path)
+        shutil.copy('data/e_coli/e_coli_assembly.fasta', assembly_file_path)
         e_coli_ref = self.load_test_genome_direct('data/taxonomy_bug_test_genome.json', assembly_file_path, 'tax_bug_test')
         # run the test
         genomeFileUtil = self.getImpl()

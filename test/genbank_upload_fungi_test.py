@@ -66,7 +66,7 @@ class GenomeFileUtilTest(unittest.TestCase):
     def getContext(self):
         return self.__class__.ctx
 
-    def test_genome_upload_bug(self):
+    def test_genome_upload_fungi(self):
         gbk_path = "data/fungi/GCF_000002945.1_ASM294v2_genomic.gbff.gz"
         ws_obj_name = 'FungiGenome.1'
         result = self.getImpl().genbank_to_genome(self.getContext(), 

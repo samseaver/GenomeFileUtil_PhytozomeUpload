@@ -75,7 +75,7 @@ class GenomeFileUtilTest(unittest.TestCase):
 
     def test_simple_local_upload(self):
         # fetch the test files and set things up
-        gbk_path = "data/GCF_000005845.2_ASM584v2_genomic.gbff"
+        gbk_path = "data/e_coli/GCF_000005845.2_ASM584v2_genomic.gbff"
 
         ### Test for a Local Function Call
         print('attempting upload via local function directly')
@@ -99,7 +99,7 @@ class GenomeFileUtilTest(unittest.TestCase):
     def test_simple_shock_upload(self):
         ### Test for upload from SHOCK - upload the file to shock first
         print('attempting upload through shock')
-        gbk_path = "data/GCF_000005845.2_ASM584v2_genomic.gbff"
+        gbk_path = "data/e_coli/GCF_000005845.2_ASM584v2_genomic.gbff"
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
         shutil.copy(gbk_path, self.__class__.cfg['scratch'])
         shock_id = data_file_cli.file_to_shock({
