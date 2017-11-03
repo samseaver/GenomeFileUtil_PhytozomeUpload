@@ -294,7 +294,7 @@ class GenbankToGenome:
             "dna_size": assembly_data['dna_size'],
             "md5": assembly_data['md5'],
             "genbank_handle_ref": shock_res['handle']['hid'],
-            "genome_publications": set(),
+            "publications": set(),
             "domain": "Unknown",
             "ontology_events": [{
                 "method": "GenomeFileUtils Genbank uploader from annotations",
@@ -319,7 +319,7 @@ class GenbankToGenome:
             genome['contig_lengths'].append(len(record))
             for k, v in self._parse_features(record).items():
                 genome[k].extend(v)
-            genome["genome_publications"] |= self._get_pubs(record)
+            genome["publications"] |= self._get_pubs(record)
 
             if "source_id" in genome:
                 continue  # only do the following once
@@ -341,7 +341,7 @@ class GenbankToGenome:
                     time.strftime("%d-%b-%Y", dates[-1])
         genome['ontology_present'] = dict(self.ontologies_present)
         # can't serialize a set
-        genome['genome_publications'] = list(genome['genome_publications'])
+        genome['publications'] = list(genome['publications'])
         return genome
 
     def _save_assembly(self, contigs, params):
@@ -419,8 +419,8 @@ class GenbankToGenome:
             if date_match:
                 out_pub[4] = date_match.group(1)
             if in_pub.pubmed_id:
-                out_pub[0:3] = [
-                    in_pub.pubmed_id,
+                out_pub[0:4] = [
+                    int(in_pub.pubmed_id),
                     "PubMed",
                     in_pub.title,
                     "http://www.ncbi.nlm.nih.gov/pubmed/{}".format(
