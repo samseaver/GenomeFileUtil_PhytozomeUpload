@@ -317,7 +317,7 @@ class GenbankToGenome:
                                            "%d-%b-%Y"))
             genome['contig_ids'].append(record.id)
             genome['contig_lengths'].append(len(record))
-            for k, v in self._parse_features(record).items():
+            for k, v in self._parse_features(record, params['source']).items():
                 genome[k].extend(v)
             genome["publications"] |= self._get_pubs(record)
 
@@ -438,7 +438,15 @@ class GenbankToGenome:
                 self.ontologies_present['GO'][sp[0]] = sp[1]
         return dict(ontology)
 
-    def _parse_features(self, record):
+    def _parse_features(self, record, source):
+        def _get_id(feat, tags=None):
+            _id = ""
+            if not tags:
+                tags = ['locus_tag', 'gene']
+            while tags and not _id:
+                _id = in_feature.qualifiers.get(tags.pop(0), [""])[0]
+            return _id
+
         def _location(seq, feat):
             strand_trans = ("", "+", "-")
             loc = []
@@ -513,11 +521,12 @@ class GenbankToGenome:
                 skiped_features[in_feature.type] += 1
                 continue
             feat_seq = in_feature.extract(record)
-            _id = in_feature.qualifiers.get("locus_tag", [""])[0]
-            if not _id:
-                _id = in_feature.qualifiers.get("gene", [""])[0]
+            if source == "Ensembl":
+                _id = _get_id(in_feature, ['gene', 'locus_tag'])
+            else:
+                _id = _get_id(in_feature)
             out_feature = {
-                "id": "_".join([in_feature.type, _id]),
+                "id": "_".join([_id, in_feature.type]),
                 "location": _location(feat_seq, in_feature),
                 "dna_sequence": str(feat_seq.seq),
                 "dna_sequence_length": len(feat_seq),
@@ -550,7 +559,7 @@ class GenbankToGenome:
                                  "but coordinates do not match".format(
                                     _id, out_feature['id']))
 
-                mrna_id = "mRNA" + out_feature['id'][3:]
+                mrna_id = out_feature['id'][:-3] + "mRNA"
                 if mrna_id in mrnas:
                     if not _is_parent(mrnas[mrna_id], out_feature):
                         self.log("{} is annotated as the parent transcript of "
@@ -591,6 +600,7 @@ class GenbankToGenome:
             else:
                 noncoding_types[in_feature.type] += 1
                 out_feature["type"] = in_feature.type
+                # add increment number of each type
                 out_feature['id'] += "_" + str(noncoding_types[in_feature.type])
                 noncoding.append(out_feature)
 
