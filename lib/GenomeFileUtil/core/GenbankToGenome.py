@@ -15,7 +15,6 @@ import Bio.SeqUtils
 
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from DataFileUtil.DataFileUtilClient import DataFileUtil
-from GenomeFileUtil.core.GenbankUploaderScript import upload_genome
 from GenomeInterface import GenomeInterface
 from KBaseReport.KBaseReportClient import KBaseReport
 
@@ -58,84 +57,6 @@ class GenbankToGenome:
     @property
     def messages(self):
         return "\n".join(self._messages)
-
-    def import_file(self, ctx, params):
-
-        # 1) validate parameters and extract defaults
-        self.validate_params(params)
-
-        # 2) construct the input directory staging area
-        input_directory = self.stage_input(params)
-
-        # 3) extract out the parameters
-        parsed_params = self.default_params
-        parsed_params.update(params)
-
-        # add any optional parameters
-        optional_param_fields_to_check = [
-                'source',
-                'taxon_wsname',
-                'taxon_reference',
-                'release',
-                'genetic_code',
-                'generate_ids_if_needed',
-                'exclude_ontologies',
-                'type',
-                'metadata'
-            ]
-
-        for field in optional_param_fields_to_check:
-            if field in params:
-                parsed_params[field] = params[field]
-
-        # 4) Do the upload
-        result = upload_genome(
-                logger=None,
-        
-                shock_service_url = self.cfg.shockURL,
-                handle_service_url = self.cfg.handleURL,
-                workspace_service_url = self.cfg.workspaceURL,
-                callback_url = self.cfg.callbackURL,
-
-                input_directory=input_directory,
-        
-                workspace_name   = parsed_params['workspace_name'],
-                core_genome_name = parsed_params['genome_name'],
-
-                source           = parsed_params['source'],
-
-                taxon_wsname     = parsed_params['taxon_wsname'],
-                taxon_lookup_obj_name = parsed_params['taxon_lookup_obj_name'],
-                taxon_reference = parsed_params['taxon_reference'],
-
-                release          = parsed_params['release'],
-                genetic_code     = parsed_params['genetic_code'],
-                type             = parsed_params['type'],
-                generate_ids_if_needed = parsed_params['generate_ids_if_needed'],
-
-                exclude_ontologies = parsed_params['exclude_ontologies'],
-                ontology_wsname = parsed_params['ontology_wsname'],
-                ontology_GO_obj_name = parsed_params['ontology_GO_obj_name'],
-                ontology_PO_obj_name = parsed_params['ontology_PO_obj_name'],
-
-
-                provenance = ctx['provenance'],
-                usermeta = parsed_params['metadata']
-            )
-
-        # 5) clear the temp directory
-        shutil.rmtree(input_directory)
-
-        # 6) return the result
-        info = result['genome_info']
-        details = {
-            'genome_ref': str(info[6]) + '/' + str(info[0]) + '/' + str(info[4]),
-            'genome_info': info,
-            'report_name': result['report_name'],
-            'report_ref': result['report_ref']
-        }
-
-        return details
 
     def refactored_import(self, ctx, params):
         # 1) validate parameters and extract defaults
