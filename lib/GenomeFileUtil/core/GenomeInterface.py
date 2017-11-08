@@ -125,7 +125,7 @@ class GenomeInterface:
         workspace = params['workspace']
         name = params['name']
         data = params['data']
-        if params['meta']:
+        if 'meta' in params and params['meta']:
             meta = params['meta']
         else:
             meta = {}
@@ -191,20 +191,21 @@ class GenomeInterface:
 
         log('Validating genome object contents')
         warnings = []
-        if len(genome['cdss']) < len(genome['features']):
+        if len(genome.get('cdss', [])) < len(genome['features']):
             warnings.append("CDS array should be at at least as long as the "
                             "Features array.")
-        if genome['domain'] == "Bacteria" and len(genome['cdss']) \
+        if genome['domain'] == "Bacteria" and len(genome.get('cdss', [])) \
                 != len(genome['features']):
             warnings.append("For prokaryotes, CDS array should be the same "
                             "length as the Features array.")
-        if genome['mrnas'] and len(genome['mrnas']) != len(genome['cdss']):
+        if len(genome.get('mrnas', [])) != len(genome.get('cdss', [])):
             warnings.append("mRNA array should be the same length as the CDS"
                             "array if present.")
         if print_size:
             print("Subobject Sizes:")
             for x in ('cdss', 'mrnas', 'features', 'non_coding_features',
                       'ontology_present'):
-                print("{}: {} bytes".format(x, _get_size(genome[x])))
+                if x in genome:
+                    print("{}: {} bytes".format(x, _get_size(genome[x])))
             print("Total size {} bytes".format(_get_size(genome)))
         return warnings
