@@ -565,66 +565,9 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
 
         self.assertIsInstance(feature_list, dict)
 
-    def test_FastaGFFToGenome_retrieve_feature_identifiers(self):
-        feature_list = {'Chr01':
-                        [
-                            {'end': 8201443,
-                             'Name': 'Potri.001G102800',
-                             'start': 8200895,
-                             'score': '.',
-                             'phase': '.',
-                             'contig': 'Chr01',
-                             'type': 'gene',
-                             'ID': 'Potri.001G102800.v3.0',
-                             'strand': '-'},
-                            {'end': 8201443,
-                             'Name': 'Potri.001G102800.1',
-                             'Parent': 'Potri.001G102800.v3.0',
-                             'pacid': '27047128',
-                             'start': 8200895,
-                             'score': '.',
-                             'longest': '1',
-                             'phase': '.',
-                             'contig': 'Chr01',
-                             'type': 'mRNA',
-                             'ID': 'Potri.001G102800.1.v3.0',
-                             'strand': '-'},
-                            {'end': 8201443,
-                             'Parent': 'Potri.001G102800.1.v3.0',
-                             'pacid': '27047128',
-                             'start': 8200895,
-                             'score': '.',
-                             'phase': '0',
-                             'contig': 'Chr01',
-                             'type': 'CDS',
-                             'ID': 'Potri.001G102800.1.v3.0.CDS.1',
-                             'strand': '-'}
-                        ]}
-
-        (features_identifiers_dict,
-         features_identifiers_list,
-         features_identifiers_count) = self.importer._retrieve_feature_identifiers(feature_list)
-
-        expect_features_identifiers_dict = {'Potri.001G102800':
-                                            {'Potri.001G102800.1':
-                                             {'Potri.001G102800.1.CDS.1': 1}}}
-
-        expect_features_identifiers_count = {'Potri.001G102800.1.CDS.1': 2,
-                                             'Potri.001G102800.1': 1,
-                                             'Potri.001G102800': 0, }
-
-        self.assertEquals(features_identifiers_dict, expect_features_identifiers_dict)
-        self.assertEquals(features_identifiers_count, expect_features_identifiers_count)
-        self.assertEquals(features_identifiers_list, feature_list['Chr01'])
-
     def test_FastaGFFToGenome_update_feature_identifiers(self):
-        features_identifiers_dict = {'Potri.001G102800':
-                                     {'Potri.001G102800.1':
-                                      {'Potri.001G102800.1.CDS.1': 1}}}
-        features_identifiers_count = {'Potri.001G102800.1.CDS.1': 2,
-                                      'Potri.001G102800.1': 1,
-                                      'Potri.001G102800': 0, }
-        features_identifiers_list = [{'end': 8201443,
+
+        features_identifiers_list = {'Chr01':[{'end': 8201443,
                                       'Name': 'Potri.001G102800',
                                       'start': 8200895,
                                       'score': '.',
@@ -654,25 +597,8 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
                                       'contig': 'Chr01',
                                       'type': 'CDS',
                                       'ID': 'Potri.001G102800.1.v3.0.CDS.1',
-                                      'strand': '-'}]
+                                      'strand': '-'}]}
 
-        (updated_features_identifiers_dict,
-         updated_features_list,
-         updated_features_identifiers_count) = self.importer._update_feature_identifiers(
-                                                                features_identifiers_dict,
-                                                                features_identifiers_list,
-                                                                features_identifiers_count)
+        updated_features_list = self.importer._update_identifiers(features_identifiers_list)
 
-        expect_updated_features_identifiers_dict = {'Potri.001G102800.v3.0':
-                                                    {'Potri.001G102800.1.v3.0':
-                                                     {'Potri.001G102800.1.v3.0.CDS.1': 1}}}
-
-        expect_updated_features_identifiers_count = {'Potri.001G102800.1.v3.0.CDS.1': 2,
-                                                     'Potri.001G102800.1.v3.0': 1,
-                                                     'Potri.001G102800.v3.0': 0}
-
-        self.assertEquals(updated_features_identifiers_dict,
-                          expect_updated_features_identifiers_dict)
-        self.assertEquals(updated_features_identifiers_count,
-                          expect_updated_features_identifiers_count)
         self.assertEquals(updated_features_list, features_identifiers_list)

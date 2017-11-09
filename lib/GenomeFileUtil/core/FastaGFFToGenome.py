@@ -707,8 +707,12 @@ class FastaGFFToGenome:
                     ########################################################
 
                     #At time of writing, all of this aggregation should probably be done in a single function
-                    (cds_exons_locations_array, cds_cdna_sequence, protein_sequence) = \
-                    self._cds_aggregation_translation(mRNA["cdss"],feature_list[contig],assembly,genome_translation_issues)
+                    cds_exons_locations_array = list()
+                    cds_cdna_sequence = str()
+                    protein_sequence = str()
+                    if(len(mRNA["cdss"])>0):
+                        (cds_exons_locations_array, cds_cdna_sequence, protein_sequence) = \
+                            self._cds_aggregation_translation(mRNA["cdss"],feature_list[contig],assembly,genome_translation_issues)
                     
                     UTRs=list()
                     if("utrs" in feature_hierarchy[contig][gene] and len(feature_hierarchy[contig][gene]["utrs"])>0):
@@ -718,8 +722,10 @@ class FastaGFFToGenome:
                                 UTRs.append(ftr)
 
                     mrna_exons_locations_array = copy.deepcopy(cds_exons_locations_array)
+                    mrna_transcript_sequence = str(cds_cdna_sequence)
                     if(len(UTRs)>0):
-                        (mrna_exons_locations_array,mrna_transcript_sequence) = self._utr_aggregation(UTRs,assembly,mrna_exons_locations_array,cds_cdna_sequence)
+                        (mrna_exons_locations_array, mrna_transcript_sequence) = \
+                            self._utr_aggregation(UTRs,assembly,mrna_exons_locations_array,cds_cdna_sequence)
 
                     #Update sequence and locations
                     mRNA_ftr["dna_sequence"]=mrna_transcript_sequence
@@ -863,8 +869,6 @@ class FastaGFFToGenome:
         three_prime_locations = list()
 
         for UTR in (utr_list):
-            Parent_mRNA=UTR["Parent"]
-
             contig_sequence = assembly["contigs"][UTR["contig"]]["sequence"]
             UTR_ftr = self._convert_ftr_object(UTR, contig_sequence)  #reverse-complementation for negative strands done here
 
@@ -884,11 +888,14 @@ class FastaGFFToGenome:
 
             #Merge last UTR with CDS if "next" to each other
             if(five_prime_locations[-1][1]+five_prime_locations[-1][3] == utrs_exons[0][1]):
-                utrs_exons[0][1]=five_prime_locations[-1][1]
-                utrs_exons[0][3]+=five_prime_locations[-1][3]
 
-                #remove last UTR
+                #Remove last UTR
+                last_five_prime_location = five_prime_locations[-1]
                 five_prime_locations = five_prime_locations[:-1]
+
+                #"Add" last UTR to first exon
+                utrs_exons[0][1]=last_five_prime_location[1]
+                utrs_exons[0][3]+=last_five_prime_location[3]
                         
             #Prepend other UTRs if available
             if(len(five_prime_locations)>0):
@@ -904,10 +911,13 @@ class FastaGFFToGenome:
 
             #Merge first UTR with CDS if "next to each other
             if(utrs_exons[-1][1]+utrs_exons[-1][3] == three_prime_locations[0][1]):
-                utrs_exons[0][3]+=three_prime_locations[0][3]
 
-                #remove last UTR
+                #Remove first UTR
+                first_three_prime_location = three_prime_locations[0]
                 three_prime_locations = three_prime_locations[1:]
+
+                #"Add" first UTR to last exon
+                utrs_exons[-1][3]+=first_three_prime_location[3]
 
         #Append other UTRs if available
         if(len(three_prime_locations)>0):
