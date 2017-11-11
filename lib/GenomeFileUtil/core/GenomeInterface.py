@@ -135,7 +135,7 @@ class GenomeInterface:
         self._own_handle(data, 'gff_handle_ref')
 
         self._check_dna_sequence_in_features(data)
-        warnings = self.validate_genome(data)
+        data['warnings'] = self.validate_genome(data)
 
         if 'hidden' in params and str(params['hidden']).lower() in ('yes', 'true', 't', '1'):
             hidden = 1
@@ -148,7 +148,7 @@ class GenomeInterface:
             workspace_id = self.dfu.ws_name_to_id(workspace)
 
         dfu_save_params = {'id': workspace_id,
-                           'objects': [{'type': 'KBaseGenomes.Genome',
+                           'objects': [{'type': 'NewTempGenomes.Genome',
                                         'data': data,
                                         'name': name,
                                         'meta': meta,
@@ -156,7 +156,7 @@ class GenomeInterface:
 
         dfu_oi = self.dfu.save_objects(dfu_save_params)[0]
 
-        returnVal = {'info': dfu_oi, 'warnings': warnings}
+        returnVal = {'info': dfu_oi, 'warnings': data['warnings']}
 
         return returnVal
 
@@ -182,12 +182,36 @@ class GenomeInterface:
 
         return taxonomy, taxon_reference, domain
 
-    def validate_genome(self, genome, print_size=True):
+    @staticmethod
+    def determine_tier(source):
         """
-        The sum of all the CDS coordinates lengths should be no larger than the corresponding Gene length corresponding mRNA length
+        Given a user provided source parameter, asign a source and genome tier
+        """
+        low_source = source.lower()
+        if 'refseq' in low_source:
+            if 'Reference' in low_source:
+                return "Refseq", ['Reference', 'Representative',
+                                  'ExternalDB']
+            if 'Representative' in low_source:
+                return "Refseq", ['Representative', 'ExternalDB']
+            return "Refseq", ['ExternalDB']
+        if 'phytozome' in low_source:
+            if 'flagship' in source:
+                return "Phytosome", ['Reference', 'Representative',
+                                     'ExternalDB']
+            return "Phytosome", ['Representative', 'ExternalDB']
+        if 'ensembl' in low_source:
+            return "Ensembl", ['Representative', 'ExternalDB']
+        return source, ['User']
+
+    @staticmethod
+    def validate_genome(genome, print_size=True):
+        """
+        Run a series of checks on the genome object and return any warnings
         """
         def _get_size(obj):
             return sys.getsizeof(json.dumps(obj))
+        allowed_tiers = {'Representative', 'Reference', 'ExternalDB', 'User'}
 
         log('Validating genome object contents')
         warnings = []
@@ -201,6 +225,12 @@ class GenomeInterface:
         if len(genome.get('mrnas', [])) != len(genome.get('cdss', [])):
             warnings.append("mRNA array should be the same length as the CDS"
                             "array if present.")
+        if "molecule_type" in genome and genome['molecule_type'] != "DNA":
+            warnings.append("Genome molecule_type is expected to be DNA but is"
+                            "actually " + str(genome['molecule_type']))
+        if "genome_tiers" in genome and set(genome['genome_tiers']) - allowed_tiers:
+            warnings.append("Undefined terms in genome_tiers: " + ", ".join(
+                set(genome['genome_tiers']) - allowed_tiers))
         if print_size:
             print("Subobject Sizes:")
             for x in ('cdss', 'mrnas', 'features', 'non_coding_features',
