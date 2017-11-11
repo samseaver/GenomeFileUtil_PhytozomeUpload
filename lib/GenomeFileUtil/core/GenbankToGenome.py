@@ -358,7 +358,7 @@ class GenbankToGenome:
         ontology = defaultdict(dict)
         for key in ("GO_process", "GO_function", "GO_component"):
             if key in feature.qualifiers:
-                sp = feature.qualifiers[key][0].split(" - ")
+                sp = feature.qualifiers[key][0][3:].split(" - ")
                 ontology['GO'][sp[0]] = [1]
                 self.ontologies_present['GO'][sp[0]] = sp[1]
         # TODO: Support other ontologies

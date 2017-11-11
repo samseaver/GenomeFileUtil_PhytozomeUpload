@@ -11,8 +11,6 @@ from Bio import SeqIO, SeqFeature, Alphabet
 # Local
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
-from GenomeAnnotationAPI.GenomeAnnotationAPIClient import GenomeAnnotationAPI
-
 STD_PREFIX = " " * 21
 
 
@@ -30,29 +28,20 @@ class GenomeToGenbank(object):
         # 1) validate parameters and extract defaults
         self.validate_params(params)
 
-        # 2) get genome genbank handle reference
-        getGenomeOptions = {
-            'genomes': [{
-                'ref': params['genome_ref']
-            }],
-            'included_fields': ['genbank_handle_ref'],
-            'ignore_errors': 0  # if we can't find the genome, throw an error
-        }
-        if 'ref_path_to_genome' in params:
-            getGenomeOptions['genomes'][0]['ref_path_to_genome'] = params['ref_path_to_genome']
-
-        api = GenomeAnnotationAPI(self.cfg.callbackURL)
-        genome_data = api.get_genome_v1(getGenomeOptions)['genomes'][0]
+        # 2) get genome info
+        genome_data = self.dfu.get_objects({
+            'object_refs': [params['genome_ref']]
+        })['data'][0]
         info = genome_data['info']
         data = genome_data['data']
 
         # 3) make sure the type is valid
-        if info[2].split('-')[0] != 'KBaseGenomes.Genome':
+        if info[2].split('-')[0] != 'NewTempGenomes.Genome':
             raise ValueError('Object is not a Genome, it is a:' + str(info[2]))
 
         # 4) build the genbank file and return it
         print('not cached, building file...')
-        result = self.build_genbank_file(params['genome_ref'],
+        result = self.build_genbank_file(data,
                                          "KBase_derived_" + info[1] + ".gbff")
         if result is None:
             raise ValueError('Unable to generate file.  Something went wrong')
@@ -64,23 +53,14 @@ class GenomeToGenbank(object):
         self.validate_params(params)
 
         # 2) get genome genbank handle reference
-        getGenomeOptions = {
-            'genomes':[{
-                'ref': params['genome_ref']
-            }],
-            'included_fields':['genbank_handle_ref'],
-            'ignore_errors':0 # if we can't find the genome, throw an error
-        }
-        if 'ref_path_to_genome' in params:
-            getGenomeOptions['genomes'][0]['ref_path_to_genome'] = params['ref_path_to_genome']
-
-        api = GenomeAnnotationAPI(self.cfg.callbackURL)
-        genome_data = api.get_genome_v1(getGenomeOptions)['genomes'][0]
+        genome_data = self.dfu.get_objects({
+            'object_refs': [params['genome_ref']]
+        })['data'][0]
         info = genome_data['info']
         data = genome_data['data']
 
         # 3) make sure the type is valid
-        if info[2].split('-')[0] != 'KBaseGenomes.Genome':
+        if info[2].split('-')[0] != 'NewTempGenomes.Genome':
             raise ValueError('Object is not a Genome, it is a:' + str(info[2]))
 
         # 4) if the genbank handle is there, get it and return
@@ -107,11 +87,8 @@ class GenomeToGenbank(object):
             }
         }
 
-    def build_genbank_file(self, genome_ref, output_filename):
-        genome = self.dfu.get_objects({
-            'object_refs': [genome_ref]
-        })['data'][0]
-        g = GenomeFile(self.cfg, genome['data'])
+    def build_genbank_file(self, genome_data, output_filename):
+        g = GenomeFile(self.cfg, genome_data)
         file_path = self.cfg.sharedFolder + "/" + output_filename
         g.write_genbank_file(file_path)
 
@@ -203,15 +180,35 @@ class GenomeFile:
             location += _trans_loc(in_feature['location'].pop())
 
         out_feature = SeqFeature.SeqFeature(location, in_feature['type'])
+        out_feature.qualifiers['db_xrefs'] = []
         if 'function' in in_feature and in_feature['function']:
-            out_feature.qualifiers['product'] = in_feature['function']
-        if 'aliases' in in_feature and in_feature['aliases']:
-            out_feature.qualifiers['db_xref'] = in_feature['aliases']
-        if 'note' in in_feature and in_feature['note']:
+            product_ind = [i for i, s in enumerate(
+                in_feature['function']) if s.startswith("product:")]
+            if product_ind:
+                out_feature.qualifiers['product'] = in_feature['function'].pop(
+                    product_ind[0]).split(":")[1]
+            if in_feature['function']:
+                out_feature.qualifiers['function'] = "; ".join(
+                    in_feature['function'])
+
+        if in_feature.get('note', False):
             out_feature.qualifiers['note'] = in_feature['note']
-        if 'protein_translation' in in_feature and in_feature['protein_translation']:
+        if in_feature.get('protein_translation', False):
             out_feature.qualifiers['translation'] = in_feature['protein_translation']
-        # TODO: Ontologies
+        if in_feature.get('db_xrefs', False):
+            out_feature.qualifiers['db_xrefs'].extend(
+                ["{}:{}".format(*x) for x in in_feature['db_xrefs']])
+        if in_feature.get('ontology_terms', False):
+            for ont, terms in in_feature['ontology_terms'].items():
+                out_feature.qualifiers['db_xrefs'].extend(
+                    ["{}:{}".format(ont, t) for t in terms])
+        for alias in in_feature.get('aliases', []):
+            if len(alias) == 2:
+                out_feature.qualifiers[alias[0]] = alias[1]
+            else:  # back compatibility
+                out_feature.qualifiers['db_xrefs'].append(alias)
+
+        # TODO: Ontologies, flags
         return out_feature
 
     def write_genbank_file(self, file_path):
