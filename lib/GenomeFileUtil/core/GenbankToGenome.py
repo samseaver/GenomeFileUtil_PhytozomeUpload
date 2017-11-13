@@ -32,6 +32,8 @@ class GenbankToGenome:
         yml_text = open('/kb/module/kbase.yml').read()
         self.version = re.search("module-version:\n\W+(.+)\n", yml_text).group(1)
         self.ontologies_present = defaultdict(dict)
+        self.skiped_features = Counter()
+        self.feature_counts = Counter()
         self.default_params = {
             'source': 'Genbank',
             'taxon_wsname': self.cfg.raw['taxon-workspace-name'],
@@ -265,8 +267,10 @@ class GenbankToGenome:
                 genome['external_source_origination_date'] += " _ " + \
                     time.strftime("%d-%b-%Y", dates[-1])
         genome['ontology_present'] = dict(self.ontologies_present)
+        genome['feature_counts'] = dict(self.feature_counts)
         # can't serialize a set
         genome['publications'] = list(genome['publications'])
+        print("Feature Counts: ", genome['feature_counts'])
         return genome
 
     def _save_assembly(self, contigs, params):
@@ -446,13 +450,11 @@ class GenbankToGenome:
                 "{} is annotated as the parent gene of {} but coordinates do "
                 "not match".format(parent_id, out_feature['id']))
 
-        skiped_features = Counter()
-        noncoding_types = Counter()
         excluded_features = ('source', 'exon')
         genes, cdss, mrnas, noncoding = {}, {}, {}, []
         for in_feature in record.features:
             if in_feature.type in excluded_features:
-                skiped_features[in_feature.type] += 1
+                self.skiped_features[in_feature.type] += 1
                 continue
             feat_seq = in_feature.extract(record)
             if source == "Ensembl":
@@ -470,6 +472,7 @@ class GenbankToGenome:
                 "ontology_terms": self._get_ontology(in_feature),
                 "note": in_feature.qualifiers.get("note", [""])[0],
             }
+            self.feature_counts[in_feature.type] += 1
             aliases = _aliases(in_feature)
             if aliases:
                 out_feature['aliases'] = aliases
@@ -531,24 +534,20 @@ class GenbankToGenome:
                 mrnas[out_feature['id']] = out_feature
 
             else:
-                noncoding_types[in_feature.type] += 1
                 out_feature["type"] = in_feature.type
                 # add increment number of each type
-                out_feature['id'] += "_" + str(noncoding_types[in_feature.type])
+                out_feature['id'] += "_" + str(self.feature_counts[in_feature.type])
                 noncoding.append(out_feature)
 
         coding = []
         for g in genes.values():
             if len(g['cdss']):
                 coding.append(g)
+                self.feature_counts["protein_encoding_gene"] += 1
             else:
                 del g['protein_translation'], g['protein_translation_length'],\
                     g['mrnas'], g['cdss']
                 noncoding.append(g)
-        self.log("Features skipped\n{}\n".format("\n".join([
-            "{}: {}".format(k, v) for k, v in skiped_features.items()])))
-        self.log("Noncoding Features\n{}\n".format("\n".join([
-            "{}: {}".format(k, v) for k, v in noncoding_types.items()])))
-
+                self.feature_counts["non-protein_encoding_gene"] += 1
         return {'features': coding, 'non_coding_features': noncoding,
                 'cdss': cdss.values(), 'mrnas': mrnas.values()}
