@@ -219,8 +219,8 @@ class GenbankToGenome:
                 "method": "GenomeFileUtils Genbank uploader from annotations",
                 "method_version": self.version,
                 "timestamp": self.time_string,
-                # just adding the following to pass validation. I think we are going to not want these here long term
-                "id": "GO",
+                #TODO: remove this hardcodeing
+                 "id": "GO",
                 "ontology_ref": "KBaseOntology/gene_ontology"
             }],
             "contig_ids": [],
@@ -250,11 +250,11 @@ class GenbankToGenome:
             genome["source_id"] = record.id.split('.')[0]
             genome["molecule_type"] = record.annotations.get('molecule_type', "Unknown")
             genome['scientific_name'] = record.annotations.get('organism',
-                                                               'unknown_taxon')
-            tax_info = self.gi.retrieve_taxon(params['taxon_wsname'],
-                                              genome['scientific_name'])
-            if tax_info:
-                genome['taxonomy'], genome['taxon_ref'], genome['domain'] = tax_info
+                                                               'Unknown Organism')
+            genome['taxonomy'], genome['taxon_ref'], genome['domain'] \
+                = self.gi.retrieve_taxon(params['taxon_wsname'],
+                                         genome['scientific_name'])
+
             genome['notes'] = record.annotations.get('comment', "")
         genome['num_contigs'] = len(genome['contig_ids'])
         dates.sort()

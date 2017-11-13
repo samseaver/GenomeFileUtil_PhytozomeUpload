@@ -165,16 +165,17 @@ class GenomeInterface:
         _retrieve_taxon: retrieve taxonomy and taxon_reference
 
         """
+        default = ('Unconfirmed Organism: '+ scientific_name, 'ReferenceTaxons/unknown_taxon', 'Unknown')
         solr_url = 'http://kbase.us/internal/solr-ci/search/'
         solr_core = 'taxonomy_ci'
         query = '/select?q=scientific_name:"{}"&fl=scientific_name%2Cscientific_lineage%2Ctaxonomy_id%2Cdomain&rows=5&wt=json'
         match = re.match("\S+\s?\S*", scientific_name)
         if not match:
-            return False
+            return default
         res = requests.get(solr_url+solr_core+query.format(match.group(0)))
         results = res.json()['response']['docs']
         if not results:
-            return False
+            return default
         taxonomy = results[0]['scientific_lineage']
         taxon_reference = '{}/{}_taxon'.format(
             taxon_wsname, results[0]['taxonomy_id'])
