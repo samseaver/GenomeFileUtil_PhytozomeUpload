@@ -3,8 +3,6 @@ import os
 import json
 import time
 import shutil
-import urllib2
-from contextlib import closing
 
 from os import environ
 try:
@@ -56,11 +54,11 @@ class GenomeFileUtilTest(unittest.TestCase):
         data = json.loads(data_str)
         # save to ws
         save_info = {
-                'workspace':wsName,
+                'workspace': wsName,
                 'objects': [{
-                    'type':'KBaseGenomes.Genome',
-                    'data':data,
-                    'name':'rhodobacter'
+                    'type': 'KBaseGenomes.Genome',
+                    'data': data,
+                    'name': 'rhodobacter'
                 }]
             }
         result = cls.ws.save_objects(save_info)
@@ -111,17 +109,20 @@ class GenomeFileUtilTest(unittest.TestCase):
     def test_simple_gff_download(self):
         genomeFileUtil = self.getImpl()
         print('testing GTF download by building the file')
-        res1 = genomeFileUtil.genome_to_gff(self.getContext(),
-            { 'genome_ref':self.rhodobacter_ref })[0]
+        res1 = genomeFileUtil.genome_to_gff(
+            self.getContext(),
+            {'genome_ref': self.rhodobacter_ref})[0]
         self.assertEqual(res1['from_cache'], 0)
-        res2 = genomeFileUtil.genome_to_gff(self.getContext(),
-            { 'genome_ref':self.rhodobacter_ref, 
-             'target_dir': '/kb/module/work/tmp/rhodo_gft', 'is_gtf': 1 })[0]
+        res2 = genomeFileUtil.genome_to_gff(
+            self.getContext(),
+            {'genome_ref': self.rhodobacter_ref,
+             'target_dir': '/kb/module/work/tmp/rhodo_gft', 'is_gtf': 1})[0]
         self.assertEqual(res2['from_cache'], 0)
 
     def test_simple_gff_download_from_cache(self):
         genomeFileUtil = self.getImpl()
         print('testing GTF download from cached file')
-        res2 = genomeFileUtil.genome_to_gff(self.getContext(),
-            { 'genome_ref':self.rhodobacter_ref_with_gff })[0]
+        res2 = genomeFileUtil.genome_to_gff(
+            self.getContext(),
+            {'genome_ref': self.rhodobacter_ref_with_gff})[0]
         self.assertEqual(res2['from_cache'], 1)
