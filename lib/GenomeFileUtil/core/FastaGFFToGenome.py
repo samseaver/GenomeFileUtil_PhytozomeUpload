@@ -883,11 +883,12 @@ class FastaGFFToGenome:
         #Handle five_prime UTRs
         if(len(five_prime_locations)>0):
 
-            #Sort UTRs by "start" (reverse-complement UTRs in Phytozome appear to be incorrectly ordered in the GFF file
+            #Sort UTRs by "start" (reverse-complement UTRs in Phytozome appear to be incorrectly ordered in the GFF file)
             five_prime_locations = sorted(five_prime_locations, key=lambda x: x[1])
 
             #Merge last UTR with CDS if "next" to each other
-            if(five_prime_locations[-1][1]+five_prime_locations[-1][3] == utrs_exons[0][1]):
+            if( ( utrs_exons[0][2] == "+" and five_prime_locations[-1][1]+five_prime_locations[-1][3] == utrs_exons[0][1] ) or \
+                ( utrs_exons[0][2] == "-" and five_prime_locations[-1][1]-five_prime_locations[-1][3] == utrs_exons[0][1] ) ):
 
                 #Remove last UTR
                 last_five_prime_location = five_prime_locations[-1]
@@ -910,7 +911,8 @@ class FastaGFFToGenome:
             three_prime_locations = sorted(three_prime_locations, key=lambda x: x[1])
 
             #Merge first UTR with CDS if "next to each other
-            if(utrs_exons[-1][1]+utrs_exons[-1][3] == three_prime_locations[0][1]):
+            if( ( utrs_exons[0][2] == "+" and utrs_exons[-1][1]+utrs_exons[-1][3] == three_prime_locations[0][1] ) or \
+                ( utrs_exons[0][2] == "-" and utrs_exons[-1][1]-utrs_exons[-1][3] == three_prime_locations[0][1] ) ):
 
                 #Remove first UTR
                 first_three_prime_location = three_prime_locations[0]
