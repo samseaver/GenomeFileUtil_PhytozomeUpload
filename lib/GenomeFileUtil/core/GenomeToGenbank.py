@@ -36,7 +36,7 @@ class GenomeToGenbank(object):
         data = genome_data['data']
 
         # 3) make sure the type is valid
-        if info[2].split('-')[0] != 'NewTempGenomes.Genome':
+        if info[2].split(".")[1].split('-')[0] != 'Genome':
             raise ValueError('Object is not a Genome, it is a:' + str(info[2]))
 
         # 4) build the genbank file and return it
