@@ -1,5 +1,6 @@
 import unittest
 import os
+import filecmp
 import json
 import time
 import shutil
@@ -13,8 +14,8 @@ except:
 from Workspace.WorkspaceClient import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
-
 from DataFileUtil.DataFileUtilClient import DataFileUtil
+from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -49,9 +50,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         cls.wsName = wsName
 
         # preload with reference data
-        with open ('data/rhodobacter.json', 'r') as file:
-            data_str=file.read()
-        data = json.loads(data_str)
+        data = json.load(open('data/rhodobacter.json'))
         # save to ws
         save_info = {
                 'workspace': wsName,
@@ -65,6 +64,32 @@ class GenomeFileUtilTest(unittest.TestCase):
         info = result[0]
         cls.rhodobacter_ref = str(info[6]) +'/' + str(info[0]) + '/' + str(info[4])
         print('created rhodobacter test genome: ' + cls.rhodobacter_ref)
+
+        # save new genome
+        assembly_file_path = os.path.join(cls.cfg['scratch'],
+                                          'e_coli_assembly.fasta')
+        shutil.copy('data/e_coli/e_coli_assembly.fasta', assembly_file_path)
+        au = AssemblyUtil(os.environ['SDK_CALLBACK_URL'])
+        assembly_ref = au.save_assembly_from_fasta({
+            'workspace_name': cls.wsName,
+            'assembly_name': 'ecoli.assembly',
+            'file': {'path': assembly_file_path}
+        })
+        data = json.load(open('data/e_coli/new_ecoli_genome.json'))
+        data['assembly_ref'] = assembly_ref
+        # save to ws
+        save_info = {
+                'workspace': wsName,
+                'objects': [{
+                    'type': 'NewTempGenomes.Genome',
+                    'data': data,
+                    'name': 'new_ecoli'
+                }]
+            }
+        result = cls.ws.save_objects(save_info)
+        info = result[0]
+        cls.ecoli_ref = str(info[6]) +'/' + str(info[0]) + '/' + str(info[4])
+        print('created ecoli test genome: ' + cls.rhodobacter_ref)
 
         # save a GFF file to shock, preload a genome pointing to it
         dfu = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
@@ -126,3 +151,12 @@ class GenomeFileUtilTest(unittest.TestCase):
             self.getContext(),
             {'genome_ref': self.rhodobacter_ref_with_gff})[0]
         self.assertEqual(res2['from_cache'], 1)
+
+    def test_new_genome_gff_download(self):
+        # fetch the test files and set things up
+        genomeFileUtil = self.getImpl()
+        print('testing Genbank download by building the file')
+        res = genomeFileUtil.genome_to_gff(
+            self.getContext(), {'genome_ref': self.ecoli_ref})[0]
+        self.assertEqual(res['from_cache'], 0)
+        filecmp.cmp(res['file_path'], 'data/e_coli/TestEcoliAltered.gff')
