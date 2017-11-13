@@ -1,10 +1,7 @@
-
 import os
 import time
 
 from DataFileUtil.DataFileUtilClient import DataFileUtil
-
-from GenomeAnnotationAPI.GenomeAnnotationAPIClient import GenomeAnnotationAPI
 
 
 class GenomeToGFF:
@@ -27,26 +24,17 @@ class GenomeToGFF:
     '''
 
     def __init__(self, sdk_config):
-        self.cfg = sdk_config;
-
+        self.cfg = sdk_config
+        self.dfu = DataFileUtil(self.cfg.callbackURL)
 
     def export(self, ctx, params):
         # 1) validate parameters and extract defaults
         self.validate_params(params)
 
-        # 2) get genome gff handle reference
-        getGenomeOptions = {
-            'genomes':[{
-                'ref':params['genome_ref']
-            }],
-            'included_fields':['gff_handle_ref'],
-            'ignore_errors':0 # if we can't find the genome, throw an error
-        }
-        if 'ref_path_to_genome' in params:
-            getGenomeOptions['genomes'][0]['ref_path_to_genome'] = params['ref_path_to_genome']
-
-        api = GenomeAnnotationAPI(self.cfg.callbackURL)
-        genome_data = api.get_genome_v1(getGenomeOptions)['genomes'][0]
+        # 2) get genome info
+        genome_data = self.dfu.get_objects({
+            'object_refs': [params['genome_ref']]
+        })['data'][0]
         info = genome_data['info']
         data = genome_data['data']
 
@@ -71,13 +59,12 @@ class GenomeToGFF:
                 return result
             print('not cached, building file...')
 
-        # 5) otherwise, build the GFF file and return it
-        result = self.build_gff_file(getGenomeOptions, target_dir, info[1], is_gtf == 1)
+        # 5) otherwise, build the GFF/GTF file and return it
+        result = self.build_gff_file(data, target_dir, info[1], is_gtf == 1)
         if result is None:
             raise ValueError('Unable to generate file.  Something went wrong')
         result['from_cache'] = 0
         return result
-
 
     def get_gff_handle(self, data, output_dir):
 
@@ -87,30 +74,15 @@ class GenomeToGFF:
             return None
 
         print('pulling cached GFF file from Shock: '+str(data['gff_handle_ref']))
-        dfu = DataFileUtil(self.cfg.callbackURL)
-        file_ret = dfu.shock_to_file({'handle_id':data['gff_handle_ref'],
+        file_ret = self.dfu.shock_to_file({'handle_id':data['gff_handle_ref'],
                                       'file_path':output_dir,
                                       'unpack': 'unpack'})
         return {
             'file_path': file_ret['file_path']
         }
 
-
     ###  see logic from: https://github.com/kbase/KBaseRNASeq/blob/e2d69e4137903c68b5a1fedeab57f7900aad7253/lib/biokbase/RNASeq/KBaseRNASeqImpl.py#L443-L562
-    def build_gff_file(self, getGenomeOptions, output_dir, output_filename, is_gtf):
-
-        # first get subdata needed; forget about the metadata
-        #getGenomeOptions['included_fields'] = []
-        #getGenomeOptions['included_feature_fields'] = ['id', 'type', 'location']
-        getGenomeOptions['no_metadata'] = 1
-        if 'included_fields' in getGenomeOptions:
-            del getGenomeOptions['included_fields']
-        if 'included_feature_fields' in getGenomeOptions:
-            del getGenomeOptions['included_feature_fields']
-
-        api = GenomeAnnotationAPI(self.cfg.callbackURL)
-        genome_data = api.get_genome_v1(getGenomeOptions)['genomes'][0]['data']
-
+    def build_gff_file(self, genome_data, output_dir, output_filename, is_gtf):
         # create the file
         try:
             file_ext = ".gtf" if is_gtf else ".gff"
@@ -130,6 +102,7 @@ class GenomeToGFF:
                 for f in genome_data['mrnas']:
                     features.append({'id': f['id'], 'type': 'mRNA', 'location': f['location'],
                                      'parent_gene': f['parent_gene']})
+            #TODO: Add noncodeing_features
             mrna_map = {}   ## mrna_id -> <mRNA>
             gene_map = {}   ## gene_id -> <gene>
                             ## gene is {'id': <>, 'location': [[contig,start,strand,len], ...], 
@@ -235,7 +208,7 @@ class GenomeToGFF:
                                                     f_end, strand, frame, cds_id, mrna_id)
                             frame = (3 - ((f_length - frame) % 3)) % 3
 
-        except Exception,e:
+        except Exception as e:
             raise ValueError("Failed to create file: {0}".format(e)) 
         finally:
             output.close()
@@ -244,7 +217,6 @@ class GenomeToGFF:
             'file_path': str(out_file_path)
         }
 
-
     def get_location_as_sorted_exons(self, location_array, strand):
         ret = []
         for loc in location_array:
@@ -252,16 +224,16 @@ class GenomeToGFF:
         ret.sort(key = lambda item: item['start'], reverse = (strand != '+'))
         return ret
 
-
-    def write_gff_line(self, output, contig_id, f_type, item_start, item_end, f_strand, frame,
+    @staticmethod
+    def write_gff_line(output, contig_id, f_type, item_start, item_end, f_strand, frame,
                        item_id, parent_id):
         parent_suffix = (";Parent=" + parent_id) if parent_id else ""
         output.write(contig_id + "\tKBase\t" + f_type + "\t" + str(item_start) + "\t" + 
                      str(item_end) + "\t.\t" + f_strand + "\t"+ str(frame) + "\tID=" + item_id +
                      parent_suffix + "\n")
 
-
-    def write_gtf_line(self, output, contig_id, f_type, item_start, item_end, f_strand, frame,
+    @staticmethod
+    def write_gtf_line(output, contig_id, f_type, item_start, item_end, f_strand, frame,
                        gene_id, trans_id):
         gene_id = gene_id if gene_id else ""
         trans_id = trans_id if trans_id else ""
@@ -269,29 +241,27 @@ class GenomeToGFF:
                      str(item_end) + "\t.\t" + f_strand + "\t"+ str(frame) + "\t" + 
                      "gene_id \"" + gene_id + "\"; transcript_id \"" + trans_id + "\";\n")
 
-
-    def get_start(self, loc):
+    @staticmethod
+    def get_start(loc):
         start = loc[1]
         strand = loc[2]
         leng = loc[3]
         if strand == '+':
             return start
         if strand == '-':
-            return start - ( leng - 1 )
+            return start - (leng - 1)
         return 0
 
-
-    # copied from RNASeq script_utils
-    def get_end(self, loc):
+    @staticmethod
+    def get_end(loc):
         start = loc[1]
         strand = loc[2]
         leng = loc[3]
         if strand == '+':
-            return start + ( leng - 1 )
+            return start + (leng - 1)
         if strand == '-':
             return start
         return 0
-
 
     def get_common_location(self, location_array):
         contig = location_array[0][0]
@@ -302,8 +272,8 @@ class GenomeToGFF:
         common_start = min_pos if strand == '+' else max_pos
         return [[contig, common_start, strand, common_length]]
 
-
-    def validate_params(self, params):
+    @staticmethod
+    def validate_params(params):
         if 'genome_ref' not in params:
             raise ValueError('required "genome_ref" field was not defined')
 
