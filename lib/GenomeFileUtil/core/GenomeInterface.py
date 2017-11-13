@@ -185,7 +185,7 @@ class GenomeInterface:
     @staticmethod
     def determine_tier(source):
         """
-        Given a user provided source parameter, asign a source and genome tier
+        Given a user provided source parameter, assign a source and genome tier
         """
         low_source = source.lower()
         if 'refseq' in low_source:
