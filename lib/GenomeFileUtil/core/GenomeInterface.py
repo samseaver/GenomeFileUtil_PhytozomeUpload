@@ -190,10 +190,10 @@ class GenomeInterface:
         """
         low_source = source.lower()
         if 'refseq' in low_source:
-            if 'Reference' in low_source:
+            if 'reference' in low_source:
                 return "Refseq", ['Reference', 'Representative',
                                   'ExternalDB']
-            if 'Representative' in low_source:
+            if 'representative' in low_source:
                 return "Refseq", ['Representative', 'ExternalDB']
             return "Refseq", ['ExternalDB']
         if 'phytozome' in low_source:

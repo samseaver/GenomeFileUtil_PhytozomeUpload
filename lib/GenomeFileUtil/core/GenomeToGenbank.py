@@ -105,16 +105,23 @@ class GenomeFile:
         self.genome_object = genome_object
         self.seq_records = []
         self.features_by_contig = defaultdict(list)
-        feat_arrays = (('features', 'gene'), ('cdss', 'CDS'),
-                       ('mrnas', 'mRNA'), ('non_coding_features', ''))
-        # sort every feature in the feat_arrays into a dict by contig
-        for key, type in feat_arrays:
-            if key not in genome_object:
-                continue
-            for feat in genome_object[key]:
-                if type:
-                    feat['type'] = type
-                self.features_by_contig[feat['location'][0][0]].append(feat)
+        # make special dict for all mrna & cds, they will be added when their
+        # parent gene is added
+        self.child_dict = {}
+        for x in genome_object.get('mrnas', []):
+            x['type'] = 'mRNA'
+            self.child_dict[x['id']] = x
+
+        for x in genome_object.get('cdss', []):
+            x['type'] = 'CDS'
+            self.child_dict[x['id']] = x
+
+        # sort other features into a dict by contig
+        for feat in genome_object['features']:
+            feat['type'] = 'gene'
+            self.features_by_contig[feat['location'][0][0]].append(feat)
+        for feat in genome_object.get('non_coding_features', []):
+            self.features_by_contig[feat['location'][0][0]].append(feat)
 
         assembly_file_path = self._get_assembly(genome_object['assembly_ref'])
         for contig in SeqIO.parse(open(assembly_file_path), 'fasta',
@@ -131,6 +138,14 @@ class GenomeFile:
         return assembly_file_path
 
     def _parse_contig(self, raw_contig):
+        def feature_sort(feat):
+            order = ('gene', 'mRNA', 'CDS')
+            if feat['type'] not in order:
+                priority = len(order)
+            else:
+                priority = order.index(feat['type'])
+            start = min(x[1] for x in feat['location'])
+            return start, priority
         go = self.genome_object  # I'm lazy
         raw_contig.dbxrefs = self.genome_object.get('aliases', [])
         raw_contig.annotations = {
@@ -145,12 +160,19 @@ class GenomeFile:
             raw_contig.annotations['references'] = self._format_publications()
             print("Added {} references".format(
                 len(raw_contig.annotations['references'])))
+            if 'notes' in go:
+                raw_contig.annotations['comment'] = go['notes']
 
         if raw_contig.id in self.features_by_contig:
+            # sort all features except for cdss and mrnas
+            self.features_by_contig[raw_contig.id].sort(key=feature_sort)
             for feat in self.features_by_contig[raw_contig.id]:
                 raw_contig.features.append(self._format_feature(feat))
-            raw_contig.features.sort()
-
+                # process child mrnas & cdss if present
+                raw_contig.features.extend([self._format_feature(
+                    self.child_dict[_id]) for _id in feat.get('mrnas', [])])
+                raw_contig.features.extend([self._format_feature(
+                    self.child_dict[_id]) for _id in feat.get('cdss', [])])
         self.seq_records.append(raw_contig)
 
     def _format_publications(self):
@@ -167,38 +189,44 @@ class GenomeFile:
             references.append(ref)
         return references
 
-    @staticmethod
-    def _format_feature(in_feature):
+    def _format_feature(self, in_feature):
         def _trans_loc(loc):
             if loc[2] == "-":
                 return SeqFeature.FeatureLocation(loc[1]-1, loc[1]-loc[3]-1, -1)
             else:
                 return SeqFeature.FeatureLocation(loc[1]-1, loc[1]+loc[3]-1, 1)
 
+        # we have to do it this way to correctly make a "CompoundLocation"
         location = _trans_loc(in_feature['location'].pop())
         while in_feature['location']:
             location += _trans_loc(in_feature['location'].pop())
-
         out_feature = SeqFeature.SeqFeature(location, in_feature['type'])
-        out_feature.qualifiers['db_xrefs'] = []
+
+        # Extra complicated because if there is a function with "product:" in
+        # it we want to capture that and put it back in the product field
         if 'function' in in_feature and in_feature['function']:
-            product_ind = [i for i, s in enumerate(
-                in_feature['function']) if s.startswith("product:")]
-            if product_ind:
-                out_feature.qualifiers['product'] = in_feature['function'].pop(
-                    product_ind[0]).split(":")[1]
-            if in_feature['function']:
-                out_feature.qualifiers['function'] = "; ".join(
-                    in_feature['function'])
+            if isinstance(in_feature['function'], list):  # list in new genome
+                product_ind = [i for i, s in enumerate(
+                    in_feature['function']) if s.startswith("product:")]
+                if product_ind:
+                    out_feature.qualifiers['product'] = in_feature['function'].pop(
+                        product_ind[0]).split(":")[1]
+                if in_feature['function']:
+                    out_feature.qualifiers['function'] = "; ".join(
+                        in_feature['function'])
+            else:  # back-compatible
+                out_feature.qualifiers['function'] = [in_feature['function']]
 
         if in_feature.get('note', False):
             out_feature.qualifiers['note'] = in_feature['note']
         if in_feature.get('protein_translation', False):
             out_feature.qualifiers['translation'] = in_feature['protein_translation']
         if in_feature.get('db_xrefs', False):
-            out_feature.qualifiers['db_xrefs'].extend(
-                ["{}:{}".format(*x) for x in in_feature['db_xrefs']])
+            out_feature.qualifiers['db_xrefs'] = ["{}:{}".format(*x) for x in
+                                                  in_feature['db_xrefs']]
         if in_feature.get('ontology_terms', False):
+            if 'db_xrefs' not in out_feature.qualifiers:
+                out_feature.qualifiers['db_xrefs'] = []
             for ont, terms in in_feature['ontology_terms'].items():
                 out_feature.qualifiers['db_xrefs'].extend(
                     ["{}:{}".format(ont, t) for t in terms])
@@ -206,24 +234,14 @@ class GenomeFile:
             if len(alias) == 2:
                 out_feature.qualifiers[alias[0]] = alias[1]
             else:  # back compatibility
+                if 'db_xrefs' not in out_feature.qualifiers:
+                    out_feature.qualifiers['db_xrefs'] = []
                 out_feature.qualifiers['db_xrefs'].append(alias)
+        # TODO: flags
 
-        # TODO: Ontologies, flags
         return out_feature
 
     def write_genbank_file(self, file_path):
         if not self.seq_records:
             raise ValueError("No sequence data to write!")
-        self._sort_features()
         SeqIO.write(self.seq_records, open(file_path, 'w'), 'genbank')
-
-    def _sort_features(self):
-        def feature_sort(feat):
-            order = ('gene', 'mRNA', 'CDS')
-            if feat.type not in order:
-                priority = len(order)
-            else:
-                priority = order.index(feat.type)
-            return feat.location.start, priority
-        for contig in self.seq_records:
-            contig.features.sort(key=feature_sort)

@@ -216,13 +216,12 @@ class GenbankToGenome:
             "md5": assembly_data['md5'],
             "genbank_handle_ref": shock_res['handle']['hid'],
             "publications": set(),
-            "domain": "Unknown",
             "ontology_events": [{
                 "method": "GenomeFileUtils Genbank uploader from annotations",
                 "method_version": self.version,
                 "timestamp": self.time_string,
                 #TODO: remove this hardcodeing
-                 "id": "GO",
+                "id": "GO",
                 "ontology_ref": "KBaseOntology/gene_ontology"
             }],
             "contig_ids": [],
@@ -243,12 +242,13 @@ class GenbankToGenome:
                                            "%d-%b-%Y"))
             genome['contig_ids'].append(record.id)
             genome['contig_lengths'].append(len(record))
+            # extends the feature, cdss, mrna & non_coding_genes arrays
             for k, v in self._parse_features(record, params['source']).items():
                 genome[k].extend(v)
             genome["publications"] |= self._get_pubs(record)
 
             if "source_id" in genome:
-                continue  # only do the following once
+                continue  # only do the following once(on the first contig)
             genome["source_id"] = record.id.split('.')[0]
             genome["molecule_type"] = record.annotations.get('molecule_type', "Unknown")
             genome['scientific_name'] = record.annotations.get('organism',
@@ -258,11 +258,12 @@ class GenbankToGenome:
                                          genome['scientific_name'])
 
             genome['notes'] = record.annotations.get('comment', "")
+
         genome['num_contigs'] = len(genome['contig_ids'])
         dates.sort()
         if dates:
             genome['external_source_origination_date'] = time.strftime(
-                "%d-%b-%Y",dates[0])
+                "%d-%b-%Y", dates[0])
             if dates[0] != dates[-1]:
                 genome['external_source_origination_date'] += " _ " + \
                     time.strftime("%d-%b-%Y", dates[-1])
@@ -370,14 +371,15 @@ class GenbankToGenome:
 
     def _parse_features(self, record, source):
         def _get_id(feat, tags=None):
+            """Assign a id to a feature based on the first tag that exists"""
             _id = ""
             if not tags:
                 tags = ['locus_tag', 'gene']
             while tags and not _id:
-                _id = in_feature.qualifiers.get(tags.pop(0), [""])[0]
+                _id = feat.qualifiers.get(tags.pop(0), [""])[0]
             return _id
 
-        def _location(seq, feat):
+        def _location(feat):
             strand_trans = ("", "+", "-")
             loc = []
             for part in feat.location.parts:
@@ -393,7 +395,8 @@ class GenbankToGenome:
             return loc
 
         def _aliases(feat):
-            keys = ('locus_tag', 'old_locus_tag', 'protein_id')
+            keys = ('locus_tag', 'old_locus_tag', 'protein_id',
+                    'transcript_id', 'gene')
             alias_list = []
             for key, val_list in feat.qualifiers.items():
                 if key in keys:
@@ -401,6 +404,8 @@ class GenbankToGenome:
             return alias_list
 
         def _is_parent(feat1, feat2):
+            """Check if all locations in feat2 fall within a location in
+            feat1"""
             def _contains(loc1, loc2):
                 if loc1[2] != loc2[2]:  # different strands
                     return False
@@ -411,15 +416,11 @@ class GenbankToGenome:
                     return loc2[1] <= loc1[1] and (
                     loc2[1] - loc2[3] >= loc1[1] - loc1[3])
 
-            # if any location in the CDS in contained by any location of the gene
-            return any([_contains(x, y) for x, y in
-                        itertools.product(feat1['location'], feat2['location'])])
+            # every location in the feat2 must be contained a location in the feat1
+            return all([any([_contains(l1, l2) for l1 in feat1['location']]
+                        for l2 in feat2['location'])])
 
         def _propagate_cds_props_to_gene(cds, gene):
-            # Check gene function
-            if "function" not in gene or gene["function"] is None or len(
-                    gene["function"]) == 0:
-                gene["function"] = cds.get("function", "")
             # Put longest protein_translation to gene
             if "protein_translation" not in gene or (
                 len(gene["protein_translation"]) <
@@ -427,9 +428,10 @@ class GenbankToGenome:
                 gene["protein_translation"] = cds["protein_translation"]
                 gene["protein_translation_length"] = len(
                     cds["protein_translation"])
-            # Merge cds["aliases"] -> gene["aliases"]
-            gene["aliases"] = list(set(cds.get('aliases', []) +
-                                       gene.get('aliases', [])))
+            # Merge cds list attributes with gene
+            for key in ('function', 'aliases', 'db_xref', 'function'):
+                if cds.get(key, []):
+                    gene[key] = cds.get(key, []) + gene.get(key, [])
             # Merge cds["ontology_terms"] -> gene["ontology_terms"]
             terms2 = cds.get("ontology_terms")
             if terms2 is not None:
@@ -461,93 +463,97 @@ class GenbankToGenome:
                 _id = _get_id(in_feature, ['gene', 'locus_tag'])
             else:
                 _id = _get_id(in_feature)
-            # THe following is common to all the feature types
-            out_feature = {
+            # The following is common to all the feature types
+            out_feat = {
                 "id": "_".join([_id, in_feature.type]),
-                "location": _location(feat_seq, in_feature),
+                "location": _location(in_feature),
                 "dna_sequence": str(feat_seq.seq),
                 "dna_sequence_length": len(feat_seq),
                 "md5": hashlib.md5(str(feat_seq)).hexdigest(),
                 "function": in_feature.qualifiers.get("function", [""])[0].split("; "),
-                "ontology_terms": self._get_ontology(in_feature),
-                "note": in_feature.qualifiers.get("note", [""])[0],
             }
             self.feature_counts[in_feature.type] += 1
+            #TODO: Flags, inference_data
+            # add optional fields
+            if 'note' in in_feature.qualifiers:
+                out_feat['note'] = in_feature.qualifiers["note"][0]
+            ont = self._get_ontology(in_feature)
+            if ont:
+                out_feat['ontology_terms'] = ont
             aliases = _aliases(in_feature)
             if aliases:
-                out_feature['aliases'] = aliases
+                out_feat['aliases'] = aliases
             if 'db_xref' in in_feature.qualifiers:
-                out_feature['db_xref'] = [x.split(":") for x in
-                                          in_feature.qualifiers['db_xref']]
+                out_feat['db_xref'] = [tuple(x.split(":")) for x in
+                                       in_feature.qualifiers['db_xref']]
             if 'product' in in_feature.qualifiers:
-                out_feature['function'].append(
+                out_feat['function'].append(
                     "product:" + in_feature.qualifiers["product"][0])
 
+            # add type specific features
             if in_feature.type == 'CDS':
                 prot_seq = in_feature.qualifiers.get("translation", [""])[0]
-                out_feature.update({
+                out_feat.update({
                     "protein_translation": prot_seq,
                     "protein_md5": hashlib.md5(prot_seq).hexdigest(),
                     "protein_translation_length": len(prot_seq),
-                    "parent_gene": "",
-                    "parent_mrna": "",
                 })
                 if _id in genes:
-                    out_feature['id'] += "_" + str(len(genes[_id]['cdss'])+1)
-                    genes[_id]['cdss'].append(out_feature['id'])
-                    _propagate_cds_props_to_gene(out_feature, genes[_id])
-                    out_feature['parent_gene'] = _id
-                    if not _is_parent(genes[_id], out_feature):
-                        _parent_warning(_id, out_feature)
+                    out_feat['id'] += "_" + str(len(genes[_id]['cdss'])+1)
+                    genes[_id]['cdss'].append(out_feat['id'])
+                    _propagate_cds_props_to_gene(out_feat, genes[_id])
+                    out_feat['parent_gene'] = _id
+                    if not _is_parent(genes[_id], out_feat):
+                        _parent_warning(_id, out_feat)
 
-                mrna_id = out_feature['id'][:-3] + "mRNA"
+                mrna_id = out_feat['id'][:-3] + "mRNA"
                 if mrna_id in mrnas:
-                    if not _is_parent(mrnas[mrna_id], out_feature):
-                        _parent_warning(mrna_id, out_feature)
-                    out_feature['parent_mrna'] = mrna_id
-                cdss[out_feature['id']] = out_feature
+                    if not _is_parent(mrnas[mrna_id], out_feat):
+                        _parent_warning(mrna_id, out_feat)
+                    out_feat['parent_mrna'] = mrna_id
+                cdss[out_feat['id']] = out_feat
 
             elif in_feature.type == 'gene':
-                out_feature.update({
+                out_feat.update({
                     "id": _id,
                     "type": 'gene',
-                    "protein_translation": "",
-                    "protein_translation_length": 0,
                     "mrnas": [],
                     'cdss': [],
                 })
-                genes[_id] = out_feature
+                genes[_id] = out_feat
 
             elif in_feature.type == 'mRNA':
-                out_feature.update({
-                    "parent_gene": "",
-                    "cds": "",
-                })
-                # not in this feature type
-                del out_feature['function'], out_feature['ontology_terms']
                 if _id in genes:
-                    out_feature['id'] += "_" + str(len(genes[_id]['mrnas'])+1)
-                    genes[_id]['mrnas'].append(out_feature['id'])
-                    out_feature['parent_gene'] = _id
-                    if not _is_parent(genes[_id], out_feature):
+                    out_feat['id'] += "_" + str(len(genes[_id]['mrnas'])+1)
+                    genes[_id]['mrnas'].append(out_feat['id'])
+                    out_feat['parent_gene'] = _id
+                    if not _is_parent(genes[_id], out_feat):
                         _parent_warning(_id, mrnas)
-                mrnas[out_feature['id']] = out_feature
+                mrnas[out_feat['id']] = out_feat
 
             else:
-                out_feature["type"] = in_feature.type
+                out_feat["type"] = in_feature.type
                 # add increment number of each type
-                out_feature['id'] += "_" + str(self.feature_counts[in_feature.type])
-                noncoding.append(out_feature)
+                out_feat['id'] += "_" + str(self.feature_counts[in_feature.type])
+                noncoding.append(out_feat)
 
         coding = []
         for g in genes.values():
             if len(g['cdss']):
+                if g['mrnas'] and len(g['mrnas']) != len(g['cdss']):
+                    warn = "The length of the mrna and cdss arrays are not equal"
+                    g['warnings'] = g.get('warnings', []) + [warn]
+
+                # remove duplicates that may arise from CDS info propagation
+                for key in ('function', 'aliases', 'db_xref'):
+                    if key in g:
+                        g[key] = list(set(g[key]))
                 coding.append(g)
                 self.feature_counts["protein_encoding_gene"] += 1
             else:
-                del g['protein_translation'], g['protein_translation_length'],\
-                    g['mrnas'], g['cdss']
+                del g['mrnas'], g['cdss']
                 noncoding.append(g)
                 self.feature_counts["non-protein_encoding_gene"] += 1
+
         return {'features': coding, 'non_coding_features': noncoding,
                 'cdss': cdss.values(), 'mrnas': mrnas.values()}

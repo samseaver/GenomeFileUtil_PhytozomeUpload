@@ -89,5 +89,4 @@ class GenomeFileUtilTest(unittest.TestCase):
                                open(new_file_path).readlines())
         diffs = [x for x in differ if x[0] == "+" or x[0] == "-"]
         if len(diffs) > 4:  # expect date line in each contig differ
-            print("\n".join(diffs))
-            raise AssertionError("Output file has changed")
+            raise AssertionError("Output file has changed {}".format(diffs))
