@@ -131,7 +131,16 @@ class GenomeFileUtilTest(unittest.TestCase):
     def getContext(self):
         return self.__class__.ctx
 
-    def test_simple_gff_download(self):
+    def test_old_genome_gff_download(self):
+        genomeFileUtil = self.getImpl()
+        print('testing GFF download by building the file')
+        res = genomeFileUtil.genome_to_gff(
+            self.getContext(),
+            {'genome_ref': self.rhodobacter_ref})[0]
+        self.assertEqual(res['from_cache'], 0)
+        #assert filecmp.cmp(res['file_path'], 'data/rhodobacter.gff')
+
+    def test_old_genome_gtf_download(self):
         genomeFileUtil = self.getImpl()
         print('testing GTF download by building the file')
         res1 = genomeFileUtil.genome_to_gff(
@@ -155,8 +164,17 @@ class GenomeFileUtilTest(unittest.TestCase):
     def test_new_genome_gff_download(self):
         # fetch the test files and set things up
         genomeFileUtil = self.getImpl()
-        print('testing Genbank download by building the file')
+        print('testing GFF download by building the file')
         res = genomeFileUtil.genome_to_gff(
             self.getContext(), {'genome_ref': self.ecoli_ref})[0]
         self.assertEqual(res['from_cache'], 0)
-        filecmp.cmp(res['file_path'], 'data/e_coli/TestEcoliAltered.gff')
+        #assert filecmp.cmp(res['file_path'], 'data/e_coli/new_ecoli.gff')
+
+    def test_new_genome_gtf_download(self):
+        # fetch the test files and set things up
+        genomeFileUtil = self.getImpl()
+        print('testing GTF download by building the file')
+        res = genomeFileUtil.genome_to_gff(
+            self.getContext(), {'genome_ref': self.ecoli_ref, 'is_gtf': 1})[0]
+        self.assertEqual(res['from_cache'], 0)
+        #assert filecmp.cmp(res['file_path'], 'data/e_coli/new_ecoli.gtf')
