@@ -165,10 +165,10 @@ class GenomeInterface:
         _retrieve_taxon: retrieve taxonomy and taxon_reference
 
         """
-        default = ('Unconfirmed Organism: '+ scientific_name, 'ReferenceTaxons/unknown_taxon', 'Unknown')
+        default = ('Unconfirmed Organism: '+ scientific_name, 'ReferenceTaxons/unknown_taxon', 'Unknown', 11)
         solr_url = 'http://kbase.us/internal/solr-ci/search/'
         solr_core = 'taxonomy_ci'
-        query = '/select?q=scientific_name:"{}"&fl=scientific_name%2Cscientific_lineage%2Ctaxonomy_id%2Cdomain&rows=5&wt=json'
+        query = '/select?q=scientific_name:"{}"&fl=scientific_name%2Cscientific_lineage%2Ctaxonomy_id%2Cdomain%2Cgenetic_code&rows=5&wt=json'
         match = re.match("\S+\s?\S*", scientific_name)
         if not match:
             return default
@@ -180,8 +180,9 @@ class GenomeInterface:
         taxon_reference = '{}/{}_taxon'.format(
             taxon_wsname, results[0]['taxonomy_id'])
         domain = results[0]['domain']
+        genetic_code = results[0]['genetic_code']
 
-        return taxonomy, taxon_reference, domain
+        return taxonomy, taxon_reference, domain, genetic_code
 
     @staticmethod
     def determine_tier(source):
@@ -206,7 +207,7 @@ class GenomeInterface:
         return source, ['User']
 
     @staticmethod
-    def validate_genome(genome, print_size=True):
+    def validate_genome(g, print_size=True):
         """
         Run a series of checks on the genome object and return any warnings
         """
@@ -216,27 +217,39 @@ class GenomeInterface:
 
         log('Validating genome object contents')
         warnings = []
-        if len(genome.get('cdss', [])) < len(genome['features']):
+        if len(g.get('cdss', [])) < len(g['features']):
             warnings.append("CDS array should be at at least as long as the "
                             "Features array.")
-        if genome['domain'] == "Bacteria" and len(genome.get('cdss', [])) \
-                != len(genome['features']):
+
+        if g['domain'] == "Bacteria" and len(g.get('cdss', [])) != len(g['features']):
             warnings.append("For prokaryotes, CDS array should be the same "
                             "length as the Features array.")
-        if len(genome.get('mrnas', [])) != len(genome.get('cdss', [])):
+
+        if g['domain'] == "Eukaryota" and len(g.get('mrnas', [])) and \
+                len(g.get('mrnas', [])) == len(g.get('cdss', [])):
+            warnings.append("For Eukaryotes, CDS array should not be the same "
+                            "length as the Features array due to RNA splicing.")
+
+        if g.get('mrnas', []) and len(g.get('mrnas', [])) != len(g.get('cdss', [])):
             warnings.append("mRNA array should be the same length as the CDS"
                             "array if present.")
-        if "molecule_type" in genome and genome['molecule_type'] != "DNA":
-            warnings.append("Genome molecule_type is expected to be DNA but is"
-                            "actually " + str(genome['molecule_type']))
-        if "genome_tiers" in genome and set(genome['genome_tiers']) - allowed_tiers:
+
+        if "molecule_type" in g and g['molecule_type'] not in {"DNA", 'ds-DNA'}:
+            if g.get('domain', '') not in {'Virus', 'Viroid'} and \
+                            g['molecule_type'] not in {"DNA", 'ds-DNA'}:
+                warnings.append("Genome molecule_type {} is not expected "
+                                "for domain {}.".format(g['molecule_type'],
+                                                        g.get('domain', '')))
+
+        if "genome_tiers" in g and set(g['genome_tiers']) - allowed_tiers:
             warnings.append("Undefined terms in genome_tiers: " + ", ".join(
-                set(genome['genome_tiers']) - allowed_tiers))
+                set(g['genome_tiers']) - allowed_tiers))
+
         if print_size:
             print("Subobject Sizes:")
             for x in ('cdss', 'mrnas', 'features', 'non_coding_features',
                       'ontology_present'):
-                if x in genome:
-                    print("{}: {} bytes".format(x, _get_size(genome[x])))
-            print("Total size {} bytes".format(_get_size(genome)))
+                if x in g:
+                    print("{}: {} bytes".format(x, _get_size(g[x])))
+            print("Total size {} bytes".format(_get_size(g)))
         return warnings

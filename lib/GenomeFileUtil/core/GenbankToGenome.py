@@ -200,8 +200,7 @@ class GenbankToGenome:
             'pack': 'gzip',
         })
         # Write and save assembly file
-        contigs = Bio.SeqIO.parse(file_path, "genbank")
-        assembly_ref = self._save_assembly(contigs, params)
+        assembly_ref = self._save_assembly(file_path, params)
         assembly_data = self.dfu.get_objects(
             {'object_refs': [assembly_ref],
              'ignore_errors': 0})['data'][0]['data']
@@ -209,7 +208,6 @@ class GenbankToGenome:
             "id": params['genome_name'],
             "type": params['type'],
             "original_source_file_name": os.path.basename(file_path),
-            "genetic_code": params['genetic_code'],
             "assembly_ref": assembly_ref,
             "gc_content": assembly_data['gc_content'],
             "dna_size": assembly_data['dna_size'],
@@ -253,9 +251,9 @@ class GenbankToGenome:
             genome["molecule_type"] = record.annotations.get('molecule_type', "Unknown")
             genome['scientific_name'] = record.annotations.get('organism',
                                                                'Unknown Organism')
-            genome['taxonomy'], genome['taxon_ref'], genome['domain'] \
-                = self.gi.retrieve_taxon(params['taxon_wsname'],
-                                         genome['scientific_name'])
+            genome['taxonomy'], genome['taxon_ref'], genome['domain'], \
+            genome['genetic_code'] = self.gi.retrieve_taxon(
+                params['taxon_wsname'], genome['scientific_name'])
 
             genome['notes'] = record.annotations.get('comment', "")
 
@@ -274,16 +272,28 @@ class GenbankToGenome:
         print("Feature Counts: ", genome['feature_counts'])
         return genome
 
-    def _save_assembly(self, contigs, params):
+    def _save_assembly(self, genbank_file, params):
+        contigs = Bio.SeqIO.parse(genbank_file, "genbank")
         print("Saving sequence as Assembly object")
         assembly_id = "{}_assembly".format(params['genome_name'])
         fasta_file = "{}/{}_assembly.fasta".format(
             self.cfg.sharedFolder, params['genome_name'], self.time_string)
-        Bio.SeqIO.write(contigs, fasta_file, "fasta")
+
+        out_contigs = []
+        extra_info = defaultdict(dict)
+        for in_contig in contigs:
+            if in_contig.annotations.get('topology', "") == 'circular':
+                extra_info[in_contig.id]['is_circ'] = 1
+            elif in_contig.annotations.get('topology', "") == 'linear':
+                extra_info[in_contig.id]['is_circ'] = 0
+            out_contigs.append(in_contig)
+
+        Bio.SeqIO.write(out_contigs, fasta_file, "fasta")
         assembly_ref = self.aUtil.save_assembly_from_fasta(
             {'file': {'path': fasta_file},
              'workspace_name': params['workspace_name'],
-             'assembly_name': assembly_id})
+             'assembly_name': assembly_id,
+             'contig_info': extra_info})
         self.log("Assembly saved to {}".format(assembly_ref))
         return assembly_ref
 
@@ -445,13 +455,6 @@ class GenbankToGenome:
                         else:
                             terms[source] = terms2[source]
 
-        def _parent_warning(parent_id, out_feature):
-            if "warning" not in out_feature:
-                out_feature['warnings'] = []
-            out_feature['warnings'].append(
-                "{} is annotated as the parent gene of {} but coordinates do "
-                "not match".format(parent_id, out_feature['id']))
-
         excluded_features = ('source', 'exon')
         genes, cdss, mrnas, noncoding = {}, {}, {}, []
         for in_feature in record.features:
@@ -471,6 +474,7 @@ class GenbankToGenome:
                 "dna_sequence_length": len(feat_seq),
                 "md5": hashlib.md5(str(feat_seq)).hexdigest(),
                 "function": in_feature.qualifiers.get("function", [""])[0].split("; "),
+                'warnings': []
             }
             self.feature_counts[in_feature.type] += 1
             #TODO: Flags, inference_data
@@ -497,19 +501,37 @@ class GenbankToGenome:
                     "protein_translation": prot_seq,
                     "protein_md5": hashlib.md5(prot_seq).hexdigest(),
                     "protein_translation_length": len(prot_seq),
+                    'parent_gene': "",
                 })
+                if prot_seq and prot_seq != str(feat_seq.seq.translate()
+                                                ).strip("*"):
+                    out_feat['warnings'].append(
+                        "The annotated protein translation is not consistent "
+                        "with the recorded DNA sequence")
+                if abs(len(feat_seq)/3 - len(prot_seq)) > 1:
+                    out_feat['warnings'].append(
+                        "The length of the annotated protein translation is "
+                        "not consistent with the lenght of the recorded DNA "
+                        "sequence")
+
                 if _id in genes:
                     out_feat['id'] += "_" + str(len(genes[_id]['cdss'])+1)
                     genes[_id]['cdss'].append(out_feat['id'])
                     _propagate_cds_props_to_gene(out_feat, genes[_id])
                     out_feat['parent_gene'] = _id
                     if not _is_parent(genes[_id], out_feat):
-                        _parent_warning(_id, out_feat)
+                        out_feat['warnings'].append(
+                            "{} is annotated as the parent gene of {} but "
+                            "coordinates do not match".format(_id,
+                                                              out_feat['id']))
 
                 mrna_id = out_feat['id'][:-3] + "mRNA"
                 if mrna_id in mrnas:
                     if not _is_parent(mrnas[mrna_id], out_feat):
-                        _parent_warning(mrna_id, out_feat)
+                        out_feat['warnings'].append(
+                            "{} is annotated as the parent mRNA of {} but "
+                            "coordinates do not match".format(_id,
+                                                              out_feat['id']))
                     out_feat['parent_mrna'] = mrna_id
                 cdss[out_feat['id']] = out_feat
 
@@ -528,7 +550,15 @@ class GenbankToGenome:
                     genes[_id]['mrnas'].append(out_feat['id'])
                     out_feat['parent_gene'] = _id
                     if not _is_parent(genes[_id], out_feat):
-                        _parent_warning(_id, mrnas)
+                        out_feat['warnings'].append(
+                            "{} is annotated as the parent gene of {} but "
+                            "coordinates do not match".format(_id,
+                                                              out_feat['id']))
+                else:
+                    out_feat['warnings'].append('Unable to find parent mrna '
+                                                'for ' + str(out_feat))
+                    print('Unable to find parent mrna for ' + str(out_feat))
+                    out_feat['parent_gene'] = ""
                 mrnas[out_feat['id']] = out_feat
 
             else:
