@@ -138,20 +138,20 @@ class GenomeToGFF:
             loc = self.get_common_location(feature['location'])
             lines = [self.make_feature(loc, feature, is_gtf)]
             for i, loc in enumerate(feature['location']):
-                exon = {'id': "{}_exon_{}".format(feature['id'], i),
+                exon = {'id': "{}_exon_{}".format(feature['id'], i+1),
                         'parent_gene': feature['id']}
                 lines.append(self.make_feature(loc, exon, is_gtf))
 
         #if this is a gene with mRNAs, make the mrna (and subfeatures)
-        if feature.get('mrnas', []):
+        if 'mrnas' in feature:
             for mrna_id in feature['mrnas']:
                 lines += self.make_feature_group(self.child_dict[mrna_id], is_gtf)
         # if no mrnas are present in a gene and there are CDS, make them here
-        elif feature.get('cdss', []):
+        elif 'cdss' in feature:
             for cds_id in feature['cdss']:
                 lines += self.make_feature_group(self.child_dict[cds_id], is_gtf)
         # if this is a mrna with a child CDS, make it here
-        elif feature.get('cds', ""):
+        elif 'cds' in feature:
             # the parent of CDS should be the mrna if present so we force this
             self.child_dict[feature['cds']]['parent_gene'] = feature['id']
             lines += self.make_feature_group(self.child_dict[feature['cds']], is_gtf)
