@@ -55,7 +55,12 @@ build-test-script:
 	echo 'export KB_AUTH_TOKEN=`cat /kb/module/work/token`' >> $(TEST_DIR)/$(TEST_SCRIPT_NAME)
 	echo 'export PYTHONPATH=$$script_dir/../$(LIB_DIR):$$PATH:$$PYTHONPATH' >> $(TEST_DIR)/$(TEST_SCRIPT_NAME)
 	echo 'cd $$script_dir/../$(TEST_DIR)' >> $(TEST_DIR)/$(TEST_SCRIPT_NAME)
-	echo 'python -u -m unittest discover -p "*_test.py"' >> $(TEST_DIR)/$(TEST_SCRIPT_NAME)
+	echo 'python -m nose --with-coverage --cover-package=$(SERVICE_CAPS) --cover-html --cover-html-dir=/kb/module/work/test_coverage --nocapture  --nologcapture .' >> $(TEST_DIR)/$(TEST_SCRIPT_NAME)
+	echo 'cp /kb/module/.coveragerc .' >> $(TEST_DIR)/$(TEST_SCRIPT_NAME)
+	echo 'coverage report -m' >> $(TEST_DIR)/$(TEST_SCRIPT_NAME)
+	echo 'cp .coverage /kb/module/work/' >> $(TEST_DIR)/$(TEST_SCRIPT_NAME)
+	echo 'mkdir -p /kb/module/work/kb/module/lib/' >> $(TEST_DIR)/$(TEST_SCRIPT_NAME)
+	echo 'cp -R /kb/module/lib/$(SERVICE_CAPS)/ /kb/module/work/kb/module/lib/' >> $(TEST_DIR)/$(TEST_SCRIPT_NAME)
 	chmod +x $(TEST_DIR)/$(TEST_SCRIPT_NAME)
 
 test:

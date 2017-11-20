@@ -2,12 +2,9 @@
 #BEGIN_HEADER
 
 import os
-import sys
 import shutil
-import traceback
-import uuid
 import json
-from pprint import pprint, pformat
+from pprint import pprint
 
 from GenomeFileUtil.core.GenbankToGenome import GenbankToGenome
 from GenomeFileUtil.core.GenomeToGFF import GenomeToGFF
@@ -15,8 +12,7 @@ from GenomeFileUtil.core.GenomeToGenbank import GenomeToGenbank
 from GenomeFileUtil.core.FastaGFFToGenome import FastaGFFToGenome
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
 
-from biokbase.workspace.client import Workspace
-
+from Workspace.WorkspaceClient import Workspace
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 
 # Used to store and pass around configuration URLs more easily
@@ -100,7 +96,7 @@ class GenomeFileUtil:
         pprint(params)
 
         importer = GenbankToGenome(self.cfg)
-        result = importer.import_file(ctx, params)
+        result = importer.refactored_import(ctx, params)
 
         print('import complete -- result = ')
         pprint(result)
@@ -229,14 +225,9 @@ class GenomeFileUtil:
               os.path.join(export_package_dir, os.path.basename(original_result['file_path'])))
 
         # Make warning file about genes only.
-        warning_filename = "warning.txt"
+        warning_filename = "README.txt"
         with open(os.path.join(export_package_dir, warning_filename), 'wb') as temp_file:
-            temp_file.write('Please note: the KBase-derived GenBank file for annotated genome ' +
-                            'objects currently only shows "gene" features. CDS and mRNA ' +
-                            'feature types are not currently included in the GenBank download, ' +
-                            'but are in the KBase Genome object. ' +
-                            'We hope to address this issue in the future.\n\n' +
-                            'This directory includes the KBase-derived GenBank file and also ' +
+            temp_file.write('This directory includes the KBase-derived GenBank file and also ' +
                             '(if you originally uploaded the genome from an annotated ' +
                             'GenBank file) the original GenBank input.')
 

@@ -2,6 +2,8 @@
 import time
 import requests
 import json
+import re
+import sys
 
 from Workspace.WorkspaceClient import Workspace as Workspace
 from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
@@ -123,12 +125,17 @@ class GenomeInterface:
         workspace = params['workspace']
         name = params['name']
         data = params['data']
+        if 'meta' in params and params['meta']:
+            meta = params['meta']
+        else:
+            meta = {}
 
         # check all handles point to shock nodes owned by calling user
         self._own_handle(data, 'genbank_handle_ref')
         self._own_handle(data, 'gff_handle_ref')
 
         self._check_dna_sequence_in_features(data)
+        data['warnings'] = self.validate_genome(data)
 
         if 'hidden' in params and str(params['hidden']).lower() in ('yes', 'true', 't', '1'):
             hidden = 1
@@ -141,13 +148,108 @@ class GenomeInterface:
             workspace_id = self.dfu.ws_name_to_id(workspace)
 
         dfu_save_params = {'id': workspace_id,
-                           'objects': [{'type': 'KBaseGenomes.Genome',
+                           'objects': [{'type': 'NewTempGenomes.Genome',
                                         'data': data,
                                         'name': name,
+                                        'meta': meta,
                                         'hidden': hidden}]}
 
         dfu_oi = self.dfu.save_objects(dfu_save_params)[0]
 
-        returnVal = {'info': dfu_oi}
+        returnVal = {'info': dfu_oi, 'warnings': data['warnings']}
 
         return returnVal
+
+    def retrieve_taxon(self, taxon_wsname, scientific_name):
+        """
+        _retrieve_taxon: retrieve taxonomy and taxon_reference
+
+        """
+        default = ('Unconfirmed Organism: '+ scientific_name, 'ReferenceTaxons/unknown_taxon', 'Unknown', 11)
+        solr_url = 'http://kbase.us/internal/solr-ci/search/'
+        solr_core = 'taxonomy_ci'
+        query = '/select?q=scientific_name:"{}"&fl=scientific_name%2Cscientific_lineage%2Ctaxonomy_id%2Cdomain%2Cgenetic_code&rows=5&wt=json'
+        match = re.match("\S+\s?\S*", scientific_name)
+        if not match:
+            return default
+        res = requests.get(solr_url+solr_core+query.format(match.group(0)))
+        results = res.json()['response']['docs']
+        if not results:
+            return default
+        taxonomy = results[0]['scientific_lineage']
+        taxon_reference = '{}/{}_taxon'.format(
+            taxon_wsname, results[0]['taxonomy_id'])
+        domain = results[0]['domain']
+        genetic_code = results[0]['genetic_code']
+
+        return taxonomy, taxon_reference, domain, genetic_code
+
+    @staticmethod
+    def determine_tier(source):
+        """
+        Given a user provided source parameter, assign a source and genome tier
+        """
+        low_source = source.lower()
+        if 'refseq' in low_source:
+            if 'reference' in low_source:
+                return "Refseq", ['Reference', 'Representative',
+                                  'ExternalDB']
+            if 'representative' in low_source:
+                return "Refseq", ['Representative', 'ExternalDB']
+            return "Refseq", ['ExternalDB']
+        if 'phytozome' in low_source:
+            if 'flagship' in source:
+                return "Phytosome", ['Reference', 'Representative',
+                                     'ExternalDB']
+            return "Phytosome", ['Representative', 'ExternalDB']
+        if 'ensembl' in low_source:
+            return "Ensembl", ['Representative', 'ExternalDB']
+        return source, ['User']
+
+    @staticmethod
+    def validate_genome(g, print_size=True):
+        """
+        Run a series of checks on the genome object and return any warnings
+        """
+        def _get_size(obj):
+            return sys.getsizeof(json.dumps(obj))
+        allowed_tiers = {'Representative', 'Reference', 'ExternalDB', 'User'}
+
+        log('Validating genome object contents')
+        warnings = []
+        if len(g.get('cdss', [])) < len(g['features']):
+            warnings.append("CDS array should be at at least as long as the "
+                            "Features array.")
+
+        if g['domain'] == "Bacteria" and len(g.get('cdss', [])) != len(g['features']):
+            warnings.append("For prokaryotes, CDS array should be the same "
+                            "length as the Features array.")
+
+        if g['domain'] == "Eukaryota" and len(g.get('mrnas', [])) and \
+                len(g.get('mrnas', [])) == len(g.get('cdss', [])):
+            warnings.append("For Eukaryotes, CDS array should not be the same "
+                            "length as the Features array due to RNA splicing.")
+
+        if g.get('mrnas', []) and len(g.get('mrnas', [])) != len(g.get('cdss', [])):
+            warnings.append("mRNA array should be the same length as the CDS"
+                            "array if present.")
+
+        if "molecule_type" in g and g['molecule_type'] not in {"DNA", 'ds-DNA'}:
+            if g.get('domain', '') not in {'Virus', 'Viroid'} and \
+                            g['molecule_type'] not in {"DNA", 'ds-DNA'}:
+                warnings.append("Genome molecule_type {} is not expected "
+                                "for domain {}.".format(g['molecule_type'],
+                                                        g.get('domain', '')))
+
+        if "genome_tiers" in g and set(g['genome_tiers']) - allowed_tiers:
+            warnings.append("Undefined terms in genome_tiers: " + ", ".join(
+                set(g['genome_tiers']) - allowed_tiers))
+
+        if print_size:
+            print("Subobject Sizes:")
+            for x in ('cdss', 'mrnas', 'features', 'non_coding_features',
+                      'ontology_present'):
+                if x in g:
+                    print("{}: {} bytes".format(x, _get_size(g[x])))
+            print("Total size {} bytes".format(_get_size(g)))
+        return warnings

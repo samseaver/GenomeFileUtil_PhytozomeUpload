@@ -12,7 +12,7 @@ except:
 
 from pprint import pprint
 
-from biokbase.workspace.client import Workspace as workspaceService
+from Workspace.WorkspaceClient import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 
@@ -80,12 +80,13 @@ class GenomeFileUtilTest(unittest.TestCase):
         return self.__class__.ctx
 
 
-    def load_test_genome_direct(self, filename, assembly_filename, obj_name):
+    def load_genome_direct(self, filename, assembly_filename, obj_name):
         au = AssemblyUtil(os.environ['SDK_CALLBACK_URL'])
-        assembly_ref = au.save_assembly_from_fasta({'workspace_name': self.getWsName(),
-                                                    'assembly_name': obj_name + '.assembly',
-                                                    'file': {'path': assembly_filename}
-                                                    })
+        assembly_ref = au.save_assembly_from_fasta({
+            'workspace_name': self.getWsName(),
+            'assembly_name': obj_name + '.assembly',
+            'file': {'path': assembly_filename}
+        })
         pprint('created test assembly: ' + assembly_ref)
 
         with open(filename, 'r') as file:
@@ -107,7 +108,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         print('created test genome: ' + ref + ' from file ' + filename)
         return ref
 
-    def load_test_genome_with_cache(self, filename, gbff_cache_filename):
+    def load_genome_with_cache(self, filename, gbff_cache_filename):
         """ cache filename needs to in scratch space """
         with open(filename, 'r') as file:
             data_str = file.read()
@@ -138,8 +139,9 @@ class GenomeFileUtilTest(unittest.TestCase):
     def test_simple_genbank_download(self):
         # load test data data
         assembly_file_path = os.path.join(self.cfg['scratch'], 'e_coli_assembly.fasta')
-        shutil.copy('data/e_coli_assembly.fasta', assembly_file_path)
-        e_coli_ref = self.load_test_genome_direct('data/e_coli.json', assembly_file_path, 'tax_bug_test')
+        shutil.copy('data/e_coli/e_coli_assembly.fasta', assembly_file_path)
+        e_coli_ref = self.load_genome_direct('data/e_coli/e_coli.json',
+                                             assembly_file_path, 'tax_bug_test')
 
         # run the test
         genomeFileUtil = self.getImpl()
@@ -151,8 +153,9 @@ class GenomeFileUtilTest(unittest.TestCase):
     def test_check_for_taxonomy_bug(self):
         # load test data data
         assembly_file_path = os.path.join(self.cfg['scratch'], 'e_coli_assembly.fasta')
-        shutil.copy('data/e_coli_assembly.fasta', assembly_file_path)
-        e_coli_ref = self.load_test_genome_direct('data/taxonomy_bug_test_genome.json', assembly_file_path, 'tax_bug_test')
+        shutil.copy('data/e_coli/e_coli_assembly.fasta', assembly_file_path)
+        e_coli_ref = self.load_genome_direct(
+            'data/taxonomy_bug_test_genome.json', assembly_file_path, 'tax_bug_test')
         # run the test
         genomeFileUtil = self.getImpl()
         print('testing Genbank download by building the file')
