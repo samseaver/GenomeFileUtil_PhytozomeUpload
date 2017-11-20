@@ -439,7 +439,7 @@ class GenbankToGenome:
                 gene["protein_translation_length"] = len(
                     cds["protein_translation"])
             # Merge cds list attributes with gene
-            for key in ('function', 'aliases', 'db_xref', 'function'):
+            for key in ('function', 'aliases', 'db_xref'):
                 if cds.get(key, []):
                     gene[key] = cds.get(key, []) + gene.get(key, [])
             # Merge cds["ontology_terms"] -> gene["ontology_terms"]
