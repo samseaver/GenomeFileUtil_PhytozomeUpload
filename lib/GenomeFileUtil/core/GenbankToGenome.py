@@ -406,7 +406,7 @@ class GenbankToGenome:
 
         def _aliases(feat):
             keys = ('locus_tag', 'old_locus_tag', 'protein_id',
-                    'transcript_id', 'gene')
+                    'transcript_id', 'gene', 'EC_number')
             alias_list = []
             for key, val_list in feat.qualifiers.items():
                 if key in keys:
@@ -565,6 +565,17 @@ class GenbankToGenome:
                 out_feat["type"] = in_feature.type
                 # add increment number of each type
                 out_feat['id'] += "_" + str(self.feature_counts[in_feature.type])
+                if _id in genes:
+                    if 'children' not in genes[_id]:
+                        genes[_id]['children'] = []
+                    out_feat['id'] += "_" + str(len(genes[_id]['children']) + 1)
+                    genes[_id]['children'].append(out_feat['id'])
+                    out_feat['parent_gene'] = _id
+                    if not _is_parent(genes[_id], out_feat):
+                        out_feat['warnings'].append(
+                            "{} is annotated as the parent gene of {} but "
+                            "coordinates do not match".format(_id,
+                                                              out_feat['id']))
                 noncoding.append(out_feat)
 
         coding = []
