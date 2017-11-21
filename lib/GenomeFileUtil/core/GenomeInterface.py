@@ -10,6 +10,7 @@ from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
 from biokbase.AbstractHandle.Client import AbstractHandle as HandleService  # @UnresolvedImport @IgnorePep8
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from AssemblySequenceAPI.AssemblySequenceAPIServiceClient import AssemblySequenceAPI
+from collections import defaultdict
 
 def log(message, prefix_newline=False):
     time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(time.time()))
@@ -205,6 +206,39 @@ class GenomeInterface:
         if 'ensembl' in low_source:
             return "Ensembl", ['Representative', 'ExternalDB']
         return source, ['User']
+
+    def _update_genome(self, genome):
+        """Checks for missing required fields and fixes breaking changes"""
+        if 'genome_tier' not in genome:
+            genome['source'], genome['genome_tier'] = self.determine_tier(
+                genome['source'])
+        # do feature level updates
+        move_non_coding = []
+        type_counts = defaultdict(int)
+        for field in ('mrnas', 'cdss', 'features'):
+            for i, feat in enumerate(genome.get(field, [])):
+                if 'function' in feat and not isinstance(feat, list):
+                    feat['function'] = [feat['function']]
+                if 'aliases' in feat:
+                    feat['aliases'] = [['db_xref', x] for x in feat['aliases']]
+                if 'type' in feat:
+                    type_counts[feat['type']] += 1
+                if field == 'feature' and not len(feat['cdss']):
+                    move_non_coding.append(i)
+                #TODO: Ontologies
+
+        if move_non_coding and 'non_coding_features' not in genome:
+            genome['non_coding_features'] = []
+        for i in move_non_coding:
+            genome['non_coding_features'].append(genome['features'].pop(i))
+
+        type_counts['mRNA'] = len(genome.get('mrnas', []))
+        type_counts['CDS'] = len(genome.get('cdss', []))
+        type_counts['protein_encoding_gene'] = len(genome['features'])
+        type_counts['non-protein_encoding_gene'] = len(genome['non_coding_features'])
+        genome['feature_counts'] = type_counts
+
+        return genome
 
     @staticmethod
     def validate_genome(g, print_size=True):

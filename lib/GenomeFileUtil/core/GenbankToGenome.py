@@ -75,6 +75,7 @@ class GenbankToGenome:
         files = self._find_input_files(input_directory)
         consolidated_file = self._join_files_skip_empty_lines(files)
         genome = self.parse_genbank(consolidated_file, params)
+        print genome
         result = self.gi.save_one_genome({
             'workspace': params['workspace_name'],
             'name': params['genome_name'],
@@ -525,7 +526,7 @@ class GenbankToGenome:
                             "coordinates do not match".format(_id,
                                                               out_feat['id']))
 
-                mrna_id = out_feat['id'][:-3] + "mRNA"
+                mrna_id = out_feat["id"].replace('CDS', 'mRNA')
                 if mrna_id in mrnas:
                     if not _is_parent(mrnas[mrna_id], out_feat):
                         out_feat['warnings'].append(
@@ -533,6 +534,7 @@ class GenbankToGenome:
                             "coordinates do not match".format(_id,
                                                               out_feat['id']))
                     out_feat['parent_mrna'] = mrna_id
+                    mrnas[mrna_id]['cds'] = out_feat['id']
                 cdss[out_feat['id']] = out_feat
 
             elif in_feature.type == 'gene':
