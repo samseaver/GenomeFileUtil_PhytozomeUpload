@@ -9,16 +9,20 @@ import copy
 import itertools
 import hashlib
 import collections
+import datetime
+import re
 
 # KBase imports
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from KBaseReport.KBaseReportClient import KBaseReport
+from GenomeInterface import GenomeInterface
 
 # 3rd party imports
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 from Bio.Data import CodonTable
+import Bio.SeqIO
 
 codon_table = CodonTable.ambiguous_generic_by_name["Standard"]
 
@@ -31,7 +35,19 @@ class FastaGFFToGenome:
 
     def __init__(self, config):
         self.cfg = config
+        self.au = AssemblyUtil(config.callbackURL)
         self.dfu = DataFileUtil(self.cfg.callbackURL)
+        self.gi = GenomeInterface(self.cfg)
+        self.taxon_wsname = self.cfg.raw['taxon-workspace-name']
+        self.time_string = str(datetime.datetime.fromtimestamp(
+            time.time()).strftime('%Y_%m_%d_%H_%M_%S'))
+        yml_text = open('/kb/module/kbase.yml').read()
+        self.version = re.search("module-version:\n\W+(.+)\n", yml_text).group(
+            1)
+        self.feature_dict = {}
+        self.ontologies_present = collections.defaultdict(dict)
+        self.skiped_features = collections.Counter()
+        self.feature_counts = collections.Counter()
 
     def import_file(self, params):
 
@@ -48,18 +64,12 @@ class FastaGFFToGenome:
 
         # 4) do the upload
         result = self.upload_genome(
-            shock_service_url=self.cfg.shockURL,
-            handle_service_url=self.cfg.handleURL,
-            workspace_service_url=self.cfg.workspaceURL,
-            callback_url=self.cfg.callbackURL,
-
             input_fasta_file=file_paths["fasta_file"],
             input_gff_file=file_paths["gff_file"],
 
             workspace_name=params['workspace_name'],
             core_genome_name=params['genome_name'],
             scientific_name=params['scientific_name'],
-            taxon_wsname=params['taxon_wsname'],
             taxon_reference=params['taxon_reference'],
             source=params['source'],
             genome_type=params['type'],
@@ -90,59 +100,79 @@ class FastaGFFToGenome:
 
         return details
 
-    def upload_genome(self, shock_service_url=None, handle_service_url=None,
-                      workspace_service_url=None, callback_url=None, input_gff_file=None,
-                      input_fasta_file=None, workspace_name=None, core_genome_name=None,
-                      scientific_name="unknown_taxon", taxon_wsname='ReferenceTaxons',
-                      taxon_reference=None, source=None, release=None, genome_type=None):
-
-        # retrieve taxon
-        taxonomy, taxon_reference = self._retrieve_taxon(taxon_reference,
-                                                         taxon_wsname, scientific_name)
-
-        # reading in Fasta file
-        assembly = self._retrieve_fasta_file(input_fasta_file, core_genome_name,
-                                             scientific_name, source)
-
-        if taxon_reference is not None:
-            assembly["taxon_ref"] = taxon_reference
+    def upload_genome(self, input_gff_file=None, input_fasta_file=None,
+                      workspace_name=None, core_genome_name=None,
+                      scientific_name="unknown_taxon", taxon_reference=None,
+                      source=None, release=None, genome_type=None):
 
         # reading in GFF file
-        feature_list = self._retrieve_gff_file(input_gff_file)
+        features_by_contig = self._retrieve_gff_file(input_gff_file)
 
-        # compile links between features
-        feature_hierarchy = self._generate_feature_hierarchy(feature_list)
+        # parse feature information
+        fasta_contigs = Bio.SeqIO.parse(input_fasta_file, "fasta")
+        for contig in fasta_contigs:
+            molecule_type = str(contig.seq.alphabet).replace(
+                'IUPACAmbiguous', '').strip('()')
+            for feature in features_by_contig.get(contig.id, []):
+                if feature['type'] == 'exon':
+                    self._parse_exon(feature)
+                else:
+                    self._transform_feature(contig, feature)
 
-        # retrieve genome feature list
-        (genome_features_list,
-         genome_mrnas_list,
-         genome_cdss_list) = self._retrieve_genome_feature_list(feature_list, feature_hierarchy, assembly)
-
-        # remove sequences before loading
-        for contig in assembly["contigs"]:
-            del assembly["contigs"][contig]["sequence"]
-
-        aUtil = AssemblyUtil(callback_url)
-        assembly_ref = aUtil.save_assembly_from_fasta(
-                                                {'file':
-                                                    {'path': input_fasta_file,
-                                                     'assembly_name': assembly['assembly_id']},
-                                                 'workspace_name': workspace_name,
-                                                 'assembly_name': assembly['assembly_id']})
+        # save assembly file
+        assembly_ref = self.au.save_assembly_from_fasta(
+            {'file': {'path': input_fasta_file},
+             'workspace_name': workspace_name,
+             'assembly_name': core_genome_name+".assembly"})
+        assembly_data = self.dfu.get_objects(
+            {'object_refs': [assembly_ref],
+             'ignore_errors': 0})['data'][0]['data']
 
         # generate genome info
-        genome = self._gen_genome_info(core_genome_name, scientific_name, assembly_ref,
-                                       genome_features_list, genome_cdss_list, genome_mrnas_list,
-                                       source, assembly, taxon_reference, taxonomy, input_gff_file)
+        genome = self._gen_genome_info(core_genome_name, scientific_name,
+                                       assembly_ref, source, assembly_data,
+                                       input_gff_file, molecule_type)
 
         workspace_id = self.dfu.ws_name_to_id(workspace_name)
-        genome_info = self.dfu.save_objects({"id": workspace_id,
-                                             "objects": [{"name": core_genome_name,
-                                                          "type": "KBaseGenomes.Genome",
-                                                          "data": genome}]})[0]
+        genome_info = self.dfu.save_objects(
+            {"id": workspace_id,
+             "objects": [{"name": core_genome_name,
+                          "type": "NewTempGenomes.Genome",
+                          "data": genome}]})[0]
         report_string = ''
 
         return {'genome_info': genome_info, 'report_string': report_string}
+
+    def _parse_exon(self, feature):
+        parent_id = feature.get('Parent', '')
+        if not parent_id:
+            raise ValueError("An exon has no valid parent: {}".format(feature))
+        parent = self.feature_dict[parent_id]
+        if parent.get('exons', False):
+            self.feature_dict[parent_id]['location'].append(
+                self._location(feature))
+        else:
+            parent['exons'] = True
+            self.feature_dict[parent_id]['location'] = [self._location(feature)]
+
+    @staticmethod
+    def _location(in_feature):
+        return [
+            in_feature['contig'],
+            in_feature['start'],
+            in_feature['strand'],
+            in_feature['end'] - in_feature['start']
+        ]
+
+    def _get_ontology(self, feature):
+        ontology = collections.defaultdict(dict)
+        for key in ("GO_process", "GO_function", "GO_component"):
+            if key in feature['attributes']:
+                sp = feature['attributes'][key][0][3:].split(" - ")
+                ontology['GO'][sp[0]] = [1]
+                self.ontologies_present['GO'][sp[0]] = sp[1]
+        # TODO: Support other ontologies
+        return dict(ontology)
 
     def _validate_import_file_params(self, params):
         """
@@ -244,49 +274,15 @@ class FastaGFFToGenome:
 
         return file_paths
 
-    def _retrieve_taxon(self, taxon_reference, taxon_wsname, scientific_name):
-        """
-        _retrieve_taxon: retrieve taxonomy and taxon_reference
-
-        """
-        taxon_id = -1
-        taxon_object_name = "unknown_taxon"
-
-        # retrieve lookup object if scientific name provided
-        if(taxon_reference is None and scientific_name is not "unknown_taxon"):
-            # retrieve taxon lookup object then find taxon id
-            taxon_lookup = self.dfu.get_objects(
-                                    {'object_refs': [taxon_wsname+"/taxon_lookup"],
-                                     'ignore_errors': 0})['data'][0]['data']['taxon_lookup']
-
-            if(scientific_name[0:3] in taxon_lookup and
-               scientific_name in taxon_lookup[scientific_name[0:3]]):
-                taxon_id = taxon_lookup[scientific_name[0:3]][scientific_name]
-                taxon_object_name = "{}_taxon".format(str(taxon_id))
-
-        # retrieve Taxon object
-        taxon_info = {}
-        if(taxon_reference is None):
-            taxon_info = self.dfu.get_objects({'object_refs': [taxon_wsname+"/"+taxon_object_name],
-                                               'ignore_errors': 0})['data'][0]
-            taxon_reference = "{}/{}/{}".format(taxon_info['info'][6],
-                                                taxon_info['info'][0],
-                                                taxon_info['info'][4])
-        else:
-            taxon_info = self.dfu.get_objects({"object_refs": [taxon_reference],
-                                              'ignore_errors': 0})['data'][0]
-
-        taxonomy = taxon_info['data']['scientific_lineage']
-
-        return taxonomy, taxon_reference
-
-    def _retrieve_fasta_file(self, input_fasta_file, core_genome_name,
+    @staticmethod
+    def _retrieve_fasta_file(input_fasta_file, core_genome_name,
                              scientific_name, source):
         """
         _retrieve_fasta_file: retrieve info from fasta_file
                               https://www.biostars.org/p/710/
 
         """
+        #TODO: Use assembly utils for this?
         log("Reading FASTA file")
 
         assembly = {"contigs": {}, "dna_size": 0, "gc_content": 0, "md5": [], "base_counts": {}}
@@ -408,28 +404,34 @@ class FastaGFFToGenome:
                     feature_list[contig_id] = list()
 
                 #Populating basic feature object
-                ftr = {'contig': contig_id, 'source': source_id, 'type': feature_type, 'start': int(start), 'end': int(end),
-                       'score': score, 'strand': strand, 'phase': phase, 'attributes': attributes}
+                ftr = {'contig': contig_id, 'source': source_id,
+                       'type': feature_type, 'start': int(start),
+                       'end': int(end), 'score': score, 'strand': strand,
+                       'phase': phase, 'attributes': collections.defaultdict(list)}
 
                 #Populating with attribute key-value pair
                 #This is where the feature id is from
                 for attribute in attributes.split(";"):
-                    attribute=attribute.strip()
+                    attribute = attribute.strip()
 
                     #Sometimes empty string
-                    if(attribute == ""):
+                    if not attribute:
                         continue
 
                     #Use of 1 to limit split as '=' character can also be made available later
                     #Sometimes lack of "=", assume spaces instead
                     if("=" in attribute):
                         key, value = attribute.split("=", 1)
+                        ftr['attributes'][key].append(value)
                     elif(" " in attribute):
                         key, value = attribute.split(" ", 1)
+                        ftr['attributes'][key].append(value)
                     else:
                         log("Warning: attribute "+attribute+" cannot be separated into key,value pair")
-
-                    ftr[key] = value
+                if "ID" in ftr['attributes']:
+                    ftr['ID'] = ftr['attributes']['ID'][0]
+                if "Parent" in ftr['attributes']:
+                    ftr['Parent'] = ftr['attributes']['Parent'][0]
 
                 feature_list[contig_id].append(ftr)
 
@@ -483,7 +485,8 @@ class FastaGFFToGenome:
                                     feature_list[contig][i]['attributes'])
         return feature_list
 
-    def _generate_feature_hierarchy(self,feature_list):
+    @staticmethod
+    def _generate_feature_hierarchy(feature_list):
 
         feature_hierarchy = { contig : {} for contig in feature_list }
 
@@ -496,23 +499,31 @@ class FastaGFFToGenome:
                 ftr = feature_list[contig][i]
             
                 if("gene" in ftr["type"]):
-                    feature_hierarchy[contig][ftr["ID"]]={"utrs":[], "mrnas":[], "cdss":[], "index":i}
+                    feature_hierarchy[contig][ftr["ID"]] = {
+                        "utrs": [], "mrnas": [], "cdss": [], "index": i}
 
                 if("UTR" in ftr["type"]):
-                    feature_hierarchy[contig][mRNA_gene_dict[ftr["Parent"]]]["utrs"].append( { "id" : ftr["ID"], "index" : i } )
+                    feature_hierarchy[contig][mRNA_gene_dict[ftr["Parent"]]]["utrs"].append(
+                        {"id": ftr["ID"], "index": i})
 
                 if("RNA" in ftr["type"]):
-                    feature_hierarchy[contig][ftr["Parent"]]["mrnas"].append( { "id" : ftr["ID"], "index" : i, "cdss" : [] } )
-                    mRNA_gene_dict[ftr["ID"]]=ftr["Parent"]
-                    exon_list_position_dict[ftr["ID"]]=len(feature_hierarchy[contig][ftr["Parent"]]["mrnas"])-1
+                    feature_hierarchy[contig][ftr["Parent"]]["mrnas"].append(
+                        {"id": ftr["ID"], "index": i, "cdss": []})
+                    mRNA_gene_dict[ftr["ID"]] = ftr["Parent"]
+                    exon_list_position_dict[ftr["ID"]] = len(
+                        feature_hierarchy[contig][ftr["Parent"]]["mrnas"])-1
 
                 if("CDS" in ftr["type"]):
                     feature_hierarchy[contig][mRNA_gene_dict[ftr["Parent"]]]["mrnas"]\
-                        [exon_list_position_dict[ftr["Parent"]]]["cdss"].append( { "id": ftr["ID"], "index" : i } )
+                        [exon_list_position_dict[ftr["Parent"]]]["cdss"].append(
+                        {"id": ftr["ID"], "index": i})
+
+                #TODO: add other feature types
                                                                                       
         return feature_hierarchy
 
-    def _add_missing_parents(self,feature_list):
+    @staticmethod
+    def _add_missing_parents(feature_list):
 
         #General rules is if CDS or RNA missing parent, add them
         for contig in feature_list.keys():
@@ -537,7 +548,8 @@ class FastaGFFToGenome:
             feature_list[contig]=new_ftrs
         return feature_list
 
-    def _update_phytozome_features(self,feature_list):
+    @staticmethod
+    def _update_phytozome_features(feature_list):
 
         #General rule is to use the "Name" field where possible
         #And update parent attribute correspondingly
@@ -554,8 +566,8 @@ class FastaGFFToGenome:
                         break
                 if(old_id is None):
                     #This should be an error
-                    print ("Cannot find unique ID, PACid, or pacid in GFF attributes: ",\
-                               feature_list[contig][i][contig],feature_list[contig][i][source],feature_list[contig][i][attributes])
+                    print ("Cannot find unique ID, PACid, or pacid in GFF "
+                           "attributes: " + feature_list[contig][i][contig])
                     continue
 
                 #Retain old_id
@@ -571,7 +583,8 @@ class FastaGFFToGenome:
 
         return feature_list
 
-    def _update_identifiers(self,feature_list):
+    @staticmethod
+    def _update_identifiers(feature_list):
 
         #General rules:
         #1) Genes keep identifier
@@ -609,7 +622,8 @@ class FastaGFFToGenome:
 
         return feature_list
 
-    def _print_phytozome_gff(self, input_gff_file, feature_list):
+    @staticmethod
+    def _print_phytozome_gff(input_gff_file, feature_list):
 
         #Write modified feature ids to new file
         input_gff_file = input_gff_file.replace("gene", "edited_gene")+".gz"
@@ -772,15 +786,16 @@ class FastaGFFToGenome:
                     #Add protein
                     CDS_ftr["protein_translation"] = str(protein_sequence).upper()
                     CDS_ftr["protein_translation_length"] = len(CDS_ftr["protein_translation"])
-                    #Only generate md5 for dna sequences
-                    #CDS_ftr["md5"] = hashlib.md5(CDS_ftr["protein_translation"]).hexdigest()
+                    CDS_ftr["protein_md5"] = hashlib.md5(CDS_ftr["protein_translation"]).hexdigest()
 
                     #Add empty non-optional fields for populating in future
                     CDS_ftr["ontology_terms"] = dict()
-                    if("aliases" not in CDS_ftr):
+                    if "aliases" not in CDS_ftr:
                         CDS_ftr["aliases"] = list()
-                    if("function" not in CDS_ftr):
-                        CDS_ftr["function"] = ""
+                    if "function" not in CDS_ftr:
+                        CDS_ftr["function"] = []
+                    if 'product' in CDS_ftr:
+                        CDS_ftr["function"].append(CDS_ftr['product'])
 
                     #Add to cdss array
                     genome_cdss_list.append(CDS_ftr)
@@ -798,9 +813,139 @@ class FastaGFFToGenome:
 
         return genome_features_list, genome_mrnas_list, genome_cdss_list
 
+    def _transform_feature(self, contig, in_feature):
+        """Converts a feature from the gff ftr format into the appropriate
+        format for a genome object """
+        def _aliases(feat):
+            keys = ('locus_tag', 'old_locus_tag', 'protein_id',
+                    'transcript_id', 'gene', 'EC_number')
+            alias_list = []
+            for key in keys:
+                if key in feat['attributes']:
+                    alias_list.extend([(key, val) for val in feat['attributes'][key]])
+            return alias_list
+
+        def _propagate_cds_props_to_gene(cds, gene):
+            # Put longest protein_translation to gene
+            if "protein_translation" not in gene or (
+                len(gene["protein_translation"]) <
+                    len(cds["protein_translation"])):
+                gene["protein_translation"] = cds["protein_translation"]
+                gene["protein_translation_length"] = len(
+                    cds["protein_translation"])
+            # Merge cds list attributes with gene
+            for key in ('function', 'aliases', 'db_xref'):
+                if cds.get(key, []):
+                    gene[key] = cds.get(key, []) + gene.get(key, [])
+            # Merge cds["ontology_terms"] -> gene["ontology_terms"]
+            terms2 = cds.get("ontology_terms")
+            if terms2 is not None:
+                terms = gene.get("ontology_terms")
+                if terms is None:
+                    gene["ontology_terms"] = terms2
+                else:
+                    for source in terms2:
+                        if source in terms:
+                            terms[source].update(terms2[source])
+                        else:
+                            terms[source] = terms2[source]
+
+        # UTRs don't have any information not implied by the exon
+        excluded_features = ('five_prime_UTR', 'three_prime_UTR')
+        if in_feature['type'] in excluded_features:
+            self.skiped_features[in_feature['type']] += 1
+            return
+
+        # if the feature ID is duplicated we only need to update the location
+        if in_feature['ID'] in self.feature_dict:
+            self.feature_dict[in_feature['ID']]['location'].append(
+                self._location(in_feature))
+
+        self.feature_counts[in_feature['type']] += 1
+        feat_seq = contig.seq[in_feature['start']-1:in_feature['end']-1]
+        if in_feature['strand'] == '-':
+            feat_seq = feat_seq.reverse_complement()
+
+        # The following is common to all the feature types
+        out_feat = {
+            "id": in_feature['ID'],
+            "type": in_feature['type'],
+            "location": [self._location(in_feature)],
+            "dna_sequence": str(feat_seq),
+            "dna_sequence_length": len(feat_seq),
+            "md5": hashlib.md5(str(feat_seq)).hexdigest(),
+            "function": in_feature['attributes'].get('function', []),
+            'warnings': []
+        }
+        # TODO: Flags, inference_data
+        # add optional fields
+        if 'note' in in_feature['attributes']:
+            out_feat['note'] = in_feature['attributes']["note"][0]
+        ont = self._get_ontology(in_feature)
+        if ont:
+            out_feat['ontology_terms'] = ont
+        aliases = _aliases(in_feature)
+        if aliases:
+            out_feat['aliases'] = aliases
+        if 'db_xref' in in_feature['attributes']:
+            out_feat['db_xref'] = [tuple(x.split(":")) for x in
+                                   in_feature['attributes']['db_xref']]
+        if 'product' in in_feature['attributes']:
+            out_feat['function'] += ["product:" + x for x in
+                                     in_feature['attributes']["product"]]
+        parent_id = in_feature.get('Parent', '')
+        if parent_id and parent_id not in self.feature_dict:
+            raise ValueError("Parent ID: {} was not found in feature ID list.")
+
+        # add type specific features
+        if in_feature['type'] == 'gene':
+            out_feat['mrnas'] = []
+            out_feat['cdss'] = []
+
+        elif in_feature['type'] == 'CDS':
+            prot_seq = str(feat_seq.translate()).strip("*")
+            out_feat.update({
+                "protein_translation": prot_seq,
+                "protein_md5": hashlib.md5(prot_seq).hexdigest(),
+                "protein_translation_length": len(prot_seq),
+                'parent_gene': "",
+            })
+            if parent_id:
+                # TODO: add location checks and warnings
+                parent = self.feature_dict[parent_id]
+                if 'cdss' in parent:  # parent must be a gene
+                    parent['cdss'].append(in_feature['ID'])
+                    out_feat['parent_gene'] = parent_id
+                else:  # parent must be mRNA
+                    parent['cds'] = in_feature['ID']
+                    out_feat['parent_mrna'] = parent_id
+                    parent_gene = self.feature_dict[parent['parent_gene']]
+                    parent_gene['cdss'].append(in_feature['ID'])
+                    out_feat['parent_gene'] = parent['parent_gene']
+                    _propagate_cds_props_to_gene(out_feat, parent_gene)
+
+        elif in_feature['type'] == 'mRNA':
+            if parent_id:
+                # TODO: add location checks and warnings
+                parent = self.feature_dict[parent_id]
+                if 'cdss' in parent:  # parent must be a gene
+                    parent['mrnas'].append(in_feature['ID'])
+                    out_feat['parent_gene'] = parent_id
+
+        else:
+            out_feat["type"] = in_feature.type
+            if parent_id:
+                # TODO: add location checks and warnings
+                parent = self.feature_dict[parent_id]
+                if 'children' not in parent:
+                    parent['children'] = []
+                parent['children'].append(out_feat['id'])
+                out_feat['parent_gene'] = parent_id
+
+        self.feature_dict[out_feat['id']] = out_feat
+
     def _gen_genome_info(self, core_genome_name, scientific_name, assembly_ref,
-                         genome_features_list, genome_cdss_list, genome_mrnas_list,
-                         source, assembly, taxon_reference, taxonomy, input_gff_file):
+                         source, assembly, input_gff_file, molecule_type):
         """
         _gen_genome_info: generate genome info
 
@@ -809,24 +954,57 @@ class FastaGFFToGenome:
         genome["id"] = core_genome_name
         genome["scientific_name"] = scientific_name
         genome["assembly_ref"] = assembly_ref
-        genome["features"] = genome_features_list
-        genome["cdss"] = genome_cdss_list
-        genome["mrnas"] = genome_mrnas_list
-        genome["source"] = source
-        genome["domain"] = "Eukaryota"
-        genome["genetic_code"] = 1
+        genome['molecule_type'] = molecule_type
+        genome["features"] = []
+        genome["cdss"] = []
+        genome["mrnas"] = []
+        genome['non_coding_features'] = []
         genome["gc_content"] = assembly["gc_content"]
         genome["dna_size"] = assembly["dna_size"]
+        genome['md5'] = assembly['md5']
+        genome['contig_ids'], genome['contig_lengths'] = zip(
+            *[(k, v['length']) for k, v in assembly['contigs'].items()])
+        genome['num_contigs'] = len(assembly['contigs'])
+        genome["ontology_events"] = [{
+            "method": "GenomeFileUtils Genbank uploader from annotations",
+            "method_version": self.version,
+            "timestamp": self.time_string,
+            # TODO: remove this hardcoding
+            "id": "GO",
+            "ontology_ref": "KBaseOntology/gene_ontology"
+        }]
+        genome['ontologies_present'] = dict(self.ontologies_present)
+        genome['feature_counts'] = dict(self.feature_counts)
 
-        if taxon_reference is not None:
-            genome["taxon_ref"] = taxon_reference
-            genome["taxonomy"] = taxonomy
+        genome['taxonomy'], genome['taxon_ref'], genome['domain'], \
+            genome["genetic_code"] = self.gi.retrieve_taxon(self.taxon_wsname,
+                                                            genome['scientific_name'])
+        genome['source'], genome['genome_tiers'] = self.gi.determine_tier(
+            source)
 
-        gff_file_to_shock = self.dfu.file_to_shock({'file_path': input_gff_file,
-                                                    'make_handle': 1, 'pack': "gzip"})
-        gff_handle_ref = gff_file_to_shock['handle']['hid']
+        #gff_file_to_shock = self.dfu.file_to_shock(
+        #    {'file_path': input_gff_file, 'make_handle': 1, 'pack': "gzip"})
+        #genome['gff_handle_ref'] = gff_file_to_shock['handle']['hid']
 
-        genome['gff_handle_ref'] = gff_handle_ref
+        # sort features into their respective arrays
+        for feature in self.feature_dict.values():
+            if 'exons' in feature:
+                del feature['exons']
+            if feature['type'] == 'CDS':
+                del feature['type']
+                genome['cdss'].append(feature)
+            elif feature['type'] == 'mRNA':
+                del feature['type']
+                genome['mrnas'].append(feature)
+            elif feature['type'] == 'gene':
+                del feature['type']
+                if genome['cdss']:
+                    self.feature_counts["protein_encoding_gene"] += 1
+                    genome['features'].append(feature)
+                else:
+                    del genome['mrnas'], genome['cdss']
+                    self.feature_counts["non-protein_encoding_gene"] += 1
+                    genome['non_coding_features'].append(feature)
 
         return genome
 
@@ -848,11 +1026,11 @@ class FastaGFFToGenome:
         new_ftr["md5"] = hashlib.md5(str(dna_sequence)).hexdigest()
         new_ftr["location"] = [[old_ftr["contig"], old_ftr["start"], 
                                 old_ftr["strand"], len(dna_sequence)]]
-        new_ftr["type"]=old_ftr["type"]
+        new_ftr["type"] = old_ftr["type"]
 
-        new_ftr["aliases"]=list()
+        new_ftr["aliases"] = list()
         for key in ("transcriptId", "proteinId", "PACid", "pacid"):
-            if(key in old_ftr.keys()):
+            if key in old_ftr.keys():
                 new_ftr["aliases"].append(key+":"+old_ftr[key])
 
         return new_ftr
@@ -979,6 +1157,6 @@ class FastaGFFToGenome:
         try:
             protein_sequence = rna_sequence.translate()
         except CodonTable.TranslationError as te:
-            log("TranslationError for: "+feature_object["id"], phases, exons, " : "+str(te))
+            log("TranslationError")
 
         return (locations,dna_sequence.upper(),str(protein_sequence).upper())
