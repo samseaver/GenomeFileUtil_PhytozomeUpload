@@ -266,7 +266,7 @@ class GenbankToGenome:
             if dates[0] != dates[-1]:
                 genome['external_source_origination_date'] += " _ " + \
                     time.strftime("%d-%b-%Y", dates[-1])
-        genome['ontology_present'] = dict(self.ontologies_present)
+        genome['ontologies_present'] = dict(self.ontologies_present)
         genome['feature_counts'] = dict(self.feature_counts)
         # can't serialize a set
         genome['publications'] = list(genome['publications'])
