@@ -44,6 +44,7 @@ class FastaGFFToGenome:
         yml_text = open('/kb/module/kbase.yml').read()
         self.version = re.search("module-version:\n\W+(.+)\n", yml_text).group(
             1)
+        self.is_phytozome = False
         self.feature_dict = {}
         self.ontologies_present = collections.defaultdict(dict)
         self.skiped_features = collections.Counter()
@@ -369,8 +370,7 @@ class FastaGFFToGenome:
         """
         log("Reading GFF file")
     
-        feature_list = dict()
-        is_phytozome = 0
+        feature_list = collections.defaultdict(list)
         is_patric = 0
 
         gff_file_handle = open(input_gff_file, 'rb')
@@ -388,20 +388,16 @@ class FastaGFFToGenome:
                  score, strand, phase, attributes) = current_line.split('\t')
 
                 #Checking to see if Phytozome
-                if("phytozome" in source_id or "Phytozome" in source_id):
-                    is_phytozome=1
+                if "phytozome" in source_id.lower():
+                    self.is_phytozome = True
 
                 #Checking to see if Phytozome
-                if("PATRIC" in source_id):
-                    is_patric=1
+                if "PATRIC" in source_id:
+                    is_patric = True
 
                 #PATRIC prepends their contig ids with some gibberish
-                if(is_patric and "|" in contig_id):
-                    contig_id = contig_id.split("|",1)[1]
-
-                #Features grouped by contigs first
-                if(contig_id not in feature_list):
-                    feature_list[contig_id] = list()
+                if is_patric and "|" in contig_id:
+                    contig_id = contig_id.split("|", 1)[1]
 
                 #Populating basic feature object
                 ftr = {'contig': contig_id, 'source': source_id,
@@ -428,6 +424,8 @@ class FastaGFFToGenome:
                         ftr['attributes'][key].append(value)
                     else:
                         log("Warning: attribute "+attribute+" cannot be separated into key,value pair")
+
+                ftr['attributes']['raw'] = attributes
                 if "ID" in ftr['attributes']:
                     ftr['ID'] = ftr['attributes']['ID'][0]
                 if "Parent" in ftr['attributes']:
@@ -448,16 +446,12 @@ class FastaGFFToGenome:
         feature_list = self._add_missing_parents(feature_list)
 
         #Phytozome has the annoying habit of editing their identifiers so we fix them
-        if(is_phytozome):
+        if self.is_phytozome:
             self._update_phytozome_features(feature_list)
 
         #All identifiers need to be checked so that they follow the same general rules
         #Rules are listed within the function itself
         feature_list = self._update_identifiers(feature_list)
-
-        #If phytozome, the edited files need to be re-printed as GFF so that it works better with RNA-Seq pipeline
-        if(is_phytozome):
-            self._print_phytozome_gff(input_gff_file,feature_list)
 
         return feature_list
 
@@ -638,7 +632,7 @@ class FastaGFFToGenome:
 
                 #Re-build attributes
                 attributes_dict = {}
-                for attribute in ftr["attributes"].split(";"):
+                for attribute in ftr["attributes"]['raw'].split(";"):
                     attribute=attribute.strip()
 
                     #Sometimes empty string
@@ -899,6 +893,7 @@ class FastaGFFToGenome:
 
         # add type specific features
         if in_feature['type'] == 'gene':
+            out_feat['protein_translation_length'] = 0
             out_feat['mrnas'] = []
             out_feat['cdss'] = []
 
@@ -933,7 +928,7 @@ class FastaGFFToGenome:
                     out_feat['parent_gene'] = parent_id
 
         else:
-            out_feat["type"] = in_feature.type
+            out_feat["type"] = in_feature['type']
             if parent_id:
                 # TODO: add location checks and warnings
                 parent = self.feature_dict[parent_id]
@@ -982,9 +977,12 @@ class FastaGFFToGenome:
         genome['source'], genome['genome_tiers'] = self.gi.determine_tier(
             source)
 
-        #gff_file_to_shock = self.dfu.file_to_shock(
-        #    {'file_path': input_gff_file, 'make_handle': 1, 'pack': "gzip"})
-        #genome['gff_handle_ref'] = gff_file_to_shock['handle']['hid']
+        # Phytozome gff files are not compatible with the RNASeq Pipeline
+        # so it's better to build from the object than cache the file
+        if not self.is_phytozome:
+            gff_file_to_shock = self.dfu.file_to_shock(
+                {'file_path': input_gff_file, 'make_handle': 1, 'pack': "gzip"})
+            genome['gff_handle_ref'] = gff_file_to_shock['handle']['hid']
 
         # sort features into their respective arrays
         for feature in self.feature_dict.values():
@@ -997,12 +995,12 @@ class FastaGFFToGenome:
                 del feature['type']
                 genome['mrnas'].append(feature)
             elif feature['type'] == 'gene':
-                del feature['type']
                 if genome['cdss']:
+                    del feature['type']
                     self.feature_counts["protein_encoding_gene"] += 1
                     genome['features'].append(feature)
                 else:
-                    del genome['mrnas'], genome['cdss']
+                    del feature['mrnas'], feature['cdss']
                     self.feature_counts["non-protein_encoding_gene"] += 1
                     genome['non_coding_features'].append(feature)
 
