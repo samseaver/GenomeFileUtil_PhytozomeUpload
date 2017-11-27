@@ -71,10 +71,10 @@ class FastaGFFToGenome:
             workspace_name=params['workspace_name'],
             core_genome_name=params['genome_name'],
             scientific_name=params['scientific_name'],
-            taxon_reference=params['taxon_reference'],
             source=params['source'],
             genome_type=params['type'],
-            release=params['release']
+            release=params['release'],
+            metadata=params['metadata']
         )
 
         # 5) generate report
@@ -103,8 +103,8 @@ class FastaGFFToGenome:
 
     def upload_genome(self, input_gff_file=None, input_fasta_file=None,
                       workspace_name=None, core_genome_name=None,
-                      scientific_name="unknown_taxon", taxon_reference=None,
-                      source=None, release=None, genome_type=None):
+                      scientific_name="unknown_taxon", source=None,
+                      release=None, genome_type=None, metadata=None):
 
         # reading in GFF file
         features_by_contig = self._retrieve_gff_file(input_gff_file)
@@ -134,15 +134,15 @@ class FastaGFFToGenome:
                                        assembly_ref, source, assembly_data,
                                        input_gff_file, molecule_type)
 
-        workspace_id = self.dfu.ws_name_to_id(workspace_name)
-        genome_info = self.dfu.save_objects(
-            {"id": workspace_id,
-             "objects": [{"name": core_genome_name,
-                          "type": "NewTempGenomes.Genome",
-                          "data": genome}]})[0]
+        result = self.gi.save_one_genome({
+            'workspace': workspace_name,
+            'name': core_genome_name,
+            'data': genome,
+            "meta": metadata,
+        })
         report_string = ''
 
-        return {'genome_info': genome_info, 'report_string': report_string}
+        return {'genome_info': result['info'], 'report_string': report_string}
 
     def _parse_exon(self, feature):
         parent_id = feature.get('Parent', '')
@@ -175,7 +175,8 @@ class FastaGFFToGenome:
         # TODO: Support other ontologies
         return dict(ontology)
 
-    def _validate_import_file_params(self, params):
+    @staticmethod
+    def _validate_import_file_params(params):
         """
         validate_import_file_params:
                     validates params passed to FastaGFFToGenome.import_file method
@@ -275,94 +276,6 @@ class FastaGFFToGenome:
 
         return file_paths
 
-    @staticmethod
-    def _retrieve_fasta_file(input_fasta_file, core_genome_name,
-                             scientific_name, source):
-        """
-        _retrieve_fasta_file: retrieve info from fasta_file
-                              https://www.biostars.org/p/710/
-
-        """
-        #TODO: Use assembly utils for this?
-        log("Reading FASTA file")
-
-        assembly = {"contigs": {}, "dna_size": 0, "gc_content": 0, "md5": [], "base_counts": {}}
-        contig_seq_start = 0
-
-        input_file_handle = open(input_fasta_file, 'rb')
-
-        # alternate header and sequence
-        faiter = (x[1] for x in itertools.groupby(input_file_handle, lambda line: line[0] == ">"))
-        for header in faiter:
-            # drop the ">"
-            header = header.next()[1:].strip()
-            # join all sequence lines to one.
-            seq = "".join(s.strip() for s in faiter.next())
-
-            try:
-                fasta_header, fasta_description = header.split(' ', 1)
-            except:
-                fasta_header = header
-                fasta_description = None
-
-            # Handle record
-            seq = seq.upper()
-
-            # Build contig objects for Assembly
-            seq_count = dict(collections.Counter(seq))
-
-            # to delete at end, but required for now
-            contig_dict = {"sequence": seq}
-
-            Ncount = 0
-            if "N" in seq_count:
-                Ncount = seq_count["N"]
-            contig_dict["Ncount"] = Ncount
-
-            for character in seq_count:
-                if character in assembly["base_counts"]:
-                    assembly["base_counts"][character] += seq_count[character]
-                else:
-                    assembly["base_counts"][character] = seq_count[character]
-
-            contig_seq_length = len(seq)
-            assembly["dna_size"] += contig_seq_length
-            contig_gc_length = seq.count("G")
-            contig_gc_length += seq.count("C")
-            contig_dict["gc_content"] = float("{0:.2f}".format(float(contig_gc_length) /
-                                              float(contig_seq_length)))
-            assembly["gc_content"] += contig_gc_length
-            contig_dict["contig_id"] = fasta_header
-            contig_dict["name"] = fasta_header
-            contig_dict["length"] = contig_seq_length
-            contig_dict["md5"] = hashlib.md5(seq).hexdigest()
-            assembly["md5"].append(contig_dict["md5"])
-
-            if fasta_description is not None:
-                contig_dict["description"] = fasta_description
-
-            contig_dict["is_circular"] = "Unknown"
-            contig_dict["start_position"] = contig_seq_start
-            contig_dict["num_bytes"] = sys.getsizeof(contig_dict["sequence"])
-            assembly["contigs"][fasta_header] = contig_dict
-
-            # used for start of next sequence and total gc_content
-            contig_seq_start += contig_seq_length
-
-        assembly["gc_content"] = float("{0:.2f}".format(float(assembly["gc_content"]) /
-                                       float(contig_seq_start)))
-        assembly["md5"] = hashlib.md5(",".join(assembly["md5"])).hexdigest()
-        assembly["assembly_id"] = core_genome_name+"_assembly"
-        assembly["name"] = scientific_name
-        assembly["external_source"] = source
-        assembly["external_source_id"] = os.path.basename(input_fasta_file)
-        assembly["external_source_origination_date"] = str(os.stat(input_fasta_file).st_ctime)
-        assembly["num_contigs"] = len(assembly["contigs"].keys())
-        assembly["type"] = "Unknown"
-        assembly["notes"] = "Note MD5s are generated from uppercasing the sequences"
-
-        return assembly
-
     def _retrieve_gff_file(self, input_gff_file):
         """
         _retrieve_gff_file: retrieve info from gff_file
@@ -455,7 +368,8 @@ class FastaGFFToGenome:
 
         return feature_list
 
-    def _add_missing_identifiers(self,feature_list):
+    @staticmethod
+    def _add_missing_identifiers(feature_list):
 
         #General rule is to iterate through a range of possibilities if "ID" is missing
         for contig in feature_list.keys():
@@ -478,43 +392,6 @@ class FastaGFFToGenome:
                                     feature_list[contig][i]['type']+": "+ \
                                     feature_list[contig][i]['attributes'])
         return feature_list
-
-    @staticmethod
-    def _generate_feature_hierarchy(feature_list):
-
-        feature_hierarchy = { contig : {} for contig in feature_list }
-
-        #Need to remember mRNA/gene links for CDSs
-        mRNA_gene_dict = {}
-        exon_list_position_dict = {}
-
-        for contig in feature_list:
-            for i in range(len(feature_list[contig])):
-                ftr = feature_list[contig][i]
-            
-                if("gene" in ftr["type"]):
-                    feature_hierarchy[contig][ftr["ID"]] = {
-                        "utrs": [], "mrnas": [], "cdss": [], "index": i}
-
-                if("UTR" in ftr["type"]):
-                    feature_hierarchy[contig][mRNA_gene_dict[ftr["Parent"]]]["utrs"].append(
-                        {"id": ftr["ID"], "index": i})
-
-                if("RNA" in ftr["type"]):
-                    feature_hierarchy[contig][ftr["Parent"]]["mrnas"].append(
-                        {"id": ftr["ID"], "index": i, "cdss": []})
-                    mRNA_gene_dict[ftr["ID"]] = ftr["Parent"]
-                    exon_list_position_dict[ftr["ID"]] = len(
-                        feature_hierarchy[contig][ftr["Parent"]]["mrnas"])-1
-
-                if("CDS" in ftr["type"]):
-                    feature_hierarchy[contig][mRNA_gene_dict[ftr["Parent"]]]["mrnas"]\
-                        [exon_list_position_dict[ftr["Parent"]]]["cdss"].append(
-                        {"id": ftr["ID"], "index": i})
-
-                #TODO: add other feature types
-                                                                                      
-        return feature_hierarchy
 
     @staticmethod
     def _add_missing_parents(feature_list):
@@ -659,153 +536,6 @@ class FastaGFFToGenome:
                 gff_file_handle.write(new_line)
         gff_file_handle.close()
         return
-
-    def _retrieve_genome_feature_list(self, feature_list, feature_hierarchy, assembly):
-
-        genome_features_list = list()
-        genome_mrnas_list = list()
-        genome_cdss_list = list()
-        genome_translation_issues = list()
-
-        for contig in feature_hierarchy:
-            for gene in feature_hierarchy[contig]:
-
-                #We only iterate through the gene objects
-                #And then for each gene object, retrieve the necessary mRNA and CDS objects indirectly
-
-                ftr = feature_list[contig][feature_hierarchy[contig][gene]["index"]]
-                contig_sequence = assembly["contigs"][ftr["contig"]]["sequence"]
-                gene_ftr = self._convert_ftr_object(ftr, contig_sequence) #reverse-complementation for negative strands done here
-
-                #Add non-optional terms
-                gene_ftr["mrnas"] = list()
-                gene_ftr["cdss"] = list()
-                gene_ftr["ontology_terms"] = dict()
-
-                #Retaining longest sequences for gene feature
-                longest_protein_length = 0
-                longest_protein_sequence = ""
-                for mRNA in feature_hierarchy[contig][gene]["mrnas"]:
-
-                    ########################################################
-                    # Construct mRNA Ftr
-                    ########################################################
-                    ftr = feature_list[contig][mRNA["index"]]
-                    contig_sequence = assembly["contigs"][ftr["contig"]]["sequence"]
-                    mRNA_ftr = self._convert_ftr_object(ftr, contig_sequence) #reverse-complementation for negative strands done here
-
-                    #Modify mrna object for use in mrna array
-                    #Objects will be un-used until further notice
-                    mRNA_ftr['parent_gene'] = gene_ftr['id']
-
-                    #If there are CDS, then New CDS ID without incrementation as they were aggregated
-                    if(len(mRNA['cdss'])>0):
-                        mRNA_ftr['cds'] = mRNA_ftr['id']+".CDS"
-                    else:
-                        mRNA_ftr['cds'] = ""
-
-                    #Add to mrnas array
-                    genome_mrnas_list.append(mRNA_ftr)
-
-                    #Add ids to gene_ftr arrays
-                    gene_ftr["mrnas"].append(mRNA_ftr["id"])
-
-                    ########################################################
-                    # Construct transcript, protein sequence, UTR, CDS locations
-                    ########################################################
-
-                    #At time of writing, all of this aggregation should probably be done in a single function
-                    cds_exons_locations_array = list()
-                    cds_cdna_sequence = str()
-                    protein_sequence = str()
-                    if(len(mRNA["cdss"])>0):
-                        (cds_exons_locations_array, cds_cdna_sequence, protein_sequence) = \
-                            self._cds_aggregation_translation(mRNA["cdss"],feature_list[contig],assembly,genome_translation_issues)
-                    
-                    UTRs=list()
-                    if("utrs" in feature_hierarchy[contig][gene] and len(feature_hierarchy[contig][gene]["utrs"])>0):
-                        for UTR in feature_hierarchy[contig][gene]["utrs"]:
-                            ftr = feature_list[contig][UTR["index"]]
-                            if("Parent" in ftr and ftr["Parent"] == mRNA_ftr["id"]):
-                                UTRs.append(ftr)
-
-                    mrna_exons_locations_array = copy.deepcopy(cds_exons_locations_array)
-                    mrna_transcript_sequence = str(cds_cdna_sequence)
-                    if(len(UTRs)>0):
-                        (mrna_exons_locations_array, mrna_transcript_sequence) = \
-                            self._utr_aggregation(UTRs,assembly,mrna_exons_locations_array,cds_cdna_sequence)
-
-                    #Update sequence and locations
-                    mRNA_ftr["dna_sequence"]=mrna_transcript_sequence
-                    mRNA_ftr["dna_sequence_length"]=len(mrna_transcript_sequence)
-                    mRNA_ftr["location"]=mrna_exons_locations_array
-                    mRNA_ftr["md5"] = hashlib.md5(mRNA_ftr["dna_sequence"]).hexdigest()
-
-                    #Remove DNA
-                    del mRNA_ftr["dna_sequence"]
-                    del mRNA_ftr["dna_sequence_length"]
-
-                    #Skip CDS if not present
-                    if(len(mRNA["cdss"])==0):
-                        continue
-
-                    #Remove asterix representing stop codon if present
-                    if(len(protein_sequence)>0 and protein_sequence[-1] == '*'):
-                        protein_sequence = protein_sequence[:-1]
-
-                    #Save longest sequence
-                    if(len(protein_sequence) > longest_protein_length):
-                        longest_protein_length = len(protein_sequence)
-                        longest_protein_sequence = protein_sequence
-
-                    ########################################################
-                    # Construct CDS Ftr
-                    ########################################################
-                    CDS_ftr = dict()
-                    CDS_ftr['type']='CDS'
-
-                    #New CDS ID without incrementation as they were aggregated
-                    CDS_ftr['id'] = mRNA_ftr['id']+'.CDS'
-
-                    #Add gene/mrna links
-                    CDS_ftr['parent_gene']=gene_ftr['id']
-                    CDS_ftr['parent_mrna']=mRNA_ftr['id']
-
-                    #Update sequence and locations
-                    CDS_ftr["dna_sequence"]=cds_cdna_sequence
-                    CDS_ftr["dna_sequence_length"]=len(cds_cdna_sequence)
-                    CDS_ftr["location"]=cds_exons_locations_array
-                    CDS_ftr["md5"] = hashlib.md5(CDS_ftr["dna_sequence"]).hexdigest()
-
-                    #Add protein
-                    CDS_ftr["protein_translation"] = str(protein_sequence).upper()
-                    CDS_ftr["protein_translation_length"] = len(CDS_ftr["protein_translation"])
-                    CDS_ftr["protein_md5"] = hashlib.md5(CDS_ftr["protein_translation"]).hexdigest()
-
-                    #Add empty non-optional fields for populating in future
-                    CDS_ftr["ontology_terms"] = dict()
-                    if "aliases" not in CDS_ftr:
-                        CDS_ftr["aliases"] = list()
-                    if "function" not in CDS_ftr:
-                        CDS_ftr["function"] = []
-                    if 'product' in CDS_ftr:
-                        CDS_ftr["function"].append(CDS_ftr['product'])
-
-                    #Add to cdss array
-                    genome_cdss_list.append(CDS_ftr)
-
-                    #Add ids to gene_ftr arrays
-                    gene_ftr["cdss"].append(CDS_ftr["id"])
-
-                gene_ftr["protein_translation"] = longest_protein_sequence
-                gene_ftr["protein_translation_length"] = longest_protein_length
-                genome_features_list.append(gene_ftr)
-
-        msg = "Genome features processed: {} genes, {} RNAs, and {} CDSs\n".format(len(genome_features_list),len(genome_mrnas_list),len(genome_cdss_list))
-        msg += "{} mRNA(s) had errors during translation".format(len(genome_translation_issues))
-        log(msg)
-
-        return genome_features_list, genome_mrnas_list, genome_cdss_list
 
     def _transform_feature(self, contig, in_feature):
         """Converts a feature from the gff ftr format into the appropriate
@@ -1005,156 +735,3 @@ class FastaGFFToGenome:
                     genome['non_coding_features'].append(feature)
 
         return genome
-
-    def _convert_ftr_object(self, old_ftr, contig):
-        new_ftr = dict()
-        new_ftr["id"] = old_ftr["ID"]
-
-        dna_sequence = Seq(contig[old_ftr["start"]-1:old_ftr["end"]], IUPAC.ambiguous_dna)
-
-        # reverse complement
-        if(old_ftr["strand"] == "-"):
-            dna_sequence = dna_sequence.reverse_complement()
-            old_start = old_ftr["start"]
-            old_ftr["start"] = old_ftr["end"]
-            old_ftr["end"]=old_start
-
-        new_ftr["dna_sequence"] = str(dna_sequence).upper()
-        new_ftr["dna_sequence_length"] = len(dna_sequence)
-        new_ftr["md5"] = hashlib.md5(str(dna_sequence)).hexdigest()
-        new_ftr["location"] = [[old_ftr["contig"], old_ftr["start"], 
-                                old_ftr["strand"], len(dna_sequence)]]
-        new_ftr["type"] = old_ftr["type"]
-
-        new_ftr["aliases"] = list()
-        for key in ("transcriptId", "proteinId", "PACid", "pacid"):
-            if key in old_ftr.keys():
-                new_ftr["aliases"].append(key+":"+old_ftr[key])
-
-        return new_ftr
-
-    def _utr_aggregation(self, utr_list, assembly, exons, exon_sequence):
-
-        #create copies of locations and transcript
-        utrs_exons = list(exons)
-        utr_exon_sequence = exon_sequence
-
-        five_prime_dna_sequence = ""
-        three_prime_dna_sequence = ""
-        five_prime_locations = list()
-        three_prime_locations = list()
-
-        for UTR in (utr_list):
-            contig_sequence = assembly["contigs"][UTR["contig"]]["sequence"]
-            UTR_ftr = self._convert_ftr_object(UTR, contig_sequence)  #reverse-complementation for negative strands done here
-
-            #aggregate sequences and locations
-            if("five_prime" in UTR_ftr["id"]):
-                five_prime_dna_sequence += UTR_ftr["dna_sequence"]
-                five_prime_locations.append(UTR_ftr["location"][0])
-            if("three_prime" in UTR_ftr["id"]):
-                three_prime_dna_sequence += UTR_ftr["dna_sequence"]
-                three_prime_locations.append(UTR_ftr["location"][0])
-
-        #Handle five_prime UTRs
-        if(len(five_prime_locations)>0):
-
-            #Sort UTRs by "start" (reverse-complement UTRs in Phytozome appear to be incorrectly ordered in the GFF file
-            five_prime_locations = sorted(five_prime_locations, key=lambda x: x[1])
-
-            #Merge last UTR with CDS if "next" to each other
-            if(five_prime_locations[-1][1]+five_prime_locations[-1][3] == utrs_exons[0][1]):
-
-                #Remove last UTR
-                last_five_prime_location = five_prime_locations[-1]
-                five_prime_locations = five_prime_locations[:-1]
-
-                #"Add" last UTR to first exon
-                utrs_exons[0][1]=last_five_prime_location[1]
-                utrs_exons[0][3]+=last_five_prime_location[3]
-                        
-            #Prepend other UTRs if available
-            if(len(five_prime_locations)>0):
-                utrs_exons = five_prime_locations + utrs_exons
-
-        utr_exon_sequence = five_prime_dna_sequence+utr_exon_sequence
-
-        #Handle three_prime UTRs
-        if(len(three_prime_locations)>0):
-
-            #Sort UTRs by "start" (reverse-complement UTRs in Phytozome appear to be incorrectly ordered in the GFF file
-            three_prime_locations = sorted(three_prime_locations, key=lambda x: x[1])
-
-            #Merge first UTR with CDS if "next to each other
-            if(utrs_exons[-1][1]+utrs_exons[-1][3] == three_prime_locations[0][1]):
-
-                #Remove first UTR
-                first_three_prime_location = three_prime_locations[0]
-                three_prime_locations = three_prime_locations[1:]
-
-                #"Add" first UTR to last exon
-                utrs_exons[-1][3]+=first_three_prime_location[3]
-
-        #Append other UTRs if available
-        if(len(three_prime_locations)>0):
-            utrs_exons = utrs_exons + three_prime_locations
-
-        utr_exon_sequence += three_prime_dna_sequence
-
-        return (utrs_exons, utr_exon_sequence)
-
-    def _cds_aggregation_translation(self, cds_list, feature_list, assembly, issues):
-
-        dna_sequence = ""
-        locations = list()
-
-        # collect phases, and lengths of exons
-        # right now, this is only for the purpose of error reporting
-        phases = list()
-        exons = list()
-
-        #Saving parent mRNA identifier
-        Parent_mRNA = cds_list[0]["id"]
-        for CDS in (cds_list):
-            ftr = feature_list[CDS["index"]]
-            phases.append(ftr["phase"])
-            Parent_mRNA=ftr["Parent"]
-
-            contig_sequence = assembly["contigs"][ftr["contig"]]["sequence"]
-            CDS_ftr = self._convert_ftr_object(ftr, contig_sequence) #reverse-complementation for negative strands done here
-            exons.append(len(CDS_ftr["dna_sequence"]))
-
-            # Remove base(s) according to phase, but only for first CDS
-            if(CDS == cds_list[0] and int(ftr["phase"]) != 0):
-                log("Adjusting phase for first CDS: "+CDS["id"])
-                CDS_ftr["dna_sequence"] = CDS_ftr["dna_sequence"][int(ftr["phase"]):]
-
-            #aggregate sequences and locations
-            dna_sequence += CDS_ftr["dna_sequence"]
-            locations.append(CDS_ftr["location"][0])
-
-        # translate sequence
-        dna_sequence_obj = Seq(dna_sequence, IUPAC.ambiguous_dna)
-        rna_sequence = dna_sequence_obj.transcribe()
-
-        # incomplete gene model with no start codon
-        if str(rna_sequence.upper())[:3] not in codon_table.start_codons:
-            msg = "Missing start codon for {}. Possibly incomplete gene model.".format(Parent_mRNA)
-            log(msg)
-
-        # You should never have this problem, needs to be reported rather than "fixed"
-        codon_count = len(str(rna_sequence)) % 3
-        if codon_count != 0:
-            msg = "Number of bases for RNA sequence for {} ".format(Parent_mRNA)
-            msg += "is not divisible by 3. "
-            msg += "The resulting protein may well be mis-translated."
-            log(msg)
-            issues.append(Parent_mRNA)
-
-        protein_sequence = Seq("")
-        try:
-            protein_sequence = rna_sequence.translate()
-        except CodonTable.TranslationError as te:
-            log("TranslationError")
-
-        return (locations,dna_sequence.upper(),str(protein_sequence).upper())

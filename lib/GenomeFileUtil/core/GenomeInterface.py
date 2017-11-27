@@ -222,9 +222,10 @@ class GenomeInterface:
         if 'molecule_type' not in genome:
             genome['molecule_type'] = 'Unknown'
         if 'taxon_ref' not in genome:
-            genome['taxonomy'], genome['taxon_ref'], genome['domain'] \
-                = self.retrieve_taxon(self.taxon_wsname,
-                                      genome['scientific_name'])
+            genome['taxonomy'], genome['taxon_ref'], genome['domain'], \
+                genome['genetic_code'] = self.retrieve_taxon(
+                    self.taxon_wsname, genome['scientific_name'])
+
         if any([x not in genome for x in ('dna_size', 'md5', 'gc_content')]):
             assembly_data = self.dfu.get_objects(
                 {'object_refs': [genome['assembly_ref']],

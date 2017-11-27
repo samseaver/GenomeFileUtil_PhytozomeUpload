@@ -75,7 +75,6 @@ class GenbankToGenome:
         files = self._find_input_files(input_directory)
         consolidated_file = self._join_files_skip_empty_lines(files)
         genome = self.parse_genbank(consolidated_file, params)
-        print genome
         result = self.gi.save_one_genome({
             'workspace': params['workspace_name'],
             'name': params['genome_name'],
