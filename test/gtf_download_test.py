@@ -178,3 +178,11 @@ class GenomeFileUtilTest(unittest.TestCase):
             self.getContext(), {'genome_ref': self.ecoli_ref, 'is_gtf': 1})[0]
         self.assertEqual(res['from_cache'], 0)
         #assert filecmp.cmp(res['file_path'], 'data/e_coli/new_ecoli.gtf')
+
+    def test_new_genome_gff_export(self):
+        # fetch the test files and set things up
+        genomeFileUtil = self.getImpl()
+        print('testing GTF export')
+        res = genomeFileUtil.export_genome_as_gff(
+            self.getContext(), {'input_ref': self.ecoli_ref})[0]
+        assert 'shock_id' in res
