@@ -732,8 +732,6 @@ class FastaGFFToGenome:
 
         # sort features into their respective arrays
         for feature in self.feature_dict.values():
-            if 'exons' in feature:
-                del feature['exons']
             if feature['type'] == 'CDS':
                 del feature['type']
                 genome['cdss'].append(feature)
@@ -755,6 +753,10 @@ class FastaGFFToGenome:
                     del feature['mrnas'], feature['cdss']
                     self.feature_counts["non-protein_encoding_gene"] += 1
                     genome['non_coding_features'].append(feature)
+            else:
+                if 'exons' in feature:
+                    del feature['exons']
+                genome['non_coding_features'].append(feature)
         genome['warnings'] = self._warnings
 
         return genome
