@@ -60,7 +60,7 @@ class GenomeToGenbank(object):
         data = genome_data['data']
 
         # 3) make sure the type is valid
-        if info[2].split('-')[0] != 'NewTempGenomes.Genome':
+        if info[2].split(".")[1].split('-')[0] != 'Genome':
             raise ValueError('Object is not a Genome, it is a:' + str(info[2]))
 
         # 4) if the genbank handle is there, get it and return
@@ -123,12 +123,16 @@ class GenomeFile:
         for feat in genome_object.get('non_coding_features', []):
             self.features_by_contig[feat['location'][0][0]].append(feat)
 
-        assembly_file_path = self._get_assembly(genome_object['assembly_ref'])
+        assembly_file_path = self._get_assembly(genome_object)
         for contig in SeqIO.parse(open(assembly_file_path), 'fasta',
                                   Alphabet.generic_dna):
             self._parse_contig(contig)
 
-    def _get_assembly(self, assembly_ref):
+    def _get_assembly(self, genome):
+        if 'assembly_ref' in genome:
+            assembly_ref = genome['assembly_ref']
+        else:
+            assembly_ref = genome['contigset_ref']
         print('Assembly reference = ' + assembly_ref)
         print('Downloading assembly')
         au = AssemblyUtil(self.cfg.callbackURL)
