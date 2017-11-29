@@ -6,7 +6,6 @@ import time
 import json
 import gzip
 import copy
-import itertools
 import hashlib
 import collections
 import datetime
@@ -19,8 +18,6 @@ from KBaseReport.KBaseReportClient import KBaseReport
 from GenomeInterface import GenomeInterface
 
 # 3rd party imports
-from Bio.Seq import Seq
-from Bio.Alphabet import IUPAC
 from Bio.Data import CodonTable
 import Bio.SeqIO
 
@@ -45,10 +42,15 @@ class FastaGFFToGenome:
         self.version = re.search("module-version:\n\W+(.+)\n", yml_text).group(
             1)
         self.is_phytozome = False
+        self._warnings = []
         self.feature_dict = {}
         self.ontologies_present = collections.defaultdict(dict)
         self.skiped_features = collections.Counter()
         self.feature_counts = collections.Counter()
+
+    def warn(self, message):
+        self._warnings.append(message)
+        print message
 
     def import_file(self, params):
 
@@ -81,7 +83,8 @@ class FastaGFFToGenome:
         output_data_ref = params['workspace_name']+"/"+params['genome_name']
         reportObj = {'objects_created': [{'ref': output_data_ref,
                                           'description': 'KBase Genome object'}],
-                     'text_message': result['report_string']}
+                     'text_message': result['report_string'],
+                     'warnings': self._warnings}
 
         reportClient = KBaseReport(os.environ['SDK_CALLBACK_URL'])
         report_info = reportClient.create({'report': reportObj,
@@ -106,8 +109,22 @@ class FastaGFFToGenome:
                       scientific_name="unknown_taxon", source=None,
                       release=None, genome_type=None, metadata=None):
 
+        # save assembly file
+        assembly_ref = self.au.save_assembly_from_fasta(
+            {'file': {'path': input_fasta_file},
+             'workspace_name': workspace_name,
+             'assembly_name': core_genome_name + ".assembly"})
+        assembly_data = self.dfu.get_objects(
+            {'object_refs': [assembly_ref],
+             'ignore_errors': 0})['data'][0]['data']
+
         # reading in GFF file
         features_by_contig = self._retrieve_gff_file(input_gff_file)
+        contig_ids = set(assembly_data['contigs'])
+        for cid in set(features_by_contig.keys()) - contig_ids:
+            self.warn("Sequence name {} does not match a sequence id in the "
+                      "FASTA file. {} features will not be imported."
+                      .format(cid, len(features_by_contig[cid])))
 
         # parse feature information
         fasta_contigs = Bio.SeqIO.parse(input_fasta_file, "fasta")
@@ -119,15 +136,6 @@ class FastaGFFToGenome:
                     self._parse_exon(feature)
                 else:
                     self._transform_feature(contig, feature)
-
-        # save assembly file
-        assembly_ref = self.au.save_assembly_from_fasta(
-            {'file': {'path': input_fasta_file},
-             'workspace_name': workspace_name,
-             'assembly_name': core_genome_name+".assembly"})
-        assembly_data = self.dfu.get_objects(
-            {'object_refs': [assembly_ref],
-             'ignore_errors': 0})['data'][0]['data']
 
         # generate genome info
         genome = self._gen_genome_info(core_genome_name, scientific_name,
@@ -147,8 +155,11 @@ class FastaGFFToGenome:
     def _parse_exon(self, feature):
         parent_id = feature.get('Parent', '')
         if not parent_id:
-            raise ValueError("An exon has no valid parent: {}".format(feature))
+            self.warn("An exon has no valid parent: {}".format(feature))
+            return
         parent = self.feature_dict[parent_id]
+        # If the parent does not have this exon flag, the parent location
+        # should be overwritten.
         if parent.get('exons', False):
             self.feature_dict[parent_id]['location'].append(
                 self._location(feature))
@@ -586,6 +597,11 @@ class FastaGFFToGenome:
                 self._location(in_feature))
 
         self.feature_counts[in_feature['type']] += 1
+        if in_feature['start'] < 1 or in_feature['end'] > len(contig):
+            self.warn("Skipping feature with invalid location for specified "
+                      "contig: " + str(in_feature))
+            return
+
         feat_seq = contig.seq[in_feature['start']-1:in_feature['end']-1]
         if in_feature['strand'] == '-':
             feat_seq = feat_seq.reverse_complement()
@@ -722,6 +738,12 @@ class FastaGFFToGenome:
                 del feature['type']
                 genome['cdss'].append(feature)
             elif feature['type'] == 'mRNA':
+                if 'exons' not in feature:
+                    feature['warnings'].append(
+                        'This uploader requires exons to be present to '
+                        'establish mRNA location.')
+                else:
+                    del feature['exons']
                 del feature['type']
                 genome['mrnas'].append(feature)
             elif feature['type'] == 'gene':
@@ -733,5 +755,6 @@ class FastaGFFToGenome:
                     del feature['mrnas'], feature['cdss']
                     self.feature_counts["non-protein_encoding_gene"] += 1
                     genome['non_coding_features'].append(feature)
+        genome['warnings'] = self._warnings
 
         return genome
