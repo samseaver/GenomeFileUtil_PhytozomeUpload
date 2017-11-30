@@ -42,6 +42,7 @@ class FastaGFFToGenome:
         self.version = re.search("module-version:\n\W+(.+)\n", yml_text).group(
             1)
         self.is_phytozome = False
+        self.strict = True
         self._warnings = []
         self.feature_dict = {}
         self.ontologies_present = collections.defaultdict(dict)
@@ -125,6 +126,8 @@ class FastaGFFToGenome:
             self.warn("Sequence name {} does not match a sequence id in the "
                       "FASTA file. {} features will not be imported."
                       .format(cid, len(features_by_contig[cid])))
+            if self.strict:
+                raise ValueError("Features must match fasta sequence")
 
         # parse feature information
         fasta_contigs = Bio.SeqIO.parse(input_fasta_file, "fasta")
@@ -132,10 +135,7 @@ class FastaGFFToGenome:
             molecule_type = str(contig.seq.alphabet).replace(
                 'IUPACAmbiguous', '').strip('()')
             for feature in features_by_contig.get(contig.id, []):
-                if feature['type'] == 'exon':
-                    self._parse_exon(feature)
-                else:
-                    self._transform_feature(contig, feature)
+                self._transform_feature(contig, feature)
 
         # generate genome info
         genome = self._gen_genome_info(core_genome_name, scientific_name,
@@ -152,20 +152,6 @@ class FastaGFFToGenome:
 
         return {'genome_info': result['info'], 'report_string': report_string}
 
-    def _parse_exon(self, feature):
-        parent_id = feature.get('Parent', '')
-        if not parent_id:
-            self.warn("An exon has no valid parent: {}".format(feature))
-            return
-        parent = self.feature_dict[parent_id]
-        # If the parent does not have this exon flag, the parent location
-        # should be overwritten.
-        if parent.get('exons', False):
-            self.feature_dict[parent_id]['location'].append(
-                self._location(feature))
-        else:
-            parent['exons'] = True
-            self.feature_dict[parent_id]['location'] = [self._location(feature)]
 
     @staticmethod
     def _location(in_feature):
@@ -420,12 +406,6 @@ class FastaGFFToGenome:
                         ftrs[i]["Parent"]=new_gene_ftr["ID"]
                         new_ftrs.append(new_gene_ftr)
 
-                    if("CDS" in ftrs[i]["type"]):
-                        new_rna_ftr = copy.deepcopy(ftrs[i])
-                        new_rna_ftr["type"] = "mRNA"
-                        new_ftrs.append(new_rna_ftr)
-                        ftrs[i]["Parent"]=new_rna_ftr["ID"]
-
                 new_ftrs.append(ftrs[i])
             feature_list[contig]=new_ftrs
         return feature_list
@@ -498,9 +478,6 @@ class FastaGFFToGenome:
                         else:
                             CDS_count_dict[ftr["ID"]] += 1
                         ftr["ID"]=ftr["ID"]+"."+str(CDS_count_dict[ftr["ID"]])
-
-                        #Recall new mRNA id for parent
-                        ftr["Parent"]=mRNA_parent_dict[ftr["Parent"]]
 
         return feature_list
 
@@ -598,8 +575,10 @@ class FastaGFFToGenome:
 
         self.feature_counts[in_feature['type']] += 1
         if in_feature['start'] < 1 or in_feature['end'] > len(contig):
-            self.warn("Skipping feature with invalid location for specified "
+            self.warn("Feature with invalid location for specified "
                       "contig: " + str(in_feature))
+            if self.strict:
+                raise ValueError("Features must match fasta sequence")
             return
 
         feat_seq = contig.seq[in_feature['start']-1:in_feature['end']-1]
@@ -615,7 +594,6 @@ class FastaGFFToGenome:
             "dna_sequence_length": len(feat_seq),
             "md5": hashlib.md5(str(feat_seq)).hexdigest(),
             "function": in_feature['attributes'].get('function', []),
-            'warnings': []
         }
         # TODO: Flags, inference_data
         # add optional fields
@@ -637,8 +615,20 @@ class FastaGFFToGenome:
         if parent_id and parent_id not in self.feature_dict:
             raise ValueError("Parent ID: {} was not found in feature ID list.")
 
+        # if the feature is a exon or UTR, it will only be used to update the
+        # location and sequence of it's parent, we add the info to it parent
+        # feature but not the feature dict
+        if in_feature['type'] in ('exon', 'five_prime_UTR', 'three_prime_UTR'):
+            if parent_id:
+                # TODO: add location checks and warnings
+                parent = self.feature_dict[parent_id]
+                if in_feature['type'] not in parent:
+                    parent[in_feature['type']] = []
+                parent[in_feature['type']].append(out_feat)
+            return
+
         # add type specific features
-        if in_feature['type'] == 'gene':
+        elif in_feature['type'] == 'gene':
             out_feat['protein_translation_length'] = 0
             out_feat['mrnas'] = []
             out_feat['cdss'] = []
@@ -684,6 +674,23 @@ class FastaGFFToGenome:
                 out_feat['parent_gene'] = parent_id
 
         self.feature_dict[out_feat['id']] = out_feat
+
+    def _update_from_exons(self, feature, required=True):
+        if 'exon' in feature:
+            feature['location'] = [x['location'][0] for x in feature['exon']]
+            feature['dna_sequence'] = "".join(x['dna_sequence'] for x in feature['exon'])
+            feature['dna_sequence_length'] = len(feature['dna_sequence'])
+            del feature['exon']
+        # TODO: construct feature location from utrs and cdss if present
+        else:
+            if 'warnings' not in feature:
+                feature['warnings'] = []
+            feature['warnings'].append(
+                'This uploader requires exons to be present to '
+                'establish mRNA location.')
+            print feature
+            if self.strict and required:
+                raise ValueError("mRNA must have exons")
 
     def _gen_genome_info(self, core_genome_name, scientific_name, assembly_ref,
                          source, assembly, input_gff_file, molecule_type):
@@ -736,12 +743,7 @@ class FastaGFFToGenome:
                 del feature['type']
                 genome['cdss'].append(feature)
             elif feature['type'] == 'mRNA':
-                if 'exons' not in feature:
-                    feature['warnings'].append(
-                        'This uploader requires exons to be present to '
-                        'establish mRNA location.')
-                else:
-                    del feature['exons']
+                self._update_from_exons(feature)
                 del feature['type']
                 genome['mrnas'].append(feature)
             elif feature['type'] == 'gene':
@@ -754,8 +756,8 @@ class FastaGFFToGenome:
                     self.feature_counts["non-protein_encoding_gene"] += 1
                     genome['non_coding_features'].append(feature)
             else:
-                if 'exons' in feature:
-                    del feature['exons']
+                if 'exon' in feature:
+                    self._update_from_exons(feature)
                 genome['non_coding_features'].append(feature)
         genome['warnings'] = self._warnings
 
