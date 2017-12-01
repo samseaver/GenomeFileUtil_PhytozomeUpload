@@ -138,7 +138,7 @@ class GenomeFileUtilTest(unittest.TestCase):
             self.getContext(),
             {'genome_ref': self.rhodobacter_ref})[0]
         self.assertEqual(res['from_cache'], 0)
-        #assert filecmp.cmp(res['file_path'], 'data/rhodobacter.gff')
+        assert filecmp.cmp(res['file_path'], 'data/rhodobacter.gff')
 
     def test_old_genome_gtf_download(self):
         genomeFileUtil = self.getImpl()
@@ -168,7 +168,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         res = genomeFileUtil.genome_to_gff(
             self.getContext(), {'genome_ref': self.ecoli_ref})[0]
         self.assertEqual(res['from_cache'], 0)
-        #assert filecmp.cmp(res['file_path'], 'data/e_coli/new_ecoli.gff')
+        assert filecmp.cmp(res['file_path'], 'data/e_coli/new_ecoli.gff')
 
     def test_new_genome_gtf_download(self):
         # fetch the test files and set things up
@@ -177,7 +177,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         res = genomeFileUtil.genome_to_gff(
             self.getContext(), {'genome_ref': self.ecoli_ref, 'is_gtf': 1})[0]
         self.assertEqual(res['from_cache'], 0)
-        #assert filecmp.cmp(res['file_path'], 'data/e_coli/new_ecoli.gtf')
+        assert filecmp.cmp(res['file_path'], 'data/e_coli/new_ecoli.gtf')
 
     def test_new_genome_gff_export(self):
         # fetch the test files and set things up

@@ -41,16 +41,17 @@ class FastaGFFToGenome:
         yml_text = open('/kb/module/kbase.yml').read()
         self.version = re.search("module-version:\n\W+(.+)\n", yml_text).group(
             1)
+        self.aliases = ()
         self.is_phytozome = False
         self.strict = True
-        self._warnings = []
+        self.warnings = []
         self.feature_dict = {}
         self.ontologies_present = collections.defaultdict(dict)
         self.skiped_features = collections.Counter()
         self.feature_counts = collections.Counter()
 
     def warn(self, message):
-        self._warnings.append(message)
+        self.warnings.append(message)
         print message
 
     def import_file(self, params):
@@ -85,7 +86,7 @@ class FastaGFFToGenome:
         reportObj = {'objects_created': [{'ref': output_data_ref,
                                           'description': 'KBase Genome object'}],
                      'text_message': result['report_string'],
-                     'warnings': self._warnings}
+                     'warnings': self.warnings}
 
         reportClient = KBaseReport(os.environ['SDK_CALLBACK_URL'])
         report_info = reportClient.create({'report': reportObj,
@@ -148,7 +149,10 @@ class FastaGFFToGenome:
             'data': genome,
             "meta": metadata,
         })
-        report_string = ''
+        report_string = 'A genome with {} contigs and the following feature ' \
+                        'types was imported: {}'.format(len(
+            genome['contig_ids']), "\n".join([k+": "+str(v) for k, v in
+                                              genome['feature_counts'].items()]))
 
         return {'genome_info': result['info'], 'report_string': report_string}
 
@@ -562,18 +566,11 @@ class FastaGFFToGenome:
                         else:
                             terms[source] = terms2[source]
 
-        # UTRs don't have any information not implied by the exon
-        excluded_features = ('five_prime_UTR', 'three_prime_UTR')
-        if in_feature['type'] in excluded_features:
-            self.skiped_features[in_feature['type']] += 1
-            return
-
         # if the feature ID is duplicated we only need to update the location
         if in_feature['ID'] in self.feature_dict:
             self.feature_dict[in_feature['ID']]['location'].append(
                 self._location(in_feature))
 
-        self.feature_counts[in_feature['type']] += 1
         if in_feature['start'] < 1 or in_feature['end'] > len(contig):
             self.warn("Feature with invalid location for specified "
                       "contig: " + str(in_feature))
@@ -739,6 +736,7 @@ class FastaGFFToGenome:
 
         # sort features into their respective arrays
         for feature in self.feature_dict.values():
+            self.feature_counts[feature['type']] += 1
             if feature['type'] == 'CDS':
                 del feature['type']
                 genome['cdss'].append(feature)
@@ -759,6 +757,7 @@ class FastaGFFToGenome:
                 if 'exon' in feature:
                     self._update_from_exons(feature)
                 genome['non_coding_features'].append(feature)
-        genome['warnings'] = self._warnings
+        if self.warnings:
+            genome['warnings'] = self.warnings
 
         return genome

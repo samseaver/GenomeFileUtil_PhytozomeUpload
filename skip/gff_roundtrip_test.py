@@ -96,12 +96,8 @@ class GenomeFileUtilTest(unittest.TestCase):
         pprint(result)
         self.assertIsNotNone(result['genome_ref'])
         print('testing gff download by building the file')
+        json_data = self.wsClient.get_objects2({'objects': [
+            {'ref': result['genome_ref']}]})['data'][0]['data']
+        pprint(json_data)
         down_result = genomeFileUtil.genome_to_gff(
             self.getContext(), {'genome_ref': result['genome_ref']})[0]
-        """old_file_path = self.fungal_gff_path
-        new_file_path = down_result['file_path']
-        differ = difflib.ndiff(open(old_file_path).readlines(),
-                               open(new_file_path).readlines())
-        diffs = [x for x in differ if x[0] == "+" or x[0] == "-"]
-        if len(diffs) > 4:  # expect date line in each contig differ
-            raise AssertionError("Output file has changed {}".format(diffs))"""

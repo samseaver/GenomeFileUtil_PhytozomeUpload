@@ -95,25 +95,37 @@ class GenomeToGFF:
 
         gff_header = ['seqname', 'source', 'type', 'start', 'end', 'score',
                       'strand', 'frame', 'attribute']
-        for mrna in genome_data.get('mrnas', []):
-            mrna['type'] = 'mRNA'
-            self.child_dict[mrna['id']] = mrna
-        for cds in genome_data.get('cdss', []):
-            cds['type'] = 'CDS'
-            self.child_dict[cds['id']] = cds
 
         # create the file
         file_ext = ".gtf" if is_gtf else ".gff"
         out_file_path = os.path.join(output_dir, output_filename + file_ext)
         print('Creating file: ' + str(out_file_path))
 
+        """There is two ways of printing, if a feature has a parent_gene, it 
+        will be printed breadth first when it's parent parent gene is printed.
+        if not, it needs to be added to the features_by_contig to be printed"""
         # sort every feature in the feat_arrays into a dict by contig
         features_by_contig = defaultdict(list)
         for feature in genome_data['features'] + genome_data.get(
                 'non_coding_features', []):
+            # type is not present in new gene array
             if 'type' not in feature:
                 feature['type'] = 'gene'
             features_by_contig[feature['location'][0][0]].append(feature)
+
+        for mrna in genome_data.get('mrnas', []):
+            mrna['type'] = 'mRNA'
+            if mrna.get('parent_gene'):
+                self.child_dict[mrna['id']] = mrna
+            else:
+                features_by_contig[mrna['location'][0][0]].append(mrna)
+
+        for cds in genome_data.get('cdss', []):
+            cds['type'] = 'CDS'
+            if cds.get('parent_gene'):
+                self.child_dict[cds['id']] = cds
+            else:
+                features_by_contig[cds['location'][0][0]].append(cds)
 
         file_handle = open(out_file_path, 'w')
         writer = csv.DictWriter(file_handle, gff_header, delimiter="\t",
@@ -129,29 +141,29 @@ class GenomeToGFF:
         return {'file_path': out_file_path}
 
     def make_feature_group(self, feature, is_gtf):
-        # for genes and CDS, the feature is duplicated if it has a compound location
-        if feature['type'] in {'gene', 'CDS'}:
-            lines = [self.make_feature(loc, feature, is_gtf)
-                     for loc in feature['location']]
-        # other types make exons if they have compound locations
-        else:
+        # RNA types make exons if they have compound locations
+        if feature['type'] in {'RNA', 'mRNA', 'transcript'}:
             loc = self.get_common_location(feature['location'])
             lines = [self.make_feature(loc, feature, is_gtf)]
             for i, loc in enumerate(feature['location']):
-                exon = {'id': "{}_exon_{}".format(feature['id'], i+1),
+                exon = {'id': "{}_exon_{}".format(feature['id'], i + 1),
                         'parent_gene': feature['id']}
                 lines.append(self.make_feature(loc, exon, is_gtf))
+        # other types duplicate the feature
+        else:
+            lines = [self.make_feature(loc, feature, is_gtf)
+                     for loc in feature['location']]
 
         #if this is a gene with mRNAs, make the mrna (and subfeatures)
-        if 'mrnas' in feature:
+        if feature.get('mrnas', False):
             for mrna_id in feature['mrnas']:
                 lines += self.make_feature_group(self.child_dict[mrna_id], is_gtf)
         # if no mrnas are present in a gene and there are CDS, make them here
-        elif 'cdss' in feature:
+        elif feature.get('cdss', False):
             for cds_id in feature['cdss']:
                 lines += self.make_feature_group(self.child_dict[cds_id], is_gtf)
         # if this is a mrna with a child CDS, make it here
-        elif 'cds' in feature:
+        elif feature.get('cds', False):
             # the parent of CDS should be the mrna if present so we force this
             self.child_dict[feature['cds']]['parent_gene'] = feature['id']
             lines += self.make_feature_group(self.child_dict[feature['cds']], is_gtf)
