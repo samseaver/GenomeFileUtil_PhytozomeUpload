@@ -294,18 +294,15 @@ class GenomeInterface:
             warnings.append("CDS array should be at at least as long as the "
                             "Features array.")
 
+        # this will fire for some annotation methods like PROKKA
         if g['domain'] == "Bacteria" and len(g.get('cdss', [])) != len(g['features']):
-            warnings.append("For prokaryotes, CDS array should be the same "
-                            "length as the Features array.")
+            warnings.append("For prokaryotes, CDS array should generally be the"
+                            " same length as the Features array.")
 
         if g['domain'] == "Eukaryota" and len(g.get('mrnas', [])) and \
                 len(g.get('mrnas', [])) == len(g.get('cdss', [])):
             warnings.append("For Eukaryotes, CDS array should not be the same "
                             "length as the Features array due to RNA splicing.")
-
-        if g.get('mrnas', []) and len(g.get('mrnas', [])) != len(g.get('cdss', [])):
-            warnings.append("mRNA array should be the same length as the CDS"
-                            "array if present.")
 
         if "molecule_type" in g and g['molecule_type'] not in {"DNA", 'ds-DNA'}:
             if g.get('domain', '') not in {'Virus', 'Viroid'} and \
