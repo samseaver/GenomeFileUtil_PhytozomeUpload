@@ -118,7 +118,8 @@ class GenomeFile:
 
         # sort other features into a dict by contig
         for feat in genome_object['features']:
-            feat['type'] = 'gene'
+            if 'type' not in feat:
+                feat['type'] = 'gene'
             self.features_by_contig[feat['location'][0][0]].append(feat)
         for feat in genome_object.get('non_coding_features', []):
             self.features_by_contig[feat['location'][0][0]].append(feat)
@@ -234,6 +235,7 @@ class GenomeFile:
             for ont, terms in in_feature['ontology_terms'].items():
                 out_feature.qualifiers['db_xrefs'].extend(
                     ["{}:{}".format(ont, t) for t in terms])
+
         for alias in in_feature.get('aliases', []):
             if len(alias) == 2:
                 out_feature.qualifiers[alias[0]] = alias[1]
@@ -241,7 +243,14 @@ class GenomeFile:
                 if 'db_xrefs' not in out_feature.qualifiers:
                     out_feature.qualifiers['db_xrefs'] = []
                 out_feature.qualifiers['db_xrefs'].append(alias)
-        # TODO: flags
+
+        for flag in in_feature.get('flags', []):
+            out_feature.qualifiers[flag] = None
+
+        if 'inferences' in in_feature:
+            out_feature.qualifiers['inference'] = [
+                ":".join([x[y] for y in ('category', 'type', 'evidence') if x[y]])
+                for x in in_feature['inferences']]
 
         return out_feature
 

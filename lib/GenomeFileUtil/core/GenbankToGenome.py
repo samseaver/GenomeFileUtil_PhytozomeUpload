@@ -7,8 +7,8 @@ import sys
 import shutil
 import uuid
 import hashlib
-import itertools
-from collections import Counter, defaultdict
+import json
+from collections import Counter, defaultdict, OrderedDict
 
 import Bio.SeqIO
 import Bio.SeqUtils
@@ -34,6 +34,14 @@ class GenbankToGenome:
         self.ontologies_present = defaultdict(dict)
         self.skiped_features = Counter()
         self.feature_counts = Counter()
+        self.ontology_events = [{
+            "method": "GenomeFileUtils Genbank uploader from annotations",
+            "method_version": self.version,
+            "timestamp": self.time_string,
+            # TODO: remove this hardcoding
+            "id": "GO",
+            "ontology_ref": "KBaseOntology/gene_ontology"
+        }]
         self.default_params = {
             'source': 'Genbank',
             'taxon_wsname': self.cfg.raw['taxon-workspace-name'],
@@ -54,7 +62,7 @@ class GenbankToGenome:
 
     def log(self, message):
         self._messages.append(message)
-        print message
+        print('{0:.2f}'.format(time.time()) + ': ' + str(message))
 
     @property
     def messages(self):
@@ -84,11 +92,15 @@ class GenbankToGenome:
         ref = "{}/{}/{}".format(result['info'][6], result['info'][0],
                                 result['info'][4])
         self.log("Genome saved to {}".format(ref))
+        report_string = 'A genome with {} contigs and the following feature ' \
+                        'types was imported: {}'.format(
+                         len(genome['contig_ids']), "\n".join(
+                          [k + ": " + str(v) for k, v in genome['feature_counts'].items()]))
 
         # 5) Generate Report
-        reportObj = {'objects_created': [
-            {'ref': ref, 'description': 'KBase Genome object'}],
-                     'text_message': self.messages}
+        reportObj = {'objects_created': [{'ref': ref, 'description': 'KBase Genome object'}],
+                     'text_message': report_string,
+                     'warnings': result['warnings']}
         report_info = self.report_client.create({
             'report': reportObj,
             'workspace_name': params['workspace_name']
@@ -214,14 +226,6 @@ class GenbankToGenome:
             "md5": assembly_data['md5'],
             "genbank_handle_ref": shock_res['handle']['hid'],
             "publications": set(),
-            "ontology_events": [{
-                "method": "GenomeFileUtils Genbank uploader from annotations",
-                "method_version": self.version,
-                "timestamp": self.time_string,
-                #TODO: remove this hardcodeing
-                "id": "GO",
-                "ontology_ref": "KBaseOntology/gene_ontology"
-            }],
             "contig_ids": [],
             "contig_lengths": [],
             "features": [],
@@ -235,6 +239,7 @@ class GenbankToGenome:
         # Parse data from genbank file
         contigs = Bio.SeqIO.parse(file_path, "genbank")
         for record in contigs:
+            self.log("parsing contig: " + record.id)
             if 'date' in record.annotations:
                 dates.append(time.strptime(record.annotations['date'],
                                            "%d-%b-%Y"))
@@ -248,16 +253,23 @@ class GenbankToGenome:
             if "source_id" in genome:
                 continue  # only do the following once(on the first contig)
             genome["source_id"] = record.id.split('.')[0]
-            genome["molecule_type"] = record.annotations.get('molecule_type', "Unknown")
+            if 'molecule_type' in record.annotations:
+                    genome["molecule_type"] = record.annotations['molecule_type']
+            # if the locus line is malformed
+            else:
+                genome["molecule_type"] = str(record.seq.alphabet).replace(
+                    'IUPACAmbiguous', '').rstrip("()")
+
             genome['scientific_name'] = record.annotations.get('organism',
                                                                'Unknown Organism')
             genome['taxonomy'], genome['taxon_ref'], genome['domain'], \
             genome['genetic_code'] = self.gi.retrieve_taxon(
                 params['taxon_wsname'], genome['scientific_name'])
 
-            genome['notes'] = record.annotations.get('comment', "")
+            genome['notes'] = record.annotations.get('comment', "").replace('\\n', '\n')
 
         genome['num_contigs'] = len(genome['contig_ids'])
+        # add dates
         dates.sort()
         if dates:
             genome['external_source_origination_date'] = time.strftime(
@@ -265,7 +277,9 @@ class GenbankToGenome:
             if dates[0] != dates[-1]:
                 genome['external_source_origination_date'] += " _ " + \
                     time.strftime("%d-%b-%Y", dates[-1])
-        genome['ontologies_present'] = dict(self.ontologies_present)
+        if self.ontologies_present:
+            genome['ontologies_present'] = dict(self.ontologies_present)
+            genome["ontology_events"] = self.ontology_events
         genome['feature_counts'] = dict(self.feature_counts)
         # can't serialize a set
         genome['publications'] = list(genome['publications'])
@@ -346,6 +360,9 @@ class GenbankToGenome:
     def _get_pubs(self, record):
         pub_list = []
         for in_pub in record.annotations.get('references', []):
+            # don't add blank pubs
+            if not in_pub.authors:
+                continue
             out_pub = [
                 0,  # pmid
                 "",  # source
@@ -387,31 +404,61 @@ class GenbankToGenome:
                 tags = ['locus_tag', 'gene']
             while tags and not _id:
                 _id = feat.qualifiers.get(tags.pop(0), [""])[0]
-            return _id
+            if _id:
+                return _id + "_"
+            else:
+                return ""
 
         def _location(feat):
             strand_trans = ("", "+", "-")
             loc = []
             for part in feat.location.parts:
                 if part.strand >= 0:
-                    begin = int(part.start)
+                    begin = int(part.start) + 1
                 else:
                     begin = int(part.end)
                 loc.append((
                         record.id,
-                        begin + 1,
+                        begin,
                         strand_trans[part.strand],
                         len(part)))
             return loc
 
-        def _aliases(feat):
-            keys = ('locus_tag', 'old_locus_tag', 'protein_id',
-                    'transcript_id', 'gene', 'EC_number')
-            alias_list = []
+        def _get_aliases_flags_functions(feat):
+            alias_keys = {'locus_tag', 'old_locus_tag', 'protein_id',
+                          'transcript_id', 'gene', 'EC_number', 'gene_synonym'}
+            result = defaultdict(list)
             for key, val_list in feat.qualifiers.items():
-                if key in keys:
-                    alias_list.extend([(key, val) for val in val_list])
-            return alias_list
+                if key in alias_keys:
+                    result['aliases'].extend([(key, val) for val in val_list])
+                # flags have no other information associated with them
+                if val_list == ['']:
+                    result['flags'].append(key)
+                if key == 'function':
+                    result['functions'].extend(val_list[0].split('; '))
+                if key == 'product':
+                    result['functions'].append("product:"+val_list[0])
+
+            return result
+
+        def _inferences(feat):
+            # whoever designed this delimitation is an idiot: starts and
+            # ends with a optional values and uses a delimiter ":" that is
+            # used to divide it's DBs in the evidence
+            result = []
+            for inf in feat.qualifiers['inference']:
+                try:
+                    sp_inf = inf.split(":")
+                    if sp_inf[0] in ('COORDINATES', 'DESCRIPTION', 'EXISTENCE'):
+                        inference = {'category': sp_inf.pop(0)}
+                    else:
+                        inference = {'category': ''}
+                    inference['type'] = sp_inf[0]
+                    inference['evidence'] = ":".join(sp_inf[1:])
+                    result.append(inference)
+                except IndexError('Unparseable inference string: ' + inf):
+                    continue
+            return result
 
         def _is_parent(feat1, feat2):
             """Check if all locations in feat2 fall within a location in
@@ -456,7 +503,7 @@ class GenbankToGenome:
                             terms[source] = terms2[source]
 
         excluded_features = ('source', 'exon')
-        genes, cdss, mrnas, noncoding = {}, {}, {}, []
+        genes, cdss, mrnas, noncoding = OrderedDict(), OrderedDict(), OrderedDict(), []
         for in_feature in record.features:
             if in_feature.type in excluded_features:
                 self.skiped_features[in_feature.type] += 1
@@ -466,33 +513,32 @@ class GenbankToGenome:
                 _id = _get_id(in_feature, ['gene', 'locus_tag'])
             else:
                 _id = _get_id(in_feature)
+            #self.log("parsing feature: " + _id)
             # The following is common to all the feature types
             out_feat = {
-                "id": "_".join([_id, in_feature.type]),
+                "id": _id + in_feature.type,
                 "location": _location(in_feature),
                 "dna_sequence": str(feat_seq.seq),
                 "dna_sequence_length": len(feat_seq),
                 "md5": hashlib.md5(str(feat_seq)).hexdigest(),
-                "function": in_feature.qualifiers.get("function", [""])[0].split("; "),
-                'warnings': []
             }
             self.feature_counts[in_feature.type] += 1
-            #TODO: Flags, inference_data
             # add optional fields
             if 'note' in in_feature.qualifiers:
                 out_feat['note'] = in_feature.qualifiers["note"][0]
-            ont = self._get_ontology(in_feature)
-            if ont:
-                out_feat['ontology_terms'] = ont
-            aliases = _aliases(in_feature)
-            if aliases:
-                out_feat['aliases'] = aliases
+
+            out_feat.update(_get_aliases_flags_functions(in_feature))
+
             if 'db_xref' in in_feature.qualifiers:
                 out_feat['db_xref'] = [tuple(x.split(":")) for x in
                                        in_feature.qualifiers['db_xref']]
-            if 'product' in in_feature.qualifiers:
-                out_feat['function'].append(
-                    "product:" + in_feature.qualifiers["product"][0])
+
+            ont = self._get_ontology(in_feature)
+            if ont:
+                out_feat['ontology_terms'] = ont
+
+            if 'inference' in in_feature.qualifiers:
+                out_feat['inference_data'] = _inferences(in_feature)
 
             # add type specific features
             if in_feature.type == 'CDS':
@@ -505,14 +551,14 @@ class GenbankToGenome:
                 })
                 if prot_seq and prot_seq != str(feat_seq.seq.translate()
                                                 ).strip("*"):
-                    out_feat['warnings'].append(
+                    out_feat['warnings'] = out_feat.get('warnings', []) + [
                         "The annotated protein translation is not consistent "
-                        "with the recorded DNA sequence")
+                        "with the recorded DNA sequence"]
                 if abs(len(feat_seq)/3 - len(prot_seq)) > 1:
-                    out_feat['warnings'].append(
+                    out_feat['warnings'] = out_feat.get('warnings', []) + [
                         "The length of the annotated protein translation is "
                         "not consistent with the lenght of the recorded DNA "
-                        "sequence")
+                        "sequence"]
 
                 if _id in genes:
                     out_feat['id'] += "_" + str(len(genes[_id]['cdss'])+1)
@@ -520,18 +566,18 @@ class GenbankToGenome:
                     _propagate_cds_props_to_gene(out_feat, genes[_id])
                     out_feat['parent_gene'] = _id
                     if not _is_parent(genes[_id], out_feat):
-                        out_feat['warnings'].append(
+                        out_feat['warnings'] = out_feat.get('warnings', []) + [
                             "{} is annotated as the parent gene of {} but "
                             "coordinates do not match".format(_id,
-                                                              out_feat['id']))
+                                                              out_feat['id'])]
 
                 mrna_id = out_feat["id"].replace('CDS', 'mRNA')
                 if mrna_id in mrnas:
                     if not _is_parent(mrnas[mrna_id], out_feat):
-                        out_feat['warnings'].append(
-                            "{} is annotated as the parent mRNA of {} but "
+                        out_feat['warnings'] = out_feat.get('warnings', []) + [
+                            "{} is annotated as the parent mrna of {} but "
                             "coordinates do not match".format(_id,
-                                                              out_feat['id']))
+                                                              out_feat['id'])]
                     out_feat['parent_mrna'] = mrna_id
                     mrnas[mrna_id]['cds'] = out_feat['id']
                 cdss[out_feat['id']] = out_feat
@@ -551,13 +597,13 @@ class GenbankToGenome:
                     genes[_id]['mrnas'].append(out_feat['id'])
                     out_feat['parent_gene'] = _id
                     if not _is_parent(genes[_id], out_feat):
-                        out_feat['warnings'].append(
+                        out_feat['warnings'] = out_feat.get('warnings', []) + [
                             "{} is annotated as the parent gene of {} but "
                             "coordinates do not match".format(_id,
-                                                              out_feat['id']))
+                                                              out_feat['id'])]
                 else:
-                    out_feat['warnings'].append('Unable to find parent mrna '
-                                                'for ' + str(out_feat))
+                    out_feat['warnings'] = out_feat.get('warnings', []) + [
+                        'Unable to find parent mrna for ' + str(out_feat)]
                     print('Unable to find parent mrna for ' + str(out_feat))
                     out_feat['parent_gene'] = ""
                 mrnas[out_feat['id']] = out_feat
@@ -573,10 +619,10 @@ class GenbankToGenome:
                     genes[_id]['children'].append(out_feat['id'])
                     out_feat['parent_gene'] = _id
                     if not _is_parent(genes[_id], out_feat):
-                        out_feat['warnings'].append(
+                        out_feat['warnings'] = out_feat.get('warnings', []) + [
                             "{} is annotated as the parent gene of {} but "
                             "coordinates do not match".format(_id,
-                                                              out_feat['id']))
+                                                              out_feat['id'])]
                 noncoding.append(out_feat)
 
         coding = []
@@ -590,6 +636,8 @@ class GenbankToGenome:
                 for key in ('function', 'aliases', 'db_xref'):
                     if key in g:
                         g[key] = list(set(g[key]))
+                if not g['mrnas']:
+                    del g['mrnas']
                 coding.append(g)
                 self.feature_counts["protein_encoding_gene"] += 1
             else:
