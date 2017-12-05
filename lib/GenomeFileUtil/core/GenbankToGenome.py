@@ -34,6 +34,8 @@ class GenbankToGenome:
         self.ontologies_present = defaultdict(dict)
         self.skiped_features = Counter()
         self.feature_counts = Counter()
+        self.go_mapping = json.load(
+            open('/kb/module/data/go_ontology_mapping.json'))
         self.ontology_events = [{
             "method": "GenomeFileUtils Genbank uploader from annotations",
             "method_version": self.version,
@@ -239,34 +241,39 @@ class GenbankToGenome:
         # Parse data from genbank file
         contigs = Bio.SeqIO.parse(file_path, "genbank")
         for record in contigs:
+            r_annot = record.annotations
             self.log("parsing contig: " + record.id)
-            if 'date' in record.annotations:
-                dates.append(time.strptime(record.annotations['date'],
-                                           "%d-%b-%Y"))
+            if 'date' in r_annot:
+                dates.append(time.strptime(r_annot['date'], "%d-%b-%Y"))
             genome['contig_ids'].append(record.id)
             genome['contig_lengths'].append(len(record))
             # extends the feature, cdss, mrna & non_coding_genes arrays
             for k, v in self._parse_features(record, params['source']).items():
                 genome[k].extend(v)
-            genome["publications"] |= self._get_pubs(record)
+            genome["publications"] |= self._get_pubs(r_annot)
+            organism = r_annot.get('organism', 'Unknown Organism')
+            if 'scientific_name' not in genome:
+                genome['scientific_name'] = organism
+            elif genome['scientific_name'] != organism:
+                warn = "Multiple organism in provided files: {}, {}".format(
+                    genome['scientific_name'], organism)
+                genome['warnings'] = genome.get('warnings', []) + [warn]
 
             if "source_id" in genome:
                 continue  # only do the following once(on the first contig)
             genome["source_id"] = record.id.split('.')[0]
-            if 'molecule_type' in record.annotations:
-                    genome["molecule_type"] = record.annotations['molecule_type']
+            if 'molecule_type' in r_annot:
+                    genome["molecule_type"] = r_annot['molecule_type']
             # if the locus line is malformed
             else:
                 genome["molecule_type"] = str(record.seq.alphabet).replace(
                     'IUPACAmbiguous', '').rstrip("()")
 
-            genome['scientific_name'] = record.annotations.get('organism',
-                                                               'Unknown Organism')
             genome['taxonomy'], genome['taxon_ref'], genome['domain'], \
             genome['genetic_code'] = self.gi.retrieve_taxon(
                 params['taxon_wsname'], genome['scientific_name'])
 
-            genome['notes'] = record.annotations.get('comment', "").replace('\\n', '\n')
+            genome['notes'] = r_annot.get('comment', "").replace('\\n', '\n')
 
         genome['num_contigs'] = len(genome['contig_ids'])
         # add dates
@@ -277,6 +284,7 @@ class GenbankToGenome:
             if dates[0] != dates[-1]:
                 genome['external_source_origination_date'] += " _ " + \
                     time.strftime("%d-%b-%Y", dates[-1])
+
         if self.ontologies_present:
             genome['ontologies_present'] = dict(self.ontologies_present)
             genome["ontology_events"] = self.ontology_events
@@ -287,6 +295,7 @@ class GenbankToGenome:
         return genome
 
     def _save_assembly(self, genbank_file, params):
+        """Convert genbank file to fasta and sve as assembly"""
         contigs = Bio.SeqIO.parse(genbank_file, "genbank")
         print("Saving sequence as Assembly object")
         assembly_id = "{}_assembly".format(params['genome_name'])
@@ -357,9 +366,10 @@ class GenbankToGenome:
                                 f_out.write(line + '\n')
             return ret_file
 
-    def _get_pubs(self, record):
+    def _get_pubs(self, r_annotations):
+        """Get a contig's publications"""
         pub_list = []
-        for in_pub in record.annotations.get('references', []):
+        for in_pub in r_annotations.get('references', []):
             # don't add blank pubs
             if not in_pub.authors:
                 continue
@@ -386,15 +396,23 @@ class GenbankToGenome:
         self.log("Parsed {} publication records".format(len(pub_list)))
         return set(pub_list)
 
-    def _get_ontology(self, feature):
+    def _get_ontology_db_xrefs(self, feature):
+        """Splits the ontology info from the other db_xrefs"""
         ontology = defaultdict(dict)
+        db_xref = []
         for key in ("GO_process", "GO_function", "GO_component"):
-            if key in feature.qualifiers:
-                sp = feature.qualifiers[key][0][3:].split(" - ")
+            for term in feature.qualifiers.get(key, []):
+                sp = term.split(" - ")
                 ontology['GO'][sp[0]] = [1]
                 self.ontologies_present['GO'][sp[0]] = sp[1]
+        for ref in feature.qualifiers.get('db_xref', []):
+            if ref.startswith('GO:'):
+                ontology['GO'][ref] = [1]
+                self.ontologies_present['GO'][ref] = self.go_mapping.get(ref, '')
+            else:
+                db_xref.append(tuple(ref.split(":")))
         # TODO: Support other ontologies
-        return dict(ontology)
+        return dict(ontology), db_xref
 
     def _parse_features(self, record, source):
         def _get_id(feat, tags=None):
@@ -404,10 +422,7 @@ class GenbankToGenome:
                 tags = ['locus_tag', 'gene']
             while tags and not _id:
                 _id = feat.qualifiers.get(tags.pop(0), [""])[0]
-            if _id:
-                return _id + "_"
-            else:
-                return ""
+            return _id
 
         def _location(feat):
             strand_trans = ("", "+", "-")
@@ -425,6 +440,7 @@ class GenbankToGenome:
             return loc
 
         def _get_aliases_flags_functions(feat):
+            """Get the values for aliases flags and features from qualifiers"""
             alias_keys = {'locus_tag', 'old_locus_tag', 'protein_id',
                           'transcript_id', 'gene', 'EC_number', 'gene_synonym'}
             result = defaultdict(list)
@@ -442,9 +458,9 @@ class GenbankToGenome:
             return result
 
         def _inferences(feat):
-            # whoever designed this delimitation is an idiot: starts and
-            # ends with a optional values and uses a delimiter ":" that is
-            # used to divide it's DBs in the evidence
+            """Whoever designed this delimitation is an idiot: starts and
+            ends with a optional values and uses a delimiter ":" that is
+            used to divide it's DBs in the evidence. Anyway, this sorts that"""
             result = []
             for inf in feat.qualifiers['inference']:
                 try:
@@ -486,7 +502,7 @@ class GenbankToGenome:
                 gene["protein_translation_length"] = len(
                     cds["protein_translation"])
             # Merge cds list attributes with gene
-            for key in ('function', 'aliases', 'db_xref'):
+            for key in ('functions', 'aliases', 'db_xref'):
                 if cds.get(key, []):
                     gene[key] = cds.get(key, []) + gene.get(key, [])
             # Merge cds["ontology_terms"] -> gene["ontology_terms"]
@@ -516,12 +532,19 @@ class GenbankToGenome:
             #self.log("parsing feature: " + _id)
             # The following is common to all the feature types
             out_feat = {
-                "id": _id + in_feature.type,
+                "id": "_".join([_id, in_feature.type]),
                 "location": _location(in_feature),
                 "dna_sequence": str(feat_seq.seq),
                 "dna_sequence_length": len(feat_seq),
                 "md5": hashlib.md5(str(feat_seq)).hexdigest(),
             }
+            if not _id:
+                out_feat['id'] = in_feature.type
+            # note that end is the larger number regardless of strand
+            if int(in_feature.location.end) > len(record):
+                warn = "Feature coordinates fall outside of the contig sequence"
+                out_feat['warnings'] = out_feat.get('warnings', []) + [warn]
+
             self.feature_counts[in_feature.type] += 1
             # add optional fields
             if 'note' in in_feature.qualifiers:
@@ -529,13 +552,11 @@ class GenbankToGenome:
 
             out_feat.update(_get_aliases_flags_functions(in_feature))
 
-            if 'db_xref' in in_feature.qualifiers:
-                out_feat['db_xref'] = [tuple(x.split(":")) for x in
-                                       in_feature.qualifiers['db_xref']]
-
-            ont = self._get_ontology(in_feature)
+            ont, db_xrefs = self._get_ontology_db_xrefs(in_feature)
             if ont:
                 out_feat['ontology_terms'] = ont
+            if db_xrefs:
+                out_feat['db_xrefs'] = db_xrefs
 
             if 'inference' in in_feature.qualifiers:
                 out_feat['inference_data'] = _inferences(in_feature)
@@ -557,7 +578,7 @@ class GenbankToGenome:
                 if abs(len(feat_seq)/3 - len(prot_seq)) > 1:
                     out_feat['warnings'] = out_feat.get('warnings', []) + [
                         "The length of the annotated protein translation is "
-                        "not consistent with the lenght of the recorded DNA "
+                        "not consistent with the length of the recorded DNA "
                         "sequence"]
 
                 if _id in genes:
@@ -633,7 +654,7 @@ class GenbankToGenome:
                     g['warnings'] = g.get('warnings', []) + [warn]
 
                 # remove duplicates that may arise from CDS info propagation
-                for key in ('function', 'aliases', 'db_xref'):
+                for key in ('functions', 'aliases', 'db_xrefs'):
                     if key in g:
                         g[key] = list(set(g[key]))
                 if not g['mrnas']:

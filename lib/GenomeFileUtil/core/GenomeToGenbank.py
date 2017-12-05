@@ -209,18 +209,18 @@ class GenomeFile:
 
         # Extra complicated because if there is a function with "product:" in
         # it we want to capture that and put it back in the product field
-        if 'function' in in_feature and in_feature['function']:
-            if isinstance(in_feature['function'], list):  # list in new genome
-                product_ind = [i for i, s in enumerate(
-                    in_feature['function']) if s.startswith("product:")]
-                if product_ind:
-                    out_feature.qualifiers['product'] = in_feature['function'].pop(
-                        product_ind[0]).split(":")[1]
-                if in_feature['function']:
-                    out_feature.qualifiers['function'] = "; ".join(
-                        in_feature['function'])
-            else:  # back-compatible
-                out_feature.qualifiers['function'] = [in_feature['function']]
+        if 'functions' in in_feature and in_feature['functions']:
+            # new type genome
+            product_ind = [i for i, s in enumerate(
+                in_feature['functions']) if s.startswith("product:")]
+            if product_ind:
+                out_feature.qualifiers['product'] = in_feature['functions'].pop(
+                    product_ind[0]).split(":")[1]
+            if in_feature['functions']:
+                out_feature.qualifiers['functions'] = "; ".join(
+                    in_feature['functions'])
+        elif 'function' in in_feature:  # back-compatible
+            out_feature.qualifiers['function'] = [in_feature['function']]
 
         if in_feature.get('note', False):
             out_feature.qualifiers['note'] = in_feature['note']
@@ -247,10 +247,10 @@ class GenomeFile:
         for flag in in_feature.get('flags', []):
             out_feature.qualifiers[flag] = None
 
-        if 'inferences' in in_feature:
+        if 'inference_data' in in_feature:
             out_feature.qualifiers['inference'] = [
                 ":".join([x[y] for y in ('category', 'type', 'evidence') if x[y]])
-                for x in in_feature['inferences']]
+                for x in in_feature['inference_data']]
 
         return out_feature
 
