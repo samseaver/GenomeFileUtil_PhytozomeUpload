@@ -550,7 +550,7 @@ class FastaGFFToGenome:
                 gene["protein_translation_length"] = len(
                     cds["protein_translation"])
             # Merge cds list attributes with gene
-            for key in ('function', 'aliases', 'db_xref'):
+            for key in ('functions', 'aliases', 'db_xrefs'):
                 if cds.get(key, []):
                     gene[key] = cds.get(key, []) + gene.get(key, [])
             # Merge cds["ontology_terms"] -> gene["ontology_terms"]
@@ -590,7 +590,7 @@ class FastaGFFToGenome:
             "dna_sequence": str(feat_seq),
             "dna_sequence_length": len(feat_seq),
             "md5": hashlib.md5(str(feat_seq)).hexdigest(),
-            "function": in_feature['attributes'].get('function', []),
+            "functions": in_feature['attributes'].get('function', []),
         }
         # TODO: Flags, inference_data
         # add optional fields
@@ -603,10 +603,10 @@ class FastaGFFToGenome:
         if aliases:
             out_feat['aliases'] = aliases
         if 'db_xref' in in_feature['attributes']:
-            out_feat['db_xref'] = [tuple(x.split(":")) for x in
+            out_feat['db_xrefs'] = [tuple(x.split(":")) for x in
                                    in_feature['attributes']['db_xref']]
         if 'product' in in_feature['attributes']:
-            out_feat['function'] += ["product:" + x for x in
+            out_feat['functions'] += ["product:" + x for x in
                                      in_feature['attributes']["product"]]
         parent_id = in_feature.get('Parent', '')
         if parent_id and parent_id not in self.feature_dict:
