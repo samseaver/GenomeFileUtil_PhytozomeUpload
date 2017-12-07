@@ -217,7 +217,7 @@ class GenomeFile:
                 out_feature.qualifiers['product'] = in_feature['functions'].pop(
                     product_ind[0]).split(":")[1]
             if in_feature['functions']:
-                out_feature.qualifiers['functions'] = "; ".join(
+                out_feature.qualifiers['function'] = "; ".join(
                     in_feature['functions'])
         elif 'function' in in_feature:  # back-compatible
             out_feature.qualifiers['function'] = [in_feature['function']]

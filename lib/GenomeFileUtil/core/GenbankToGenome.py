@@ -262,12 +262,7 @@ class GenbankToGenome:
             if "source_id" in genome:
                 continue  # only do the following once(on the first contig)
             genome["source_id"] = record.id.split('.')[0]
-            if 'molecule_type' in r_annot:
-                    genome["molecule_type"] = r_annot['molecule_type']
-            # if the locus line is malformed
-            else:
-                genome["molecule_type"] = str(record.seq.alphabet).replace(
-                    'IUPACAmbiguous', '').rstrip("()")
+            genome["molecule_type"] = r_annot.get('molecule_type', 'DNA')
 
             genome['taxonomy'], genome['taxon_ref'], genome['domain'], \
             genome['genetic_code'] = self.gi.retrieve_taxon(
@@ -407,7 +402,7 @@ class GenbankToGenome:
                 self.ontologies_present['GO'][sp[0]] = sp[1]
         for ref in feature.qualifiers.get('db_xref', []):
             if ref.startswith('GO:'):
-                ontology['GO'][ref] = [1]
+                ontology['GO'][ref] = [0]
                 self.ontologies_present['GO'][ref] = self.go_mapping.get(ref, '')
             else:
                 db_xref.append(tuple(ref.split(":")))
