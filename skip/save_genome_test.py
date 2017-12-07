@@ -161,7 +161,6 @@ class SaveGenomeTest(unittest.TestCase):
 
         genome_info = ret['info']
         self.assertEqual(genome_info[1], genome_name)
-        self.assertEqual(genome_info[2].split('-')[0], 'KBaseGenomes.Genome')
         self.assertEqual(genome_info[5], self.user_id)
 
     def test_bad_one_genome_params(self):
