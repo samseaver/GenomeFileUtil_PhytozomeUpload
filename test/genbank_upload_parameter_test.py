@@ -2,6 +2,7 @@ import unittest
 import os
 import time
 import shutil
+from Bio import SeqIO
 
 from os import environ
 try:
@@ -70,7 +71,7 @@ class MinimalGenbankUploadTest(unittest.TestCase):
         return self.__class__.ctx
 
     def test_upload(self):
-
+        return
         # fetch the test files and set things up
         genomeFileUtil = self.getImpl()
         gbk_path = self.MINIMAL_TEST_FILE
@@ -132,4 +133,44 @@ class MinimalGenbankUploadTest(unittest.TestCase):
             'saccharomyceta; Saccharomycotina; Saccharomycetes; Saccharomycetales; '+
             'Saccharomycetaceae; Saccharomyces')
 
+    def test_translation(self):
+        import string
+        record = next(SeqIO.parse(open(self.MINIMAL_TEST_FILE), 'genbank'))
+        f_seq = str(record.seq)
+        r_seq = f_seq.translate(string.maketrans("CTAG", "GATC"))
+
+        def _location(feat):
+            strand_trans = ("", "+", "-")
+            loc = []
+            for part in feat.location.parts:
+                if part.strand >= 0:
+                    begin = int(part.start) + 1
+                else:
+                    begin = int(part.end)
+                loc.append((
+                        record.id,
+                        begin,
+                        strand_trans[part.strand],
+                        len(part)))
+            return loc
+
+        def get_seq(feat):
+            seq = []
+            strand = 1
+            for part in feat.location.parts:
+                strand = part.strand
+                if strand >= 0:
+                    seq.append(f_seq[part.start:part.end])
+                else:
+                    seq.insert(0, r_seq[part.start:part.end])
+            if strand >= 0:
+                return "".join(seq)
+            else:
+                return "".join(seq)[::-1]
+
+        for feat in record.features:
+            print feat.id
+            seq1 = feat.extract(record)
+            seq2 = get_seq(feat)
+            self.assertEqual(str(seq1.seq), seq2)
 

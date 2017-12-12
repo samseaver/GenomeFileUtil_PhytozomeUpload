@@ -8,10 +8,12 @@ import shutil
 import uuid
 import hashlib
 import json
+import string
 from collections import Counter, defaultdict, OrderedDict
 
 import Bio.SeqIO
 import Bio.SeqUtils
+from Bio import Seq
 
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from DataFileUtil.DataFileUtilClient import DataFileUtil
@@ -434,6 +436,21 @@ class GenbankToGenome:
                         len(part)))
             return loc
 
+        def _get_seq(feat):
+            """Extract the DNA sequence for a feature"""
+            seq = []
+            strand = 1
+            for part in feat.location.parts:
+                strand = part.strand
+                if strand >= 0:
+                    seq.append(f_seq[part.start:part.end])
+                else:
+                    seq.insert(0, r_seq[part.start:part.end])
+            if strand >= 0:
+                return "".join(seq)
+            else:
+                return "".join(seq)[::-1]
+
         def _get_aliases_flags_functions(feat):
             """Get the values for aliases flags and features from qualifiers"""
             alias_keys = {'locus_tag', 'old_locus_tag', 'protein_id',
@@ -515,21 +532,22 @@ class GenbankToGenome:
 
         excluded_features = ('source', 'exon')
         genes, cdss, mrnas, noncoding = OrderedDict(), OrderedDict(), OrderedDict(), []
+        f_seq = str(record.seq)
+        r_seq = f_seq.translate(string.maketrans("CTAG", "GATC"))
         for in_feature in record.features:
             if in_feature.type in excluded_features:
                 self.skiped_features[in_feature.type] += 1
                 continue
-            feat_seq = in_feature.extract(record)
+            feat_seq = _get_seq(in_feature)
             if source == "Ensembl":
                 _id = _get_id(in_feature, ['gene', 'locus_tag'])
             else:
                 _id = _get_id(in_feature)
-            #self.log("parsing feature: " + _id)
             # The following is common to all the feature types
             out_feat = {
                 "id": "_".join([_id, in_feature.type]),
                 "location": _location(in_feature),
-                "dna_sequence": str(feat_seq.seq),
+                "dna_sequence": str(feat_seq),
                 "dna_sequence_length": len(feat_seq),
                 "md5": hashlib.md5(str(feat_seq)).hexdigest(),
             }
@@ -565,11 +583,10 @@ class GenbankToGenome:
                     "protein_translation_length": len(prot_seq),
                     'parent_gene': "",
                 })
-                if prot_seq and prot_seq != str(feat_seq.seq.translate()
-                                                ).strip("*"):
+                """if prot_seq and prot_seq != Seq.translate(feat_seq).strip("*"):
                     out_feat['warnings'] = out_feat.get('warnings', []) + [
                         "The annotated protein translation is not consistent "
-                        "with the recorded DNA sequence"]
+                        "with the recorded DNA sequence"]"""
                 if abs(len(feat_seq)/3 - len(prot_seq)) > 1:
                     out_feat['warnings'] = out_feat.get('warnings', []) + [
                         "The length of the annotated protein translation is "
