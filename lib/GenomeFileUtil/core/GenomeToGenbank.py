@@ -233,8 +233,7 @@ class GenomeFile:
             if 'db_xrefs' not in out_feature.qualifiers:
                 out_feature.qualifiers['db_xrefs'] = []
             for ont, terms in in_feature['ontology_terms'].items():
-                out_feature.qualifiers['db_xrefs'].extend(
-                    ["{}:{}".format(ont, t) for t in terms])
+                out_feature.qualifiers['db_xrefs'].extend([t for t in terms])
 
         for alias in in_feature.get('aliases', []):
             if len(alias) == 2:
