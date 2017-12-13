@@ -53,8 +53,8 @@ class GenomeFileUtilTest(unittest.TestCase):
 
         # save new genome
         assembly_file_path = os.path.join(cls.cfg['scratch'],
-                                          'Rhodo_velvet_assembly.fa')
-        shutil.copy('data/Rhodo_velvet_assembly.fa', assembly_file_path)
+                                          'Rhodo_SPAdes_assembly.fa')
+        shutil.copy('data/Rhodo_SPAdes_assembly.fa', assembly_file_path)
         au = AssemblyUtil(os.environ['SDK_CALLBACK_URL'])
         cls.assembly_ref = au.save_assembly_from_fasta({
             'workspace_name': cls.wsName,
@@ -87,7 +87,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         return self.__class__.ctx
 
     def test_upgrade_genome(self):
-        old_rhodobacter = json.load(open('data/Rhodo_SPAdes_RAST.json'))
+        old_rhodobacter = json.load(open('data/rhodobacter.json'))
         old_rhodobacter['assembly_ref'] = self.assembly_ref
         new_rhodobacter = self.genome_interface._update_genome(old_rhodobacter)
         json.dump(new_rhodobacter, open(self.cfg['scratch']+'/new_genome', 'w'))
@@ -97,6 +97,36 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'type': 'NewTempGenomes.Genome',
                 'data': new_rhodobacter,
                 'name': 'rhodobacter'
+            }]
+        }
+        result = self.ws.save_objects(save_info)
+
+    def test_upgrade_genome_rast(self):
+        old_rhodobacter = json.load(open('data/Rhodo_SPAdes_RAST.json'))
+        old_rhodobacter['assembly_ref'] = self.assembly_ref
+        new_rhodobacter = self.genome_interface._update_genome(old_rhodobacter)
+        json.dump(new_rhodobacter, open(self.cfg['scratch']+'/new_genome', 'w'))
+        save_info = {
+            'workspace': self.getWsName(),
+            'objects': [{
+                'type': 'NewTempGenomes.Genome',
+                'data': new_rhodobacter,
+                'name': 'rhodobacter_rast'
+            }]
+        }
+        result = self.ws.save_objects(save_info)
+
+    def test_upgrade_genome_prokka(self):
+        old_rhodobacter = json.load(open('data/Rhodo_SPAdes_Prokka.json'))
+        old_rhodobacter['assembly_ref'] = self.assembly_ref
+        new_rhodobacter = self.genome_interface._update_genome(old_rhodobacter)
+        json.dump(new_rhodobacter, open(self.cfg['scratch']+'/new_genome', 'w'))
+        save_info = {
+            'workspace': self.getWsName(),
+            'objects': [{
+                'type': 'NewTempGenomes.Genome',
+                'data': new_rhodobacter,
+                'name': 'rhodobacter_prokka'
             }]
         }
         result = self.ws.save_objects(save_info)

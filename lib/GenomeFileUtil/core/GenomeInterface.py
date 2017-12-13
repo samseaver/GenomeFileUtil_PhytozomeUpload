@@ -234,13 +234,15 @@ class GenomeInterface:
             genome['genetic_code'] = self.retrieve_taxon(
                 self.taxon_wsname, genome['scientific_name'])
 
-        if any([x not in genome for x in ('dna_size', 'md5', 'gc_content')]):
+        if any([x not in genome for x in ('dna_size', 'md5', 'gc_content',
+                                          'num_contigs')]):
             assembly_data = self.dfu.get_objects(
                 {'object_refs': [genome['assembly_ref']],
                  'ignore_errors': 0})['data'][0]['data']
             genome["gc_content"] = assembly_data['gc_content']
             genome["dna_size"] = assembly_data['dna_size']
             genome["md5"] = assembly_data['md5']
+            genome["num_contigs"] = assembly_data['num_contigs']
 
         if 'cdss' not in genome:
             genome['cdss'] = []
