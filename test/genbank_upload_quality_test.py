@@ -59,8 +59,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         cls.genome = data_file_cli.get_objects({'object_refs': [result['genome_ref']]})['data'][0]['data']
 #        print("GENE 1: ")
 #        pprint(cls.genome['features'][0])
-#        pprint(cls.genome['features'][0])
-##        pprint(result)
+#        pprint(result)
 
 
 
