@@ -44,7 +44,7 @@ FEATURES             Location/Qualifiers
                      /gene_synonym="blah; dah;"
                      /db_xref="Madeup:ref1"
                      /db_xref="something:1"
-     CDS             687..3158
+     CDS             join(1560..3158,687..1550)
                      /gene="AXL2"
                      /locus_tag="b1"
                      /note="plasma membrane glycoprotein"
@@ -75,7 +75,7 @@ FEATURES             Location/Qualifiers
                      /gene_synonym="blah2; dah2;"
                      /db_xref="Madeup:ref2"
                      /db_xref="something:2"
-     CDS             complement(3300..4037)
+     CDS             join(complement(3300..3500),complement(3600..4037))
                      /gene="REV7"
                      /locus_tag="b2"
                      /codon_start=1

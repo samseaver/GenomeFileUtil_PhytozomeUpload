@@ -68,6 +68,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         # fetch the test files and set things up
         genomeFileUtil = self.getImpl()
         gbk_path = "data/e_coli/GCF_000005845.2_ASM584v2_altered_genomic.gbff"
+        # gbk_path = "data/GCF_000001735.3_TAIR10_genomic.gbff.gz"
 
         ### Test for a Local Function Call
         print('attempting upload via local function directly')

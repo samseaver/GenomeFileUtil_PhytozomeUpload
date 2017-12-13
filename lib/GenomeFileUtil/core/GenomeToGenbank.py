@@ -217,7 +217,7 @@ class GenomeFile:
                 out_feature.qualifiers['product'] = in_feature['functions'].pop(
                     product_ind[0]).split(":")[1]
             if in_feature['functions']:
-                out_feature.qualifiers['functions'] = "; ".join(
+                out_feature.qualifiers['function'] = "; ".join(
                     in_feature['functions'])
         elif 'function' in in_feature:  # back-compatible
             out_feature.qualifiers['function'] = [in_feature['function']]
@@ -233,8 +233,7 @@ class GenomeFile:
             if 'db_xrefs' not in out_feature.qualifiers:
                 out_feature.qualifiers['db_xrefs'] = []
             for ont, terms in in_feature['ontology_terms'].items():
-                out_feature.qualifiers['db_xrefs'].extend(
-                    ["{}:{}".format(ont, t) for t in terms])
+                out_feature.qualifiers['db_xrefs'].extend([t for t in terms])
 
         for alias in in_feature.get('aliases', []):
             if len(alias) == 2:
