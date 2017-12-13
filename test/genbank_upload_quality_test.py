@@ -205,18 +205,18 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(empty_warning_count == 0, str(empty_warning_count) + " features had empty warnings.")     
         self.assertTrue(found_warning_count > 0, "No features had warnings.")
 
-    def test_no_empty_mRNAs(self):
-        genome = self.__class__.genome
-        if "mrnas" in genome:
-            self.assertTrue(len(genome["mrnas"]) > 0, "The mRNA list is empty and is still present.")
+#    def test_no_empty_mRNAs(self):
+#        genome = self.__class__.genome
+#        if "mrnas" in genome:
+#            self.assertTrue(len(genome["mrnas"]) > 0, "The mRNA list is empty and is still present.")
 
-    def test_no_empty_genome_level_warnings(self):
-        genome = self.__class__.genome
-        if "warnings" in genome:
-            if len(genome["warnings"]) > 0:
-                for warning in genome["warnings"]:
-                    self.assertTrue(genome["warnings"][0] != '', "The Genome level warnings list is empty and is still present.")
-            self.assertTrue(len(genome["warnings"]) > 0, "The Genome level warnings is empty and is still present.")
+#    def test_no_empty_genome_level_warnings(self):
+#        genome = self.__class__.genome
+#        if "warnings" in genome:
+#            if len(genome["warnings"]) > 0:
+#                for warning in genome["warnings"]:
+#                    self.assertTrue(genome["warnings"][0] != '', "The Genome level warnings list is empty and is still present.")
+#            self.assertTrue(len(genome["warnings"]) > 0, "The Genome level warnings is empty and is still present.")
 
     def test_non_coding_feature_ids(self):
         genome = self.__class__.genome
