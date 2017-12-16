@@ -88,6 +88,13 @@ FEATURES             Location/Qualifiers
                      KDDQIITETEVFDEFRSSLNSLIMHLEKLPKVNDDTITFEAVINAIELELGHKLDRNR
                      RVDSLEEKAEIERDSNWVKCQEDENLPDNNGFQPPKIKLTSLVGSDVGPLIIHQFSEK
                      LISGDDKILNGVYSQYEEGESIFGSLF"
+     gene            complement(3300..40371)
+                     /locus_tag="AT1G02228"
+                     /note="pseudogene of no apical meristem (NAM) family
+                     protein"
+                     /db_xref="Araport:AT1G02228"
+                     /db_xref="GeneID:5007659"
+                     /db_xref="TAIR:AT1G02228"
 ORIGIN
         1 gatcctccat atacaacggt atctccacct caggtttaga tctcaacaac ggaaccattg
        61 ccgacatgag acagttaggt atcgtcgaga gttacaagct aaaacgagca gtagtcagct

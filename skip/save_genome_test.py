@@ -7,6 +7,7 @@ import requests  # noqa: F401
 import inspect
 import StringIO
 import urllib
+import shutil
 
 
 from os import environ
@@ -24,6 +25,7 @@ from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
 
 from DataFileUtil.DataFileUtilClient import DataFileUtil
+from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
 
 
@@ -117,20 +119,17 @@ class SaveGenomeTest(unittest.TestCase):
 
     @classmethod
     def prepare_data(cls):
-
-        with open('data/rhodobacter_contigs.json', 'r') as f1:
-            data_str = f1.read()
-        data = json.loads(data_str)
-        # save to ws
-        cls.wsClient.save_objects({'workspace': cls.wsName,
-                                   'objects': [{'type': 'KBaseGenomes.ContigSet',
-                                                'data': data,
-                                                'name': 'rhodobacter_contigs.1'}]})
-        # read in the test Rhodobacter genome
-        with open('data/rhodobacter.json', 'r') as f2:
-            data_str = f2.read()
-        cls.test_genome_data = json.loads(data_str)
-        cls.test_genome_data['contigset_ref'] = cls.wsName + '/rhodobacter_contigs.1'
+        assembly_file_path = os.path.join(cls.scratch,
+                                          'e_coli_assembly.fasta')
+        shutil.copy('data/e_coli/e_coli_assembly.fasta', assembly_file_path)
+        au = AssemblyUtil(os.environ['SDK_CALLBACK_URL'])
+        assembly_ref = au.save_assembly_from_fasta({
+            'workspace_name': cls.wsName,
+            'assembly_name': 'e_coli.assembly',
+            'file': {'path': assembly_file_path}
+        })
+        cls.test_genome_data = json.load(open('data/e_coli/e_coli.json'))
+        cls.test_genome_data['assembly_ref'] = assembly_ref
 
     def getWsClient(self):
         return self.__class__.wsClient
@@ -161,7 +160,7 @@ class SaveGenomeTest(unittest.TestCase):
 
         genome_info = ret['info']
         self.assertEqual(genome_info[1], genome_name)
-        self.assertEqual(genome_info[2].split('-')[0], 'KBaseGenomes.Genome')
+        self.assertEqual(genome_info[2].split('-')[0].split('.')[1], 'Genome')
         self.assertEqual(genome_info[5], self.user_id)
 
     def test_bad_one_genome_params(self):

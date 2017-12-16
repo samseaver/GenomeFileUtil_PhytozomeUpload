@@ -14,6 +14,7 @@ from GenomeFileUtil.core.GenomeInterface import GenomeInterface
 
 from Workspace.WorkspaceClient import Workspace
 from DataFileUtil.DataFileUtilClient import DataFileUtil
+from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 
 # Used to store and pass around configuration URLs more easily
 class SDKConfig:
@@ -46,9 +47,9 @@ class GenomeFileUtil:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "0.6.9"
-    GIT_URL = "https://github.com/Tianhao-Gu/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "1661ded3a84156a0b980eccc44bcb9892c425e85"
+    VERSION = "0.7.0"
+    GIT_URL = "git@github.com:kbaseapps/GenomeFileUtil.git"
+    GIT_COMMIT_HASH = "58d3e89ccfcff4e5721ce69223271f3450744bb9"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -247,6 +248,74 @@ class GenomeFileUtil:
         # At some point might do deeper type checking...
         if not isinstance(output, dict):
             raise ValueError('Method export_genome_as_genbank return value ' +
+                             'output is not type dict as required.')
+        # return the results
+        return [output]
+
+    def export_genome_as_gff(self, ctx, params):
+        """
+        :param params: instance of type "ExportParams" (input and output
+           structure functions for standard downloaders) -> structure:
+           parameter "input_ref" of String
+        :returns: instance of type "ExportOutput" -> structure: parameter
+           "shock_id" of String
+        """
+        # ctx is the context object
+        # return variables are: output
+        #BEGIN export_genome_as_gff
+        if 'input_ref' not in params:
+            raise ValueError('Cannot run export_genome_as_gff- no "input_ref" '
+                             'field defined.')
+
+        # get WS metadata to get ws_name and obj_name
+        ws = Workspace(url=self.cfg.workspaceURL)
+        info = ws.get_objects2({'objects': [{
+            'ref': params['input_ref'],
+            'included':['/assembly_ref', 'contigset_ref', '/id']}
+        ]})['data'][0]['data']
+
+        # export to file (building from KBase Genome Object)
+        result = self.genome_to_gff(ctx, {
+            'genome_ref': params['input_ref']
+        })[0]
+
+        # get assembly
+        if 'assembly_ref' in info:
+            assembly_ref = info['assembly_ref']
+        else:
+            assembly_ref = info['contigset_ref']
+        print('Assembly reference = ' + assembly_ref)
+        print('Downloading assembly')
+        au = AssemblyUtil(self.cfg.callbackURL)
+        assembly_file_path = au.get_assembly_as_fasta(
+            {'ref': assembly_ref}
+        )['path']
+
+        # create the output directory and move the files there
+        export_package_dir = os.path.join(self.cfg.sharedFolder, info['id'])
+        os.makedirs(export_package_dir)
+        shutil.move(
+            result['file_path'],
+            os.path.join(export_package_dir,
+                         os.path.basename(result['file_path'])))
+        shutil.move(
+            assembly_file_path,
+            os.path.join(export_package_dir,
+                         os.path.basename(assembly_file_path)))
+
+        # package it up
+        dfUtil = DataFileUtil(self.cfg.callbackURL)
+        package_details = dfUtil.package_for_download({
+                                    'file_path': export_package_dir,
+                                    'ws_refs': [params['input_ref']]
+                                })
+
+        output = {'shock_id': package_details['shock_id']}
+        #END export_genome_as_gff
+
+        # At some point might do deeper type checking...
+        if not isinstance(output, dict):
+            raise ValueError('Method export_genome_as_gff return value ' +
                              'output is not type dict as required.')
         # return the results
         return [output]

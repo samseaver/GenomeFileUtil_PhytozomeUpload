@@ -115,6 +115,18 @@ class GenomeFileUtil(object):
             'GenomeFileUtil.export_genome_as_genbank',
             [params], self._service_ver, context)
 
+    def export_genome_as_gff(self, params, context=None):
+        """
+        :param params: instance of type "ExportParams" (input and output
+           structure functions for standard downloaders) -> structure:
+           parameter "input_ref" of String
+        :returns: instance of type "ExportOutput" -> structure: parameter
+           "shock_id" of String
+        """
+        return self._client.call_method(
+            'GenomeFileUtil.export_genome_as_gff',
+            [params], self._service_ver, context)
+
     def fasta_gff_to_genome(self, params, context=None):
         """
         :param params: instance of type "FastaGFFToGenomeParams" (genome_name

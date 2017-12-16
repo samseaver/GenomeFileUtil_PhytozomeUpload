@@ -131,17 +131,17 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         self.assertTrue('report_ref' in result)
 
         genome_info = result['genome_info']
-        self.assertEquals(genome_info[10]['Domain'], 'Eukaryota')
-        self.assertEquals(genome_info[10]['Genetic code'], '1')
+        self.assertEquals(genome_info[10]['Domain'], 'Unknown')
+        self.assertEquals(genome_info[10]['Genetic code'], '11')
         self.assertEquals(genome_info[10]['Name'], 'unknown_taxon')
         self.assertEquals(genome_info[10]['Source'], 'Genbank')
         self.assertTrue('GC content' in genome_info[10])
         self.assertTrue(re.match("^\d+?\.\d+?$", genome_info[10]['GC content']) is not None)
-        self.assertTrue('Number features' in genome_info[10])
-        self.assertTrue(genome_info[10]['Number features'].isdigit())
+        self.assertTrue('Number of Protein Encoding Genes' in genome_info[10])
+        self.assertTrue(genome_info[10]['Number of Protein Encoding Genes'].isdigit())
         self.assertTrue('Size' in genome_info[10])
         self.assertTrue(genome_info[10]['Size'].isdigit())
-        self.assertEquals(genome_info[10]['Taxonomy'], 'Unknown')
+        self.assertEquals(genome_info[10]['Taxonomy'], 'Unconfirmed Organism: unknown_taxon')
 
     def test_simple_fasta_gff_to_genome_w_null_params(self):
 
@@ -167,17 +167,17 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         self.assertTrue('report_ref' in result)
 
         genome_info = result['genome_info']
-        self.assertEquals(genome_info[10]['Domain'], 'Eukaryota')
-        self.assertEquals(genome_info[10]['Genetic code'], '1')
+        self.assertEquals(genome_info[10]['Domain'], 'Unknown')
+        self.assertEquals(genome_info[10]['Genetic code'], '11')
         self.assertEquals(genome_info[10]['Name'], 'unknown_taxon')
         self.assertEquals(genome_info[10]['Source'], 'User')
         self.assertTrue('GC content' in genome_info[10])
         self.assertTrue(re.match("^\d+?\.\d+?$", genome_info[10]['GC content']) is not None)
-        self.assertTrue('Number features' in genome_info[10])
-        self.assertTrue(genome_info[10]['Number features'].isdigit())
+        self.assertTrue('Number of Protein Encoding Genes' in genome_info[10])
+        self.assertTrue(genome_info[10]['Number of Protein Encoding Genes'].isdigit())
         self.assertTrue('Size' in genome_info[10])
         self.assertTrue(genome_info[10]['Size'].isdigit())
-        self.assertEquals(genome_info[10]['Taxonomy'], 'Unknown')
+        self.assertEquals(genome_info[10]['Taxonomy'], 'Unconfirmed Organism: unknown_taxon')
 
     def test_simple_fasta_gff_to_genome(self):
         input_params = {
@@ -198,15 +198,15 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         self.assertTrue('report_ref' in result)
 
         genome_info = result['genome_info']
-        self.assertEquals(genome_info[10]['Number features'], '1028')
+        self.assertEquals(genome_info[10]['Number of Protein Encoding Genes'], '1028')
         self.assertEquals(genome_info[10]['Domain'], 'Eukaryota')
         self.assertEquals(genome_info[10]['Genetic code'], '1')
         self.assertEquals(genome_info[10]['Name'], 'Populus trichocarpa')
         self.assertEquals(genome_info[10]['Source'], 'Genbank')
         self.assertTrue('GC content' in genome_info[10])
         self.assertTrue(re.match("^\d+?\.\d+?$", genome_info[10]['GC content']) is not None)
-        self.assertTrue('Number features' in genome_info[10])
-        self.assertTrue(genome_info[10]['Number features'].isdigit())
+        self.assertTrue('Number of Protein Encoding Genes' in genome_info[10])
+        self.assertTrue(genome_info[10]['Number of Protein Encoding Genes'].isdigit())
         self.assertTrue('Size' in genome_info[10])
         self.assertTrue(genome_info[10]['Size'].isdigit())
         self.assertEquals(genome_info[10]['Taxonomy'],
@@ -477,85 +477,6 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         self.assertEquals(parsed_params['genome_name'], 'MyGenome')
         self.assertEquals(parsed_params['source'], 'Genbank')
         self.assertEquals(parsed_params['type'], 'Reference')
-
-    def test_FastaGFFToGenome_retrieve_taxon(self):
-        # test default none taxon_reference and none scientific_name
-        taxon_reference = None
-        taxon_wsname = 'ReferenceTaxons'
-        scientific_name = 'unknown_taxon'
-
-        expect_taxonomy, expect_taxon_reference = self.importer._retrieve_taxon(taxon_reference,
-                                                                                taxon_wsname,
-                                                                                scientific_name)
-        self.assertEquals(expect_taxonomy, 'Unknown')
-        self.assertTrue(expect_taxon_reference)
-
-        # test given scientific_name
-        scientific_name = "Populus trichocarpa"
-
-        expect_taxonomy, expect_taxon_reference = self.importer._retrieve_taxon(taxon_reference,
-                                                                                taxon_wsname,
-                                                                                scientific_name)
-        self.assertEquals(expect_taxonomy,
-                          'cellular organisms; Eukaryota; Viridiplantae; Streptophyta; ' +
-                          'Streptophytina; Embryophyta; Tracheophyta; Euphyllophyta; ' +
-                          'Spermatophyta; Magnoliophyta; Mesangiospermae; eudicotyledons; ' +
-                          'Gunneridae; Pentapetalae; rosids; fabids; Malpighiales; Salicaceae; ' +
-                          'Saliceae; Populus')
-        self.assertTrue(expect_taxon_reference)
-
-        # test taxon_reference is not None
-        taxon_object_name = "unknown_taxon"
-        taxon_info = self.dfu.get_objects({'object_refs': [taxon_wsname+"/"+taxon_object_name],
-                                           'ignore_errors': 0})['data'][0]
-        taxon_reference = "{}/{}/{}".format(taxon_info['info'][6],
-                                            taxon_info['info'][0],
-                                            taxon_info['info'][4])
-
-        expect_taxonomy, expect_taxon_reference = self.importer._retrieve_taxon(taxon_reference,
-                                                                                taxon_wsname,
-                                                                                scientific_name)
-        self.assertEquals(expect_taxonomy, 'Unknown')
-        self.assertEquals(expect_taxon_reference, taxon_reference)
-        self.assertTrue(expect_taxon_reference)
-
-    def test_FastaGFFToGenome_retrieve_fasta_file(self):
-
-        input_fasta_file = self.dfu.unpack_file({'file_path': self.fa_path})['file_path']
-        core_genome_name = 'MyGenome'
-        scientific_name = 'unknown_taxon'
-        source = 'Genbank'
-
-        assembly = self.importer._retrieve_fasta_file(input_fasta_file, core_genome_name,
-                                                      scientific_name, source)
-
-        expect_assembly_keys = ['contigs', 'external_source', 'name',
-                                'external_source_origination_date', 'assembly_id', 'notes',
-                                'external_source_id', 'num_contigs', 'base_counts', 'gc_content',
-                                'type', 'dna_size', 'md5']
-        except_base_counts = {'A': 3697359, 'C': 1865502, 'T': 3674284, 'G': 1860999, 'N': 101776}
-        expect_md5 = '638475f2ccf3cc8f3cd14e4881f0a979'
-        expect_gc_content = 0.33
-
-        self.assertItemsEqual(assembly.keys(), expect_assembly_keys)
-        self.assertEquals(assembly['external_source'], source)
-        self.assertEquals(assembly['name'], scientific_name)
-        self.assertEquals(assembly['external_source_origination_date'],
-                          str(os.stat(input_fasta_file).st_ctime))
-        self.assertEquals(assembly['assembly_id'], core_genome_name+"_assembly")
-        self.assertEquals(assembly['notes'],
-                          'Note MD5s are generated from uppercasing the sequences')
-        self.assertEquals(assembly['external_source_id'], os.path.basename(input_fasta_file))
-        self.assertIsInstance(assembly['num_contigs'], int)
-        self.assertIsInstance(assembly['base_counts'], dict)
-        self.assertDictContainsSubset(assembly['base_counts'], except_base_counts)
-        self.assertDictContainsSubset(except_base_counts, assembly['base_counts'])
-        self.assertIsInstance(assembly['gc_content'], float)
-        self.assertEquals(assembly['gc_content'], expect_gc_content)
-        self.assertEquals(assembly['type'], 'Unknown')
-        self.assertIsInstance(assembly['dna_size'], int)
-        self.assertEquals(assembly['md5'], expect_md5)
-        self.assertIsInstance(assembly['contigs'], dict)
 
     def test_FastaGFFToGenome_retrieve_gff_file(self):
 

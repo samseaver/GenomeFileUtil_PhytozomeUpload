@@ -60,7 +60,7 @@ class GenomeToGenbank(object):
         data = genome_data['data']
 
         # 3) make sure the type is valid
-        if info[2].split('-')[0] != 'NewTempGenomes.Genome':
+        if info[2].split(".")[1].split('-')[0] != 'Genome':
             raise ValueError('Object is not a Genome, it is a:' + str(info[2]))
 
         # 4) if the genbank handle is there, get it and return
@@ -118,17 +118,22 @@ class GenomeFile:
 
         # sort other features into a dict by contig
         for feat in genome_object['features']:
-            feat['type'] = 'gene'
+            if 'type' not in feat:
+                feat['type'] = 'gene'
             self.features_by_contig[feat['location'][0][0]].append(feat)
         for feat in genome_object.get('non_coding_features', []):
             self.features_by_contig[feat['location'][0][0]].append(feat)
 
-        assembly_file_path = self._get_assembly(genome_object['assembly_ref'])
+        assembly_file_path = self._get_assembly(genome_object)
         for contig in SeqIO.parse(open(assembly_file_path), 'fasta',
                                   Alphabet.generic_dna):
             self._parse_contig(contig)
 
-    def _get_assembly(self, assembly_ref):
+    def _get_assembly(self, genome):
+        if 'assembly_ref' in genome:
+            assembly_ref = genome['assembly_ref']
+        else:
+            assembly_ref = genome['contigset_ref']
         print('Assembly reference = ' + assembly_ref)
         print('Downloading assembly')
         au = AssemblyUtil(self.cfg.callbackURL)
@@ -204,18 +209,18 @@ class GenomeFile:
 
         # Extra complicated because if there is a function with "product:" in
         # it we want to capture that and put it back in the product field
-        if 'function' in in_feature and in_feature['function']:
-            if isinstance(in_feature['function'], list):  # list in new genome
-                product_ind = [i for i, s in enumerate(
-                    in_feature['function']) if s.startswith("product:")]
-                if product_ind:
-                    out_feature.qualifiers['product'] = in_feature['function'].pop(
-                        product_ind[0]).split(":")[1]
-                if in_feature['function']:
-                    out_feature.qualifiers['function'] = "; ".join(
-                        in_feature['function'])
-            else:  # back-compatible
-                out_feature.qualifiers['function'] = [in_feature['function']]
+        if 'functions' in in_feature and in_feature['functions']:
+            # new type genome
+            product_ind = [i for i, s in enumerate(
+                in_feature['functions']) if s.startswith("product:")]
+            if product_ind:
+                out_feature.qualifiers['product'] = in_feature['functions'].pop(
+                    product_ind[0]).split(":")[1]
+            if in_feature['functions']:
+                out_feature.qualifiers['function'] = "; ".join(
+                    in_feature['functions'])
+        elif 'function' in in_feature:  # back-compatible
+            out_feature.qualifiers['function'] = [in_feature['function']]
 
         if in_feature.get('note', False):
             out_feature.qualifiers['note'] = in_feature['note']
@@ -228,8 +233,8 @@ class GenomeFile:
             if 'db_xrefs' not in out_feature.qualifiers:
                 out_feature.qualifiers['db_xrefs'] = []
             for ont, terms in in_feature['ontology_terms'].items():
-                out_feature.qualifiers['db_xrefs'].extend(
-                    ["{}:{}".format(ont, t) for t in terms])
+                out_feature.qualifiers['db_xrefs'].extend([t for t in terms])
+
         for alias in in_feature.get('aliases', []):
             if len(alias) == 2:
                 out_feature.qualifiers[alias[0]] = alias[1]
@@ -237,7 +242,14 @@ class GenomeFile:
                 if 'db_xrefs' not in out_feature.qualifiers:
                     out_feature.qualifiers['db_xrefs'] = []
                 out_feature.qualifiers['db_xrefs'].append(alias)
-        # TODO: flags
+
+        for flag in in_feature.get('flags', []):
+            out_feature.qualifiers[flag] = None
+
+        if 'inference_data' in in_feature:
+            out_feature.qualifiers['inference'] = [
+                ":".join([x[y] for y in ('category', 'type', 'evidence') if x[y]])
+                for x in in_feature['inference_data']]
 
         return out_feature
 
