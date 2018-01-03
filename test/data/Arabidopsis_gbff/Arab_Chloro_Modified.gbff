@@ -78,7 +78,7 @@ FEATURES             Location/Qualifiers
                      /locus_tag="ArthCp001"
                      /trans_splicing
                      /db_xref="GeneID:1466250"
-     mRNA			 complement(join(97999..98024,98562..98793,69611..69724))
+     mRNA            complement(join(97999..98024,98562..98793,69611..69724))
                      /gene="rps12"
                      /locus_tag="ArthCp001"
                      /trans_splicing
@@ -104,7 +104,7 @@ FEATURES             Location/Qualifiers
                      /locus_tag="ArthCp001A"
                      /trans_splicing
                      /db_xref="GeneID:1466250"
-     mRNA			 complement(join(97999..98024,98562..98795,69611..69724))
+     mRNA            complement(join(97999..98024,98562..98795,69611..69724))
                      /gene="rps12"
                      /locus_tag="ArthCp001A"
                      /trans_splicing
