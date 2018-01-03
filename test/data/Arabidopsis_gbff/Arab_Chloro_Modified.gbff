@@ -323,10 +323,7 @@ FEATURES             Location/Qualifiers
                      /note="UNKNOWN BOUNDS"
      misc_feature    9950^9951
                      /gene="BetweenBases"
-                     /locus_tag="BetweenBases"                       
-     misc_feature    9955^9965
-                     /gene="InvalidBetweenBases"
-                     /locus_tag="InvalidBetweenBases"                       
+                     /locus_tag="BetweenBases"                                           
      gene            complement(11529..12798)
                      /gene="atpF"
                      /locus_tag="ArthCp008"
