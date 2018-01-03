@@ -302,10 +302,7 @@ FEATURES             Location/Qualifiers
                      /db_xref="GI:7525017"
                      /db_xref="GeneID:844794"
                      /note="UNKNOWN UPPER BOUND"
-                     /translation="MLTLKLFVYTVVIFFVSLFIFGFLSNDPGRNPGREE"                     
-     misc_feature    9938.9949
-                     /gene="SomewhereInRange"
-                     /locus_tag="SomewhereInRange"                   
+                     /translation="MLTLKLFVYTVVIFFVSLFIFGFLSNDPGRNPGREE"                                 
      gene            <9938..>11461
                      /gene="atpA"
                      /locus_tag="ArthCp007"
