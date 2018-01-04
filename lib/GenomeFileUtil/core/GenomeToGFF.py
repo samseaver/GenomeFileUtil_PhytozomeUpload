@@ -206,7 +206,7 @@ class GenomeToGFF:
         attrs.extend(['Dbxref={}:{}'.format(*x)
                      for x in feature.get('db_xref', [])])
         for ont in feature.get('ontology_terms', []):
-            attrs.extend(['Ontology_term={}:{}'.format(ont, x)
+            attrs.extend(['Ontology_term={}'.format(x)
                           for x in feature['ontology_terms'][ont]])
         return "; ".join(attrs)
 

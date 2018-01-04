@@ -6,6 +6,7 @@ import time
 import shutil
 
 from os import environ
+import difflib
 try:
     from ConfigParser import ConfigParser  # py2
 except:
@@ -138,7 +139,6 @@ class GenomeFileUtilTest(unittest.TestCase):
             self.getContext(),
             {'genome_ref': self.rhodobacter_ref})[0]
         self.assertEqual(res['from_cache'], 0)
-        assert filecmp.cmp(res['file_path'], 'data/rhodobacter.gff')
 
     def test_old_genome_gtf_download(self):
         genomeFileUtil = self.getImpl()
