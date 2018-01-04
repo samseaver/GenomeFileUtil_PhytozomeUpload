@@ -52,14 +52,17 @@ class GenomeFileUtilTest(unittest.TestCase):
               'genome_name': ws_obj_name,
               'generate_ids_if_needed': 1
             })[0]
-        print("HERE IS THE RESULT:")
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'], 
                                 token=cls.ctx['token'],
                                 service_ver='dev')
         cls.genome = data_file_cli.get_objects({'object_refs': [result['genome_ref']]})['data'][0]['data']
-        print("GENE 1: ")
-        pprint(cls.genome['features'][0])
-        pprint(result)
+
+
+#        print("GENE 1: ")
+#        pprint(cls.genome['features'][0])
+#        print("HERE ARE THE CDSs:")
+#        pprint(cls.genome['cdss'])
+#        pprint(result)
 
     @classmethod
     def tearDownClass(cls):
@@ -67,21 +70,97 @@ class GenomeFileUtilTest(unittest.TestCase):
             cls.wsClient.delete_workspace({'workspace': cls.wsName})
             print('Test workspace was deleted')
 
-#    def test_incorrect(self):
-#        self.assertTrue( 1 == 0, "1 ne 0")
+    def test_incorrect(self):
+        self.assertTrue( 1 == 0, "1 ne 0")
+
     def test_for_alias_colon(self):
         genome = self.__class__.genome
         colon_included = False
         for feature in genome["cdss"]:
-            if feature['id'] == "ArthCp001":
-                print "Found ArthCp001"
+            if feature['id'] == "ArthCp001_CDS_1":
+                print "Found ArthCp001_CDS_1"
                 for alias_tuple in feature["aliases"]:
                     if alias_tuple[0] == "gene_synonym":
                         if alias_tuple[1] == "TEST:COLON":
-                            colon_included = True                
+                            colon_included = True 
         self.assertTrue(colon_included, "The synonym TEST:COLON was not found.")
 
+    def test_for_trans_splicing(self):
+        genome = self.__class__.genome
+        gene_flag_found = False
+        cds_flag_found = False
+        found_mRNA = False
+        for feature in genome["features"]:
+            if feature['id'] == "ArthCp001":
+                print "Found ArthCp001"
+                if "flags" in feature:
+                    for flag in feature["flags"]:
+                        if flag == "trans_splicing":
+                            gene_flag_found = True
+                gene_sequence = "ATGCCAACCATTAAACAACTTATTAGAAATACAAGACAGCCAATCCGAAACGTCACGAAATCCCCAGCGCTTCGGGGATGCCCTCAGCGACGAGGAACATGTACTCGGGTGTATACTATCACCCCCAAAAAACCAAACTCTGCTTTACGTAAAGTTGCCAGAGTACGATTAACCTCGGGATTTGAAATCACTGCTTATATACCTGGTATTGGCCATAATTTACAAGAACATTCTGTAGTCTTAGTAAGAGGGGGAAGGGTTAAGGATTTACCCGGTGTGAGATATCACATTGTTCGAGGAACCCTAGATGCTGTCGGAGTAAAGGATCGTCAACAAGGGCGTTCTAGTGCGTTGTAGATTCTTATCCAAGACTTGTATCATTTGATGATGCCATGTGAATCGCTAGAAACATGTGAAGTGTATGGCTAACCCAATAACGAAAGTTTCGTAAGGGGACTGGAGCAGGCTACCACGAGACAAAAGATCTTCTTTCAAAAGAGATTCGATTCGGAACTCTTATATGTCCAAGGTTCAATATTGAAATAATTTCAGAGGTTTTCCCTGACTTTGTCCGTGTCAACAAACAATTCGAAATGCCTCGACTTTTTTAGAACAGGTCCGGGTCAAATAGCAATGATTCGAAGCACTTATTTTTACACTATTTCGGAAACCCAAGGACTCAATCGTATGGATATGTAAAATACAGGATTTCCAATCCTAGCAGGAAAAGGAGGGAAACGGATACTCAATTTAAAAGTGAGTAAACAGAATTCCATACTCGATTTCAGAGATACATATATAATTCTGTGGAAAGCCGTATTCGATGAAAGTCGTATGTACGGTTTGGAGGGAGATCTTTCATATCTTTCGAGATCCACCCTACAATATGGGGTCAAAAAGCCAAAATAA"
+                self.assertTrue(feature['dna_sequence'] == gene_sequence, "The DNA sequence for the gene ArthCp001 was not as expected. It contained the following sequence : " + str(feature['dna_sequence']))         
+                if 'cdss' in feature:
+                    self.assertTrue("ArthCp001_CDS_1" in feature['cdss'], "The child CDS of ArthCp001_CDS_1 was not found")
+                else:
+                    self.assertTrue('cdss' in feature, "There was no child CDS for ArthCp001")    
+                if 'mrnas' in feature:
+                    self.assertTrue("ArthCp001_mRNA_1" in feature['mrnas'], "The child mRNA of ArthCp001_mRNA_1 was not found")
+                else:
+                    self.assertTrue('mrnas' in feature, "There was no child mRNA for ArthCp001")             
+        self.assertTrue(gene_flag_found, "The trans_splicing flag for the gene ArthCp001 was not found.")
+        for feature in genome["mrnas"]:
+            if feature['id'] == "ArthCp001_mRNA_1":
+                print "Found ArthCp001_mRNA_1"
+                found_mRNA = True
+                if 'parent_gene' in feature:
+                    self.assertTrue(feature['parent_gene'] == 'ArthCp001',"The parent gene for ArthCp001_CDS_1 was not as expected")
+                else:
+                    self.assertTrue('parent_gene' in feature, "The parent gene for ArthCp001_CDS_1 was not populated")
+        self.assertTrue(found_mRNA, "The mRNA ArthCp001_mRNA_1 was not found.")
+        for feature in genome["cdss"]:
+            if feature['id'] == "ArthCp001_CDS_1":
+                print "Found ArthCp001_CDS_1"
+                if "flags" in feature:
+                    for flag in feature["flags"]:
+                        if flag == "trans_splicing":
+                            cds_flag_found = True
+                cds_sequence = "ATGCCAACCATTAAACAACTTATTAGAAATACAAGACAGCCAATCCGAAACGTCACGAAATCCCCAGCGCTTCGGGGATGCCCTCAGCGACGAGGAACATGTACTCGGGTGTATACTATCACCCCCAAAAAACCAAACTCTGCTTTACGTAAAGTTGCCAGAGTACGATTAACCTCGGGATTTGAAATCACTGCTTATATACCTGGTATTGGCCATAATTTACAAGAACATTCTGTAGTCTTAGTAAGAGGGGGAAGGGTTAAGGATTTACCCGGTGTGAGATATCACATTGTTCGAGGAACCCTAGATGCTGTCGGAGTAAAGGATCGTCAACAAGGGCGTTCTAAATATGGGGTCAAAAAGCCAAAATAA"
+                self.assertTrue(feature['dna_sequence'] == cds_sequence, "The DNA sequence for the cds ArthCp001_CDS_1 was not as expected. It contained the following sequence : " + str(feature['dna_sequence']))         
+                cds_translation = "MPTIKQLIRNTRQPIRNVTKSPALRGCPQRRGTCTRVYTITPKKPNSALRKVARVRLTSGFEITAYIPGIGHNLQEHSVVLVRGGRVKDLPGVRYHIVRGTLDAVGVKDRQQGRSKYGVKKPK"
+#                print "FEATURE::::" + str(feature)
+                self.assertTrue(feature['protein_translation'] == cds_translation, "The AA sequence for the cds ArthCp001_CDS_1 was not as expected. It contained the following sequence : " + str(feature['protein_translation']))         
+                if 'parent_gene' in feature:
+                    self.assertTrue(feature['parent_gene'] == 'ArthCp001',"The parent gene for ArthCp001_CDS_1 was not as expected")
+                else:
+                    self.assertTrue('parent_gene' in feature, "The parent gene for ArthCp001_CDS_1 was not populated")
+        self.assertTrue(cds_flag_found, "The trans_splicing flag for the CDS ArthCp001 was not found.")
 
+    
+    def test_for_trans_splicing_invalid_parentage(self):
+        genome = self.__class__.genome
+        found_gene = False
+        found_CDS = False
+        found_mRNA = False
+        for feature in genome["features"]:
+            if feature['id'] == "ArthCp001A":
+                print "FEATURE::::" + str(feature)
+                print "Found ArthCp001A"
+                found_gene = True
+                self.assertFalse('mrnas' in feature, "Their should be no child mRNAs for ArthCp001A, should have failed on coordinates.")
+                self.assertFalse('cdss' in feature, "Their should be no child CDSs for ArthCp001A, should have failed on coordinates.")
+        for feature in genome["mrnas"]:
+            if feature['id'] == "ArthCp001A_mRNA_1":
+                print "Found ArthCp001A_mRNA_1"
+                found_mRNA = True
+                self.assertFalse('parent_gene' in feature, "Their should be no parent_gene for ArthCp001A_mRNA_1, should have failed on coordinates.")
+        for feature in genome["features"]:
+            if feature['id'] == "ArthCp001A_CDS_1":
+                print "Found ArthCp001A_CDS_1"
+                found_CDS = True
+                self.assertFalse('parent_gene' in feature, "Their should be no parent_gene for ArthCp001A_CDS_1, should have failed on coordinates.")
+        self.assertTrue(found_gene, "The gene ArthCp001A was not found.")
+        self.assertTrue(found_mRNA, "The mRNA ArthCp001A_mRNA_1 was not found.")
+        self.assertTrue(found_CDS, "The CDS ArthCp001A_CDS_1 was not found.")   
 
 
 
