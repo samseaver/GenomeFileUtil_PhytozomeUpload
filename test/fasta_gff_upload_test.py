@@ -259,7 +259,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
     def test_fungal_fasta_gff_to_genome(self):
         input_params = {
             'workspace_name': self.getWsName(),
-            'genome_name': 'MyGenome',
+            'genome_name': 'fungal',
             'fasta_file': {'path': self.fungal_fa_path},
             'gff_file': {'path': self.fungal_gff_path},
             'source': 'Genbank',
@@ -273,7 +273,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
     def test_jgi_bacterial_fasta_gff_to_genome(self):
         input_params = {
             'workspace_name': self.getWsName(),
-            'genome_name': 'MyGenome',
+            'genome_name': 'jgi_bacterial',
             'fasta_file': {'path': self.jgi_bacterial_fa_path},
             'gff_file': {'path': self.jgi_bacterial_gff_path},
             'source': 'Genbank',
@@ -486,6 +486,45 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
 
         self.assertIsInstance(feature_list, dict)
 
+    def test_update_phytozome(self):
+
+        features_identifiers_list = {'Chr01': [{'end': 8201443,
+                                                'Name': 'Potri.001G102800',
+                                                'start': 8200895,
+                                                'score': '.',
+                                                'phase': '.',
+                                                'contig': 'Chr01',
+                                                'type': 'gene',
+                                                'ID': 'Potri.001G102800.v3.0',
+                                                'strand': '-'},
+                                               {'end': 8201443,
+                                                'Name': 'Potri.001G102800.1',
+                                                'Parent': 'Potri.001G102800.v3.0',
+                                                'pacid': '27047128',
+                                                'start': 8200895,
+                                                'score': '.',
+                                                'longest': '1',
+                                                'phase': '.',
+                                                'contig': 'Chr01',
+                                                'type': 'mRNA',
+                                                'ID': 'Potri.001G102800.1.v3.0',
+                                                'strand': '-'},
+                                               {'end': 8201443,
+                                                'Parent': 'Potri.001G102800.1.v3.0',
+                                                'pacid': '27047128',
+                                                'start': 8200895,
+                                                'score': '.',
+                                                'phase': '0',
+                                                'contig': 'Chr01',
+                                                'type': 'CDS',
+                                                'ID': 'Potri.001G102800.1.v3.0.CDS.1',
+                                                'strand': '-'}]}
+        updated_features_list = self.importer._update_identifiers(
+            features_identifiers_list)
+        self.assertEqual(updated_features_list['Chr01'][-1]['ID'],
+                         'Potri.001G102800.1.v3.0.CDS')
+
+
     def test_FastaGFFToGenome_update_feature_identifiers(self):
 
         features_identifiers_list = {'Chr01':[{'end': 8201443,
@@ -517,9 +556,8 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
                                       'phase': '0',
                                       'contig': 'Chr01',
                                       'type': 'CDS',
-                                      'ID': 'Potri.001G102800.1.v3.0.CDS.1',
+                                      'ID': 'Potri.001G102800.1.v3.0.CDS',
                                       'strand': '-'}]}
 
         updated_features_list = self.importer._update_identifiers(features_identifiers_list)
-
         self.assertEquals(updated_features_list, features_identifiers_list)

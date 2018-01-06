@@ -10,6 +10,7 @@ import hashlib
 import collections
 import datetime
 import re
+import copy
 
 # KBase imports
 from DataFileUtil.DataFileUtilClient import DataFileUtil
@@ -20,6 +21,7 @@ from GenomeInterface import GenomeInterface
 # 3rd party imports
 from Bio.Data import CodonTable
 import Bio.SeqIO
+from Bio.Seq import Seq
 
 codon_table = CodonTable.ambiguous_generic_by_name["Standard"]
 
@@ -46,6 +48,7 @@ class FastaGFFToGenome:
         self.strict = True
         self.warnings = []
         self.feature_dict = {}
+        self.cdss = set()
         self.ontologies_present = collections.defaultdict(dict)
         self.skiped_features = collections.Counter()
         self.feature_counts = collections.Counter()
@@ -137,12 +140,15 @@ class FastaGFFToGenome:
                 'IUPACAmbiguous', '').strip('()')
             for feature in features_by_contig.get(contig.id, []):
                 self._transform_feature(contig, feature)
+        self._process_cdss()
 
         # generate genome info
         genome = self._gen_genome_info(core_genome_name, scientific_name,
                                        assembly_ref, source, assembly_data,
                                        input_gff_file, molecule_type)
 
+        json.dump(genome, open("{}/{}.json".format(self.cfg.sharedFolder,
+                                                   genome['id']), 'w'), indent=4)
         result = self.gi.save_one_genome({
             'workspace': workspace_name,
             'name': core_genome_name,
@@ -159,11 +165,15 @@ class FastaGFFToGenome:
 
     @staticmethod
     def _location(in_feature):
+        if in_feature['strand'] == '+':
+            start = in_feature['start']
+        else:
+            start = in_feature['end']
         return [
             in_feature['contig'],
-            in_feature['start'],
+            start,
             in_feature['strand'],
-            in_feature['end'] - in_feature['start']
+            in_feature['end'] - in_feature['start'] + 1
         ]
 
     def _get_ontology(self, feature):
@@ -439,6 +449,11 @@ class FastaGFFToGenome:
                 #Retain old_id
                 feature_position_dict[old_id]=i
 
+                # Clip off the increment on CDS IDs so fragments of the same
+                # CDS share the same ID
+                if "CDS" in feature_list[contig][i]["ID"]:
+                    feature_list[contig][i]["ID"] = feature_list[contig][i]["ID"].rsplit('.', 1)[0]
+
                 #In Phytozome, gene and mRNA have "Name" field, CDS do not
                 if("Name" in feature_list[contig][i]):
                     feature_list[contig][i]["ID"] = feature_list[contig][i]["Name"]
@@ -456,7 +471,6 @@ class FastaGFFToGenome:
         #1) Genes keep identifier
         #2) RNAs keep identifier only if its different from gene, otherwise append ".mRNA"
         #3) CDS always uses RNA identifier with ".CDS" appended
-        #4) CDS appended with an incremented digit
 
         CDS_count_dict = dict()
         mRNA_parent_dict = dict()
@@ -474,14 +488,6 @@ class FastaGFFToGenome:
                     #link old to new ids for mRNA to use with CDS
                     if("RNA" in ftr["type"]):
                         mRNA_parent_dict[old_id]=ftr["ID"]
-
-                    if("CDS" in ftr["type"]):
-                        #Increment CDS identifier
-                        if(ftr["ID"] not in CDS_count_dict):
-                            CDS_count_dict[ftr["ID"]] = 1
-                        else:
-                            CDS_count_dict[ftr["ID"]] += 1
-                        ftr["ID"]=ftr["ID"]+"."+str(CDS_count_dict[ftr["ID"]])
 
         return feature_list
 
@@ -541,6 +547,110 @@ class FastaGFFToGenome:
                     alias_list.extend([(key, val) for val in feat['attributes'][key]])
             return alias_list
 
+        if in_feature['start'] < 1 or in_feature['end'] > len(contig):
+            self.warn("Feature with invalid location for specified "
+                      "contig: " + str(in_feature))
+            if self.strict:
+                raise ValueError("Features must match fasta sequence")
+            return
+
+        feat_seq = contig.seq[in_feature['start']-1:in_feature['end']]
+        if in_feature['strand'] == '-':
+            feat_seq = feat_seq.reverse_complement()
+
+        # if the feature ID is duplicated (CDS or transpliced gene) we only
+        # need to update the location and dna_sequence
+        if in_feature['ID'] in self.feature_dict:
+            existing = self.feature_dict[in_feature['ID']]
+            existing['location'].append(self._location(in_feature))
+            existing['dna_sequence'] += str(feat_seq)
+            existing['dna_sequence_length'] = len(existing['dna_sequence'])
+            return
+
+        # The following is common to all the feature types
+        out_feat = {
+            "id": in_feature['ID'],
+            "type": in_feature['type'],
+            "location": [self._location(in_feature)],
+            "dna_sequence": str(feat_seq),
+            "dna_sequence_length": len(feat_seq),
+            "md5": hashlib.md5(str(feat_seq)).hexdigest(),
+        }
+        # add optional fields
+        if 'note' in in_feature['attributes']:
+            out_feat['note'] = in_feature['attributes']["note"][0]
+        ont = self._get_ontology(in_feature)
+        if ont:
+            out_feat['ontology_terms'] = ont
+        aliases = _aliases(in_feature)
+        if aliases:
+            out_feat['aliases'] = aliases
+        if 'db_xref' in in_feature['attributes']:
+            out_feat['db_xrefs'] = [tuple(x.split(":")) for x in
+                                   in_feature['attributes']['db_xref']]
+        if 'product' in in_feature['attributes']:
+            out_feat['functions'] = ["product:" + x for x in
+                                     in_feature['attributes']["product"]]
+        parent_id = in_feature.get('Parent', '')
+        if parent_id and parent_id not in self.feature_dict:
+            raise ValueError("Parent ID: {} was not found in feature ID list.")
+
+        # if the feature is a exon or UTR, it will only be used to update the
+        # location and sequence of it's parent, we add the info to it parent
+        # feature but not the feature dict
+        if in_feature['type'] in ('exon', 'five_prime_UTR', 'three_prime_UTR'):
+            if parent_id:
+                # TODO: add location checks and warnings
+                parent = self.feature_dict[parent_id]
+                if in_feature['type'] not in parent:
+                    parent[in_feature['type']] = []
+                parent[in_feature['type']].append(out_feat)
+            return
+
+        # add type specific features
+        elif in_feature['type'] == 'gene':
+            out_feat['protein_translation_length'] = 0
+            out_feat['cdss'] = []
+
+        elif in_feature['type'] == 'CDS':
+            if parent_id:
+                parent = self.feature_dict[parent_id]
+                if 'cdss' in parent:  # parent must be a gene
+                    parent['cdss'].append(in_feature['ID'])
+                    out_feat['parent_gene'] = parent_id
+                else:  # parent must be mRNA
+                    parent['cds'] = in_feature['ID']
+                    out_feat['parent_mrna'] = parent_id
+                    parent_gene = self.feature_dict[parent['parent_gene']]
+                    parent_gene['cdss'].append(in_feature['ID'])
+                    out_feat['parent_gene'] = parent['parent_gene']
+            # keep track of CDSs for post processing
+            self.cdss.add(out_feat['id'])
+
+        elif in_feature['type'] == 'mRNA':
+            if parent_id:
+                parent = self.feature_dict[parent_id]
+                if 'mrnas' not in parent:
+                    parent['mrnas'] = []
+                if 'cdss' in parent:  # parent must be a gene
+                    parent['mrnas'].append(in_feature['ID'])
+                    out_feat['parent_gene'] = parent_id
+
+        else:
+            out_feat["type"] = in_feature['type']
+            if parent_id:
+                # TODO: add location checks and warnings
+                parent = self.feature_dict[parent_id]
+                if 'children' not in parent:
+                    parent['children'] = []
+                parent['children'].append(out_feat['id'])
+                out_feat['parent_gene'] = parent_id
+
+        self.feature_dict[out_feat['id']] = out_feat
+
+    def _process_cdss(self):
+        """Because CDSs can have multiple fragments, it's nessisary to go
+        back over them to calculate a final protein sequence"""
         def _propagate_cds_props_to_gene(cds, gene):
             # Put longest protein_translation to gene
             if "protein_translation" not in gene or (
@@ -566,128 +676,72 @@ class FastaGFFToGenome:
                         else:
                             terms[source] = terms2[source]
 
-        # if the feature ID is duplicated we only need to update the location
-        if in_feature['ID'] in self.feature_dict:
-            self.feature_dict[in_feature['ID']]['location'].append(
-                self._location(in_feature))
-
-        if in_feature['start'] < 1 or in_feature['end'] > len(contig):
-            self.warn("Feature with invalid location for specified "
-                      "contig: " + str(in_feature))
-            if self.strict:
-                raise ValueError("Features must match fasta sequence")
-            return
-
-        feat_seq = contig.seq[in_feature['start']-1:in_feature['end']-1]
-        if in_feature['strand'] == '-':
-            feat_seq = feat_seq.reverse_complement()
-
-        # The following is common to all the feature types
-        out_feat = {
-            "id": in_feature['ID'],
-            "type": in_feature['type'],
-            "location": [self._location(in_feature)],
-            "dna_sequence": str(feat_seq),
-            "dna_sequence_length": len(feat_seq),
-            "md5": hashlib.md5(str(feat_seq)).hexdigest(),
-            "functions": in_feature['attributes'].get('function', []),
-        }
-        # TODO: Flags, inference_data
-        # add optional fields
-        if 'note' in in_feature['attributes']:
-            out_feat['note'] = in_feature['attributes']["note"][0]
-        ont = self._get_ontology(in_feature)
-        if ont:
-            out_feat['ontology_terms'] = ont
-        aliases = _aliases(in_feature)
-        if aliases:
-            out_feat['aliases'] = aliases
-        if 'db_xref' in in_feature['attributes']:
-            out_feat['db_xrefs'] = [tuple(x.split(":")) for x in
-                                   in_feature['attributes']['db_xref']]
-        if 'product' in in_feature['attributes']:
-            out_feat['functions'] += ["product:" + x for x in
-                                     in_feature['attributes']["product"]]
-        parent_id = in_feature.get('Parent', '')
-        if parent_id and parent_id not in self.feature_dict:
-            raise ValueError("Parent ID: {} was not found in feature ID list.")
-
-        # if the feature is a exon or UTR, it will only be used to update the
-        # location and sequence of it's parent, we add the info to it parent
-        # feature but not the feature dict
-        if in_feature['type'] in ('exon', 'five_prime_UTR', 'three_prime_UTR'):
-            if parent_id:
-                # TODO: add location checks and warnings
-                parent = self.feature_dict[parent_id]
-                if in_feature['type'] not in parent:
-                    parent[in_feature['type']] = []
-                parent[in_feature['type']].append(out_feat)
-            return
-
-        # add type specific features
-        elif in_feature['type'] == 'gene':
-            out_feat['protein_translation_length'] = 0
-            out_feat['mrnas'] = []
-            out_feat['cdss'] = []
-
-        elif in_feature['type'] == 'CDS':
-            prot_seq = str(feat_seq.translate()).strip("*")
-            out_feat.update({
+        for cds_id in self.cdss:
+            cds = self.feature_dict[cds_id]
+            prot_seq = str(Seq(cds['dna_sequence']).translate()).strip("*")
+            cds.update({
                 "protein_translation": prot_seq,
                 "protein_md5": hashlib.md5(prot_seq).hexdigest(),
                 "protein_translation_length": len(prot_seq),
-                'parent_gene': "",
             })
-            if parent_id:
-                # TODO: add location checks and warnings
-                parent = self.feature_dict[parent_id]
-                if 'cdss' in parent:  # parent must be a gene
-                    parent['cdss'].append(in_feature['ID'])
-                    out_feat['parent_gene'] = parent_id
-                else:  # parent must be mRNA
-                    parent['cds'] = in_feature['ID']
-                    out_feat['parent_mrna'] = parent_id
-                    parent_gene = self.feature_dict[parent['parent_gene']]
-                    parent_gene['cdss'].append(in_feature['ID'])
-                    out_feat['parent_gene'] = parent['parent_gene']
-                    _propagate_cds_props_to_gene(out_feat, parent_gene)
+            if 'parent_gene' in cds:
+                parent_gene = self.feature_dict[cds['parent_gene']]
+                _propagate_cds_props_to_gene(cds, parent_gene)
+            else:
+                cds['parent_gene'] = ''
 
-        elif in_feature['type'] == 'mRNA':
-            if parent_id:
-                # TODO: add location checks and warnings
-                parent = self.feature_dict[parent_id]
-                if 'cdss' in parent:  # parent must be a gene
-                    parent['mrnas'].append(in_feature['ID'])
-                    out_feat['parent_gene'] = parent_id
+            self.feature_dict[cds['id']] = cds
 
-        else:
-            out_feat["type"] = in_feature['type']
-            if parent_id:
-                # TODO: add location checks and warnings
-                parent = self.feature_dict[parent_id]
-                if 'children' not in parent:
-                    parent['children'] = []
-                parent['children'].append(out_feat['id'])
-                out_feat['parent_gene'] = parent_id
+    def _update_from_exons(self, feature):
+        """This function updates the sequence and location of a feature based
+            on it's UTRs, CDSs and exon information"""
+        # note that start and end here are in direction of translation
+        def start(loc):
+            return loc[0][1]
 
-        self.feature_dict[out_feat['id']] = out_feat
+        def end(loc):
+            if loc[-1][2] == "+":
+                return loc[-1][1] + loc[-1][3] + 1
+            else:
+                return loc[-1][1] - loc[-1][3] - 1
 
-    def _update_from_exons(self, feature, required=True):
         if 'exon' in feature:
+            # update the feature with the exon locations and sequences
             feature['location'] = [x['location'][0] for x in feature['exon']]
-            feature['dna_sequence'] = "".join(x['dna_sequence'] for x in feature['exon'])
+            feature['dna_sequence'] = "".join(
+                x['dna_sequence'] for x in feature['exon'])
             feature['dna_sequence_length'] = len(feature['dna_sequence'])
-            del feature['exon']
-        # TODO: construct feature location from utrs and cdss if present
+
+        # construct feature location from utrs and cdss if present
+        elif 'cds' in feature:
+            cds = [copy.copy(self.feature_dict[feature['cds']])]
+            locs = []
+            seq = ""
+            for frag in feature.get('five_prime_UTR', []) + cds + \
+                    feature.get('three_prime_UTR', []):
+
+                # merge into last location if adjacent
+                if locs and abs(end(locs) - start(frag['location'])) == 1:
+                    # extend the location length by the length of the first
+                    # location in the fragment
+                    first = frag['location'].pop(0)
+                    locs[-1][3] += first[3]
+
+                locs.extend(frag['location'])
+                seq += frag['dna_sequence']
+
+            feature['location'] = locs
+            feature['dna_sequence'] = seq
+            feature['dna_sequence_length'] = len(seq)
+
+        # remove these properties as they are no longer needed
+        for x in ['five_prime_UTR', 'three_prime_UTR', 'exon']:
+            feature.pop(x, None)
+
         else:
-            if 'warnings' not in feature:
-                feature['warnings'] = []
-            feature['warnings'].append(
-                'This uploader requires exons to be present to '
-                'establish mRNA location.')
-            print feature
-            if self.strict and required:
-                raise ValueError("mRNA must have exons")
+            ValueError('Feature {} must contain either exon or cds data to '
+                       'construct an accurate location and sequence'.format(
+                        feature['id']))
 
     def _gen_genome_info(self, core_genome_name, scientific_name, assembly_ref,
                          source, assembly, input_gff_file, molecule_type):
@@ -750,7 +804,8 @@ class FastaGFFToGenome:
                     self.feature_counts["protein_encoding_gene"] += 1
                     genome['features'].append(feature)
                 else:
-                    del feature['mrnas'], feature['cdss']
+                    feature.pop('mrnas', None)
+                    feature.pop('cdss', None)
                     self.feature_counts["non-protein_encoding_gene"] += 1
                     genome['non_coding_features'].append(feature)
             else:
