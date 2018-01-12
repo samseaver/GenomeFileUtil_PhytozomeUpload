@@ -41,17 +41,16 @@ class GenomeFileUtilTest(unittest.TestCase):
         cls.serviceImpl = GenomeFileUtil(cls.cfg)
         cls.scratch = cls.cfg['scratch']
 
-        cls.fungal_gff_filename = 'minimal.gff3'
-        cls.fungal_gff_path = os.path.join(cls.scratch,
-                                           cls.fungal_gff_filename)
-        shutil.copy(os.path.join("data", "fasta_gff", cls.fungal_gff_filename),
-                    cls.fungal_gff_path)
+        cls.plant_gff_filename = 'Test_v1.0.gene.gff3'
+        cls.plant_gff_path = os.path.join(cls.scratch,
+                                          cls.plant_gff_filename)
+        shutil.copy(os.path.join("data", "fasta_gff", "JGI", "Plant_Data",
+                                 cls.plant_gff_filename), cls.plant_gff_path)
 
-        cls.fungal_fa_filename = 'Neucr2_AssemblyScaffolds.fasta.gz'
-        cls.fungal_fa_path = os.path.join(cls.scratch, cls.fungal_fa_filename)
-        shutil.copy(os.path.join("data", "fasta_gff", "JGI", "Fungal_Data",
-                                 cls.fungal_fa_filename),
-                    cls.fungal_fa_path)
+        cls.plant_fa_filename = 'Test_v1.0.fa.gz'
+        cls.plant_fa_path = os.path.join(cls.scratch, cls.plant_fa_filename)
+        shutil.copy(os.path.join("data", "fasta_gff", "JGI", "Plant_Data",
+                                 cls.plant_fa_filename), cls.plant_fa_path)
 
     @classmethod
     def tearDownClass(cls):
@@ -88,8 +87,8 @@ class GenomeFileUtilTest(unittest.TestCase):
             {
                 'workspace_name': self.getWsName(),
                 'genome_name': 'MyGenome',
-                'fasta_file': {'path': self.fungal_fa_path},
-                'gff_file': {'path': self.fungal_gff_path},
+                'fasta_file': {'path': self.plant_fa_path},
+                'gff_file': {'path': self.plant_gff_path},
                 'source': 'Genbank',
                 'type': 'Reference'
             })[0]
@@ -98,10 +97,4 @@ class GenomeFileUtilTest(unittest.TestCase):
         print('testing gff download by building the file')
         down_result = genomeFileUtil.genome_to_gff(
             self.getContext(), {'genome_ref': result['genome_ref']})[0]
-        """old_file_path = self.fungal_gff_path
-        new_file_path = down_result['file_path']
-        differ = difflib.ndiff(open(old_file_path).readlines(),
-                               open(new_file_path).readlines())
-        diffs = [x for x in differ if x[0] == "+" or x[0] == "-"]
-        if len(diffs) > 4:  # expect date line in each contig differ
-            raise AssertionError("Output file has changed {}".format(diffs))"""
+        pprint(down_result)
