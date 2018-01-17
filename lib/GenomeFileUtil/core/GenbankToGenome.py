@@ -19,7 +19,7 @@ from Bio.Data.CodonTable import TranslationError
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeInterface import GenomeInterface
-from GenomeUtils import is_parent
+from GenomeUtils import is_parent, propagate_cds_props_to_gene
 from KBaseReport.KBaseReportClient import KBaseReport
 
 
@@ -38,6 +38,7 @@ class GenbankToGenome:
         self.ontologies_present = defaultdict(dict)
         self.skiped_features = Counter()
         self.feature_counts = Counter()
+        self.excluded_features = ('source', 'exon')
         self.go_mapping = json.load(
             open('/kb/module/data/go_ontology_mapping.json'))
         self.ontology_events = [{
@@ -474,7 +475,7 @@ class GenbankToGenome:
             return result
 
         def _inferences(feat):
-            """Whoever designed this delimitation is an idiot: starts and
+            """Whoever designed the genbank delimitation is an idiot: starts and
             ends with a optional values and uses a delimiter ":" that is
             used to divide it's DBs in the evidence. Anyway, this sorts that"""
             result = []
@@ -492,37 +493,11 @@ class GenbankToGenome:
                     continue
             return result
 
-        def _propagate_cds_props_to_gene(cds, gene):
-            # Put longest protein_translation to gene
-            if "protein_translation" not in gene or (
-                len(gene["protein_translation"]) <
-                    len(cds["protein_translation"])):
-                gene["protein_translation"] = cds["protein_translation"]
-                gene["protein_translation_length"] = len(
-                    cds["protein_translation"])
-            # Merge cds list attributes with gene
-            for key in ('functions', 'aliases', 'db_xref'):
-                if cds.get(key, []):
-                    gene[key] = cds.get(key, []) + gene.get(key, [])
-            # Merge cds["ontology_terms"] -> gene["ontology_terms"]
-            terms2 = cds.get("ontology_terms")
-            if terms2 is not None:
-                terms = gene.get("ontology_terms")
-                if terms is None:
-                    gene["ontology_terms"] = terms2
-                else:
-                    for source in terms2:
-                        if source in terms:
-                            terms[source].update(terms2[source])
-                        else:
-                            terms[source] = terms2[source]
-
-        excluded_features = ('source', 'exon')
         genes, cdss, mrnas, noncoding = OrderedDict(), OrderedDict(), OrderedDict(), []
         f_seq = str(record.seq)
         r_seq = f_seq.translate(string.maketrans("CTAG", "GATC"))
         for in_feature in record.features:
-            if in_feature.type in excluded_features:
+            if in_feature.type in self.excluded_features:
                 self.skiped_features[in_feature.type] += 1
                 continue
             feat_seq = _get_seq(in_feature)
@@ -563,46 +538,8 @@ class GenbankToGenome:
 
             # add type specific features
             if in_feature.type == 'CDS':
-                prot_seq = in_feature.qualifiers.get("translation", [""])[0]
-                out_feat.update({
-                    "protein_translation": prot_seq,
-                    "protein_md5": hashlib.md5(prot_seq).hexdigest(),
-                    "protein_translation_length": len(prot_seq),
-                    'parent_gene': "",
-                })
-                try:
-                    if prot_seq and prot_seq != Seq.translate(
-                            feat_seq, self.code_table, cds=True).strip("*"):
-                        out_feat['warnings'] = out_feat.get('warnings', []) + [
-                            "The annotated protein translation is not "
-                            "consistent with the recorded DNA sequence"]
-                except TranslationError as e:
-                    out_feat['warnings'] = out_feat.get('warnings', []) + [str(e)]
-
-                if _id in genes:
-                    if not is_parent(genes[_id], out_feat):
-                        out_feat['warnings'] = out_feat.get('warnings', []) + [
-                            "{} is annotated as the parent gene of {} but "
-                            "coordinates do not match".format(_id,
-                                                              out_feat['id'])]
-                    else:
-                        out_feat['id'] += "_" + str(
-                            len(genes[_id]['cdss']) + 1)
-                        genes[_id]['cdss'].append(out_feat['id'])
-                        _propagate_cds_props_to_gene(out_feat, genes[_id])
-                        out_feat['parent_gene'] = _id
-
-                mrna_id = out_feat["id"].replace('CDS', 'mRNA')
-                if mrna_id in mrnas:
-                    if not is_parent(mrnas[mrna_id], out_feat):
-                        out_feat['warnings'] = out_feat.get('warnings', []) + [
-                            "{} is annotated as the parent mrna of {} but "
-                            "coordinates do not match".format(_id,
-                                                              out_feat['id'])]
-                    else:
-                        out_feat['parent_mrna'] = mrna_id
-                        mrnas[mrna_id]['cds'] = out_feat['id']
-                cdss[out_feat['id']] = out_feat
+                cdss[out_feat['id']] = self.process_cds(
+                    _id, feat_seq, genes, in_feature, mrnas, out_feat)
 
             elif in_feature.type == 'gene':
                 out_feat.update({
@@ -614,41 +551,11 @@ class GenbankToGenome:
                 genes[_id] = out_feat
 
             elif in_feature.type == 'mRNA':
-                if _id in genes:
-                    if not is_parent(genes[_id], out_feat):
-                        out_feat['warnings'] = out_feat.get('warnings', []) + [
-                            "{} is annotated as the parent gene of {} but "
-                            "coordinates do not match".format(_id,
-                                                              out_feat['id'])]
-                    else:
-                        out_feat['id'] += "_" + str(len(genes[_id]['mrnas'])+1)
-                        genes[_id]['mrnas'].append(out_feat['id'])
-                        out_feat['parent_gene'] = _id
-                else:
-                    out_feat['warnings'] = out_feat.get('warnings', []) + [
-                        'Unable to find parent mrna for ' + str(out_feat)]
-                    print('Unable to find parent mrna for ' + str(out_feat))
-                    out_feat['parent_gene'] = ""
-                mrnas[out_feat['id']] = out_feat
+                mrnas[out_feat['id']] = self.process_mrna(_id, genes, out_feat)
 
             else:
-                out_feat["type"] = in_feature.type
-                # add increment number of each type
-                out_feat['id'] += "_" + str(self.feature_counts[in_feature.type])
-                if _id in genes:
-                    if not is_parent(genes[_id], out_feat):
-                        out_feat['warnings'] = out_feat.get('warnings', []) + [
-                            "{} is annotated as the parent gene of {} but "
-                            "coordinates do not match".format(_id,
-                                                              out_feat['id'])]
-                    else:
-                        if 'children' not in genes[_id]:
-                            genes[_id]['children'] = []
-                        out_feat['id'] += "_" + str(len(genes[_id]['children']) + 1)
-                        genes[_id]['children'].append(out_feat['id'])
-                        out_feat['parent_gene'] = _id
-
-                noncoding.append(out_feat)
+                noncoding.append(self.process_noncodeing(_id, genes,
+                                                         in_feature, out_feat))
 
         coding = []
         for g in genes.values():
@@ -672,3 +579,81 @@ class GenbankToGenome:
 
         return {'features': coding, 'non_coding_features': noncoding,
                 'cdss': cdss.values(), 'mrnas': mrnas.values()}
+
+    def process_noncodeing(self, _id, genes, in_feature, out_feat):
+        out_feat["type"] = in_feature.type
+        # add increment number of each type
+        out_feat['id'] += "_" + str(self.feature_counts[in_feature.type])
+        if _id in genes:
+            if not is_parent(genes[_id], out_feat):
+                out_feat['warnings'] = out_feat.get('warnings', []) + [
+                    "{} is annotated as the parent gene of {} but "
+                    "coordinates do not match".format(_id,
+                                                      out_feat['id'])]
+            else:
+                if 'children' not in genes[_id]:
+                    genes[_id]['children'] = []
+                out_feat['id'] += "_" + str(len(genes[_id]['children']) + 1)
+                genes[_id]['children'].append(out_feat['id'])
+                out_feat['parent_gene'] = _id
+        return out_feat
+
+    def process_cds(self, _id, feat_seq, genes, in_feature, mrnas, out_feat):
+        prot_seq = in_feature.qualifiers.get("translation", [""])[0]
+        out_feat.update({
+            "protein_translation": prot_seq,
+            "protein_md5": hashlib.md5(prot_seq).hexdigest(),
+            "protein_translation_length": len(prot_seq),
+            'parent_gene': "",
+        })
+        try:
+            if prot_seq and prot_seq != Seq.translate(
+                    feat_seq, self.code_table, cds=True).strip("*"):
+                out_feat['warnings'] = out_feat.get('warnings', []) + [
+                    "The annotated protein translation is not "
+                    "consistent with the recorded DNA sequence"]
+        except TranslationError as e:
+            out_feat['warnings'] = out_feat.get('warnings', []) + [str(e)]
+        if _id in genes:
+            if not is_parent(genes[_id], out_feat):
+                out_feat['warnings'] = out_feat.get('warnings', []) + [
+                    "{} is annotated as the parent gene of {} but "
+                    "coordinates do not match".format(_id,
+                                                      out_feat['id'])]
+            else:
+                out_feat['id'] += "_" + str(
+                    len(genes[_id]['cdss']) + 1)
+                genes[_id]['cdss'].append(out_feat['id'])
+                propagate_cds_props_to_gene(out_feat, genes[_id])
+                out_feat['parent_gene'] = _id
+        mrna_id = out_feat["id"].replace('CDS', 'mRNA')
+        if mrna_id in mrnas:
+            if not is_parent(mrnas[mrna_id], out_feat):
+                out_feat['warnings'] = out_feat.get('warnings', []) + [
+                    "{} is annotated as the parent mrna of {} but "
+                    "coordinates do not match".format(_id,
+                                                      out_feat['id'])]
+            else:
+                out_feat['parent_mrna'] = mrna_id
+                mrnas[mrna_id]['cds'] = out_feat['id']
+        return out_feat
+
+    @staticmethod
+    def process_mrna(_id, genes, out_feat):
+        if _id in genes:
+            if not is_parent(genes[_id], out_feat):
+                out_feat['warnings'] = out_feat.get('warnings', []) + [
+                    "{} is annotated as the parent gene of {} but "
+                    "coordinates do not match".format(_id,
+                                                      out_feat['id'])]
+                out_feat['parent_gene'] = ""
+            else:
+                out_feat['id'] += "_" + str(len(genes[_id]['mrnas']) + 1)
+                genes[_id]['mrnas'].append(out_feat['id'])
+                out_feat['parent_gene'] = _id
+        else:
+            out_feat['warnings'] = out_feat.get('warnings', []) + [
+                'Unable to find parent mrna for ' + str(out_feat)]
+            print('Unable to find parent mrna for ' + str(out_feat))
+            out_feat['parent_gene'] = ""
+        return out_feat

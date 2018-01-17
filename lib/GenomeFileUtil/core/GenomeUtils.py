@@ -16,3 +16,29 @@ def is_parent(feat1, feat2):
             print("No parent was found for location {}".format(l2))
             return False
     return True
+
+
+def propagate_cds_props_to_gene(cds, gene):
+    # Put longest protein_translation to gene
+    if "protein_translation" not in gene or (
+                len(gene["protein_translation"]) <
+                len(cds["protein_translation"])):
+        gene["protein_translation"] = cds["protein_translation"]
+        gene["protein_translation_length"] = len(
+            cds["protein_translation"])
+    # Merge cds list attributes with gene
+    for key in ('functions', 'aliases', 'db_xref'):
+        if cds.get(key, []):
+            gene[key] = cds.get(key, []) + gene.get(key, [])
+    # Merge cds["ontology_terms"] -> gene["ontology_terms"]
+    terms2 = cds.get("ontology_terms")
+    if terms2 is not None:
+        terms = gene.get("ontology_terms")
+        if terms is None:
+            gene["ontology_terms"] = terms2
+        else:
+            for source in terms2:
+                if source in terms:
+                    terms[source].update(terms2[source])
+                else:
+                    terms[source] = terms2[source]
