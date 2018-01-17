@@ -19,6 +19,7 @@ from Bio.Data.CodonTable import TranslationError
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeInterface import GenomeInterface
+from GenomeUtils import is_parent
 from KBaseReport.KBaseReportClient import KBaseReport
 
 
@@ -491,23 +492,6 @@ class GenbankToGenome:
                     continue
             return result
 
-        def _is_parent(feat1, feat2):
-            """Check if all locations in feat2 fall within a location in
-            feat1"""
-            def _contains(loc1, loc2):
-                if loc1[2] != loc2[2]:  # different strands
-                    return False
-                elif loc1[2] == "+":
-                    return loc2[1] >= loc1[1] and (
-                    loc2[1] + loc2[3] <= loc1[1] + loc1[3])
-                else:
-                    return loc2[1] <= loc1[1] and (
-                    loc2[1] - loc2[3] >= loc1[1] - loc1[3])
-
-            # every location in the feat2 must be contained a location in the feat1
-            return all([any([_contains(l1, l2) for l1 in feat1['location']]
-                        for l2 in feat2['location'])])
-
         def _propagate_cds_props_to_gene(cds, gene):
             # Put longest protein_translation to gene
             if "protein_translation" not in gene or (
@@ -596,25 +580,28 @@ class GenbankToGenome:
                     out_feat['warnings'] = out_feat.get('warnings', []) + [str(e)]
 
                 if _id in genes:
-                    out_feat['id'] += "_" + str(len(genes[_id]['cdss'])+1)
-                    genes[_id]['cdss'].append(out_feat['id'])
-                    _propagate_cds_props_to_gene(out_feat, genes[_id])
-                    out_feat['parent_gene'] = _id
-                    if not _is_parent(genes[_id], out_feat):
+                    if not is_parent(genes[_id], out_feat):
                         out_feat['warnings'] = out_feat.get('warnings', []) + [
                             "{} is annotated as the parent gene of {} but "
                             "coordinates do not match".format(_id,
                                                               out_feat['id'])]
+                    else:
+                        out_feat['id'] += "_" + str(
+                            len(genes[_id]['cdss']) + 1)
+                        genes[_id]['cdss'].append(out_feat['id'])
+                        _propagate_cds_props_to_gene(out_feat, genes[_id])
+                        out_feat['parent_gene'] = _id
 
                 mrna_id = out_feat["id"].replace('CDS', 'mRNA')
                 if mrna_id in mrnas:
-                    if not _is_parent(mrnas[mrna_id], out_feat):
+                    if not is_parent(mrnas[mrna_id], out_feat):
                         out_feat['warnings'] = out_feat.get('warnings', []) + [
                             "{} is annotated as the parent mrna of {} but "
                             "coordinates do not match".format(_id,
                                                               out_feat['id'])]
-                    out_feat['parent_mrna'] = mrna_id
-                    mrnas[mrna_id]['cds'] = out_feat['id']
+                    else:
+                        out_feat['parent_mrna'] = mrna_id
+                        mrnas[mrna_id]['cds'] = out_feat['id']
                 cdss[out_feat['id']] = out_feat
 
             elif in_feature.type == 'gene':
@@ -628,14 +615,15 @@ class GenbankToGenome:
 
             elif in_feature.type == 'mRNA':
                 if _id in genes:
-                    out_feat['id'] += "_" + str(len(genes[_id]['mrnas'])+1)
-                    genes[_id]['mrnas'].append(out_feat['id'])
-                    out_feat['parent_gene'] = _id
-                    if not _is_parent(genes[_id], out_feat):
+                    if not is_parent(genes[_id], out_feat):
                         out_feat['warnings'] = out_feat.get('warnings', []) + [
                             "{} is annotated as the parent gene of {} but "
                             "coordinates do not match".format(_id,
                                                               out_feat['id'])]
+                    else:
+                        out_feat['id'] += "_" + str(len(genes[_id]['mrnas'])+1)
+                        genes[_id]['mrnas'].append(out_feat['id'])
+                        out_feat['parent_gene'] = _id
                 else:
                     out_feat['warnings'] = out_feat.get('warnings', []) + [
                         'Unable to find parent mrna for ' + str(out_feat)]
@@ -648,16 +636,18 @@ class GenbankToGenome:
                 # add increment number of each type
                 out_feat['id'] += "_" + str(self.feature_counts[in_feature.type])
                 if _id in genes:
-                    if 'children' not in genes[_id]:
-                        genes[_id]['children'] = []
-                    out_feat['id'] += "_" + str(len(genes[_id]['children']) + 1)
-                    genes[_id]['children'].append(out_feat['id'])
-                    out_feat['parent_gene'] = _id
-                    if not _is_parent(genes[_id], out_feat):
+                    if not is_parent(genes[_id], out_feat):
                         out_feat['warnings'] = out_feat.get('warnings', []) + [
                             "{} is annotated as the parent gene of {} but "
                             "coordinates do not match".format(_id,
                                                               out_feat['id'])]
+                    else:
+                        if 'children' not in genes[_id]:
+                            genes[_id]['children'] = []
+                        out_feat['id'] += "_" + str(len(genes[_id]['children']) + 1)
+                        genes[_id]['children'].append(out_feat['id'])
+                        out_feat['parent_gene'] = _id
+
                 noncoding.append(out_feat)
 
         coding = []
