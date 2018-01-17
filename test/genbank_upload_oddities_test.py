@@ -71,9 +71,6 @@ class GenomeFileUtilTest(unittest.TestCase):
             cls.wsClient.delete_workspace({'workspace': cls.wsName})
             print('Test workspace was deleted')
 
-    def test_incorrect(self):
-        self.assertTrue( 1 == 0, "1 ne 0")
-
     def test_for_alias_colon(self):
         genome = self.__class__.genome
         colon_included = False
@@ -136,33 +133,35 @@ class GenomeFileUtilTest(unittest.TestCase):
                     self.assertTrue('parent_gene' in feature, "The parent gene for ArthCp001_CDS_1 was not populated")
         self.assertTrue(cds_flag_found, "The trans_splicing flag for the CDS ArthCp001 was not found.")
 
-    
     def test_for_trans_splicing_invalid_parentage(self):
         genome = self.__class__.genome
         found_gene = False
         found_CDS = False
         found_mRNA = False
+        found_noncoding = False
         for feature in genome["features"]:
             if feature['id'] == "ArthCp001A":
-                print "FEATURE::::" + str(feature)
                 print "Found ArthCp001A"
                 found_gene = True
-                #self.assertFalse('mrnas' in feature, "Their should be no child mRNAs for ArthCp001A, should have failed on coordinates.")
-                #self.assertFalse('cdss' in feature, "Their should be no child CDSs for ArthCp001A, should have failed on coordinates.")
         for feature in genome["mrnas"]:
             if feature['id'] == "ArthCp001A_mRNA_1":
                 print "Found ArthCp001A_mRNA_1"
                 found_mRNA = True
                 print(feature['warnings'])
-                self.assertFalse('parent_gene' in feature, "Their should be no parent_gene for ArthCp001A_mRNA_1, should have failed on coordinates.")
+                self.assertFalse(len(feature['parent_gene']), "Their should be no parent_gene for ArthCp001A_mRNA_1, should have failed on coordinates.")
         for feature in genome["features"]:
             if feature['id'] == "ArthCp001A_CDS_1":
                 print "Found ArthCp001A_CDS_1"
                 found_CDS = True
-                self.assertFalse('parent_gene' in feature, "Their should be no parent_gene for ArthCp001A_CDS_1, should have failed on coordinates.")
-        self.assertTrue(found_gene, "The gene ArthCp001A was not found.")
+                self.assertFalse(len(feature['parent_gene']), "Their should be no parent_gene for ArthCp001A_CDS_1, should have failed on coordinates.")
+        for feature in genome["non_coding_features"]:
+            if feature['id'] == "ArthCp001A":
+                print "Found ArthCp001A"
+                found_noncoding = True
+        self.assertFalse(found_gene, "The gene ArthCp001A should not be in the fatures array because it has no CDS")
         self.assertTrue(found_mRNA, "The mRNA ArthCp001A_mRNA_1 was not found.")
-        self.assertTrue(found_CDS, "The CDS ArthCp001A_CDS_1 was not found.")   
+        self.assertTrue(found_CDS, "The CDS ArthCp001A_CDS_1 was not found.")
+        self.assertTrue(found_noncoding, "The gene ArthCp001A was not found.")
 
     def test_is_parent(self):
         mrna = {'location': [

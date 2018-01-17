@@ -38,6 +38,7 @@ class GenbankToGenome:
         self.ontologies_present = defaultdict(dict)
         self.skiped_features = Counter()
         self.feature_counts = Counter()
+        self.contig_seq = {}
         self.excluded_features = ('source', 'exon')
         self.go_mapping = json.load(
             open('/kb/module/data/go_ontology_mapping.json'))
@@ -312,6 +313,7 @@ class GenbankToGenome:
             elif in_contig.annotations.get('topology', "") == 'linear':
                 extra_info[in_contig.id]['is_circ'] = 0
             out_contigs.append(in_contig)
+            self.contig_seq[in_contig.id] = in_contig.seq
 
         Bio.SeqIO.write(out_contigs, fasta_file, "fasta")
         assembly_ref = self.aUtil.save_assembly_from_fasta(
@@ -416,6 +418,26 @@ class GenbankToGenome:
         # TODO: Support other ontologies
         return dict(ontology), db_xref
 
+    def _get_seq(self, feat, contig):
+        """Extract the DNA sequence for a feature"""
+        seq = []
+        strand = 1
+        for part in feat.location.parts:
+            strand = part.strand
+            # handle transplicing across contigs
+            if part.ref:
+                part_contig = part.ref
+            else:
+                part_contig = contig
+
+            if strand >= 0:
+                seq.append(str(self.contig_seq[part_contig]
+                               [part.start:part.end]))
+            else:
+                seq.append(str(self.contig_seq[part_contig]
+                               [part.start:part.end].reverse_complement()))
+        return "".join(seq)
+
     def _parse_features(self, record, source):
         def _get_id(feat, tags=None):
             """Assign a id to a feature based on the first tag that exists"""
@@ -440,21 +462,6 @@ class GenbankToGenome:
                         strand_trans[part.strand],
                         len(part)))
             return loc
-
-        def _get_seq(feat):
-            """Extract the DNA sequence for a feature"""
-            seq = []
-            strand = 1
-            for part in feat.location.parts:
-                strand = part.strand
-                if strand >= 0:
-                    seq.append(f_seq[part.start:part.end])
-                else:
-                    seq.insert(0, r_seq[part.start:part.end])
-            if strand >= 0:
-                return "".join(seq)
-            else:
-                return "".join(seq)[::-1]
 
         def _get_aliases_flags_functions(feat):
             """Get the values for aliases flags and features from qualifiers"""
@@ -494,13 +501,11 @@ class GenbankToGenome:
             return result
 
         genes, cdss, mrnas, noncoding = OrderedDict(), OrderedDict(), OrderedDict(), []
-        f_seq = str(record.seq)
-        r_seq = f_seq.translate(string.maketrans("CTAG", "GATC"))
         for in_feature in record.features:
             if in_feature.type in self.excluded_features:
                 self.skiped_features[in_feature.type] += 1
                 continue
-            feat_seq = _get_seq(in_feature)
+            feat_seq = self._get_seq(in_feature, record.id)
             if source == "Ensembl":
                 _id = _get_id(in_feature, ['gene', 'locus_tag'])
             else:
@@ -614,18 +619,19 @@ class GenbankToGenome:
                     "consistent with the recorded DNA sequence"]
         except TranslationError as e:
             out_feat['warnings'] = out_feat.get('warnings', []) + [str(e)]
+
         if _id in genes:
+            out_feat['id'] += "_" + str(len(genes[_id]['cdss']) + 1)
             if not is_parent(genes[_id], out_feat):
                 out_feat['warnings'] = out_feat.get('warnings', []) + [
                     "{} is annotated as the parent gene of {} but "
                     "coordinates do not match".format(_id,
                                                       out_feat['id'])]
             else:
-                out_feat['id'] += "_" + str(
-                    len(genes[_id]['cdss']) + 1)
                 genes[_id]['cdss'].append(out_feat['id'])
                 propagate_cds_props_to_gene(out_feat, genes[_id])
                 out_feat['parent_gene'] = _id
+
         mrna_id = out_feat["id"].replace('CDS', 'mRNA')
         if mrna_id in mrnas:
             if not is_parent(mrnas[mrna_id], out_feat):
@@ -641,6 +647,7 @@ class GenbankToGenome:
     @staticmethod
     def process_mrna(_id, genes, out_feat):
         if _id in genes:
+            out_feat['id'] += "_" + str(len(genes[_id]['mrnas']) + 1)
             if not is_parent(genes[_id], out_feat):
                 out_feat['warnings'] = out_feat.get('warnings', []) + [
                     "{} is annotated as the parent gene of {} but "
@@ -648,12 +655,10 @@ class GenbankToGenome:
                                                       out_feat['id'])]
                 out_feat['parent_gene'] = ""
             else:
-                out_feat['id'] += "_" + str(len(genes[_id]['mrnas']) + 1)
                 genes[_id]['mrnas'].append(out_feat['id'])
                 out_feat['parent_gene'] = _id
         else:
             out_feat['warnings'] = out_feat.get('warnings', []) + [
                 'Unable to find parent mrna for ' + str(out_feat)]
-            print('Unable to find parent mrna for ' + str(out_feat))
             out_feat['parent_gene'] = ""
         return out_feat
