@@ -275,7 +275,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertFalse(gene_transpliced_flag, "The trans_splicing flag for the gene 'InvalidOrder' was set, technically it appears it may be transpliced, but the file does not state it to be.")
         for feature in genome["cdss"]:
             if feature['id'] == "InvalidOrder_CDS_1":
-#                print "FEATURE::::" + str(feature)
                 print "Found InvalidOrder_CDS_1"
                 found_cds = True
                 if "flags" in feature:
@@ -296,7 +295,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 m = p.match(warning)
                 if m:
                     genome_warning = True            
-        self.assertTrue(genome_suspect,"This genome has invalid position order features in it. It should be deemed suspect.")
+        self.assertTrue(genome_suspect, "This genome has invalid position order features in it. It should be deemed suspect.")
         self.assertTrue(genome_warning, "This Genome has feature(s) with invalid coordinates, and should have a genome level warning to reflect that.")
         self.assertTrue(found_gene, "The gene InvalidOrder was not found.")
         self.assertTrue(found_cds, "The CDS InvalidOrder_CDS_1 was not found.")   
@@ -451,7 +450,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 found_cds = True
                 if "warnings" in feature:
                     for warning in feature["warnings"]:
-                        if warning == "This CDS did not have a supplied translation. The translation derived directly from CDS sequence.":
+                        if warning == "This CDS did not have a supplied translation. The translation is derived directly from DNA sequence.":
                             has_cds_warning = True 
                 if "protein_translation" in feature:
                     has_translation = True
@@ -470,7 +469,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 refseq_gene = feature
             if feature['id'] == "ArthCp004_ENSEMBL":
                 ensembl_gene = feature
-        self.assertTrue(refseq_gene and ensembl_gene,"One or both of the following genes were not found: ArthCp004, ArthCp004_ENSEMBL")
+        self.assertTrue(refseq_gene and ensembl_gene, "One or both of the following genes were not found: ArthCp004, ArthCp004_ENSEMBL")
         self.assertTrue(refseq_gene["location"] == ensembl_gene["location"],"The Ensembl style coordinates did not result in the same gene location information")
         self.assertTrue(refseq_gene["dna_sequence"] == ensembl_gene["dna_sequence"],"The Ensembl style coordinates did not result in the same gene sequence information")
         for feature in genome["cdss"]:
@@ -483,7 +482,7 @@ class GenomeFileUtilTest(unittest.TestCase):
 #        print "REFSEQ CDS LOCATIONS : " + str(refseq_CDS["location"])
         self.assertTrue(refseq_CDS["location"] == ensembl_CDS["location"],"The Ensembl style coordinates did not result in the same CDS location information: ENSEMBL CDS LOCATIONS : " +
                                                                         str(ensembl_CDS["location"]) + " --- REFSEQ CDS LOCATIONS : " + str(refseq_CDS["location"])) 
-        self.assertTrue(refseq_CDS["dna_sequence"] == ensembl_CDS["dna_sequence"],"The Ensembl style coordinates did not result in the same CDS sequence information")  
+        self.assertTrue(refseq_CDS["dna_sequence"] == ensembl_CDS["dna_sequence"], "The Ensembl style coordinates did not result in the same CDS sequence information")
         cds_translation = "MVKLRLKRCGRKQRAVYRILAIDVRYRREGRDLSKVGFYDPITNQTFLNLSAILDFLKKGAQPTRTAHDISKKAGIFTE"
         self.assertTrue(ensembl_CDS['protein_translation'] == cds_translation, "The AA sequence for the cds ArthCp004_ENSEMBL_CDS_1 was not as expected. It contained the following sequence : " + str(feature['protein_translation']))            
 
@@ -538,7 +537,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 #print "Gene : " + str(feature)
                 if "warnings" in feature:
                     for warning in feature["warnings"]:
-                        if warning == "This feature has coordinates that start somewhere before base 7017. Note the sequence is an approximation and starts at base 7017":
+                        if warning == "The coordinates supplied for this feature are non-exact. DNA or protein translations are approximate.":
                             found_gene_warning = True
         for feature in genome["cdss"]:
             if feature['id'] == "ArthCp005_CDS_1":
@@ -546,7 +545,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 #print "CDS : " + str(feature)
                 if "warnings" in feature:
                     for warning in feature["warnings"]:
-                        if warning == "This feature has coordinates that start somewhere before base 7017. Note the sequence is an approximation and starts at base 7017":
+                        if warning == "The coordinates supplied for this feature are non-exact. DNA or protein translations are approximate.":
                             found_gene_warning = True
         self.assertTrue(found_gene,"'ArthCp005' Was not found in the genes")
         self.assertTrue(found_cds,"'ArthCp005_CDS_1' Was not found in the cdss")

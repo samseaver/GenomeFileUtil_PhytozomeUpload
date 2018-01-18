@@ -15,6 +15,7 @@ import Bio.SeqIO
 import Bio.SeqUtils
 from Bio import Seq
 from Bio.Data.CodonTable import TranslationError
+from Bio.SeqFeature import ExactPosition
 
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from DataFileUtil.DataFileUtilClient import DataFileUtil
@@ -39,6 +40,8 @@ class GenbankToGenome:
         self.skiped_features = Counter()
         self.feature_counts = Counter()
         self.contig_seq = {}
+        self.genome_warnings = []
+        self.genome_suspect = False
         self.excluded_features = ('source', 'exon')
         self.go_mapping = json.load(
             open('/kb/module/data/go_ontology_mapping.json'))
@@ -294,6 +297,10 @@ class GenbankToGenome:
         genome['feature_counts'] = dict(self.feature_counts)
         # can't serialize a set
         genome['publications'] = list(genome['publications'])
+        if self.genome_warnings:
+            genome['warnings'] = self.genome_warnings
+        if self.genome_suspect:
+            genome['suspect'] = 1
         print("Feature Counts: ", genome['feature_counts'])
         return genome
 
@@ -452,6 +459,12 @@ class GenbankToGenome:
             strand_trans = ("", "+", "-")
             loc = []
             for part in feat.location.parts:
+                if not isinstance(part.start, ExactPosition) \
+                        or not isinstance(part.end, ExactPosition):
+                    _warn("The coordinates supplied for this feature are "
+                          "non-exact. DNA or protein translations are "
+                          "approximate.")
+
                 if part.strand >= 0:
                     begin = int(part.start) + 1
                 else:
@@ -500,6 +513,9 @@ class GenbankToGenome:
                     continue
             return result
 
+        def _warn(message):
+            out_feat['warnings'] = out_feat.get('warnings', []) + [message]
+
         genes, cdss, mrnas, noncoding = OrderedDict(), OrderedDict(), OrderedDict(), []
         for in_feature in record.features:
             if in_feature.type in self.excluded_features:
@@ -522,10 +538,10 @@ class GenbankToGenome:
                 out_feat['id'] = in_feature.type
             # note that end is the larger number regardless of strand
             if int(in_feature.location.end) > len(record):
-                warn = "Feature coordinates fall outside of the contig sequence"
-                out_feat['warnings'] = out_feat.get('warnings', []) + [warn]
+                _warn("Feature coordinates fall outside of the contig sequence")
 
             self.feature_counts[in_feature.type] += 1
+
             # add optional fields
             if 'note' in in_feature.qualifiers:
                 out_feat['note'] = in_feature.qualifiers["note"][0]
@@ -540,6 +556,15 @@ class GenbankToGenome:
 
             if 'inference' in in_feature.qualifiers:
                 out_feat['inference_data'] = _inferences(in_feature)
+
+            if 'trans_splicing' not in out_feat.get('flags', []) and \
+                    out_feat['location'] != sorted(out_feat['location'],
+                    reverse=not in_feature.location.strand):
+                msg = "The feature coordinates order are suspect and the " \
+                       "feature is not listed as being trans_splicing"
+                _warn(msg)
+                self.genome_warnings.append(out_feat['id'] + ": " + msg)
+                self.genome_suspect = True
 
             # add type specific features
             if in_feature.type == 'CDS':
@@ -566,8 +591,8 @@ class GenbankToGenome:
         for g in genes.values():
             if len(g['cdss']):
                 if g['mrnas'] and len(g['mrnas']) != len(g['cdss']):
-                    warn = "The length of the mrna and cdss arrays are not equal"
-                    g['warnings'] = g.get('warnings', []) + [warn]
+                    msg = "The length of the mrna and cdss arrays are not equal"
+                    g['warnings'] = g.get('warnings', []) + [msg]
 
                 # remove duplicates that may arise from CDS info propagation
                 for key in ('functions', 'aliases', 'db_xrefs'):
@@ -611,6 +636,10 @@ class GenbankToGenome:
             "protein_translation_length": len(prot_seq),
             'parent_gene': "",
         })
+        if not prot_seq:
+            out_feat['warnings'] = out_feat.get('warnings', []) + [
+                "This CDS did not have a supplied translation. The translation"
+                " is derived directly from DNA sequence."]
         try:
             if prot_seq and prot_seq != Seq.translate(
                     feat_seq, self.code_table, cds=True).strip("*"):
