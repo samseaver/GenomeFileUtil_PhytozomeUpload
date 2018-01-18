@@ -95,6 +95,7 @@ FEATURES             Location/Qualifiers
                      /db_xref="GI:7525080"
                      /db_xref="GeneID:1466250"
                      /db_xref="GO:0009523"
+                     /db_xref="PO:0000005"
                      /gene_synonym="TEST:COLON"
                      /translation="MPTIKQLIRNTRQPIRNVTKSPALRGCPQRRGTCTRVYTITPKK
                      PNSALRKVARVRLTSGFEITAYIPGIGHNLQEHSVVLVRGGRVKDLPGVRYHIVRGTL
@@ -123,6 +124,19 @@ FEATURES             Location/Qualifiers
                      /translation="MPTIKQLIRNTRQPIRNVTKSPALRGCPQRRGTCTRVYTITPKK
                      PNSALRKVARVRLTSGFEITAYIPGIGHNLQEHSVVLVRGGRVKDLPGVRYHIVRGTL
                      DAVGVKDRQQGRSKYGVKKPK"
+     CDS             complement(join(NC_000933.1:1..6,98002..98024,98562..98793,69611..69724))
+                     /gene="MultiContigTransSpliced"
+                     /locus_tag="MultiContigTransSpliced"
+                     /trans_splicing
+                     /codon_start=1
+                     /transl_table=11
+                     /product="ribosomal protein S12"
+                     /protein_id="NP_051037.1"
+                     /db_xref="GI:7525088"
+                     /db_xref="GeneID:1466258"
+                     /translation="MPTIKQLIRNTRQPIRNVTKSPALRGCPQRRGTCTRVYTITPKK
+                     PNSALRKVARVRLTSGFEITAYIPGIGHNLQEHSVVLVRGGRVKDLPGVRYHIVRGTL
+                     DAVGVKDRQQGRSKYGVKKPKM"
      gene            complement(4..76)
                      /gene="trnH"
                      /locus_tag="ArthCt088"
@@ -154,6 +168,23 @@ FEATURES             Location/Qualifiers
      CDS             join(74841..74846,75651..76292)
                      /gene="petB"
                      /locus_tag="ArthCp053"
+                     /codon_start=1
+                     /transl_table=11
+                     /product="cytochrome b6"
+                     /protein_id="NP_051088.1"
+                     /db_xref="GI:7525063"
+                     /db_xref="GeneID:844729"
+                     /translation="MSKVYDWFEERLEIQAIADDITSKYVPPHVNIFYCLGGITLTCF
+                     LVQVATGFAMTFYYRPTVTEAFASVQYIMTEANFGWLIRSVHRWSASMMVLMMILHVF
+                     RVYLTGGFKKPRELTWVTGVVLGVLTASFGVTGYSLPWDQIGYWAVKIVTGVPDAIPV
+                     IGSPLVELLRGSASVGQSTLTRFYSLHTFVLPLLTAVFMLMHFLMIRKQGISGPL"
+     gene            join(74841..76292,74000..74500)
+                     /gene="petB"
+                     /locus_tag="InvalidOrder"
+                     /db_xref="GeneID:844729"
+     CDS             join(74841..74846,75651..76292,74000..74500)
+                     /gene="petB"
+                     /locus_tag="InvalidOrder"
                      /codon_start=1
                      /transl_table=11
                      /product="cytochrome b6"
@@ -210,7 +241,7 @@ FEATURES             Location/Qualifiers
                      /db_xref="GI:7525015"
                      /db_xref="GeneID:844798"
                      /translation="MVKLRLKRCGRKQRAVYRILAIDVRYRREGRDLSKVGFYDPITN
-                     QTFLNLSAILDFLKKGAQPTRTAHDISKKAGIFTESKKAGIFTE"
+                     QTFLNLSAILDFLKKGAQPTRTAHDISKKAGIFTE"
      gene            join(complement(69611..69724),139856..140650)
                      /gene="rps12"
                      /locus_tag="ArthCp047"
@@ -3069,3 +3100,44 @@ ORIGIN
    154381 aaaaaaaacc cttttgtagc aaagcattta ttaagaaaaa tagagaagct taatacaaag
    154441 gcggaaaaag aaatcataat aacttggtcc cgggcatc
 //
+LOCUS       NC_000933                 18 bp    DNA       linear PLN 26-MAR-2010
+DEFINITION  Arabidopsis thaliana FAKE, complete genome.
+ACCESSION   NC_000933
+VERSION     NC_000933.1  GI:7525013
+DBLINK      Project: 116
+            BioProject: PRJNA116
+KEYWORDS    RefSeq.
+SOURCE      FAKE Arabidopsis thaliana (thale cress)
+  ORGANISM  Arabidopsis thaliana
+            Eukaryota; Viridiplantae; Streptophyta; Embryophyta; Tracheophyta;
+            Spermatophyta; Magnoliophyta; eudicotyledons; Gunneridae;
+            Pentapetalae; rosids; malvids; Brassicales; Brassicaceae;
+            Camelineae; Arabidopsis.
+REFERENCE   1  (bases 1 to 18)
+  AUTHORS   Sato,S., Nakamura,Y., Kaneko,T., Asamizu,E. and Tabata,S.
+  TITLE     Complete structure of the chloroplast genome of Arabidopsis
+            thaliana
+  JOURNAL   DNA Res. 6 (5), 283-290 (1999)
+   PUBMED   10574454
+REFERENCE   2  (bases 1 to 154478)
+  CONSRTM   NCBI Genome Project
+  TITLE     Direct Submission
+  JOURNAL   Submitted (07-APR-2000) National Center for Biotechnology
+            Information, NIH, Bethesda, MD 20894, USA
+REFERENCE   3  (bases 1 to 18)
+  AUTHORS   Nakamura,Y.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (09-SEP-1999) Laboratory of Gene Structure 2, Kazusa DNA
+            Research Institute, Yana 1532-3, Kisarazu, Chiba 292-0812, Japan
+COMMENT     REVIEWED REFSEQ: This record has been curated by NCBI staff. The
+            reference sequence was derived from AP000423.
+            COMPLETENESS: full length.
+FEATURES             Location/Qualifiers
+     source          1..18
+                     /organism="Arabidopsis thaliana"
+                     /organelle="FAKE"
+                     /mol_type="genomic DNA"
+                     /db_xref="taxon:3702"
+                     /ecotype="Columbia"
+ORIGIN      
+        1 ctacatgaac gacgggaa 
