@@ -159,6 +159,7 @@ class FastaGFFToGenome:
                         'types was imported: {}'.format(len(
             genome['contig_ids']), "\n".join([k+": "+str(v) for k, v in
                                               genome['feature_counts'].items()]))
+        print report_string
 
         return {'genome_info': result['info'], 'report_string': report_string}
 
@@ -773,8 +774,6 @@ class FastaGFFToGenome:
             "ontology_ref": "KBaseOntology/gene_ontology"
         }]
         genome['ontologies_present'] = dict(self.ontologies_present)
-        genome['feature_counts'] = dict(self.feature_counts)
-
         genome['taxonomy'], genome['taxon_ref'], genome['domain'], \
             genome["genetic_code"] = self.gi.retrieve_taxon(self.taxon_wsname,
                                                             genome['scientific_name'])
@@ -814,5 +813,6 @@ class FastaGFFToGenome:
                 genome['non_coding_features'].append(feature)
         if self.warnings:
             genome['warnings'] = self.warnings
+        genome['feature_counts'] = dict(self.feature_counts)
 
         return genome
