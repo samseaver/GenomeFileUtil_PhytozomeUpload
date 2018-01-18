@@ -13,6 +13,7 @@ from Workspace.WorkspaceClient import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from DataFileUtil.DataFileUtilClient import DataFileUtil
+from GenomeFileUtil.core.GenomeUtils import is_parent
 from pprint import pprint
 
 
@@ -70,9 +71,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         if hasattr(cls, 'wsName'):
             cls.wsClient.delete_workspace({'workspace': cls.wsName})
             print('Test workspace was deleted')
-
-#    def test_incorrect(self):
-#        self.assertTrue( 1 == 0, "1 ne 0")
 
     def test_for_alias_colon(self):
         genome = self.__class__.genome
@@ -141,6 +139,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         found_gene = False
         found_CDS = False
         found_mRNA = False
+        found_noncoding = False
         for feature in genome["features"]:
             if feature['id'] == "ArthCp001A":
 #                print "FEATURE::::" + str(feature)
