@@ -550,8 +550,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                             found_gene_warning = True
         self.assertTrue(found_gene,"'ArthCp005' Was not found in the genes")
         self.assertTrue(found_cds,"'ArthCp005_CDS_1' Was not found in the cdss")
-        self.assertTrue(found_gene_warning,"Did not have unknown lower bound warning")
-        self.assertTrue(found_cds_warning,"Did not have unknown lower bound warning")
+        self.assertTrue(found_gene_warning,"Did not have gene unknown lower bound warning")
+        self.assertTrue(found_cds_warning,"Did not have cds unknown lower bound warning")
 
     def test_odd_coordinates_unknown_upper_bound(self):
         genome = self.__class__.genome
@@ -577,8 +577,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                             found_gene_warning = True
         self.assertTrue(found_gene,"'ArthCp006' Was not found in the genes")
         self.assertTrue(found_cds,"'ArthCp006_CDS_1' Was not found in the cdss")
-        self.assertTrue(found_gene_warning,"Did not have unknown upper bound warning")
-        self.assertTrue(found_cds_warning,"Did not have unknown upper bound warning")
+        self.assertTrue(found_gene_warning,"Did not have gene unknown upper bound warning")
+        self.assertTrue(found_cds_warning,"Did not have cds unknown upper bound warning")
 
     def test_odd_coordinates_unknown_both_bounds(self):
         genome = self.__class__.genome
@@ -614,10 +614,10 @@ class GenomeFileUtilTest(unittest.TestCase):
                             found_cds_lower_warning = True 
         self.assertTrue(found_gene,"'ArthCp007' Was not found in the genes")
         self.assertTrue(found_cds,"'ArthCp007_CDS_1' Was not found in the cdss")
-        self.assertTrue(found_gene_upper_warning,"Did not have unknown upper bound warning")
-        self.assertTrue(found_cds_upper_warning,"Did not have unknown upper bound warning")
-        self.assertTrue(found_gene_lower_warning,"Did not have unknown lower bound warning")
-        self.assertTrue(found_cds_lower_warning,"Did not have unknown lower bound warning")
+        self.assertTrue(found_gene_upper_warning,"Did not have gene unknown upper bound warning")
+        self.assertTrue(found_cds_upper_warning,"Did not have cds unknown upper bound warning")
+        self.assertTrue(found_gene_lower_warning,"Did not have gene unknown lower bound warning")
+        self.assertTrue(found_cds_lower_warning,"Did not have cds unknown lower bound warning")
 
 '''
     def test_reversed_position(self):
