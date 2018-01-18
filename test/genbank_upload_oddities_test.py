@@ -549,9 +549,74 @@ class GenomeFileUtilTest(unittest.TestCase):
                             found_gene_warning = True
         self.assertTrue(found_gene,"'ArthCp005' Was not found in the genes")
         self.assertTrue(found_cds,"'ArthCp005_CDS_1' Was not found in the cdss")
-        self.assertTrue(found_gene_warning,"Did not have unknown lower bound warning")
-        self.assertTrue(found_cds_warning,"Did not have unknown lower bound warning")
+        self.assertTrue(found_gene_warning,"Did not have gene unknown lower bound warning")
+        self.assertTrue(found_cds_warning,"Did not have cds unknown lower bound warning")
 
+    def test_odd_coordinates_unknown_upper_bound(self):
+        genome = self.__class__.genome
+        found_cds = False
+        found_gene = False
+        found_cds_warning = False
+        found_gene_warning = False
+        for feature in genome["features"]:
+            if feature['id'] == "ArthCp006":
+                found_gene = True
+                #print "Gene : " + str(feature)
+                if "warnings" in feature:
+                    for warning in feature["warnings"]:
+                        if warning == "This feature has coordinates that end somewhere after base 7693. Note the sequence is an approximation and ends at base 7693":
+                            found_gene_warning = True
+        for feature in genome["cdss"]:
+            if feature['id'] == "ArthCp006_CDS_1":
+                found_cds = True
+                #print "CDS : " + str(feature)
+                if "warnings" in feature:
+                    for warning in feature["warnings"]:
+                        if warning == "This feature has coordinates that end somewhere after base 7693. Note the sequence is an approximation and ends at base 7693":
+                            found_gene_warning = True
+        self.assertTrue(found_gene,"'ArthCp006' Was not found in the genes")
+        self.assertTrue(found_cds,"'ArthCp006_CDS_1' Was not found in the cdss")
+        self.assertTrue(found_gene_warning,"Did not have gene unknown upper bound warning")
+        self.assertTrue(found_cds_warning,"Did not have cds unknown upper bound warning")
+
+    def test_odd_coordinates_unknown_both_bounds(self):
+        genome = self.__class__.genome
+        found_cds = False
+        found_gene = False
+        found_cds_upper_warning = False
+        found_cds_lower_warning = False
+        found_gene_upper_warning = False
+        found_gene_lower_warning = False
+        for feature in genome["features"]:
+            if feature['id'] == "ArthCp007":
+                found_gene = True
+                #print "Gene : " + str(feature)
+                if "warnings" in feature:
+                    for warning in feature["warnings"]:
+                        if warning == "This feature has coordinates that end somewhere after base 11461. Note the sequence is an approximation and ends at base 11461":
+                            found_gene_upper_warning = True
+                if "warnings" in feature:
+                    for warning in feature["warnings"]:
+                        if warning == "This feature has coordinates that starts somewhere before base 9938. Note the sequence is an approximation and starts at base 9938":
+                            found_gene_lower_warning = True                            
+        for feature in genome["cdss"]:
+            if feature['id'] == "ArthCp007_CDS_1":
+                found_cds = True
+                #print "CDS : " + str(feature)
+                if "warnings" in feature:
+                    for warning in feature["warnings"]:
+                        if warning == "This feature has coordinates that end somewhere after base 11461. Note the sequence is an approximation and ends at base 11461":
+                            found_cds_upper_warning = True
+                if "warnings" in feature:
+                    for warning in feature["warnings"]:
+                        if warning == "This feature has coordinates that starts somewhere before base 9938. Note the sequence is an approximation and starts at base 9938":
+                            found_cds_lower_warning = True 
+        self.assertTrue(found_gene,"'ArthCp007' Was not found in the genes")
+        self.assertTrue(found_cds,"'ArthCp007_CDS_1' Was not found in the cdss")
+        self.assertTrue(found_gene_upper_warning,"Did not have gene unknown upper bound warning")
+        self.assertTrue(found_cds_upper_warning,"Did not have cds unknown upper bound warning")
+        self.assertTrue(found_gene_lower_warning,"Did not have gene unknown lower bound warning")
+        self.assertTrue(found_cds_lower_warning,"Did not have cds unknown lower bound warning")
 
 '''
     def test_reversed_position(self):
