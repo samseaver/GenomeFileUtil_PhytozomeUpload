@@ -382,8 +382,50 @@ class GenomeFileUtilTest(unittest.TestCase):
                             has_cds_warning = True
         self.assertFalse(has_cds_warning, "The position coordinates CDS 'RL4742' are out of order, but they start and stop at the start and end of a circular contig, therefore it is valid.")      
         self.assertFalse(cds_transpliced_flag, "The trans_splicing flag for the cds RL4742_CDS_1 was set, technically it appears it may be transpliced, but the file does not state it to be.")
-        self.assertTrue(found_gene, "The gene InvalidOrder was not found.")
-        self.assertTrue(found_cds, "The CDS InvalidOrder_CDS_1 was not found.")   
+        self.assertTrue(found_gene, "The gene RL4742 was not found.")
+        self.assertTrue(found_cds, "The CDS RL4742_CDS_1 was not found.")   
+
+    def test_for_zero_spanning_two_exon_feature(self):
+        genome = self.__class__.genome
+        found_gene = False
+        found_cds = False
+        gene_transpliced_flag = False
+        cds_transpliced_flag = False
+        has_gene_warning = False
+        has_cds_warning = False
+        genome_warning = False
+        for feature in genome["features"]:
+            if feature['id'] == "Zero_Span_two_exon":
+#                print "FEATURE::::" + str(feature)
+                print "Found Zero_Span_two_exon"
+                found_gene = True
+                if "flags" in feature:
+                    for flag in feature["flags"]:
+                        if flag == "trans_splicing":
+                            gene_transpliced_flag = True
+                if "warnings" in feature:
+                    for warning in feature["warnings"]:
+                        if warning == "The feature coordinates order are suspect and the feature is not listed as being trans_splicing":
+                            has_gene_warning = True
+        self.assertFalse(has_gene_warning, "The position coordinates gene 'Zero_Span_two_exon' are out of order, but they start and stop at the start and end of a circular contig, therefore it is valid.")                 
+        self.assertFalse(gene_transpliced_flag, "The trans_splicing flag for the gene Zero_Span_two_exon was set, but it is not trans_spliced.")
+        for feature in genome["cdss"]:
+            if feature['id'] == "Zero_Span_two_exon_CDS_1":
+#                print "FEATURE::::" + str(feature)
+                print "Found Zero_Span_two_exon_CDS_1"
+                found_cds = True
+                if "flags" in feature:
+                    for flag in feature["flags"]:
+                        if flag == "trans_splicing":
+                            cds_transpliced_flag = True
+                if "warnings" in feature:
+                    for warning in feature["warnings"]:
+                        if warning == "The feature coordinates order are suspect and the feature is not listed as being trans_splicing":
+                            has_cds_warning = True
+        self.assertFalse(has_cds_warning, "The position coordinates CDS 'Zero_Span_two_exon' are out of order, but they are the child of a gene that start and stop at the start and end of a circular contig, therefore it is valid.")      
+        self.assertFalse(cds_transpliced_flag, "The trans_splicing flag for the cds Zero_Span_two_exon_CDS_1 was set, technically it appears it may be transpliced, but the file does not state it to be.")
+        self.assertTrue(found_gene, "The gene Zero_Span_two_exon was not found.")
+        self.assertTrue(found_cds, "The CDS Zero_Span_two_exon_CDS_1 was not found.")   
 
     def test_ensembl_ontology_terms(self):
         genome = self.__class__.genome
