@@ -41,8 +41,10 @@ class GenbankToGenome:
         self.feature_counts = Counter()
         self.contig_seq = {}
         self.circ_contigs = set()
+        self.features_spaning_zero = set()
         self.genome_warnings = []
         self.genome_suspect = False
+        self.cds_seq_not_matching = 0
         self.excluded_features = ('source', 'exon')
         self.go_mapping = json.load(
             open('/kb/module/data/go_ontology_mapping.json'))
@@ -434,10 +436,8 @@ class GenbankToGenome:
             strand_trans = ("", "+", "-")
             loc = []
             for part in feat.location.parts:
-                print(type(part.start))
                 if not isinstance(part.start, ExactPosition) \
                         or not isinstance(part.end, ExactPosition):
-                    print("BAD!!")
                     _warn("The coordinates supplied for this feature are "
                           "non-exact. DNA or protein translations are "
                           "approximate.")
@@ -456,17 +456,34 @@ class GenbankToGenome:
         def _warn(message):
             out_feat['warnings'] = out_feat.get('warnings', []) + [message]
 
-        def _check_suspect_location():
-            if record.id in self.circ_contigs or 'trans_splicing' in \
-                    out_feat.get('flags', []):
+        def _check_suspect_location(parent=None):
+            print(out_feat['id'])
+            if 'trans_splicing' in out_feat.get('flags', []):
+                print('trans-spliced')
                 return
-            if out_feat['location'] != sorted(out_feat['location'],
+
+            if out_feat['location'] == sorted(out_feat['location'],
                     reverse=not in_feature.location.strand):
-                msg = "The feature coordinates order are suspect and the " \
-                       "feature is not flagged as being trans-spliced"
-                _warn(msg)
-                self.genome_warnings.append(out_feat['id'] + ": " + msg)
-                self.genome_suspect = True
+                print('inorder')
+                return
+
+            if record.id in self.circ_contigs and \
+                    in_feature.location.start == 0 \
+                    and in_feature.location.end == len(record):
+                print('spans zero')
+                self.features_spaning_zero.add(out_feat['id'])
+                return
+
+            if parent and parent['id'] in self.features_spaning_zero:
+                print('parent spans zero')
+                return
+
+            msg = "The feature coordinates order are suspect and the " \
+                   "feature is not flagged as being trans-spliced"
+            _warn(msg)
+            self.genome_warnings.append("SUSPECT {}:".format(out_feat['id']) +
+                                        msg)
+            self.genome_suspect = True
 
         genes, cdss, mrnas, noncoding = OrderedDict(), OrderedDict(), OrderedDict(), []
         for in_feature in record.features:
@@ -490,9 +507,9 @@ class GenbankToGenome:
                 out_feat['id'] = in_feature.type
             # note that end is the larger number regardless of strand
             if int(in_feature.location.end) > len(record):
-                self.genome_warnings.append(out_feat['id'] + ': Feature has '
+                self.genome_warnings.append('SUSPECT {}: Feature has '
                     'invalid coordinates off of the end of the contig and was '
-                    'not included')
+                    'not included'.format(out_feat['id']))
                 self.genome_suspect = True
                 continue
 
@@ -513,7 +530,7 @@ class GenbankToGenome:
             if 'inference' in in_feature.qualifiers:
                 out_feat['inference_data'] = self._inferences(in_feature)
 
-            _check_suspect_location()
+            _check_suspect_location(genes.get(_id))
 
             # add type specific features
             if in_feature.type == 'CDS':
@@ -535,6 +552,14 @@ class GenbankToGenome:
             else:
                 noncoding.append(self.process_noncodeing(_id, genes,
                                                          in_feature, out_feat))
+
+        print(len(cdss), self.cds_seq_not_matching)
+        if len(cdss) and self.cds_seq_not_matching / len(cdss) > 0.01:
+            self.genome_warnings.append("SUSPECT This Genome has a high "
+                "proportion ({} out of {}) CDS features that do not "
+                "translate the supplied translation".format(
+                self.cds_seq_not_matching, len(cdss)))
+            self.genome_suspect = 1
 
         coding = []
         for g in genes.values():
@@ -562,7 +587,6 @@ class GenbankToGenome:
     def _get_seq(self, feat, contig):
         """Extract the DNA sequence for a feature"""
         seq = []
-        strand = 1
         for part in feat.location.parts:
             strand = part.strand
             # handle trans-splicing across contigs
@@ -666,17 +690,39 @@ class GenbankToGenome:
             'parent_gene': "",
         })
         if not prot_seq:
+            try:
+                out_feat['protein_translation'] = Seq.translate(
+                        feat_seq, self.code_table, cds=True).strip("*")
+                out_feat['warnings'] = out_feat.get('warnings', []) + [
+                    "This CDS did not have a supplied translation. The "
+                    "translation is derived directly from DNA sequence."]
+            except TranslationError as e:
+                out_feat['warnings'] = out_feat.get('warnings', []) + [
+                    "Unable to generate protein sequence:" + str(e)]
+
+        # allow a little slack to account for frameshift and stop codon
+        if prot_seq and abs(len(prot_seq) * 3 - len(feat_seq)) > 4:
             out_feat['warnings'] = out_feat.get('warnings', []) + [
-                "This CDS did not have a supplied translation. The translation"
-                " is derived directly from DNA sequence."]
+                "This CDS has a length of {} which is not consistent with the "
+                "length of the translation included ({} amino acids)".format(
+                    len(feat_seq), len(prot_seq))]
+            self.genome_warnings.append('SUSPECT {}: This CDS has a length of '
+                    '{} which is not consistent with the length of the '
+                    'translation included ({} amino acids)'.format(
+                out_feat['id'], len(feat_seq), len(prot_seq)))
+            self.genome_suspect = True
+
         try:
             if prot_seq and prot_seq != Seq.translate(
                     feat_seq, self.code_table, cds=True).strip("*"):
                 out_feat['warnings'] = out_feat.get('warnings', []) + [
                     "The annotated protein translation is not "
                     "consistent with the recorded DNA sequence"]
+                self.cds_seq_not_matching += 1
+
         except TranslationError as e:
-            out_feat['warnings'] = out_feat.get('warnings', []) + [str(e)]
+            out_feat['warnings'] = out_feat.get('warnings', []) + [
+                "Unable to verify protein sequence:" + str(e)]
 
         if _id in genes:
             out_feat['id'] += "_" + str(len(genes[_id]['cdss']) + 1)

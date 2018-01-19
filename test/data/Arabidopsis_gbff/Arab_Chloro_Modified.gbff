@@ -83,7 +83,7 @@ FEATURES             Location/Qualifiers
                      /locus_tag="ArthCp001"
                      /trans_splicing
                      /db_xref="GI:7525080"
-                     /db_xref="GeneID:1466250"                                       
+                     /db_xref="GeneID:1466250"
      CDS             complement(join(97999..98024,98562..98793,69611..69724))
                      /gene="rps12"
                      /locus_tag="ArthCp001"
@@ -305,7 +305,7 @@ FEATURES             Location/Qualifiers
                      LHPRGAIIGDTIVSGTEVPIKMGNALPLTDMPLGTAIHNIEITLGRGGQLARAAGAVA
                      KLIAKEGKSATLKLPSGEVRLISKNCSATVGQVGNVGVNQKSLGRAGSKCWLGKRPVV
                      RGVVMNPVDHPHGGGEGRAPIGRKKPVTPWGYPALGRRTRKRKKYSETLILRRRSKVV
-                     RGVVMNPVDHPHGGGEGRAPIGRKKPVTPWGYPALGRRTRKRKKYSETLILRRRSKK"                     
+                     RGVVMNPVDHPHGGGEGRAPIGRKKPVTPWGYPALGRRTRKRKKYSETLILRRRSKK"
      gene            <7017..7202
                      /gene="psbK"
                      /locus_tag="ArthCp005"
@@ -322,7 +322,7 @@ FEATURES             Location/Qualifiers
                      /db_xref="GI:7525016"
                      /db_xref="GeneID:844795"
                      /translation="MLNIFNLICIFFNSTLFSSTFLVAKLPEAYAFLNPIVDVMPVIP
-                     QAALLLAFVWQAAVSFR"                     
+                     QAALLLAFVWQAAVSFR"
      gene            7583..>7693
                      /gene="psbI"
                      /locus_tag="ArthCp006"
@@ -338,7 +338,7 @@ FEATURES             Location/Qualifiers
                      /db_xref="GI:7525017"
                      /db_xref="GeneID:844794"
                      /note="UNKNOWN UPPER BOUND"
-                     /translation="MLTLKLFVYTVVIFFVSLFIFGFLSNDPGRNPGREE"                                 
+                     /translation="MLTLKLFVYTVVIFFVSLFIFGFLSNDPGRNPGREE"
      gene            <9938..>11461
                      /gene="atpA"
                      /locus_tag="ArthCp007"
@@ -356,7 +356,7 @@ FEATURES             Location/Qualifiers
                      /note="UNKNOWN BOUNDS"
      misc_feature    9950^9951
                      /gene="BetweenBases"
-                     /locus_tag="BetweenBases"                                           
+                     /locus_tag="BetweenBases"
      gene            complement(11529..12798)
                      /gene="atpF"
                      /locus_tag="ArthCp008"
@@ -3144,5 +3144,5 @@ FEATURES             Location/Qualifiers
                      /mol_type="genomic DNA"
                      /db_xref="taxon:3702"
                      /ecotype="Columbia"
-ORIGIN      
-        1 ctacatgaac gacgggaa 
+ORIGIN
+        1 ctacatgaac gacgggaa
