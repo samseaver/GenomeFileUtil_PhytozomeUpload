@@ -12,6 +12,8 @@ RUN pip install setuptools --upgrade\
     && pip install requests --upgrade \
     && pip install 'requests[security]' --upgrade
 
+RUN pip install biopython==1.70
+
 COPY ./ /kb/module
 RUN mkdir -p /kb/module/work
 RUN chmod -R a+rw /kb/module
