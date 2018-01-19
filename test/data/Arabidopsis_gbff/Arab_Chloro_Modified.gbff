@@ -124,6 +124,11 @@ FEATURES             Location/Qualifiers
                      /translation="MPTIKQLIRNTRQPIRNVTKSPALRGCPQRRGTCTRVYTITPKK
                      PNSALRKVARVRLTSGFEITAYIPGIGHNLQEHSVVLVRGGRVKDLPGVRYHIVRGTL
                      DAVGVKDRQQGRSKYGVKKPK"
+     gene            complement(join(NC_000933.1:1..6,97999..98793,69611..69724))
+                     /gene="MultiContigTransSpliced"
+                     /locus_tag="MultiContigTransSpliced"
+                     /trans_splicing
+                     /db_xref="GeneID:1466258"
      CDS             complement(join(NC_000933.1:1..6,98002..98024,98562..98793,69611..69724))
                      /gene="MultiContigTransSpliced"
                      /locus_tag="MultiContigTransSpliced"
