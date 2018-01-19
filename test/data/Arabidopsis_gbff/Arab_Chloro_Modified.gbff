@@ -55,6 +55,19 @@ FEATURES             Location/Qualifiers
                      /db_xref="InterPro:IPR000257"
                      /db_xref="InterPro:IPR006361"
                      /note="Taken from https://www.ncbi.nlm.nih.gov/nuccore/AM236080, coordinates changed."
+     gene            complement(order(154400..154478,1..72))
+                     /gene="Zero_Span_two_exon"
+                     /locus_tag="Zero_Span_two_exon"
+                     /note="Taken from https://www.ncbi.nlm.nih.gov/nuccore/AM236080, coordinates changed."
+     CDS             complement(join(154400..154469,10..72))
+                     /gene="Zero_Span_two_exon"
+                     /locus_tag="Zero_Span_two_exon"
+                     /EC_number="4.1.1.37"
+                     /codon_start=1
+                     /transl_table=11
+                     /product="putative uroporphyrinogen decarboxylase"
+                     /protein_id="CAK10225.2"
+                     /note="Taken from https://www.ncbi.nlm.nih.gov/nuccore/AM236080, coordinates changed."
      gene            order(154400..154478,1..72)
                      /gene="hemE"
                      /locus_tag="RL4742A"
@@ -124,7 +137,7 @@ FEATURES             Location/Qualifiers
                      /translation="MPTIKQLIRNTRQPIRNVTKSPALRGCPQRRGTCTRVYTITPKK
                      PNSALRKVARVRLTSGFEITAYIPGIGHNLQEHSVVLVRGGRVKDLPGVRYHIVRGTL
                      DAVGVKDRQQGRSKYGVKKPK"
-     gene            complement(join(NC_000933.1:1..6,97999..98793,69611..69724))
+     gene            complement(join(NC_000933.1:1..6,98002..98793,69611..69724))
                      /gene="MultiContigTransSpliced"
                      /locus_tag="MultiContigTransSpliced"
                      /trans_splicing
