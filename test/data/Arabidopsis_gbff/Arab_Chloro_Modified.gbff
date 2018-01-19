@@ -37,11 +37,11 @@ FEATURES             Location/Qualifiers
                      /mol_type="genomic DNA"
                      /db_xref="taxon:3702"
                      /ecotype="Columbia"
-     gene            complement(order(154400..154478,1..72))
+     gene            complement(order(154400..154478,1..71))
                      /gene="hemE"
                      /locus_tag="RL4742"
                      /note="Taken from https://www.ncbi.nlm.nih.gov/nuccore/AM236080, coordinates changed."
-     CDS             complement(join(154400..154478,1..72))
+     CDS             complement(join(154400..154478,1..71))
                      /gene="hemE"
                      /locus_tag="RL4742"
                      /EC_number="4.1.1.37"
