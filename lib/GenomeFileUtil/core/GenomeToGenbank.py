@@ -151,6 +151,7 @@ class GenomeFile:
                 priority = order.index(feat['type'])
             start = min(x[1] for x in feat['location'])
             return start, priority
+
         go = self.genome_object  # I'm lazy
         raw_contig.dbxrefs = self.genome_object.get('aliases', [])
         raw_contig.annotations = {
@@ -250,6 +251,10 @@ class GenomeFile:
             out_feature.qualifiers['inference'] = [
                 ":".join([x[y] for y in ('category', 'type', 'evidence') if x[y]])
                 for x in in_feature['inference_data']]
+
+        if in_feature.get('warnings', False):
+            out_feature.qualifiers['note'] = out_feature.qualifiers.get(
+                'note', "") + "Warnings: " + ",".join(in_feature['warnings'])
 
         return out_feature
 

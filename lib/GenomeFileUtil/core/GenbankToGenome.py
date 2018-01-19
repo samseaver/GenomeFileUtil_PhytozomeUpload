@@ -15,6 +15,7 @@ import Bio.SeqIO
 import Bio.SeqUtils
 from Bio import Seq
 from Bio.Data.CodonTable import TranslationError
+from Bio.SeqFeature import ExactPosition
 
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from DataFileUtil.DataFileUtilClient import DataFileUtil
@@ -39,17 +40,30 @@ class GenbankToGenome:
         self.skiped_features = Counter()
         self.feature_counts = Counter()
         self.contig_seq = {}
+        self.circ_contigs = set()
+        self.genome_warnings = []
+        self.genome_suspect = False
         self.excluded_features = ('source', 'exon')
         self.go_mapping = json.load(
             open('/kb/module/data/go_ontology_mapping.json'))
-        self.ontology_events = [{
-            "method": "GenomeFileUtils Genbank uploader from annotations",
-            "method_version": self.version,
-            "timestamp": self.time_string,
-            # TODO: remove this hardcoding
-            "id": "GO",
-            "ontology_ref": "KBaseOntology/gene_ontology"
-        }]
+        self.po_mapping = json.load(
+            open('/kb/module/data/go_ontology_mapping.json'))
+        self.ontology_events = [
+            {
+                "method": "GenomeFileUtils Genbank uploader from annotations",
+                "method_version": self.version,
+                "timestamp": self.time_string,
+                "id": "GO",
+                "ontology_ref": "KBaseOntology/gene_ontology"
+            },
+            {
+                "method": "GenomeFileUtils Genbank uploader from annotations",
+                "method_version": self.version,
+                "timestamp": self.time_string,
+                "id": "PO",
+                "ontology_ref": "KBaseOntology/plant_ontology"
+            }
+        ]
         self.code_table = 11
         self.default_params = {
             'source': 'Genbank',
@@ -294,6 +308,10 @@ class GenbankToGenome:
         genome['feature_counts'] = dict(self.feature_counts)
         # can't serialize a set
         genome['publications'] = list(genome['publications'])
+        if self.genome_warnings:
+            genome['warnings'] = self.genome_warnings
+        if self.genome_suspect:
+            genome['suspect'] = 1
         print("Feature Counts: ", genome['feature_counts'])
         return genome
 
@@ -310,6 +328,7 @@ class GenbankToGenome:
         for in_contig in contigs:
             if in_contig.annotations.get('topology', "") == 'circular':
                 extra_info[in_contig.id]['is_circ'] = 1
+                self.circ_contigs.add(in_contig.id)
             elif in_contig.annotations.get('topology', "") == 'linear':
                 extra_info[in_contig.id]['is_circ'] = 0
             out_contigs.append(in_contig)
@@ -400,44 +419,6 @@ class GenbankToGenome:
         self.log("Parsed {} publication records".format(len(pub_list)))
         return set(pub_list)
 
-    def _get_ontology_db_xrefs(self, feature):
-        """Splits the ontology info from the other db_xrefs"""
-        ontology = defaultdict(dict)
-        db_xref = []
-        for key in ("GO_process", "GO_function", "GO_component"):
-            for term in feature.qualifiers.get(key, []):
-                sp = term.split(" - ")
-                ontology['GO'][sp[0]] = [1]
-                self.ontologies_present['GO'][sp[0]] = sp[1]
-        for ref in feature.qualifiers.get('db_xref', []):
-            if ref.startswith('GO:'):
-                ontology['GO'][ref] = [0]
-                self.ontologies_present['GO'][ref] = self.go_mapping.get(ref, '')
-            else:
-                db_xref.append(tuple(ref.split(":")))
-        # TODO: Support other ontologies
-        return dict(ontology), db_xref
-
-    def _get_seq(self, feat, contig):
-        """Extract the DNA sequence for a feature"""
-        seq = []
-        strand = 1
-        for part in feat.location.parts:
-            strand = part.strand
-            # handle transplicing across contigs
-            if part.ref:
-                part_contig = part.ref
-            else:
-                part_contig = contig
-
-            if strand >= 0:
-                seq.append(str(self.contig_seq[part_contig]
-                               [part.start:part.end]))
-            else:
-                seq.append(str(self.contig_seq[part_contig]
-                               [part.start:part.end].reverse_complement()))
-        return "".join(seq)
-
     def _parse_features(self, record, source):
         def _get_id(feat, tags=None):
             """Assign a id to a feature based on the first tag that exists"""
@@ -449,9 +430,18 @@ class GenbankToGenome:
             return _id
 
         def _location(feat):
+            """Convert to KBase style location objects"""
             strand_trans = ("", "+", "-")
             loc = []
             for part in feat.location.parts:
+                print(type(part.start))
+                if not isinstance(part.start, ExactPosition) \
+                        or not isinstance(part.end, ExactPosition):
+                    print("BAD!!")
+                    _warn("The coordinates supplied for this feature are "
+                          "non-exact. DNA or protein translations are "
+                          "approximate.")
+
                 if part.strand >= 0:
                     begin = int(part.start) + 1
                 else:
@@ -463,42 +453,20 @@ class GenbankToGenome:
                         len(part)))
             return loc
 
-        def _get_aliases_flags_functions(feat):
-            """Get the values for aliases flags and features from qualifiers"""
-            alias_keys = {'locus_tag', 'old_locus_tag', 'protein_id',
-                          'transcript_id', 'gene', 'EC_number', 'gene_synonym'}
-            result = defaultdict(list)
-            for key, val_list in feat.qualifiers.items():
-                if key in alias_keys:
-                    result['aliases'].extend([(key, val) for val in val_list])
-                # flags have no other information associated with them
-                if val_list == ['']:
-                    result['flags'].append(key)
-                if key == 'function':
-                    result['functions'].extend(val_list[0].split('; '))
-                if key == 'product':
-                    result['functions'].append("product:"+val_list[0])
+        def _warn(message):
+            out_feat['warnings'] = out_feat.get('warnings', []) + [message]
 
-            return result
-
-        def _inferences(feat):
-            """Whoever designed the genbank delimitation is an idiot: starts and
-            ends with a optional values and uses a delimiter ":" that is
-            used to divide it's DBs in the evidence. Anyway, this sorts that"""
-            result = []
-            for inf in feat.qualifiers['inference']:
-                try:
-                    sp_inf = inf.split(":")
-                    if sp_inf[0] in ('COORDINATES', 'DESCRIPTION', 'EXISTENCE'):
-                        inference = {'category': sp_inf.pop(0)}
-                    else:
-                        inference = {'category': ''}
-                    inference['type'] = sp_inf[0]
-                    inference['evidence'] = ":".join(sp_inf[1:])
-                    result.append(inference)
-                except IndexError('Unparseable inference string: ' + inf):
-                    continue
-            return result
+        def _check_suspect_location():
+            if record.id in self.circ_contigs or 'trans_splicing' in \
+                    out_feat.get('flags', []):
+                return
+            if out_feat['location'] != sorted(out_feat['location'],
+                    reverse=not in_feature.location.strand):
+                msg = "The feature coordinates order are suspect and the " \
+                       "feature is not flagged as being trans-spliced"
+                _warn(msg)
+                self.genome_warnings.append(out_feat['id'] + ": " + msg)
+                self.genome_suspect = True
 
         genes, cdss, mrnas, noncoding = OrderedDict(), OrderedDict(), OrderedDict(), []
         for in_feature in record.features:
@@ -522,15 +490,19 @@ class GenbankToGenome:
                 out_feat['id'] = in_feature.type
             # note that end is the larger number regardless of strand
             if int(in_feature.location.end) > len(record):
-                warn = "Feature coordinates fall outside of the contig sequence"
-                out_feat['warnings'] = out_feat.get('warnings', []) + [warn]
+                self.genome_warnings.append(out_feat['id'] + ': Feature has '
+                    'invalid coordinates off of the end of the contig and was '
+                    'not included')
+                self.genome_suspect = True
+                continue
 
             self.feature_counts[in_feature.type] += 1
+
             # add optional fields
             if 'note' in in_feature.qualifiers:
                 out_feat['note'] = in_feature.qualifiers["note"][0]
 
-            out_feat.update(_get_aliases_flags_functions(in_feature))
+            out_feat.update(self._get_aliases_flags_functions(in_feature))
 
             ont, db_xrefs = self._get_ontology_db_xrefs(in_feature)
             if ont:
@@ -539,7 +511,9 @@ class GenbankToGenome:
                 out_feat['db_xrefs'] = db_xrefs
 
             if 'inference' in in_feature.qualifiers:
-                out_feat['inference_data'] = _inferences(in_feature)
+                out_feat['inference_data'] = self._inferences(in_feature)
+
+            _check_suspect_location()
 
             # add type specific features
             if in_feature.type == 'CDS':
@@ -566,8 +540,8 @@ class GenbankToGenome:
         for g in genes.values():
             if len(g['cdss']):
                 if g['mrnas'] and len(g['mrnas']) != len(g['cdss']):
-                    warn = "The length of the mrna and cdss arrays are not equal"
-                    g['warnings'] = g.get('warnings', []) + [warn]
+                    msg = "The length of the mrna and cdss arrays are not equal"
+                    g['warnings'] = g.get('warnings', []) + [msg]
 
                 # remove duplicates that may arise from CDS info propagation
                 for key in ('functions', 'aliases', 'db_xrefs'):
@@ -584,6 +558,86 @@ class GenbankToGenome:
 
         return {'features': coding, 'non_coding_features': noncoding,
                 'cdss': cdss.values(), 'mrnas': mrnas.values()}
+
+    def _get_seq(self, feat, contig):
+        """Extract the DNA sequence for a feature"""
+        seq = []
+        strand = 1
+        for part in feat.location.parts:
+            strand = part.strand
+            # handle trans-splicing across contigs
+            if part.ref:
+                part_contig = part.ref
+            else:
+                part_contig = contig
+
+            if strand >= 0:
+                seq.append(str(self.contig_seq[part_contig]
+                               [part.start:part.end]))
+            else:
+                seq.append(str(self.contig_seq[part_contig]
+                               [part.start:part.end].reverse_complement()))
+        return "".join(seq)
+
+    def _get_ontology_db_xrefs(self, feature):
+        """Splits the ontology info from the other db_xrefs"""
+        ontology = defaultdict(dict)
+        db_xref = []
+        for key in ("GO_process", "GO_function", "GO_component"):
+            for term in feature.qualifiers.get(key, []):
+                sp = term.split(" - ")
+                ontology['GO'][sp[0]] = [1]
+                self.ontologies_present['GO'][sp[0]] = sp[1]
+        for ref in feature.qualifiers.get('db_xref', []):
+            if ref.startswith('GO:'):
+                ontology['GO'][ref] = [0]
+                self.ontologies_present['GO'][ref] = self.go_mapping.get(ref, '')
+            elif ref.startswith('PO:'):
+                ontology['PO'][ref] = [1]
+                self.ontologies_present['PO'][ref] = self.po_mapping.get(ref, '')
+            else:
+                db_xref.append(tuple(ref.split(":")))
+        # TODO: Support other ontologies
+        return dict(ontology), db_xref
+
+    @staticmethod
+    def _get_aliases_flags_functions(feat):
+        """Get the values for aliases flags and features from qualifiers"""
+        alias_keys = {'locus_tag', 'old_locus_tag', 'protein_id',
+                      'transcript_id', 'gene', 'EC_number', 'gene_synonym'}
+        result = defaultdict(list)
+        for key, val_list in feat.qualifiers.items():
+            if key in alias_keys:
+                result['aliases'].extend([(key, val) for val in val_list])
+            # flags have no other information associated with them
+            if val_list == ['']:
+                result['flags'].append(key)
+            if key == 'function':
+                result['functions'].extend(val_list[0].split('; '))
+            if key == 'product':
+                result['functions'].append("product:" + val_list[0])
+
+        return result
+
+    @staticmethod
+    def _inferences(feat):
+        """Whoever designed the genbank delimitation is an idiot: starts and
+        ends with a optional values and uses a delimiter ":" that is
+        used to divide it's DBs in the evidence. Anyway, this sorts that"""
+        result = []
+        for inf in feat.qualifiers['inference']:
+            try:
+                sp_inf = inf.split(":")
+                if sp_inf[0] in ('COORDINATES', 'DESCRIPTION', 'EXISTENCE'):
+                    inference = {'category': sp_inf.pop(0)}
+                else:
+                    inference = {'category': ''}
+                inference['type'] = sp_inf[0]
+                inference['evidence'] = ":".join(sp_inf[1:])
+                result.append(inference)
+            except IndexError('Unparseable inference string: ' + inf):
+                continue
+        return result
 
     def process_noncodeing(self, _id, genes, in_feature, out_feat):
         out_feat["type"] = in_feature.type
@@ -611,6 +665,10 @@ class GenbankToGenome:
             "protein_translation_length": len(prot_seq),
             'parent_gene': "",
         })
+        if not prot_seq:
+            out_feat['warnings'] = out_feat.get('warnings', []) + [
+                "This CDS did not have a supplied translation. The translation"
+                " is derived directly from DNA sequence."]
         try:
             if prot_seq and prot_seq != Seq.translate(
                     feat_seq, self.code_table, cds=True).strip("*"):

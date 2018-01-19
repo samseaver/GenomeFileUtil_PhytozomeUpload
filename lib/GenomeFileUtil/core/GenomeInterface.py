@@ -289,7 +289,7 @@ class GenomeInterface:
         allowed_tiers = {'Representative', 'Reference', 'ExternalDB', 'User'}
 
         log('Validating genome object contents')
-        warnings = []
+        warnings = g.get('warnings', [])
         if len(g.get('cdss', [])) < len(g['features']):
             warnings.append("CDS array should be at at least as long as the "
                             "Features array.")
