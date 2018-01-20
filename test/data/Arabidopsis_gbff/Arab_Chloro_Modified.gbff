@@ -59,7 +59,7 @@ FEATURES             Location/Qualifiers
                      /gene="Zero_Span_two_exon"
                      /locus_tag="Zero_Span_two_exon"
                      /note="Taken from https://www.ncbi.nlm.nih.gov/nuccore/AM236080, coordinates changed."
-     CDS             complement(join(154400..154469,10..72))
+     CDS             complement(join(154400..154478,1..72))
                      /gene="Zero_Span_two_exon"
                      /locus_tag="Zero_Span_two_exon"
                      /EC_number="4.1.1.37"
@@ -541,6 +541,22 @@ FEATURES             Location/Qualifiers
                      NPWVFEPEYPGKSRIFDGRTGDPFEQPVIIGKPYILKLIHQVDDKIHGRSSGHYALVT
                      QQPLRGRSKQGGQRVGEMEVWALEGFGVAHILQEMLTYKSDHIRARQEVLGTTIIGGT
                      IPKPEDAPESFRLLVRELRSLALELNHFLVSEKNFQINRKEV"
+     gene            28089..28178
+                     /gene="petN"
+                     /locus_tag="ArthCp015"
+                     /gene_synonym="ycf6"
+                     /db_xref="GeneID:844779"
+     CDS             28089..28178
+                     /gene="petN"
+                     /locus_tag="ArthCp015"
+                     /gene_synonym="ycf6"
+                     /note="cytochrome b6/f complex subunit N"
+                     /codon_start=1
+                     /transl_table=11
+                     /product="cytochrome b6/f complex subunit VIII"
+                     /protein_id="NP_051052.1"
+                     /db_xref="GI:7525026"
+                     /db_xref="GeneID:844779"
 ORIGIN      
         1 atgggcgaac gacgggaatt gaacccgcga tggtgaattc acaatccact gccttaatcc
        61 acttggctac atccgcccct acgctactat ctattctttt ttgtattgtc taaaaaaaaa
