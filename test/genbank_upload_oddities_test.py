@@ -486,7 +486,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         has_cds_warning = False
         has_translation = False
         for feature in genome["cdss"]:
-            if feature['id'] == "RL4742_CDS_1":
+            if feature['id'] == "ArthCp015_CDS_1":
                 found_cds = True
                 if "warnings" in feature:
                     for warning in feature["warnings"]:
@@ -494,7 +494,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                             has_cds_warning = True
                 if feature.get("protein_translation"):
                     has_translation = True
-        self.assertTrue(found_cds,"Did not find RL4742_CDS_1.")
+        self.assertTrue(found_cds,"Did not find ArthCp015_CDS_1.")
         self.assertTrue(has_cds_warning,"Missing warning was derived from DNA Sequence.")
         self.assertTrue(has_translation,"The translation was derived and populated.")
 
