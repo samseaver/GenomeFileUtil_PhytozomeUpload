@@ -45,6 +45,7 @@ class GenbankToGenome:
         self.genome_warnings = []
         self.genome_suspect = False
         self.cds_seq_not_matching = 0
+        self.bad_parent_loc = 0
         self.excluded_features = ('source', 'exon')
         self.go_mapping = json.load(
             open('/kb/module/data/go_ontology_mapping.json'))
@@ -310,6 +311,20 @@ class GenbankToGenome:
         genome['feature_counts'] = dict(self.feature_counts)
         # can't serialize a set
         genome['publications'] = list(genome['publications'])
+
+        if len(genome['cdss']) and self.cds_seq_not_matching / float(len(
+                genome['cdss'])) > 0.01:
+            self.genome_warnings.append("SUSPECT This Genome has a high "
+                "proportion ({} out of {}) CDS features that do not "
+                "translate the supplied translation".format(
+                self.cds_seq_not_matching, len(genome['cdss'])))
+            self.genome_suspect = 1
+        if self.bad_parent_loc:
+            self.genome_warnings.append("There were {} parent/child "
+                "relationships that were not able to be determined. Some of "
+                "these may have splice variants that may be valid "
+                "relationships.".format(self.bad_parent_loc))
+
         if self.genome_warnings:
             genome['warnings'] = self.genome_warnings
         if self.genome_suspect:
@@ -441,6 +456,7 @@ class GenbankToGenome:
                     _warn("The coordinates supplied for this feature are "
                           "non-exact. DNA or protein translations are "
                           "approximate.")
+                    print feat.qualifiers.get('locus_tag'), type(part.start)
 
                 if part.strand >= 0:
                     begin = int(part.start) + 1
@@ -503,6 +519,7 @@ class GenbankToGenome:
                 "dna_sequence_length": len(feat_seq),
                 "md5": hashlib.md5(str(feat_seq)).hexdigest(),
             }
+            print(out_feat.get('warnings'))
             if not _id:
                 out_feat['id'] = in_feature.type
             # note that end is the larger number regardless of strand
@@ -552,14 +569,6 @@ class GenbankToGenome:
             else:
                 noncoding.append(self.process_noncodeing(_id, genes,
                                                          in_feature, out_feat))
-
-        print(len(cdss), self.cds_seq_not_matching)
-        if len(cdss) and self.cds_seq_not_matching / len(cdss) > 0.01:
-            self.genome_warnings.append("SUSPECT This Genome has a high "
-                "proportion ({} out of {}) CDS features that do not "
-                "translate the supplied translation".format(
-                self.cds_seq_not_matching, len(cdss)))
-            self.genome_suspect = 1
 
         coding = []
         for g in genes.values():
@@ -670,9 +679,9 @@ class GenbankToGenome:
         if _id in genes:
             if not is_parent(genes[_id], out_feat):
                 out_feat['warnings'] = out_feat.get('warnings', []) + [
-                    "{} is annotated as the parent gene of {} but "
-                    "coordinates do not match".format(_id,
-                                                      out_feat['id'])]
+                    "Feature order suggests that {} is the parent gene, but it"
+                    " fails location validation".format(_id)]
+                self.bad_parent_loc += 1
             else:
                 if 'children' not in genes[_id]:
                     genes[_id]['children'] = []
@@ -689,6 +698,7 @@ class GenbankToGenome:
             "protein_translation_length": len(prot_seq),
             'parent_gene': "",
         })
+        print(out_feat.get('warnings'))
         if not prot_seq:
             try:
                 out_feat['protein_translation'] = Seq.translate(
@@ -698,7 +708,8 @@ class GenbankToGenome:
                     "translation is derived directly from DNA sequence."]
             except TranslationError as e:
                 out_feat['warnings'] = out_feat.get('warnings', []) + [
-                    "Unable to generate protein sequence:" + str(e)]
+                    "Protein translation not supplied. Unable to generate "
+                    "protein sequence:" + str(e)]
 
         # allow a little slack to account for frameshift and stop codon
         if prot_seq and abs(len(prot_seq) * 3 - len(feat_seq)) > 4:
@@ -728,9 +739,9 @@ class GenbankToGenome:
             out_feat['id'] += "_" + str(len(genes[_id]['cdss']) + 1)
             if not is_parent(genes[_id], out_feat):
                 out_feat['warnings'] = out_feat.get('warnings', []) + [
-                    "{} is annotated as the parent gene of {} but "
-                    "coordinates do not match".format(_id,
-                                                      out_feat['id'])]
+                    "Feature order suggests that {} is the parent gene, but it"
+                    " fails location validation".format(_id)]
+                self.bad_parent_loc += 1
             else:
                 genes[_id]['cdss'].append(out_feat['id'])
                 propagate_cds_props_to_gene(out_feat, genes[_id])
@@ -740,23 +751,22 @@ class GenbankToGenome:
         if mrna_id in mrnas:
             if not is_parent(mrnas[mrna_id], out_feat):
                 out_feat['warnings'] = out_feat.get('warnings', []) + [
-                    "{} is annotated as the parent mrna of {} but "
-                    "coordinates do not match".format(_id,
-                                                      out_feat['id'])]
+                    "Feature order suggests that {} is the parent mRNA, but it"
+                    " fails location validation".format(_id)]
+                self.bad_parent_loc += 1
             else:
                 out_feat['parent_mrna'] = mrna_id
                 mrnas[mrna_id]['cds'] = out_feat['id']
         return out_feat
 
-    @staticmethod
-    def process_mrna(_id, genes, out_feat):
+    def process_mrna(self, _id, genes, out_feat):
         if _id in genes:
             out_feat['id'] += "_" + str(len(genes[_id]['mrnas']) + 1)
             if not is_parent(genes[_id], out_feat):
                 out_feat['warnings'] = out_feat.get('warnings', []) + [
-                    "{} is annotated as the parent gene of {} but "
-                    "coordinates do not match".format(_id,
-                                                      out_feat['id'])]
+                    "Feature order suggests that {} is the parent gene, but it"
+                    " fails location validation".format(_id)]
+                self.bad_parent_loc += 1
                 out_feat['parent_gene'] = ""
             else:
                 genes[_id]['mrnas'].append(out_feat['id'])

@@ -18,6 +18,7 @@ from pprint import pprint
 import json
 
 ts_error = "The feature coordinates order are suspect and the feature is not flagged as being trans-spliced"
+fuzzy_loc_error = "The coordinates supplied for this feature are non-exact. DNA or protein translations are approximate."
 
 class GenomeFileUtilTest(unittest.TestCase):
     @classmethod
@@ -173,7 +174,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         cds_flag_found = False
         for feature in genome["features"]:
             if feature['id'] == "ArthCp047":
-                print "Found ArthCp047 :: " + str(feature)
+                print "Found ArthCp047"
                 found_gene = True
                 if "flags" in feature:
                     for flag in feature["flags"]:
@@ -322,7 +323,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertFalse(has_gene_warning, "The position coordinates are out of order, but they start and stop at the start and end of a circular contig, therefore it is valid.")
         self.assertFalse(gene_transpliced_flag, "The trans_splicing flag was set, technically it appears it may be transpliced, but the file does not state it to be.")
         for feature in genome["cdss"]:
-            if feature['id'] == "InvalidOrder_CDS_1":
+            if feature['id'] == "RL4742A_CDS_1":
 #                print "FEATURE::::" + str(feature)
                 print "Found RL4742A_CDS_1"
                 found_cds = True
@@ -576,17 +577,15 @@ class GenomeFileUtilTest(unittest.TestCase):
                 found_gene = True
                 #print "Gene : " + str(feature)
                 if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == "The coordinates supplied for this feature are non-exact. DNA or protein translations are approximate.":
-                            found_gene_warning = True
+                    if fuzzy_loc_error in feature["warnings"]:
+                        found_gene_warning = True
         for feature in genome["cdss"]:
             if feature['id'] == "ArthCp005_CDS_1":
                 found_cds = True
                 #print "CDS : " + str(feature)
                 if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == "The coordinates supplied for this feature are non-exact. DNA or protein translations are approximate.":
-                            found_cds_warning = True
+                    if fuzzy_loc_error in feature["warnings"]:
+                        found_cds_warning = True
         self.assertTrue(found_gene,"'ArthCp005' Was not found in the genes")
         self.assertTrue(found_cds,"'ArthCp005_CDS_1' Was not found in the cdss")
         self.assertTrue(found_gene_warning,"Did not have gene unknown lower bound warning")
@@ -603,17 +602,15 @@ class GenomeFileUtilTest(unittest.TestCase):
                 found_gene = True
                 #print "Gene : " + str(feature)
                 if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == "The coordinates supplied for this feature are non-exact. DNA or protein translations are approximate.":
-                            found_gene_warning = True
+                    if fuzzy_loc_error in feature["warnings"]:
+                        found_gene_warning = True
         for feature in genome["cdss"]:
             if feature['id'] == "ArthCp006_CDS_1":
                 found_cds = True
                 #print "CDS : " + str(feature)
                 if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == "The coordinates supplied for this feature are non-exact. DNA or protein translations are approximate.":
-                            found_cds_warning = True
+                    if fuzzy_loc_error in feature["warnings"]:
+                        found_cds_warning = True
         self.assertTrue(found_gene,"'ArthCp006' Was not found in the genes")
         self.assertTrue(found_cds,"'ArthCp006_CDS_1' Was not found in the cdss")
         self.assertTrue(found_gene_warning,"Did not have gene unknown upper bound warning")
@@ -630,23 +627,19 @@ class GenomeFileUtilTest(unittest.TestCase):
                 found_gene = True
                 #print "Gene : " + str(feature)
                 if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == "The coordinates supplied for this feature are non-exact. DNA or protein translations are approximate.":
-                            found_gene_upper_warning = True
+                    if fuzzy_loc_error in feature["warnings"]:
+                        found_gene_upper_warning = True
         for feature in genome["cdss"]:
             if feature['id'] == "ArthCp007_CDS_1":
                 found_cds = True
                 #print "CDS : " + str(feature)
                 if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == "The coordinates supplied for this feature are non-exact. DNA or protein translations are approximate.":
-                            found_cds_upper_warning = True
+                    if fuzzy_loc_error in feature["warnings"]:
+                        found_cds_upper_warning = True
         self.assertTrue(found_gene,"'ArthCp007' Was not found in the genes")
         self.assertTrue(found_cds,"'ArthCp007_CDS_1' Was not found in the cdss")
         self.assertTrue(found_gene_upper_warning,"Did not have gene unknown upper bound warning")
         self.assertTrue(found_cds_upper_warning,"Did not have cds unknown upper bound warning")
-        self.assertTrue(found_gene_lower_warning,"Did not have gene unknown lower bound warning")
-        self.assertTrue(found_cds_lower_warning,"Did not have cds unknown lower bound warning")
 
 '''
     def test_reversed_position(self):
