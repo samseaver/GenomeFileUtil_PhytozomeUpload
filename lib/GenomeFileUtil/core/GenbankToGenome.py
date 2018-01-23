@@ -455,7 +455,7 @@ class GenbankToGenome:
                 return
 
             if out_feat['location'] == sorted(out_feat['location'],
-                    reverse=not in_feature.location.strand):
+                    reverse=(in_feature.location.strand == -1)):
                 return
 
             if record.id in self.circ_contigs and \
