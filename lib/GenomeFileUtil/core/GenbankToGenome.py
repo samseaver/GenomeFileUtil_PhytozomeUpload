@@ -118,30 +118,15 @@ class GenbankToGenome:
         ref = "{}/{}/{}".format(result['info'][6], result['info'][0],
                                 result['info'][4])
         self.log("Genome saved to {}".format(ref))
-        report_string = 'A genome with {} contigs and the following feature ' \
-                        'types was imported: {}'.format(
-                         len(genome['contig_ids']), "\n".join(
-                          [k + ": " + str(v) for k, v in genome['feature_counts'].items()]))
 
-        # 5) Generate Report
-        reportObj = {'objects_created': [{'ref': ref, 'description': 'KBase Genome object'}],
-                     'text_message': report_string,
-                     'warnings': result['warnings']}
-        report_info = self.report_client.create({
-            'report': reportObj,
-            'workspace_name': params['workspace_name']
-        })
-
-        # 6) clear the temp directory
+        # 5) clear the temp directory
         shutil.rmtree(input_directory)
 
-        # 7) return the result
+        # 6) return the result
         info = result['info']
         details = {
             'genome_ref': ref,
-            'genome_info': info,
-            'report_name': report_info['name'],
-            'report_ref': report_info['ref']
+            'genome_info': info
         }
 
         return details
