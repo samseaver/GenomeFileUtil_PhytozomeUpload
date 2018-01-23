@@ -102,8 +102,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'genome_name': ws_obj_name,
                 'generate_ids_if_needed': 1
             })[0]
-        self.assertTrue(int(
-            result['genome_info'][10]['Number of Protein Encoding Genes']) > 0)
+        self.assertEquals(result['genome_info'][10]['Number contigs'], '1')
+        self.assertEquals(result['genome_info'][10]['Number of Protein Encoding Genes'], '0')
 
     def test_upload_prokka(self):
         gbk_path = "data/prokka/PROKKA_012345.gbk.gz"

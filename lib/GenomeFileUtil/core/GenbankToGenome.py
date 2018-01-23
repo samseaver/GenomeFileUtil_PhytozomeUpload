@@ -451,13 +451,6 @@ class GenbankToGenome:
             strand_trans = ("", "+", "-")
             loc = []
             for part in feat.location.parts:
-                if not isinstance(part.start, ExactPosition) \
-                        or not isinstance(part.end, ExactPosition):
-                    _warn("The coordinates supplied for this feature are "
-                          "non-exact. DNA or protein translations are "
-                          "approximate.")
-                    print feat.qualifiers.get('locus_tag'), type(part.start)
-
                 if part.strand >= 0:
                     begin = int(part.start) + 1
                 else:
@@ -473,25 +466,20 @@ class GenbankToGenome:
             out_feat['warnings'] = out_feat.get('warnings', []) + [message]
 
         def _check_suspect_location(parent=None):
-            print(out_feat['id'])
             if 'trans_splicing' in out_feat.get('flags', []):
-                print('trans-spliced')
                 return
 
             if out_feat['location'] == sorted(out_feat['location'],
                     reverse=not in_feature.location.strand):
-                print('inorder')
                 return
 
             if record.id in self.circ_contigs and \
                     in_feature.location.start == 0 \
                     and in_feature.location.end == len(record):
-                print('spans zero')
                 self.features_spaning_zero.add(out_feat['id'])
                 return
 
             if parent and parent['id'] in self.features_spaning_zero:
-                print('parent spans zero')
                 return
 
             msg = "The feature coordinates order are suspect and the " \
@@ -519,9 +507,10 @@ class GenbankToGenome:
                 "dna_sequence_length": len(feat_seq),
                 "md5": hashlib.md5(str(feat_seq)).hexdigest(),
             }
-            print(out_feat.get('warnings'))
             if not _id:
                 out_feat['id'] = in_feature.type
+
+            # validate input feature
             # note that end is the larger number regardless of strand
             if int(in_feature.location.end) > len(record):
                 self.genome_warnings.append('SUSPECT {}: Feature has '
@@ -529,6 +518,13 @@ class GenbankToGenome:
                     'not included'.format(out_feat['id']))
                 self.genome_suspect = True
                 continue
+
+            for piece in in_feature.location.parts:
+                if not isinstance(piece.start, ExactPosition) \
+                        or not isinstance(piece.end, ExactPosition):
+                    _warn("The coordinates supplied for this feature are "
+                          "non-exact. DNA or protein translations are "
+                          "approximate.")
 
             self.feature_counts[in_feature.type] += 1
 
@@ -698,7 +694,6 @@ class GenbankToGenome:
             "protein_translation_length": len(prot_seq),
             'parent_gene': "",
         })
-        print(out_feat.get('warnings'))
         if not prot_seq:
             try:
                 out_feat['protein_translation'] = Seq.translate(
