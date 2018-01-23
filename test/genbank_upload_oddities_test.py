@@ -496,7 +496,26 @@ class GenomeFileUtilTest(unittest.TestCase):
                     has_translation = True
         self.assertTrue(found_cds,"Did not find ArthCp015_CDS_1.")
         self.assertTrue(has_cds_warning,"Missing warning was derived from DNA Sequence.")
-        self.assertTrue(has_translation,"The translation was derived and populated.")
+        self.assertTrue(has_translation,"The translation was derived and populated.")            
+
+    def test_translation_not_supplied_not_multiple_of_3(self):
+        genome = self.__class__.genome
+        found_cds = False
+        has_cds_warning = False
+        has_empty_translation = False
+        for feature in genome["cdss"]:
+            if feature['id'] == "ArthCp015_non3_CDS_1":
+                found_cds = True
+                if "warnings" in feature:
+                    for warning in feature["warnings"]:
+                        if warning == "Protein translation not supplied. Unable to generate protein sequence:Sequence length 88 is not a multiple of three":
+                            has_cds_warning = True
+                if "protein_translation" in feature:
+                    if feature["protein_translation"] == "":
+                        has_empty_translation = True
+        self.assertTrue(found_cds,"Did not find ArthCp015_non3_CDS_1.")
+        self.assertTrue(has_cds_warning,"Missing warning unable to do translation.")
+        self.assertTrue(has_empty_translation,"No trnaslation supplied and not a multiple of 3, should be emoty.")
 
     def test_ensembl_coordinates(self):
         genome = self.__class__.genome
