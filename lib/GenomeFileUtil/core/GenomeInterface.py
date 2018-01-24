@@ -155,7 +155,7 @@ class GenomeInterface:
             workspace_id = self.dfu.ws_name_to_id(workspace)
 
         dfu_save_params = {'id': workspace_id,
-                           'objects': [{'type': 'NewTempGenomes.Genome',
+                           'objects': [{'type': 'KBaseGenomes.Genome',
                                         'data': data,
                                         'name': name,
                                         'meta': meta,
