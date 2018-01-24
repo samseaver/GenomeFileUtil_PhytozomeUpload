@@ -11,10 +11,20 @@ def is_parent(feat1, feat2):
         else:
             return loc2[1] <= loc1[1] and (
                 loc2[1] - loc2[3] >= loc1[1] - loc1[3])
-    for l2 in feat2['location']:
-        if not any(_contains(l1, l2) for l1 in feat1['location']):
-            print("No parent was found for location {}".format(l2))
+    if feat1.get('type') == 'gene':
+        for l2 in feat2['location']:
+            if not any(_contains(l1, l2) for l1 in feat1['location']):
+                return False
+    else:
+        # for a mrna, the first ans last part match loosely (like a gene) but
+        # the internal coordinates must be an exact match
+        if not any(_contains(l1, feat2['location'][0]) for l1 in feat1['location']):
             return False
+        if not any(_contains(l1, feat2['location'][-1]) for l1 in feat1['location']):
+            return False
+        for l2 in feat2['location'][1:-1]:
+            if l2 not in feat1['location']:
+                return False
     return True
 
 
