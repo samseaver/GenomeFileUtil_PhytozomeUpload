@@ -126,8 +126,6 @@ class GenomeInterface:
                         feature['dna_sequence'] = dna_sequences[feature['id']]
                         feature['dna_sequence_length'] = len(feature['dna_sequence'])
 
-
-        
     def save_one_genome(self, params):
         log('start saving genome object')
 
