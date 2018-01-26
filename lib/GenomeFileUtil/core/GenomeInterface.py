@@ -223,7 +223,8 @@ class GenomeInterface:
         """Checks for missing required fields and fixes breaking changes"""
         # do top level updates
         ontologies_present = defaultdict(dict)
-        ontology_events = []
+        ontologies_present.update(genome.get('ontologies_present', {}))
+        ontology_events = genome.get('ontology_events', [])
         if 'genome_tier' not in genome:
             genome['source'], genome['genome_tiers'] = self.determine_tier(
                 genome['source'])
@@ -260,11 +261,16 @@ class GenomeInterface:
                     feat['functions'] = feat['function'].split('; ')
                     del feat['function']
                 if 'aliases' in feat:
-                    feat['aliases'] = [['gene_synonym', x] for x in feat['aliases']]
+                    if not feat['aliases']:
+                        del feat['aliases']
+                    elif not isinstance(feat['aliases'][0], list):
+                        feat['aliases'] = [['gene_synonym', x] for x in feat['aliases']]
                 if 'type' in feat:
                     type_counts[feat['type']] += 1
                 for ontology, terms in feat.get('ontology_terms', {}).items():
                     for term in terms.values():
+                        if isinstance(term, list):
+                            continue
                         ontologies_present[ontology][term['id']] = term['term_name']
                         term_evidence = []
                         for ev in term['evidence']:
@@ -274,6 +280,15 @@ class GenomeInterface:
                                 ontology_events.append(ev)
                             term_evidence.append(ontology_events.index(ev))
                         feat['ontology_terms'][ontology][term['id']] = term_evidence
+
+                # remove deprecated fields
+                feat.pop('protein_families', None)
+                feat.pop('atomic_regulons', None)
+                feat.pop('orthologs', None)
+                feat.pop('coexpressed_fids', None)
+                feat.pop('publications', None)
+                feat.pop('regulon_data', None)
+                feat.pop('subsystem_data', None)
 
                 if 'dna_sequence_length' not in feat:
                     feat['dna_sequence_length'] = sum(x[3] for x in feat['location'])
@@ -295,6 +310,8 @@ class GenomeInterface:
                             feat['parent_gene'] = ''
                         genome['cdss'].append(feat)
                     elif feat.get('type', 'gene') == 'mRNA':
+                        if 'parent_gene' not in feat:
+                            feat['parent_gene'] = ''
                         genome['mrnas'].append(feat)
 
         genome['features'] = retained_features

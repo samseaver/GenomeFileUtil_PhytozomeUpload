@@ -131,3 +131,34 @@ class GenomeFileUtilTest(unittest.TestCase):
         }
         result = self.ws.save_objects(save_info)
 
+    def test_upgrade_community_model(self):
+        community = json.load(open('data/community_model_genome.json'))
+        community['assembly_ref'] = self.assembly_ref
+        new_community = self.genome_interface._update_genome(community)
+        json.dump(new_community,
+                  open(self.cfg['scratch'] + '/new_genome', 'w'))
+        save_info = {
+            'workspace': self.getWsName(),
+            'objects': [{
+                'type': 'NewTempGenomes.Genome',
+                'data': new_community,
+                'name': 'community_model'
+            }]
+        }
+        result = self.ws.save_objects(save_info)
+        
+    def test_upgrade_community_model(self):
+        mixed = json.load(open('data/mixed_genome.json'))
+        mixed['assembly_ref'] = self.assembly_ref
+        new_mixed = self.genome_interface._update_genome(mixed)
+        json.dump(new_mixed,
+                  open(self.cfg['scratch'] + '/new_genome', 'w'))
+        save_info = {
+            'workspace': self.getWsName(),
+            'objects': [{
+                'type': 'NewTempGenomes.Genome',
+                'data': new_mixed,
+                'name': 'mixed_model'
+            }]
+        }
+        result = self.ws.save_objects(save_info)
