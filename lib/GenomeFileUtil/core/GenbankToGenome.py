@@ -39,6 +39,7 @@ class GenbankToGenome:
         self.ontologies_present = defaultdict(dict)
         self.skiped_features = Counter()
         self.feature_counts = Counter()
+        self.orphan_types = Counter()
         self.contig_seq = {}
         self.circ_contigs = set()
         self.features_spaning_zero = set()
@@ -656,7 +657,6 @@ class GenbankToGenome:
     def process_noncodeing(self, _id, genes, in_feature, out_feat):
         out_feat["type"] = in_feature.type
         # add increment number of each type
-        out_feat['id'] += "_" + str(self.feature_counts[in_feature.type])
         if _id in genes:
             if not is_parent(genes[_id], out_feat):
                 out_feat['warnings'] = out_feat.get('warnings', []) + [
@@ -669,6 +669,9 @@ class GenbankToGenome:
                 out_feat['id'] += "_" + str(len(genes[_id]['children']) + 1)
                 genes[_id]['children'].append(out_feat['id'])
                 out_feat['parent_gene'] = _id
+        else:
+            self.orphan_types[in_feature.type] += 1
+            out_feat['id'] += "_" + str(self.orphan_types[in_feature.type])
         return out_feat
 
     def process_cds(self, _id, feat_seq, genes, in_feature, mrnas, out_feat):
