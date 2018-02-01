@@ -47,9 +47,9 @@ class GenomeFileUtil:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "0.7.0"
+    VERSION = "0.8.2"
     GIT_URL = "git@github.com:kbaseapps/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "58d3e89ccfcff4e5721ce69223271f3450744bb9"
+    GIT_COMMIT_HASH = "de2691c90ea3d8c0f7101d6af55aa99418573bf4"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -77,16 +77,20 @@ class GenomeFileUtil:
            generate_ids_if_needed - If field used for feature id is not
            there, generate ids (default behavior is raising an exception)
            genetic_code - Genetic code of organism. Overwrites determined GC
-           from taxon object type - Reference, Representative or User upload)
-           -> structure: parameter "file" of type "File" -> structure:
-           parameter "path" of String, parameter "shock_id" of String,
-           parameter "ftp_url" of String, parameter "genome_name" of String,
-           parameter "workspace_name" of String, parameter "source" of
-           String, parameter "taxon_wsname" of String, parameter
-           "taxon_reference" of String, parameter "release" of String,
-           parameter "generate_ids_if_needed" of String, parameter
-           "genetic_code" of Long, parameter "type" of String, parameter
-           "metadata" of type "usermeta" -> mapping from String to String
+           from taxon object type - Reference, Representative or User upload
+           generate_missing_genes - If the file has CDS or mRNA with no
+           corresponding gene, generate a spoofed gene.) -> structure:
+           parameter "file" of type "File" -> structure: parameter "path" of
+           String, parameter "shock_id" of String, parameter "ftp_url" of
+           String, parameter "genome_name" of String, parameter
+           "workspace_name" of String, parameter "source" of String,
+           parameter "taxon_wsname" of String, parameter "taxon_reference" of
+           String, parameter "release" of String, parameter
+           "generate_ids_if_needed" of String, parameter "genetic_code" of
+           Long, parameter "type" of String, parameter "metadata" of type
+           "usermeta" -> mapping from String to String, parameter
+           "generate_missing_genes" of type "boolean" (A boolean - 0 for
+           false, 1 for true. @range (0, 1))
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
            "genome_ref" of String
         """

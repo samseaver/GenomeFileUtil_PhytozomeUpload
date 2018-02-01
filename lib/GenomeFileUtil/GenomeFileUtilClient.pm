@@ -133,11 +133,13 @@ GenbankToGenomeParams is a reference to a hash where the following keys are defi
 	genetic_code has a value which is an int
 	type has a value which is a string
 	metadata has a value which is a GenomeFileUtil.usermeta
+	generate_missing_genes has a value which is a GenomeFileUtil.boolean
 File is a reference to a hash where the following keys are defined:
 	path has a value which is a string
 	shock_id has a value which is a string
 	ftp_url has a value which is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+boolean is an int
 GenomeSaveResult is a reference to a hash where the following keys are defined:
 	genome_ref has a value which is a string
 
@@ -161,11 +163,13 @@ GenbankToGenomeParams is a reference to a hash where the following keys are defi
 	genetic_code has a value which is an int
 	type has a value which is a string
 	metadata has a value which is a GenomeFileUtil.usermeta
+	generate_missing_genes has a value which is a GenomeFileUtil.boolean
 File is a reference to a hash where the following keys are defined:
 	path has a value which is a string
 	shock_id has a value which is a string
 	ftp_url has a value which is a string
 usermeta is a reference to a hash where the key is a string and the value is a string
+boolean is an int
 GenomeSaveResult is a reference to a hash where the following keys are defined:
 	genome_ref has a value which is a string
 
@@ -1398,6 +1402,8 @@ generate_ids_if_needed - If field used for feature id is not there,
 genetic_code - Genetic code of organism. Overwrites determined GC from 
       taxon object
 type - Reference, Representative or User upload
+generate_missing_genes - If the file has CDS or mRNA with no corresponding
+    gene, generate a spoofed gene.
 
 
 =item Definition
@@ -1417,6 +1423,7 @@ generate_ids_if_needed has a value which is a string
 genetic_code has a value which is an int
 type has a value which is a string
 metadata has a value which is a GenomeFileUtil.usermeta
+generate_missing_genes has a value which is a GenomeFileUtil.boolean
 
 </pre>
 
@@ -1436,6 +1443,7 @@ generate_ids_if_needed has a value which is a string
 genetic_code has a value which is an int
 type has a value which is a string
 metadata has a value which is a GenomeFileUtil.usermeta
+generate_missing_genes has a value which is a GenomeFileUtil.boolean
 
 
 =end text

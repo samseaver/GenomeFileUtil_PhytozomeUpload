@@ -33,6 +33,8 @@ module GenomeFileUtil {
     genetic_code - Genetic code of organism. Overwrites determined GC from 
           taxon object
     type - Reference, Representative or User upload
+    generate_missing_genes - If the file has CDS or mRNA with no corresponding
+        gene, generate a spoofed gene.
 
     */
     typedef structure {
@@ -50,6 +52,7 @@ module GenomeFileUtil {
         int    genetic_code;
         string type;
         usermeta metadata;
+        boolean generate_missing_genes;
     } GenbankToGenomeParams;
 
     typedef structure {

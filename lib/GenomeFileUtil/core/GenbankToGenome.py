@@ -1,4 +1,5 @@
 
+import copy
 import datetime
 import time
 import os
@@ -8,7 +9,6 @@ import shutil
 import uuid
 import hashlib
 import json
-import string
 from collections import Counter, defaultdict, OrderedDict
 
 import Bio.SeqIO
@@ -36,6 +36,7 @@ class GenbankToGenome:
             time.time()).strftime('%Y_%m_%d_%H_%M_%S'))
         yml_text = open('/kb/module/kbase.yml').read()
         self.version = re.search("module-version:\n\W+(.+)\n", yml_text).group(1)
+        self.generate_parents = False
         self.ontologies_present = defaultdict(dict)
         self.skiped_features = Counter()
         self.feature_counts = Counter()
@@ -105,6 +106,7 @@ class GenbankToGenome:
         # 3) update default params
         self.default_params.update(params)
         params = self.default_params
+        self.generate_parents = params.get('generate_missing_genes')
 
         # 4) Do the upload
         files = self._find_input_files(input_directory)
@@ -427,7 +429,7 @@ class GenbankToGenome:
             """Assign a id to a feature based on the first tag that exists"""
             _id = ""
             if not tags:
-                tags = ['locus_tag', 'gene']
+                tags = ['locus_tag', 'gene', 'kbase_id']
             while tags and not _id:
                 _id = feat.qualifiers.get(tags.pop(0), [""])[0]
             return _id
@@ -537,13 +539,7 @@ class GenbankToGenome:
                     _id, feat_seq, genes, in_feature, mrnas, out_feat, cdss)
 
             elif in_feature.type == 'gene':
-                out_feat.update({
-                    "id": _id,
-                    "type": 'gene',
-                    "mrnas": [],
-                    'cdss': [],
-                })
-                genes[_id] = out_feat
+                self.process_gene(_id, genes, out_feat)
 
             elif in_feature.type == 'mRNA':
                 self.process_mrna(_id, genes, out_feat, mrnas)
@@ -661,6 +657,16 @@ class GenbankToGenome:
                 continue
         return result
 
+    @staticmethod
+    def process_gene(_id, genes, out_feat):
+        out_feat.update({
+            "id": _id,
+            "type": 'gene',
+            "mrnas": [],
+            'cdss': [],
+        })
+        genes[_id] = out_feat
+
     def process_noncodeing(self, _id, genes, in_feature, out_feat):
         out_feat["type"] = in_feature.type
         # add increment number of each type
@@ -687,7 +693,6 @@ class GenbankToGenome:
             "protein_translation": prot_seq,
             "protein_md5": hashlib.md5(prot_seq).hexdigest(),
             "protein_translation_length": len(prot_seq),
-            'parent_gene': "",
         })
         if not prot_seq:
             try:
@@ -725,6 +730,9 @@ class GenbankToGenome:
             out_feat['warnings'] = out_feat.get('warnings', []) + [
                 "Unable to verify protein sequence:" + str(e)]
 
+        if _id not in genes and self.generate_parents:
+            self.process_gene(_id, genes, copy.copy(out_feat))
+
         if _id in genes:
             out_feat['id'] += "_" + str(len(genes[_id]['cdss']) + 1)
             if not is_parent(genes[_id], out_feat):
@@ -739,6 +747,8 @@ class GenbankToGenome:
                 genes[_id]['cdss'].append(out_feat['id'])
                 propagate_cds_props_to_gene(out_feat, genes[_id])
                 out_feat['parent_gene'] = _id
+        else:
+            out_feat['parent_gene'] = ""
 
         mrna_id = out_feat["id"].replace('CDS', 'mRNA')
         if mrna_id in mrnas:
@@ -754,6 +764,9 @@ class GenbankToGenome:
         cdss[out_feat['id']] = out_feat
 
     def process_mrna(self, _id, genes, out_feat, mrnas):
+        if _id not in genes and self.generate_parents:
+                self.process_gene(_id, genes, copy.copy(out_feat))
+
         if _id in genes:
             out_feat['id'] += "_" + str(len(genes[_id]['mrnas']) + 1)
             if not is_parent(genes[_id], out_feat):
