@@ -1,7 +1,7 @@
 import unittest
 import time
 import os
-import shutil
+import json
 
 try:
     from ConfigParser import ConfigParser  # py2
@@ -12,6 +12,7 @@ from Workspace.WorkspaceClient import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from DataFileUtil.DataFileUtilClient import DataFileUtil
+from GenomeFileUtil.core.GenbankToGenome import warnings
 from pprint import pprint
 
 
@@ -58,6 +59,9 @@ class GenomeFileUtilTest(unittest.TestCase):
                                 token=cls.ctx['token'],
                                 service_ver='dev')
         cls.genome = data_file_cli.get_objects({'object_refs': [result['genome_ref']]})['data'][0]['data']
+        json.dump(cls.genome,
+                  open(cls.cfg['scratch'] + "/relationship_test_genome.json",
+                       'w'))
 #        print("GENE 1: ")
 #        pprint(cls.genome['features'][0])
 #        pprint(result)
@@ -69,10 +73,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         if hasattr(cls, 'wsName'):
             cls.wsClient.delete_workspace({'workspace': cls.wsName})
             print('Test workspace was deleted')
-
-    def test_incorrect(self):
-        self.assertTrue( 1 == 0, "1 ne 0")
-
 
     def test_easy_1exon_relationship(self):
         #1 exon, 1 splice variant
@@ -479,7 +479,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 found_mRNA = True
         for feature in genome["cdss"]:
             if feature['id'] == "AT4G12617_CDS_1":
-                found_CDS1 = True
+                found_CDS = True
         self.assertFalse(found_gene_in_features, "The gene AT4G12617 was found in features, it should have been excluded.")
         self.assertFalse(found_gene_in_non_coding, "The gene AT4G12617 was found in non_coding, it should have been excluded.")
         self.assertFalse(found_mRNA, "The mRNA AT4G12617_mRNA_1 was found, it should have been excluded.")
@@ -490,7 +490,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(genome_suspect, "The Genome should have been made suspect because the CDS is not within the gene.")
         if "warnings" in genome:
             for warning in genome["warnings"]:
-                if warning == "SUSPECT gene AT4G12617 was not excluded because the associated CDS failed coordinates validation":
+                if warning == warnings['gene_excluded'].format("AT4G12617"):
                     found_warning = True
         self.assertTrue(found_warning, "The Genome level warning for the failed coordinates matching.")
 
@@ -508,7 +508,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 found_gene_in_features = True
                 if "warnings" in feature:
                     for warning in feature["warnings"]:
-                        if warning == "The child mRNA failed loaction validation. That mRNA has been excluded.":
+                        if warning == "The child mRNA failed location validation. That mRNA has been excluded.":
                             found_gene_warning = True
         for feature in genome["non_coding_features"]:
             if feature['id'] == "AT4G12620":
@@ -518,7 +518,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 found_mRNA = True
         for feature in genome["cdss"]:
             if feature['id'] == "AT4G12620_CDS_1":
-                found_CDS1 = True
+                found_CDS = True
         self.assertTrue(found_gene_in_features, "The gene AT4G12620 was not found in features")
         self.assertFalse(found_gene_in_non_coding, "The gene AT4G12620 was found in non_coding.")
         self.assertFalse(found_mRNA, "The mRNA AT4G12620_mRNA_1 was found, it should have been excluded.")
@@ -553,7 +553,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 found_mRNA = True
         for feature in genome["cdss"]:
             if feature['id'] == "AT4G12485_CDS_1":
-                found_CDS1 = True
+                found_CDS = True
         self.assertFalse(found_gene_in_features, "The gene AT4G12485 was found in features, it should have been excluded.")
         self.assertFalse(found_gene_in_non_coding, "The gene AT4G12485 was found in non_coding, it should have been excluded.")
         self.assertFalse(found_mRNA, "The mRNA AT4G12485_mRNA_1 was found, it should have been excluded.")
@@ -564,7 +564,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(genome_suspect, "The Genome should be suspect because the CDS is not within the gene.")
         if "warnings" in genome:
             for warning in genome["warnings"]:
-                if warning == "SUSPECT gene AT4G12485 was not excluded because the associated CDS failed coordinates validation":
+                if warning == warnings['gene_excluded'].format("AT4G12485"):
                     found_warning = True
         self.assertTrue(found_warning, "The Genome level warning for the failed coordinates matching.")
 
@@ -608,14 +608,14 @@ class GenomeFileUtilTest(unittest.TestCase):
                             mRNA_warning = True
         for feature in genome["cdss"]:
             if feature['id'] == "AT4G12490_CDS_1":
-                found_CDS1 = True
+                found_CDS = True
                 if "mrna" in feature:
                     CDS_has_mRNA = True
                 if "parent_gene" in feature:
                     CDS_has_gene = True 
                 if "warnings" in feature:
                     for warning in feature["warnings"]:
-                        if warning == "Potential parent mRNA relationship failed due to location validation.":
+                        if warning == warnings['cds_mrna_cds'].format('AT4G12490_mRNA_1'):
                             CDS_warning = True               
         self.assertTrue(found_gene_in_features, "The gene AT4G12490 was not found in features")
         self.assertFalse(found_gene_in_non_coding, "The gene AT4G12490 was found in non_coding, it should be in features.")
