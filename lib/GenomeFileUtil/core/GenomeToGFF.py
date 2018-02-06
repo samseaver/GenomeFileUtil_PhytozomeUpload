@@ -141,13 +141,18 @@ class GenomeToGFF:
         return {'file_path': out_file_path}
 
     def make_feature_group(self, feature, is_gtf):
+        # genes are not present in GTF files
+        if is_gtf and feature['type'] == 'gene':
+            lines = []
         # RNA types make exons if they have compound locations
-        if feature['type'] in {'RNA', 'mRNA', 'transcript'}:
+        elif feature['type'] in {'RNA', 'mRNA', 'transcript'}:
             loc = self.get_common_location(feature['location'])
             lines = [self.make_feature(loc, feature, is_gtf)]
             for i, loc in enumerate(feature['location']):
                 exon = {'id': "{}_exon_{}".format(feature['id'], i + 1),
-                        'parent_gene': feature['id']}
+                        'parent_gene': feature.get('parent_gene', ''),
+                        'parent_mrna': feature.get('id', ''),
+                        'type': 'exon'}
                 lines.append(self.make_feature(loc, exon, is_gtf))
         # other types duplicate the feature
         else:
@@ -176,7 +181,7 @@ class GenomeToGFF:
             out_feature = {
                 'seqname': location[0],
                 'source': 'KBase',
-                'type': in_feature.get('type', 'exon'),
+                'type': in_feature['type'],
                 'start': str(self.get_start(location)),
                 'end': str(self.get_end(location)),
                 'score': '.',
@@ -188,14 +193,18 @@ class GenomeToGFF:
             else:
                 out_feature['attribute'] = self.gen_gff_attr(in_feature)
         except Exception as e:
-            raise Exception('Unable to parse {}:{}'.format(in_feature, e))
+            print("unable to parse {}".format(in_feature))
+            raise e
         return out_feature
 
     @staticmethod
     def gen_gtf_attr(feature):
         """Makes the attribute line for a feature in gtf style"""
-        return 'gene_id "{}"; transcript_id "{}"'.format(
-            feature.get('parent_gene', ''), feature.get('parent_mrna', ''))
+        gene_id = feature.get('parent_gene', '')
+        trans_id = feature.get('parent_mrna', '')
+        if feature['type'] in {'RNA', 'mRNA', 'transcript'}:
+            trans_id = feature['id']
+        return 'gene_id "{}"; transcript_id "{}"'.format(gene_id, trans_id)
 
     @staticmethod
     def gen_gff_attr(feature):
