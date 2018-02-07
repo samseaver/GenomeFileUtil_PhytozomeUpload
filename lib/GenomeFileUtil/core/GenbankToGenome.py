@@ -39,6 +39,7 @@ class GenbankToGenome:
         self.ontologies_present = defaultdict(dict)
         self.skiped_features = Counter()
         self.feature_counts = Counter()
+        self.orphan_types = Counter()
         self.contig_seq = {}
         self.circ_contigs = set()
         self.features_spaning_zero = set()
@@ -532,8 +533,8 @@ class GenbankToGenome:
 
             # add type specific features
             if in_feature.type == 'CDS':
-                cdss[out_feat['id']] = self.process_cds(
-                    _id, feat_seq, genes, in_feature, mrnas, out_feat)
+                self.process_cds(
+                    _id, feat_seq, genes, in_feature, mrnas, out_feat, cdss)
 
             elif in_feature.type == 'gene':
                 out_feat.update({
@@ -545,12 +546,13 @@ class GenbankToGenome:
                 genes[_id] = out_feat
 
             elif in_feature.type == 'mRNA':
-                mrnas[out_feat['id']] = self.process_mrna(_id, genes, out_feat)
+                self.process_mrna(_id, genes, out_feat, mrnas)
 
             else:
                 noncoding.append(self.process_noncodeing(_id, genes,
                                                          in_feature, out_feat))
 
+        # sort genes into their final arrays
         coding = []
         for g in genes.values():
             if len(g['cdss']):
@@ -566,6 +568,12 @@ class GenbankToGenome:
                     del g['mrnas']
                 coding.append(g)
                 self.feature_counts["protein_encoding_gene"] += 1
+            # genes that have no valid CDS after location tests are excluded
+            elif warnings['child_cds_failed'] in g.get('warnings', []):
+                self.genome_warnings.append(warnings['gene_excluded'].format(
+                    g['id']))
+                self.genome_suspect = True
+                continue
             else:
                 del g['mrnas'], g['cdss']
                 noncoding.append(g)
@@ -656,7 +664,6 @@ class GenbankToGenome:
     def process_noncodeing(self, _id, genes, in_feature, out_feat):
         out_feat["type"] = in_feature.type
         # add increment number of each type
-        out_feat['id'] += "_" + str(self.feature_counts[in_feature.type])
         if _id in genes:
             if not is_parent(genes[_id], out_feat):
                 out_feat['warnings'] = out_feat.get('warnings', []) + [
@@ -669,9 +676,12 @@ class GenbankToGenome:
                 out_feat['id'] += "_" + str(len(genes[_id]['children']) + 1)
                 genes[_id]['children'].append(out_feat['id'])
                 out_feat['parent_gene'] = _id
+        else:
+            self.orphan_types[in_feature.type] += 1
+            out_feat['id'] += "_" + str(self.orphan_types[in_feature.type])
         return out_feat
 
-    def process_cds(self, _id, feat_seq, genes, in_feature, mrnas, out_feat):
+    def process_cds(self, _id, feat_seq, genes, in_feature, mrnas, out_feat, cdss):
         prot_seq = in_feature.qualifiers.get("translation", [""])[0]
         out_feat.update({
             "protein_translation": prot_seq,
@@ -718,10 +728,13 @@ class GenbankToGenome:
         if _id in genes:
             out_feat['id'] += "_" + str(len(genes[_id]['cdss']) + 1)
             if not is_parent(genes[_id], out_feat):
-                out_feat['warnings'] = out_feat.get('warnings', []) + [
-                    "Feature order suggests that {} is the parent gene, but it"
-                    " fails location validation".format(_id)]
+                genes[_id]['warnings'] = genes[_id].get('warnings', []) + [
+                    warnings['child_cds_failed']]
+                self.genome_warnings.append(
+                    warnings['cds_excluded'].format(_id))
+                self.genome_suspect = True
                 self.bad_parent_loc += 1
+                return
             else:
                 genes[_id]['cdss'].append(out_feat['id'])
                 propagate_cds_props_to_gene(out_feat, genes[_id])
@@ -731,23 +744,26 @@ class GenbankToGenome:
         if mrna_id in mrnas:
             if not is_parent(mrnas[mrna_id], out_feat):
                 out_feat['warnings'] = out_feat.get('warnings', []) + [
-                    "Feature order suggests that {} is the parent mRNA, but it"
-                    " fails location validation".format(_id)]
+                    warnings['cds_mrna_cds'].format(mrna_id)]
+                mrnas[mrna_id]['warnings'] = mrnas[mrna_id].get(
+                    'warnings', []) + [warnings['cds_mrna_mrna']]
                 self.bad_parent_loc += 1
             else:
                 out_feat['parent_mrna'] = mrna_id
                 mrnas[mrna_id]['cds'] = out_feat['id']
-        return out_feat
+        cdss[out_feat['id']] = out_feat
 
-    def process_mrna(self, _id, genes, out_feat):
+    def process_mrna(self, _id, genes, out_feat, mrnas):
         if _id in genes:
             out_feat['id'] += "_" + str(len(genes[_id]['mrnas']) + 1)
             if not is_parent(genes[_id], out_feat):
-                out_feat['warnings'] = out_feat.get('warnings', []) + [
-                    "Feature order suggests that {} is the parent gene, but it"
-                    " fails location validation".format(_id)]
+                genes[_id]['warnings'] = genes[_id].get('warnings', []) + [
+                    warnings['child_mrna_failed']]
+                self.genome_warnings.append(
+                    warnings['mrna_excluded'].format(_id))
+                self.genome_suspect = True
                 self.bad_parent_loc += 1
-                out_feat['parent_gene'] = ""
+                return
             else:
                 genes[_id]['mrnas'].append(out_feat['id'])
                 out_feat['parent_gene'] = _id
@@ -755,4 +771,24 @@ class GenbankToGenome:
             out_feat['warnings'] = out_feat.get('warnings', []) + [
                 'Unable to find parent mrna for ' + str(out_feat)]
             out_feat['parent_gene'] = ""
-        return out_feat
+        mrnas[out_feat['id']] = out_feat
+
+
+warnings = {
+    "cds_excluded": "SUSPECT CDS {} was excluded because the associated CDS "
+                    "failed coordinates validation",
+
+    "cds_mrna_cds": "Feature order suggests that {} is the parent mRNA, but it"
+                    " fails location validation",
+    "cds_mrna_mrna": "Potential child CDS relationship failed due to location "
+                    "validation.",
+
+    "child_cds_failed": "The child CDS failed location validation. That CDS "
+                        "has been excluded.",
+    "child_mrna_failed": "The child mRNA failed location validation. That mRNA"
+                         " has been excluded.",
+    "gene_excluded": "SUSPECT gene {} was excluded because the associated CDS "
+                     "failed coordinates validation",
+    "mrna_excluded": "SUSPECT mRNA {} was excluded because the associated mRNA "
+                    "failed coordinates validation"
+}
