@@ -41,15 +41,15 @@ class GenomeFileUtilTest(unittest.TestCase):
         cls.serviceImpl = GenomeFileUtil(cls.cfg)
         cls.scratch = cls.cfg['scratch']
 
-        cls.plant_gff_filename = 'Test_v1.0.gene.gff3'
+        cls.plant_gff_filename = 'Absrep1_FilteredModels1_deflines.gff'
         cls.plant_gff_path = os.path.join(cls.scratch,
                                           cls.plant_gff_filename)
-        shutil.copy(os.path.join("data", "fasta_gff", "JGI", "Plant_Data",
+        shutil.copy(os.path.join("data", "fasta_gff", "Fungal_Data",
                                  cls.plant_gff_filename), cls.plant_gff_path)
 
-        cls.plant_fa_filename = 'Test_v1.0.fa.gz'
+        cls.plant_fa_filename = 'Absrep1_AssemblyScaffolds.fasta.gz'
         cls.plant_fa_path = os.path.join(cls.scratch, cls.plant_fa_filename)
-        shutil.copy(os.path.join("data", "fasta_gff", "JGI", "Plant_Data",
+        shutil.copy(os.path.join("data", "fasta_gff", "Fungal_Data",
                                  cls.plant_fa_filename), cls.plant_fa_path)
 
     @classmethod

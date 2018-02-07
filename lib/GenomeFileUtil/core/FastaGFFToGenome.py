@@ -343,10 +343,10 @@ class FastaGFFToGenome:
                     #Sometimes lack of "=", assume spaces instead
                     if("=" in attribute):
                         key, value = attribute.split("=", 1)
-                        ftr['attributes'][key].append(value)
+                        ftr['attributes'][key].append(value.strip('"'))
                     elif(" " in attribute):
                         key, value = attribute.split(" ", 1)
-                        ftr['attributes'][key].append(value)
+                        ftr['attributes'][key].append(value.strip('"'))
                     else:
                         log("Warning: attribute "+attribute+" cannot be separated into key,value pair")
 
@@ -382,27 +382,27 @@ class FastaGFFToGenome:
 
     @staticmethod
     def _add_missing_identifiers(feature_list):
-
+        print("Adding missing identifiers")
         #General rule is to iterate through a range of possibilities if "ID" is missing
         for contig in feature_list.keys():
             for i in range(len(feature_list[contig])):
-                if("ID" not in feature_list[contig][i]):
-                    for key in ("transcriptId", "proteinId", "PACid", "pacid", "Parent"):
-                        if(key in feature_list[contig][i]):
-                            feature_list[contig][i]['ID']=feature_list[contig][i][key]
+                if "ID" not in feature_list[contig][i]:
+                    for key in ("name", "transcriptId", "proteinId", "PACid",
+                                "pacid", "Parent"):
+                        if key in feature_list[contig][i]['attributes']:
+                            feature_list[contig][i]['ID'] = feature_list[
+                                contig][i]['attributes'][key][0]
                             break
 
                     #If the process fails, throw an error
-                    for ftr_type in ("gene", "mRNA", "CDS"):
-                        if(ftr_type not in feature_list[contig][i]):
-                            continue
-
-                        if("ID" not in feature_list[contig][i]):
-                            log("Error: Cannot find unique ID to utilize in GFF attributes: "+ \
-                                    feature_list[contig][i]['contig']+"."+ \
-                                    feature_list[contig][i]['source']+"."+ \
-                                    feature_list[contig][i]['type']+": "+ \
-                                    feature_list[contig][i]['attributes'])
+                    if "ID" not in feature_list[contig][i]:
+                            log("Error: Cannot find unique ID to utilize in "
+                                "GFF attributes: {}.{}.{}:{}".format(
+                                    feature_list[contig][i]['contig'],
+                                    feature_list[contig][i]['source'],
+                                    feature_list[contig][i]['type'],
+                                    str(feature_list[contig][i]['attributes']))
+                                )
         return feature_list
 
     @staticmethod
@@ -650,7 +650,7 @@ class FastaGFFToGenome:
         self.feature_dict[out_feat['id']] = out_feat
 
     def _process_cdss(self):
-        """Because CDSs can have multiple fragments, it's nessisary to go
+        """Because CDSs can have multiple fragments, it's necessary to go
         back over them to calculate a final protein sequence"""
         def _propagate_cds_props_to_gene(cds, gene):
             # Put longest protein_translation to gene
