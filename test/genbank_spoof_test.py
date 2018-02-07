@@ -71,18 +71,13 @@ class GenomeFileUtilTest(unittest.TestCase):
             self.getContext(),
             {
                 'file': {
-                'path': gbk_path},
+                    'path': gbk_path},
                 'workspace_name': self.getWsName(),
                 'genome_name': ws_obj_name,
                 'generate_ids_if_needed': 1,
                 'generate_missing_genes': 1
             })[0]
-        data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'], 
-                        #self.cls.ctx['token'],
-                        #ctx['token'],
-                        #os.environ.get('KB_AUTH_TOKEN', None),
-                        self.__class__.ctx['token'],
-                        service_ver='dev')
+        data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
         genome = data_file_cli.get_objects({'object_refs': [result['genome_ref']]})['data'][0]['data']
         found_spoofed_gene = False
         found_spoofed_gene_warning = False
@@ -95,13 +90,16 @@ class GenomeFileUtilTest(unittest.TestCase):
             for feature in genome["features"]:
                 if feature['id'] == "b0001":
                     found_spoofed_gene = True
-                if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if "warning" == "This gene was not in the source GenBank file. It was added to be the parent of the CDS b0001_CDS_1.":
-                            found_spoofed_gene_warning = True
-                if "cdss" in feature:
-                    if feature["cdss"][0] == "b0001_CDS_1":
-                        found_gene_cds = True
+                    if "warnings" in feature:
+                        for warning in feature["warnings"]:
+                            if "warning" == "This gene was not in the source GenBank file. It was added to be the parent of the CDS b0001_CDS_1.":
+                                found_spoofed_gene_warning = True
+                    if "cdss" in feature:
+                        if feature["cdss"][0] == "b0001_CDS_1":
+                            found_gene_cds = True
+                    temp_location = feature['location'][0]
+                    self.assertTrue(temp_location[1] == 190, "The spoofed start location is wrong.")
+                    self.assertTrue(temp_location[3] == 1610, "The spoofed length (end location) is wrong.")
         if "cdss" in genome:
             for feature in genome["cdss"]:
                 if feature['id'] == "b0001_CDS_1":
@@ -115,27 +113,27 @@ class GenomeFileUtilTest(unittest.TestCase):
             for warning in genome["warnings"]:
                 if warning == "Suspect this genome had 1 gene that needed to be spoofed for existing parentless CDS.":
                     found_genome_warning = True
+        self.assertTrue(found_cds,"The CDS was not found.")
         self.assertTrue(found_spoofed_gene,"The gene did not get spoofed.")
         self.assertTrue(found_spoofed_gene_warning,"The gene warning was not present.")
-        self.assertTrue(found_cds,"The CDS was not found.")
         self.assertTrue(found_cds_gene,"The Gene for the CDS was not found.")                                    
         self.assertTrue(found_gene_cds,"The CDS for the Gene was not found.") 
         self.assertTrue(found_genome_warning,"The genome warning was not present.")  
         self.assertTrue(suspect_genome,"The genome was not labeled as being suspect.")  
-        #CHECK for the appropriate warnings and coordinates.
-        
 
     def test_spoof_off(self):
         gbk_path = "data/e_coli/Ecoli_spoofing_test_genome.gbff"
-        ws_obj_name = 'Ecoli_spoof'
-        result = self.getImpl().genbank_to_genome(
-            self.getContext(),
-            {
-              'file': {
-                  'path': gbk_path},
-              'workspace_name': self.getWsName(),
-              'genome_name': ws_obj_name,
-              'generate_ids_if_needed': 1
-            })[0]
-        self.assertTrue(int(
-            result['genome_info'][10]['Number of Protein Encoding Genes']) > 0)
+        ws_obj_name = 'Ecoli_spoof_fail'
+        with self.assertRaisesRegexp(
+                            ValueError,
+                            "Some CDS features in the file do not have a parent gene. Either fix the source file or select the 'generate_missing_genes' option."):
+            self.getImpl().genbank_to_genome(
+                                self.getContext(),
+                                {
+                                    'file': {
+                                        'path': gbk_path},
+                                    'workspace_name': self.getWsName(),
+                                    'genome_name': ws_obj_name,
+                                    'generate_ids_if_needed': 1
+                                })
+
