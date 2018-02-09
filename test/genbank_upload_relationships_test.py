@@ -745,7 +745,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                     found_mRNA_warning = True
         for feature in genome["cdss"]:
             if feature['id'] == "AT4G12560_CDS_1":
-                found_mRNA = True
+                found_CDS = True
                 if feature["parent_gene"] == "AT4G12560":
                     found_CDS_parent = True
             if "parent_mrna" in feature:
@@ -803,7 +803,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                     found_mRNA_warning = True
         for feature in genome["cdss"]:
             if feature['id'] == "AT4G12600_CDS_1":
-                found_mRNA = True
+                found_CDS = True
                 if feature["parent_gene"] == "AT4G12600":
                     found_CDS_parent = True
             if "parent_mrna" in feature:
