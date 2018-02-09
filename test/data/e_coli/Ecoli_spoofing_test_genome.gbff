@@ -27,7 +27,7 @@ FEATURES             Location/Qualifiers
                      /strain="K-12"
                      /sub_strain="MG1655"
                      /db_xref="taxon:511145"
-     CDS             190..255
+     CDS             join(190..252,2788..2799)
                      /gene="thrL"
                      /locus_tag="b0001"
                      /gene_synonym="ECK0001; JW4367"
@@ -45,7 +45,7 @@ FEATURES             Location/Qualifiers
                      /inference="alignment:Splign:1.26p:RefSeq:NM_000041.2,INSD:BC003557.1"
                      /inference="COORDINATES:profile:tRNAscan:2.1"
                      /inference="alignment:Splign:1.0"
-                     /translation="MKRISTTITTTITITTGNGAG"
+                     /translation="MKRISTTITTTITITTGNGAGLGV"
      gene            337..2799
                      /gene="thrA"
                      /locus_tag="b0002"
