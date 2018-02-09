@@ -630,6 +630,201 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(CDS_has_gene, "The CDS's gene relationship was not found.")
         self.assertTrue(CDS_warning, "The CDS's warning was not found.")        
 
+    def test_2variants_1CDS_not_inside_gene(self):
+        #Gene with 2 variants. 1 Variant passes location checking, the other one fails.
+        genome = self.__class__.genome
+        found_gene = False
+        found_mRNA1 = False
+        found_mRNA2 = False
+        found_CDS1 = False
+        found_CDS2 = False
+        gene_has_CDS1 = False
+        gene_has_CDS2 = False
+        gene_has_mRNA1 = False
+        gene_has_mRNA2 = False
+        found_gene_mRNA_warning = False
+        found_gene_CDS_warning = False
+        found_mRNA1_parent = False
+        found_CDS1_parent = False
+        found_mRNA1_CDS1 = False
+        found_CDS1_mRNA1 = False
+        found_genome_warning = False
+        for feature in genome["features"]:
+            if feature['id'] == "AT4G12580":
+                found_gene = True
+                if "cdss" in feature:
+                    if feature["cdss"][0] == "AT4G12580_CDS_1":
+                        gene_has_CDS1 = True
+                    if feature["cdss"][0] == "AT4G12580_CDS_2":
+                        gene_has_CDS2 = True
+                if "warnings" in feature:
+                    for warning in feature["warnings"]:
+                        if warning == "The child mRNA failed location validation. That mRNA has been excluded.":
+                            found_gene_mRNA_warning = True
+                        if warning == "The child CDS failed location validation. That CDS has been excluded.":
+                                found_gene_CDS_warning = True
+                if "mrnas" in feature:
+                    if feature["mrnas"][0] == "AT4G12580_mRNA_1":
+                        gene_has_mRNA1 = True   
+                    if feature["mrnas"][0] == "AT4G12580_mRNA_2":
+                        gene_has_mRNA2 = True            
+        for feature in genome["mrnas"]:
+            if feature['id'] == "AT4G12580_mRNA_1":
+                found_mRNA1 = True
+                if feature["parent_gene"] == "AT4G12580":
+                    found_mRNA1_parent = True
+                if "cds" in feature:
+                    if feature["cds"] == "AT4G12580_CDS_1":
+                        found_mRNA1_CDS1 = True
+            if feature['id'] == "AT4G12580_mRNA_2":
+                found_mRNA2 = True
+        for feature in genome["cdss"]:
+            if feature['id'] == "AT4G12580_CDS_1":
+                found_CDS1 = True
+                if feature["parent_gene"] == "AT4G12580":
+                    found_CDS1_parent = True
+                if "parent_mrna" in feature:
+                    if feature["parent_mrna"] == "AT4G12580_mRNA_1":
+                        found_CDS1_mRNA1 = True
+            if feature['id'] == "AT4G12580_CDS_2":
+                found_CDS2 = True
+        self.assertTrue(found_gene, "The gene AT4G12580 was not found in features.")
+        self.assertTrue(found_mRNA1, "The mRNA AT4G12580_mRNA_1 was not found.")
+        self.assertFalse(found_mRNA2, "The mRNA AT4G12580_mRNA_2 was found, it should have been excluded.")
+        self.assertTrue(found_CDS1, "The CDS AT4G12580_CDS_1 was not found.")
+        self.assertFalse(found_CDS2, "The CDS AT4G12580_CDS_2 was found, it should have been excluded.")
+        self.assertTrue(gene_has_CDS1,"The gene did not have the good CDS1")
+        self.assertFalse(gene_has_CDS2, "The gene had CDS AT4G12580_CDS_2 was found, it should have been excluded.")
+        self.assertTrue(gene_has_mRNA1,"The gene did not have the good mRNA1.")
+        self.assertFalse(gene_has_mRNA2, "The gene had mRNA AT4G12580_mRNA_2 was found, it should have been excluded.")
+        self.assertTrue(found_gene_mRNA_warning,"The gene did not have the mRNA related warning.")
+        self.assertTrue(found_gene_CDS_warning,"The gene did not have the CDS related warning.")
+        self.assertTrue(found_mRNA1_parent,"The mRNA did not have the parent gene.")
+        self.assertTrue(found_CDS1_parent,"The CDS did not have the parent gene.")
+        self.assertTrue(found_mRNA1_CDS1,"The mRNA did not have the corresponding CDS.")
+        self.assertTrue(found_CDS1_mRNA1,"The CDS did not have the correspondig mRNA")
+        self.assertTrue(found_genome_warning,"The proper genome level wearning was not found.")
+        if "warnings" in genome:
+            for warning in genome["warnings"]:
+                if warning == "SUSPECT gene AT4G12580 had some of its child features (CDS and/or mRNAs) excuded because of failed coordinates validation":
+                    found_genome_warning = True
+        self.assertTrue(found_genome_warning, "The Genome level warning for the failed coordinates matching.")
+
+    def test_CDS_not_sharing_mRNA_internal_boundaries(self):
+        #CDS not sharing internal boundaries with mRNA.
+        genome = self.__class__.genome
+        found_gene = False
+        found_mRNA = False
+        found_CDS = False
+        gene_has_CDS = False
+        gene_has_mRNA = False
+        found_mRNA_warning = False
+        found_CDS_warning = False
+        found_mRNA_parent = False
+        found_CDS_parent = False
+        found_mRNA_CDS = False
+        found_CDS_mRNA = False
+        for feature in genome["features"]:
+            if feature['id'] == "AT4G12560":
+                found_gene = True
+                if "cdss" in feature:
+                    if feature["cdss"][0] == "AT4G12560_CDS_1":
+                        gene_has_CDS = True
+                if "mrnas" in feature:
+                    if feature["mrnas"][0] == "AT4G12560_mRNA_1":
+                        gene_has_mRNA = True
+        for feature in genome["mrnas"]:
+            if feature['id'] == "AT4G12560_mRNA_1":
+                found_mRNA = True
+                if feature["parent_gene"] == "AT4G12560":
+                    found_mRNA_parent = True
+            if "cds" in feature:
+                if feature["cds"] == "AT4G12560_CDS_1":
+                    found_mRNA_CDS = True
+            if "warnings" in feature:
+                if "Potential child CDS relationship failed due to location validation." in feature["warnings"]:
+                    found_mRNA_warning = True
+        for feature in genome["cdss"]:
+            if feature['id'] == "AT4G12560_CDS_1":
+                found_mRNA = True
+                if feature["parent_gene"] == "AT4G12560":
+                    found_CDS_parent = True
+            if "parent_mrna" in feature:
+                if feature["parent_mrna"] == "AT4G12560_mRNA_1":
+                    found_CDS_mRNA = True
+            if "warnings" in feature:
+                if warnings['cds_mrna_cds'].format('AT4G12560_mRNA_1') in feature["warnings"]:
+                    found_CDS_warning = True
+        self.assertTrue(found_gene, "The gene AT4G12560 was not found in features.")
+        self.assertTrue(found_mRNA, "The mRNA AT4G12560_mRNA_1 was not found.")
+        self.assertTrue(found_CDS, "The CDS AT4G12560_CDS_1 was not found.")
+        self.assertTrue(gene_has_CDS,"The gene did not have the good CDS1")
+        self.assertTrue(gene_has_mRNA,"The gene did not have the good mRNA1.")
+        self.assertTrue(found_mRNA_warning,"No mRNA related warning.")
+        self.assertTrue(found_CDS_warning,"No CDS related warning.")
+        self.assertTrue(found_mRNA_parent,"The mRNA did not have the parent gene.")
+        self.assertTrue(found_CDS_parent,"The CDS did not have the parent gene.")
+        self.assertFalse(found_mRNA_CDS,"The mRNA should not have had a corresponding CDS.")
+        self.assertFalse(found_CDS_mRNA,"The CDS should not have had a corresponding mRNA.") 
+            
+    def test_CDS_minus1_internal_exon_mRNA(self):
+        #CDS has 1 less internal exon than the parent mRNA. 
+        #Thus the CDS sequence will not be in the mRNA sequence.
+        genome = self.__class__.genome
+        found_gene = False
+        found_mRNA = False
+        found_CDS = False
+        gene_has_CDS = False
+        gene_has_mRNA = False
+        found_mRNA_warning = False
+        found_CDS_warning = False
+        found_mRNA_parent = False
+        found_CDS_parent = False
+        found_mRNA_CDS = False
+        found_CDS_mRNA = False
+        for feature in genome["features"]:
+            if feature['id'] == "AT4G12600":
+                found_gene = True
+                if "cdss" in feature:
+                    if feature["cdss"][0] == "AT4G12600_CDS_1":
+                        gene_has_CDS = True
+                if "mrnas" in feature:
+                    if feature["mrnas"][0] == "AT4G12600_mRNA_1":
+                        gene_has_mRNA = True
+        for feature in genome["mrnas"]:
+            if feature['id'] == "AT4G12560_mRNA_1":
+                found_mRNA = True
+                if feature["parent_gene"] == "AT4G12600":
+                    found_mRNA_parent = True
+            if "cds" in feature:
+                if feature["cds"] == "AT4G12600_CDS_1":
+                    found_mRNA_CDS = True
+            if "warnings" in feature:
+                if "Potential child CDS relationship failed due to location validation." in feature["warnings"]:
+                    found_mRNA_warning = True
+        for feature in genome["cdss"]:
+            if feature['id'] == "AT4G12600_CDS_1":
+                found_mRNA = True
+                if feature["parent_gene"] == "AT4G12600":
+                    found_CDS_parent = True
+            if "parent_mrna" in feature:
+                if feature["parent_mrna"] == "AT4G12600_mRNA_1":
+                    found_CDS_mRNA = True
+            if "warnings" in feature:
+                if warnings['cds_mrna_cds'].format('AT4G12600_mRNA_1') in feature["warnings"]:
+                    found_CDS_warning = True
+        self.assertTrue(found_gene, "The gene AT4G12600 was not found in features.")
+        self.assertTrue(found_mRNA, "The mRNA AT4G12600_mRNA_1 was not found.")
+        self.assertTrue(found_CDS, "The CDS AT4G12600_CDS_1 was not found.")
+        self.assertTrue(gene_has_CDS,"The gene did not have the good CDS1")
+        self.assertTrue(gene_has_mRNA,"The gene did not have the good mRNA1.")
+        self.assertTrue(found_mRNA_warning,"No mRNA related warning.")
+        self.assertTrue(found_CDS_warning,"No CDS related warning.")
+        self.assertTrue(found_mRNA_parent,"The mRNA did not have the parent gene.")
+        self.assertTrue(found_CDS_parent,"The CDS did not have the parent gene.")
+        self.assertFalse(found_mRNA_CDS,"The mRNA should not have had a corresponding CDS.")
+        self.assertFalse(found_CDS_mRNA,"The CDS should not have had a corresponding mRNA.") 
+                  
 
 '''
 TO DO
@@ -638,8 +833,10 @@ CDS not a child of gene by location
 mRNA not a child of gene by location
 CDS and mRNA not a child of gene (but CDS child of mRNA)
 CDS not a child of mRNA
-
-
 Gene has 2 variants one with good CDS, one with invalid CDS
+internal boundaries of CDS with mRNA
+CDS with mRNA parent with 1 more exon 
+CDS seq not in mRNA sequence.
+
 transpliced - regular, multiple strands, multiple contigs
 '''
