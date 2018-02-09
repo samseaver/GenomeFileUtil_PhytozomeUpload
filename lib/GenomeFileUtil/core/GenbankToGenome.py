@@ -48,6 +48,7 @@ class GenbankToGenome:
         self.genome_suspect = False
         self.cds_seq_not_matching = 0
         self.bad_parent_loc = 0
+        self.spoofed_genes = 0
         self.excluded_features = ('source', 'exon')
         self.go_mapping = json.load(
             open('/kb/module/data/go_ontology_mapping.json'))
@@ -307,11 +308,16 @@ class GenbankToGenome:
                 "translate the supplied translation".format(
                 self.cds_seq_not_matching, len(genome['cdss'])))
             self.genome_suspect = 1
+
         if self.bad_parent_loc:
             self.genome_warnings.append("There were {} parent/child "
                 "relationships that were not able to be determined. Some of "
                 "these may have splice variants that may be valid "
                 "relationships.".format(self.bad_parent_loc))
+
+        if self.spoofed_genes:
+            self.genome_warnings.append(warnings['spoofed_genome'].format(
+                self.spoofed_genes))
 
         if self.genome_warnings:
             genome['warnings'] = self.genome_warnings
@@ -716,7 +722,7 @@ class GenbankToGenome:
                     '{} which is not consistent with the length of the '
                     'translation included ({} amino acids)'.format(
                 out_feat['id'], len(feat_seq), len(prot_seq)))
-            self.genome_suspect = True
+            self.genome_suspect = 1
 
         try:
             if prot_seq and prot_seq != Seq.translate(
@@ -731,7 +737,12 @@ class GenbankToGenome:
                 "Unable to verify protein sequence:" + str(e)]
 
         if _id not in genes and self.generate_parents:
-            self.process_gene(_id, genes, copy.copy(out_feat))
+            new_feat = copy.copy(out_feat)
+            new_feat['warnings'] = [warnings['spoofed_gene']]
+            self.feature_counts['gene'] += 1
+            self.spoofed_genes += 1
+            self.genome_suspect = 1
+            self.process_gene(_id, genes, new_feat)
 
         if _id in genes:
             out_feat['id'] += "_" + str(len(genes[_id]['cdss']) + 1)
@@ -740,7 +751,7 @@ class GenbankToGenome:
                     warnings['child_cds_failed']]
                 self.genome_warnings.append(
                     warnings['cds_excluded'].format(_id))
-                self.genome_suspect = True
+                self.genome_suspect = 1
                 self.bad_parent_loc += 1
                 return
             else:
@@ -748,7 +759,7 @@ class GenbankToGenome:
                 propagate_cds_props_to_gene(out_feat, genes[_id])
                 out_feat['parent_gene'] = _id
         else:
-            out_feat['parent_gene'] = ""
+            raise ValueError(warnings['no_spoof'])
 
         mrna_id = out_feat["id"].replace('CDS', 'mRNA')
         if mrna_id in mrnas:
@@ -774,7 +785,7 @@ class GenbankToGenome:
                     warnings['child_mrna_failed']]
                 self.genome_warnings.append(
                     warnings['mrna_excluded'].format(_id))
-                self.genome_suspect = True
+                self.genome_suspect = 1
                 self.bad_parent_loc += 1
                 return
             else:
@@ -782,7 +793,7 @@ class GenbankToGenome:
                 out_feat['parent_gene'] = _id
         else:
             out_feat['warnings'] = out_feat.get('warnings', []) + [
-                'Unable to find parent mrna for ' + str(out_feat)]
+                'Unable to find parent gene for ' + str(out_feat)]
             out_feat['parent_gene'] = ""
         mrnas[out_feat['id']] = out_feat
 
@@ -802,6 +813,13 @@ warnings = {
                          " has been excluded.",
     "gene_excluded": "SUSPECT gene {} was excluded because the associated CDS "
                      "failed coordinates validation",
-    "mrna_excluded": "SUSPECT mRNA {} was excluded because the associated mRNA "
-                    "failed coordinates validation"
+    "mrna_excluded": "SUSPECT mRNA {} was excluded because the associated mRNA"
+                    " failed coordinates validation",
+    "no_spoof": "Some CDS features in the file do not have a parent gene. "
+                "Either fix the source file or select the "
+                "'generate_missing_genes' option.",
+    "spoofed_gene": "This gene was not in the source GenBank file. It was "
+                    "added to be the parent of the CDS {}.",
+    "spoofed_genome": "SUSPECT this genome has {} genes that needed to be "
+                      "spoofed for existing parentless CDS."
 }

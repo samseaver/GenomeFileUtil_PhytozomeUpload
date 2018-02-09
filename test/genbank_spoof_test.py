@@ -12,6 +12,7 @@ from Workspace.WorkspaceClient import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from DataFileUtil.DataFileUtilClient import DataFileUtil
+from GenomeFileUtil.core.GenbankToGenome import warnings
 
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -90,29 +91,25 @@ class GenomeFileUtilTest(unittest.TestCase):
             for feature in genome["features"]:
                 if feature['id'] == "b0001":
                     found_spoofed_gene = True
-                    if "warnings" in feature:
-                        for warning in feature["warnings"]:
-                            if "warning" == "This gene was not in the source GenBank file. It was added to be the parent of the CDS b0001_CDS_1.":
-                                found_spoofed_gene_warning = True
+                    if warnings['spoofed_gene'] in feature.get("warnings", []):
+                        found_spoofed_gene_warning = True
                     if "cdss" in feature:
                         if feature["cdss"][0] == "b0001_CDS_1":
                             found_gene_cds = True
                     temp_location = feature['location'][0]
-                    self.assertTrue(temp_location[1] == 190, "The spoofed start location is wrong.")
-                    self.assertTrue(temp_location[3] == 1610, "The spoofed length (end location) is wrong.")
+                    self.assertEqual(temp_location[1], 190)
+                    self.assertEqual(temp_location[3], 63)  # first chunk
         if "cdss" in genome:
             for feature in genome["cdss"]:
                 if feature['id'] == "b0001_CDS_1":
                     found_cds = True
-                    if feature["parent_gene"] == "b0001_CDS_1":
+                    if feature["parent_gene"] == "b0001":
                         found_cds_gene = True
         if "suspect" in genome:
             if int(genome["suspect"]) == 1:
                 suspect_genome = True
-        if "warnings" in genome:
-            for warning in genome["warnings"]:
-                if warning == "Suspect this genome had 1 gene that needed to be spoofed for existing parentless CDS.":
-                    found_genome_warning = True
+        if warnings['spoofed_genome'].format(1) in genome.get("warnings", []):
+            found_genome_warning = True
         self.assertTrue(found_cds,"The CDS was not found.")
         self.assertTrue(found_spoofed_gene,"The gene did not get spoofed.")
         self.assertTrue(found_spoofed_gene_warning,"The gene warning was not present.")
@@ -125,8 +122,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         gbk_path = "data/e_coli/Ecoli_spoofing_test_genome.gbff"
         ws_obj_name = 'Ecoli_spoof_fail'
         with self.assertRaisesRegexp(
-                            ValueError,
-                            "Some CDS features in the file do not have a parent gene. Either fix the source file or select the 'generate_missing_genes' option."):
+                            ValueError, warnings['no_spoof']):
             self.getImpl().genbank_to_genome(
                                 self.getContext(),
                                 {
