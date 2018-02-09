@@ -703,7 +703,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(found_CDS1_parent,"The CDS did not have the parent gene.")
         self.assertTrue(found_mRNA1_CDS1,"The mRNA did not have the corresponding CDS.")
         self.assertTrue(found_CDS1_mRNA1,"The CDS did not have the correspondig mRNA")
-        self.assertTrue(found_genome_warning,"The proper genome level wearning was not found.")
         if "warnings" in genome:
             for warning in genome["warnings"]:
                 if warning == "SUSPECT gene AT4G12580 had some of its child features (CDS and/or mRNAs) excuded because of failed coordinates validation":
