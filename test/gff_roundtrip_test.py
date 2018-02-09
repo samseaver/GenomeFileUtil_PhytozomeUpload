@@ -90,7 +90,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'fasta_file': {'path': self.plant_fa_path},
                 'gff_file': {'path': self.plant_gff_path},
                 'source': 'Genbank',
-                'type': 'Reference'
+                'type': 'Reference',
+                'generate_missing_genes': 1
             })[0]
         pprint(result)
         self.assertIsNotNone(result['genome_ref'])

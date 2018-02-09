@@ -139,7 +139,9 @@ class GenomeFileUtil(object):
            Release or version number of the data per example Ensembl has
            numbered releases of all their data: Release 31 genetic_code -
            Genetic code of organism. Overwrites determined GC from taxon
-           object type - Reference, Representative or User upload) ->
+           object type - Reference, Representative or User upload
+           generate_missing_genes - If the file has CDS or mRNA with no
+           corresponding gene, generate a spoofed gene. Off by default) ->
            structure: parameter "fasta_file" of type "File" -> structure:
            parameter "path" of String, parameter "shock_id" of String,
            parameter "ftp_url" of String, parameter "gff_file" of type "File"
@@ -150,7 +152,9 @@ class GenomeFileUtil(object):
            "taxon_reference" of String, parameter "release" of String,
            parameter "genetic_code" of Long, parameter "type" of String,
            parameter "scientific_name" of String, parameter "metadata" of
-           type "usermeta" -> mapping from String to String
+           type "usermeta" -> mapping from String to String, parameter
+           "generate_missing_genes" of type "boolean" (A boolean - 0 for
+           false, 1 for true. @range (0, 1))
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
            "genome_ref" of String
         """

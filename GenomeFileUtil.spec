@@ -125,6 +125,8 @@ module GenomeFileUtil {
     genetic_code - Genetic code of organism. Overwrites determined GC from 
           taxon object
     type - Reference, Representative or User upload
+    generate_missing_genes - If the file has CDS or mRNA with no corresponding
+        gene, generate a spoofed gene. Off by default
     */
     typedef structure {
         File fasta_file;
@@ -141,6 +143,7 @@ module GenomeFileUtil {
         string type;
         string scientific_name;
         usermeta metadata;
+        boolean generate_missing_genes;
     } FastaGFFToGenomeParams;
 
     funcdef fasta_gff_to_genome(FastaGFFToGenomeParams params)

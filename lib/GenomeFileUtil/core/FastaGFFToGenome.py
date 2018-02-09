@@ -5,7 +5,6 @@ import uuid
 import time
 import json
 import gzip
-import copy
 import hashlib
 import collections
 import datetime
@@ -46,6 +45,7 @@ class FastaGFFToGenome:
         self.aliases = ()
         self.is_phytozome = False
         self.strict = True
+        self.generate_genes = False
         self.warnings = []
         self.feature_dict = {}
         self.cdss = set()
@@ -69,6 +69,8 @@ class FastaGFFToGenome:
 
         # 3) extract out the parameters
         params = self._set_parsed_params(params)
+        if params.get('generate_missing_genes'):
+            self.generate_genes = True
 
         # 4) do the upload
         result = self.upload_genome(
@@ -84,27 +86,14 @@ class FastaGFFToGenome:
             metadata=params['metadata']
         )
 
-        # 5) generate report
-        output_data_ref = params['workspace_name']+"/"+params['genome_name']
-        reportObj = {'objects_created': [{'ref': output_data_ref,
-                                          'description': 'KBase Genome object'}],
-                     'text_message': result['report_string'],
-                     'warnings': self.warnings}
-
-        reportClient = KBaseReport(os.environ['SDK_CALLBACK_URL'])
-        report_info = reportClient.create({'report': reportObj,
-                                           'workspace_name': params['workspace_name']})
-
-        # 6) clear the temp directory
+        # 5) clear the temp directory
         shutil.rmtree(input_directory)
 
-        # 7) return the result
+        # 6) return the result
         info = result['genome_info']
         details = {
             'genome_ref': str(info[6]) + '/' + str(info[0]) + '/' + str(info[4]),
-            'genome_info': info,
-            'report_name': report_info['name'],
-            'report_ref':  report_info['ref']
+            'genome_info': info
         }
 
         return details
@@ -368,7 +357,7 @@ class FastaGFFToGenome:
         #Most bacterial files have only CDSs
         #In order to work with prokaryotic and eukaryotic gene structure synonymously
         #Here we add feature dictionaries representing the parent gene and mRNAs
-        feature_list = self._add_missing_parents(feature_list)
+        #feature_list = self._add_missing_parents(feature_list)
 
         #Phytozome has the annoying habit of editing their identifiers so we fix them
         if self.is_phytozome:
@@ -387,8 +376,8 @@ class FastaGFFToGenome:
         for contig in feature_list.keys():
             for i in range(len(feature_list[contig])):
                 if "ID" not in feature_list[contig][i]:
-                    for key in ("name", "transcriptId", "proteinId", "PACid",
-                                "pacid", "Parent"):
+                    for key in ("transcriptId", "proteinId", "PACid",
+                                "pacid", "Parent", "name",):
                         if key in feature_list[contig][i]['attributes']:
                             feature_list[contig][i]['ID'] = feature_list[
                                 contig][i]['attributes'][key][0]
@@ -599,7 +588,8 @@ class FastaGFFToGenome:
         # if the feature is a exon or UTR, it will only be used to update the
         # location and sequence of it's parent, we add the info to it parent
         # feature but not the feature dict
-        if in_feature['type'] in ('exon', 'five_prime_UTR', 'three_prime_UTR'):
+        if in_feature['type'] in ('exon', 'five_prime_UTR', 'three_prime_UTR',
+                                  'start_codon', 'stop_codon'):
             if parent_id:
                 # TODO: add location checks and warnings
                 parent = self.feature_dict[parent_id]
@@ -688,8 +678,15 @@ class FastaGFFToGenome:
             if 'parent_gene' in cds:
                 parent_gene = self.feature_dict[cds['parent_gene']]
                 _propagate_cds_props_to_gene(cds, parent_gene)
+            elif self.generate_genes:
+                spoof = copy.copy(cds)
+                spoof['type'] = 'gene'
+                spoof['id'] = cds['id']+"_gene"
+                spoof['cdss'] = [cds['id']]
+                self.feature_dict[spoof['id']] = spoof
+                cds['parent_gene'] = spoof['id']
             else:
-                cds['parent_gene'] = ''
+                raise ValueError("input file is missing genes and generate_missing_genes is not enabled")
 
             self.feature_dict[cds['id']] = cds
 
@@ -782,7 +779,7 @@ class FastaGFFToGenome:
 
         # Phytozome gff files are not compatible with the RNASeq Pipeline
         # so it's better to build from the object than cache the file
-        if not self.is_phytozome:
+        if self.is_phytozome:
             gff_file_to_shock = self.dfu.file_to_shock(
                 {'file_path': input_gff_file, 'make_handle': 1, 'pack': "gzip"})
             genome['gff_handle_ref'] = gff_file_to_shock['handle']['hid']

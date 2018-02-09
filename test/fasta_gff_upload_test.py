@@ -127,8 +127,6 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
 
         self.assertTrue('genome_info' in result)
         self.assertTrue('genome_ref' in result)
-        self.assertTrue('report_name' in result)
-        self.assertTrue('report_ref' in result)
 
         genome_info = result['genome_info']
         self.assertEquals(genome_info[10]['Domain'], 'Unknown')
@@ -163,8 +161,6 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
 
         self.assertTrue('genome_info' in result)
         self.assertTrue('genome_ref' in result)
-        self.assertTrue('report_name' in result)
-        self.assertTrue('report_ref' in result)
 
         genome_info = result['genome_info']
         self.assertEquals(genome_info[10]['Domain'], 'Unknown')
@@ -194,8 +190,6 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
 
         self.assertTrue('genome_info' in result)
         self.assertTrue('genome_ref' in result)
-        self.assertTrue('report_name' in result)
-        self.assertTrue('report_ref' in result)
 
         genome_info = result['genome_info']
         self.assertEquals(genome_info[10]['Number of Protein Encoding Genes'], '1028')
@@ -277,7 +271,8 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
             'fasta_file': {'path': self.jgi_bacterial_fa_path},
             'gff_file': {'path': self.jgi_bacterial_gff_path},
             'source': 'Genbank',
-            'type': 'Reference'
+            'type': 'Reference',
+            'generate_missing_genes': 1
         }
 
         result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
@@ -291,7 +286,8 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
             'fasta_file': {'path': self.patric_bacterial_fa_path},
             'gff_file': {'path': self.patric_bacterial_gff_path},
             'source': 'Genbank',
-            'type': 'Reference'
+            'type': 'Reference',
+            'generate_missing_genes': 1
         }
 
         result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
@@ -410,6 +406,19 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         with self.assertRaisesRegexp(
                 ValueError, error_msg):
             self.getImpl().fasta_gff_to_genome(self.getContext(), invalidate_input_params)
+
+        invalidate_input_params = {
+            'workspace_name': self.getWsName(),
+            'genome_name': 'MyGenome',
+            'fasta_file': {'path': self.patric_bacterial_fa_path},
+            'gff_file': {'path': self.patric_bacterial_gff_path},
+            'source': 'Genbank',
+            'type': 'Reference',
+        }
+        with self.assertRaisesRegexp(
+                ValueError, "generate_missing_genes"):
+            self.getImpl().fasta_gff_to_genome(self.getContext(),
+                                               invalidate_input_params)
 
     def test_FastaGFFToGenome_stage_input(self):
         # test absolute file path
