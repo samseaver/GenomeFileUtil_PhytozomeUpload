@@ -1,7 +1,6 @@
 import unittest
 import time
 import os
-import shutil
 import re
 
 try:
@@ -13,8 +12,7 @@ from Workspace.WorkspaceClient import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from DataFileUtil.DataFileUtilClient import DataFileUtil
-from GenomeFileUtil.core.GenomeUtils import is_parent
-from pprint import pprint
+from GenomeFileUtil.core.GenomeUtils import warnings
 import json
 
 ts_error = "The feature coordinates order are suspect and the feature is not flagged as being trans-spliced"
@@ -130,41 +128,6 @@ class GenomeFileUtilTest(unittest.TestCase):
                 else:
                     self.assertTrue('parent_gene' in feature, "The parent gene for ArthCp001_CDS_1 was not populated")
         self.assertTrue(cds_flag_found, "The trans_splicing flag for the CDS ArthCp001 was not found.")
-
-    def test_for_trans_splicing_invalid_parentage(self):
-        genome = self.__class__.genome
-        found_gene = False
-        found_CDS = False
-        found_mRNA = False
-        found_noncoding = False
-        for feature in genome["non_coding_features"]:
-            if feature['id'] == "ArthCp001A":
-#                print "FEATURE::::" + str(feature)
-                print "Found ArthCp001A"
-                found_gene = True
-                self.assertFalse('mrnas' in feature, "Their should be no child mRNAs for ArthCp001A, should have failed on coordinates.")
-                self.assertFalse('cdss' in feature, "Their should be no child CDSs for ArthCp001A, should have failed on coordinates.")
-##TODO
-#ADD CHECKS FOR WARNINGS
-        for feature in genome["mrnas"]:
-            if feature['id'] == "ArthCp001A_mRNA_1":
-#                print "MRNA::::" + str(feature)
-                print "Found ArthCp001A_mRNA_1"
-                found_mRNA = True
-                self.assertFalse(feature['parent_gene'], "There should be no parent_gene for ArthCp001A_mRNA_1, should have failed on coordinates.")
-##TODO
-#ADD CHECKS FOR WARNINGS
-        for feature in genome["cdss"]:
-            if feature['id'] == "ArthCp001A_CDS_1":
-                print "Found ArthCp001A_CDS_1"
-#                print "CDS::::" + str(feature)
-                found_CDS = True
-                self.assertFalse(feature['parent_gene'], "There should be no parent_gene for ArthCp001A_CDS_1, should have failed on coordinates.")
-##TODO
-#ADD CHECKS FOR WARNINGS
-        self.assertTrue(found_gene, "The gene ArthCp001A was not found.")
-        self.assertTrue(found_mRNA, "The mRNA ArthCp001A_mRNA_1 was not found.")
-        self.assertTrue(found_CDS, "The CDS ArthCp001A_CDS_1 was not found.")
 
     def test_both_strand_trans_splicing(self):
         genome = self.__class__.genome

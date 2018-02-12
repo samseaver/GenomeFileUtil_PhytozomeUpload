@@ -12,8 +12,7 @@ from Workspace.WorkspaceClient import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from DataFileUtil.DataFileUtilClient import DataFileUtil
-from GenomeFileUtil.core.GenbankToGenome import warnings
-from pprint import pprint
+from GenomeFileUtil.core.GenomeUtils import warnings
 
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -530,7 +529,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(genome_suspect, "The Genome should be suspect because the mRNA is not within the gene.")
         if "warnings" in genome:
             for warning in genome["warnings"]:
-                if warning == "SUSPECT mRNA AT4G12620 was excluded because the associated mRNA failed coordinates validation":
+                if warning == warnings['mrna_excluded'].format("AT4G12620"):
                     found_warning = True
         self.assertTrue(found_warning, "The Genome level warning for the failed coordinates matching.")
 
@@ -693,7 +692,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertFalse(found_mRNA2, "The mRNA AT4G12580_mRNA_2 was found, it should have been excluded.")
         self.assertTrue(found_CDS1, "The CDS AT4G12580_CDS_1 was not found.")
         self.assertFalse(found_CDS2, "The CDS AT4G12580_CDS_2 was found, it should have been excluded.")
-        self.assertTrue(gene_has_CDS1,"The gene did not have the good CDS1")
+        self.assertTrue(gene_has_CDS1, "The gene did not have the good CDS1")
         self.assertFalse(gene_has_CDS2, "The gene had CDS AT4G12580_CDS_2 was found, it should have been excluded.")
         self.assertTrue(gene_has_mRNA1,"The gene did not have the good mRNA1.")
         self.assertFalse(gene_has_mRNA2, "The gene had mRNA AT4G12580_mRNA_2 was found, it should have been excluded.")
@@ -703,11 +702,10 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(found_CDS1_parent,"The CDS did not have the parent gene.")
         self.assertTrue(found_mRNA1_CDS1,"The mRNA did not have the corresponding CDS.")
         self.assertTrue(found_CDS1_mRNA1,"The CDS did not have the correspondig mRNA")
-        if "warnings" in genome:
-            for warning in genome["warnings"]:
-                if warning == "SUSPECT gene AT4G12580 had some of its child features (CDS and/or mRNAs) excuded because of failed coordinates validation":
-                    found_genome_warning = True
-        self.assertTrue(found_genome_warning, "The Genome level warning for the failed coordinates matching.")
+
+        self.assertTrue(warnings['cds_excluded'].format('AT4G12580')
+                        in genome.get("warnings", []),
+                        "The Genome level warning for the failed coordinates matching.")
 
     def test_CDS_not_sharing_mRNA_internal_boundaries(self):
         #CDS not sharing internal boundaries with mRNA.
@@ -791,7 +789,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                     if feature["mrnas"][0] == "AT4G12600_mRNA_1":
                         gene_has_mRNA = True
         for feature in genome["mrnas"]:
-            if feature['id'] == "AT4G12560_mRNA_1":
+            if feature['id'] == "AT4G12600_mRNA_1":
                 found_mRNA = True
                 if feature["parent_gene"] == "AT4G12600":
                     found_mRNA_parent = True

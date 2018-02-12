@@ -20,8 +20,7 @@ from Bio.SeqFeature import ExactPosition
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeInterface import GenomeInterface
-from GenomeUtils import is_parent, propagate_cds_props_to_gene
-from KBaseReport.KBaseReportClient import KBaseReport
+from GenomeUtils import is_parent, propagate_cds_props_to_gene, warnings
 
 
 class GenbankToGenome:
@@ -30,7 +29,6 @@ class GenbankToGenome:
         self.gi = GenomeInterface(config)
         self.dfu = DataFileUtil(config.callbackURL)
         self.aUtil = AssemblyUtil(config.callbackURL)
-        self.report_client = KBaseReport(config.callbackURL)
         self._messages = []
         self.time_string = str(datetime.datetime.fromtimestamp(
             time.time()).strftime('%Y_%m_%d_%H_%M_%S'))
@@ -510,7 +508,7 @@ class GenbankToGenome:
                 self.genome_warnings.append('SUSPECT {}: Feature has '
                     'invalid coordinates off of the end of the contig and was '
                     'not included'.format(out_feat['id']))
-                self.genome_suspect = True
+                self.genome_suspect = 1
                 continue
 
             for piece in in_feature.location.parts:
@@ -700,41 +698,6 @@ class GenbankToGenome:
             "protein_md5": hashlib.md5(prot_seq).hexdigest(),
             "protein_translation_length": len(prot_seq),
         })
-        if not prot_seq:
-            try:
-                out_feat['protein_translation'] = Seq.translate(
-                        feat_seq, self.code_table, cds=True).strip("*")
-                out_feat['warnings'] = out_feat.get('warnings', []) + [
-                    "This CDS did not have a supplied translation. The "
-                    "translation is derived directly from DNA sequence."]
-            except TranslationError as e:
-                out_feat['warnings'] = out_feat.get('warnings', []) + [
-                    "Protein translation not supplied. Unable to generate "
-                    "protein sequence:" + str(e)]
-
-        # allow a little slack to account for frameshift and stop codon
-        if prot_seq and abs(len(prot_seq) * 3 - len(feat_seq)) > 4:
-            out_feat['warnings'] = out_feat.get('warnings', []) + [
-                "This CDS has a length of {} which is not consistent with the "
-                "length of the translation included ({} amino acids)".format(
-                    len(feat_seq), len(prot_seq))]
-            self.genome_warnings.append('SUSPECT {}: This CDS has a length of '
-                    '{} which is not consistent with the length of the '
-                    'translation included ({} amino acids)'.format(
-                out_feat['id'], len(feat_seq), len(prot_seq)))
-            self.genome_suspect = 1
-
-        try:
-            if prot_seq and prot_seq != Seq.translate(
-                    feat_seq, self.code_table, cds=True).strip("*"):
-                out_feat['warnings'] = out_feat.get('warnings', []) + [
-                    "The annotated protein translation is not "
-                    "consistent with the recorded DNA sequence"]
-                self.cds_seq_not_matching += 1
-
-        except TranslationError as e:
-            out_feat['warnings'] = out_feat.get('warnings', []) + [
-                "Unable to verify protein sequence:" + str(e)]
 
         if _id not in genes and self.generate_parents:
             new_feat = copy.copy(out_feat)
@@ -772,6 +735,43 @@ class GenbankToGenome:
             else:
                 out_feat['parent_mrna'] = mrna_id
                 mrnas[mrna_id]['cds'] = out_feat['id']
+
+        if not prot_seq:
+            try:
+                out_feat['protein_translation'] = Seq.translate(
+                        feat_seq, self.code_table, cds=True).strip("*")
+                out_feat['warnings'] = out_feat.get('warnings', []) + [
+                    "This CDS did not have a supplied translation. The "
+                    "translation is derived directly from DNA sequence."]
+            except TranslationError as e:
+                out_feat['warnings'] = out_feat.get('warnings', []) + [
+                    "Protein translation not supplied. Unable to generate "
+                    "protein sequence:" + str(e)]
+
+        # allow a little slack to account for frameshift and stop codon
+        if prot_seq and abs(len(prot_seq) * 3 - len(feat_seq)) > 4:
+            out_feat['warnings'] = out_feat.get('warnings', []) + [
+                "This CDS has a length of {} which is not consistent with the "
+                "length of the translation included ({} amino acids)".format(
+                    len(feat_seq), len(prot_seq))]
+            self.genome_warnings.append('SUSPECT {}: This CDS has a length of '
+                    '{} which is not consistent with the length of the '
+                    'translation included ({} amino acids)'.format(
+                out_feat['id'], len(feat_seq), len(prot_seq)))
+            self.genome_suspect = 1
+
+        try:
+            if prot_seq and prot_seq != Seq.translate(
+                    feat_seq, self.code_table, cds=True).strip("*"):
+                out_feat['warnings'] = out_feat.get('warnings', []) + [
+                    "The annotated protein translation is not "
+                    "consistent with the recorded DNA sequence"]
+                self.cds_seq_not_matching += 1
+
+        except TranslationError as e:
+            out_feat['warnings'] = out_feat.get('warnings', []) + [
+                "Unable to verify protein sequence:" + str(e)]
+
         cdss[out_feat['id']] = out_feat
 
     def process_mrna(self, _id, genes, out_feat, mrnas):
@@ -796,30 +796,3 @@ class GenbankToGenome:
                 'Unable to find parent gene for ' + str(out_feat)]
             out_feat['parent_gene'] = ""
         mrnas[out_feat['id']] = out_feat
-
-
-warnings = {
-    "cds_excluded": "SUSPECT CDS {} was excluded because the associated CDS "
-                    "failed coordinates validation",
-
-    "cds_mrna_cds": "Feature order suggests that {} is the parent mRNA, but it"
-                    " fails location validation",
-    "cds_mrna_mrna": "Potential child CDS relationship failed due to location "
-                    "validation.",
-
-    "child_cds_failed": "The child CDS failed location validation. That CDS "
-                        "has been excluded.",
-    "child_mrna_failed": "The child mRNA failed location validation. That mRNA"
-                         " has been excluded.",
-    "gene_excluded": "SUSPECT gene {} was excluded because the associated CDS "
-                     "failed coordinates validation",
-    "mrna_excluded": "SUSPECT mRNA {} was excluded because the associated mRNA"
-                    " failed coordinates validation",
-    "no_spoof": "Some CDS features in the file do not have a parent gene. "
-                "Either fix the source file or select the "
-                "'generate_missing_genes' option.",
-    "spoofed_gene": "This gene was not in the source GenBank file. It was "
-                    "added to be the parent of the CDS {}.",
-    "spoofed_genome": "SUSPECT this genome has {} genes that needed to be "
-                      "spoofed for existing parentless CDS."
-}

@@ -4,6 +4,7 @@ import os
 import time
 
 from DataFileUtil.DataFileUtilClient import DataFileUtil
+from GenomeUtils import get_start, get_end
 
 
 class GenomeToGFF:
@@ -90,7 +91,7 @@ class GenomeToGFF:
                 priority = len(order)
             else:
                 priority = order.index(feat['type'])
-            return self.get_start(self.get_common_location(
+            return get_start(self.get_common_location(
                 feat['location'])), priority
 
         gff_header = ['seqname', 'source', 'type', 'start', 'end', 'score',
@@ -177,8 +178,8 @@ class GenomeToGFF:
                 'seqname': location[0],
                 'source': 'KBase',
                 'type': in_feature.get('type', 'exon'),
-                'start': str(self.get_start(location)),
-                'end': str(self.get_end(location)),
+                'start': str(get_start(location)),
+                'end': str(get_end(location)),
                 'score': '.',
                 'strand': location[2],
                 'frame': '0',
@@ -210,34 +211,12 @@ class GenomeToGFF:
                           for x in feature['ontology_terms'][ont]])
         return "; ".join(attrs)
 
-    @staticmethod
-    def get_start(loc):
-        start = loc[1]
-        strand = loc[2]
-        leng = loc[3]
-        if strand == '+':
-            return start
-        if strand == '-':
-            return start - (leng - 1)
-        return 0
-
-    @staticmethod
-    def get_end(loc):
-        start = loc[1]
-        strand = loc[2]
-        leng = loc[3]
-        if strand == '+':
-            return start + (leng - 1)
-        if strand == '-':
-            return start
-        return 0
-
     def get_common_location(self, location_array):
         """Merges a compound location array into an overall location"""
         contig = location_array[0][0]
         strand = location_array[0][2]
-        min_pos = min([self.get_start(loc) for loc in location_array])
-        max_pos = max([self.get_end(loc) for loc in location_array])
+        min_pos = min([get_start(loc) for loc in location_array])
+        max_pos = max([get_end(loc) for loc in location_array])
         common_length = max_pos - min_pos + 1
         common_start = min_pos if strand == '+' else max_pos
         return [contig, common_start, strand, common_length]

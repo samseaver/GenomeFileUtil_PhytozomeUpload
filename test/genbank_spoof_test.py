@@ -1,7 +1,6 @@
 import unittest
 import time
 import os
-import shutil
 
 try:
     from ConfigParser import ConfigParser  # py2
@@ -12,7 +11,7 @@ from Workspace.WorkspaceClient import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from DataFileUtil.DataFileUtilClient import DataFileUtil
-from GenomeFileUtil.core.GenbankToGenome import warnings
+from GenomeFileUtil.core.GenomeUtils import warnings
 
 
 class GenomeFileUtilTest(unittest.TestCase):
