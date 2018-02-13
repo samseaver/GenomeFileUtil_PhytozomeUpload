@@ -50,6 +50,12 @@ def get_end(loc):
     return 0
 
 
+def get_bio_end(loc):
+    if loc[2] == "+":
+        return loc[1] + loc[3]
+    else:
+        return loc[1] - loc[3]
+
 def is_parent(feat1, feat2):
     """Check if all locations in feat2 fall within a location in
     feat1"""
@@ -63,6 +69,7 @@ def is_parent(feat1, feat2):
         else:
             return loc2[1] <= loc1[1] and (
                 loc2[1] - loc2[3] >= loc1[1] - loc1[3])
+
     if feat1.get('type') == 'gene':
         for l2 in feat2['location']:
             if not any(_contains(l1, l2) for l1 in feat1['location']):
@@ -76,16 +83,17 @@ def is_parent(feat1, feat2):
         if not any(_contains(l1, feat2['location'][-1]) for l1 in feat1['location']):
             return False
 
-        if len(feat2['location']) > 1 and get_end(feat2['location'][0]) != get_end(feat1['location'][0]):
-            return False
-
-        if len(feat2['location']) > 1 and get_start(feat2['location'][-1]) != get_start(feat1['location'][-1]):
-            return False
-
-        for l1, l2 in izip_longest(feat1['location'][1:-1],
-                                   feat2['location'][1:-1]):
-            if l1 != l2:
+        if len(feat2['location']) > 1:
+            if get_bio_end(feat2['location'][0]) != get_bio_end(feat1['location'][0]):
                 return False
+
+            if feat2['location'][-1][1] != feat1['location'][-1][1]:
+                return False
+
+            for l1, l2 in izip_longest(feat1['location'][1:-1],
+                                       feat2['location'][1:-1]):
+                if l1 != l2:
+                    return False
     return True
 
 
