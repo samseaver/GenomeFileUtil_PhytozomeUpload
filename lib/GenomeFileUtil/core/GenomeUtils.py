@@ -12,7 +12,7 @@ warnings = {
     "child_mrna_failed": "The child mRNA failed location validation. That mRNA"
                          " has been excluded.",
     "genome_excluded": "SUSPECT gene {} had some of its child features "
-                       "(CDS and/or mRNAs) excuded because of failed "
+                       "(CDS and/or mRNAs) excluded because of failed "
                        "coordinates validation",
     "gene_excluded": "SUSPECT gene {} was excluded because the associated CDS "
                      "failed coordinates validation",
