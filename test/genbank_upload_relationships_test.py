@@ -507,7 +507,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 found_gene_in_features = True
                 if "warnings" in feature:
                     for warning in feature["warnings"]:
-                        if warning == "The child mRNA failed location validation. That mRNA has been excluded.":
+                        if warning == warnings['child_mrna_failed']:
                             found_gene_warning = True
         for feature in genome["non_coding_features"]:
             if feature['id'] == "AT4G12620":
@@ -603,7 +603,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                     mRNA_has_gene = True
                 if "warnings" in feature:
                     for warning in feature["warnings"]:
-                        if warning == "Potential child CDS relationship failed due to location validation.":
+                        if warning == warnings["cds_mrna_mrna"]:
                             mRNA_warning = True
         for feature in genome["cdss"]:
             if feature['id'] == "AT4G12490_CDS_1":
@@ -658,9 +658,9 @@ class GenomeFileUtilTest(unittest.TestCase):
                         gene_has_CDS2 = True
                 if "warnings" in feature:
                     for warning in feature["warnings"]:
-                        if warning == "The child mRNA failed location validation. That mRNA has been excluded.":
+                        if warning == warnings['child_mrna_failed']:
                             found_gene_mRNA_warning = True
-                        if warning == "The child CDS failed location validation. That CDS has been excluded.":
+                        if warning == warnings['child_cds_failed']:
                                 found_gene_CDS_warning = True
                 if "mrnas" in feature:
                     if feature["mrnas"][0] == "AT4G12580_mRNA_1":
@@ -739,7 +739,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 if feature["cds"] == "AT4G12560_CDS_1":
                     found_mRNA_CDS = True
             if "warnings" in feature:
-                if "Potential child CDS relationship failed due to location validation." in feature["warnings"]:
+                if warnings["cds_mrna_mrna"] in feature["warnings"]:
                     found_mRNA_warning = True
         for feature in genome["cdss"]:
             if feature['id'] == "AT4G12560_CDS_1":
@@ -797,7 +797,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 if feature["cds"] == "AT4G12600_CDS_1":
                     found_mRNA_CDS = True
             if "warnings" in feature:
-                if "Potential child CDS relationship failed due to location validation." in feature["warnings"]:
+                if warnings['cds_mrna_mrna'] in feature["warnings"]:
                     found_mRNA_warning = True
         for feature in genome["cdss"]:
             if feature['id'] == "AT4G12600_CDS_1":

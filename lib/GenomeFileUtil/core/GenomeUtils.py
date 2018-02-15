@@ -1,7 +1,7 @@
 from itertools import izip_longest
 
 warnings = {
-    "cds_excluded": "SUSPECT CDS from {} was excluded because the associated "
+    "cds_excluded": "SUSPECT: CDS from {} was excluded because the associated "
                     "CDS failed coordinates validation",
     "cds_mrna_cds": "Feature order suggests that {} is the parent mRNA, but it"
                     " fails location validation",
@@ -11,19 +11,19 @@ warnings = {
                         "has been excluded.",
     "child_mrna_failed": "The child mRNA failed location validation. That mRNA"
                          " has been excluded.",
-    "genome_excluded": "SUSPECT gene {} had some of its child features "
+    "genome_excluded": "SUSPECT: gene {} had some of its child features "
                        "(CDS and/or mRNAs) excluded because of failed "
                        "coordinates validation",
-    "gene_excluded": "SUSPECT gene {} was excluded because the associated CDS "
+    "gene_excluded": "SUSPECT: gene {} was excluded because the associated CDS "
                      "failed coordinates validation",
-    "mrna_excluded": "SUSPECT mRNA from {} was excluded because the associated "
+    "mrna_excluded": "SUSPECT: mRNA from {} was excluded because the associated "
                      "mRNA failed coordinates validation",
     "no_spoof": "Some CDS features in the file do not have a parent gene. "
                 "Either fix the source file or select the "
                 "'generate_missing_genes' option.",
     "spoofed_gene": "This gene was not in the source GenBank file. It was "
                     "added to be the parent of the CDS {}.",
-    "spoofed_genome": "SUSPECT this genome has {} genes that needed to be "
+    "spoofed_genome": "SUSPECT: This genome has {} genes that needed to be "
                       "spoofed for existing parentless CDS."
 }
 
