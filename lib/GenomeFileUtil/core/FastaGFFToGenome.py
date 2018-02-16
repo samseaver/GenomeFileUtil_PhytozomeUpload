@@ -515,13 +515,19 @@ class FastaGFFToGenome:
     def _add_missing_parents(self,feature_list):
 
         #General rules is if CDS or RNA missing parent, add them
+        gene_ids_dict=set()
         for contig in feature_list.keys():
             ftrs = feature_list[contig]
             new_ftrs = []
             for i in range(len(ftrs)):
+                if("gene" in ftrs[i]["type"]):
+                    gene_ids_dict.add(ftrs[i]["ID"])
+
                 if("Parent" not in ftrs[i]):
+                    
                     #Assuming parent doesn't exist at all, so create de novo instead of trying to find it
                     if("RNA" in ftrs[i]["type"] or "CDS" in ftrs[i]["type"]):
+
                         new_gene_ftr = copy.deepcopy(ftrs[i])
                         new_gene_ftr["type"] = "gene"
                         ftrs[i]["Parent"]=new_gene_ftr["ID"]
@@ -530,8 +536,15 @@ class FastaGFFToGenome:
                     if("CDS" in ftrs[i]["type"]):
                         new_rna_ftr = copy.deepcopy(ftrs[i])
                         new_rna_ftr["type"] = "mRNA"
-                        new_ftrs.append(new_rna_ftr)
                         ftrs[i]["Parent"]=new_rna_ftr["ID"]
+                        new_ftrs.append(new_rna_ftr)
+
+                #Special case where, if a CDS is annotated to have a Parent, but the Parent is a gene type
+                if("CDS" in ftrs[i]["type"] and ftrs[i].get("Parent","") in gene_ids_dict):
+                    new_rna_ftr = copy.deepcopy(ftrs[i])
+                    new_rna_ftr["type"] = "mRNA"
+                    ftrs[i]["Parent"]=new_rna_ftr["ID"]
+                    new_ftrs.append(new_rna_ftr)
 
                 new_ftrs.append(ftrs[i])
             feature_list[contig]=new_ftrs
