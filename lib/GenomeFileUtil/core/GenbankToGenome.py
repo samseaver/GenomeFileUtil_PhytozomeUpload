@@ -301,9 +301,7 @@ class GenbankToGenome:
 
         if len(genome['cdss']) and self.cds_seq_not_matching / float(len(
                 genome['cdss'])) > 0.01:
-            self.genome_warnings.append("SUSPECT This Genome has a high "
-                "proportion ({} out of {}) CDS features that do not "
-                "translate the supplied translation".format(
+            self.genome_warnings.append(warnings["genome_inc_translation"].format(
                 self.cds_seq_not_matching, len(genome['cdss'])))
             self.genome_suspect = 1
 
@@ -741,31 +739,26 @@ class GenbankToGenome:
                 out_feat['protein_translation'] = Seq.translate(
                         feat_seq, self.code_table, cds=True).strip("*")
                 out_feat['warnings'] = out_feat.get('warnings', []) + [
-                    "This CDS did not have a supplied translation. The "
-                    "translation is derived directly from DNA sequence."]
+                        warnings["no_translation_supplied"]]
             except TranslationError as e:
                 out_feat['warnings'] = out_feat.get('warnings', []) + [
-                    "Protein translation not supplied. Unable to generate "
-                    "protein sequence:" + str(e)]
+                    warnings["no_translation_supplied"] + str(e)]
 
         # allow a little slack to account for frameshift and stop codon
         if prot_seq and abs(len(prot_seq) * 3 - len(feat_seq)) > 4:
             out_feat['warnings'] = out_feat.get('warnings', []) + [
-                "This CDS has a length of {} which is not consistent with the "
-                "length of the translation included ({} amino acids)".format(
-                    len(feat_seq), len(prot_seq))]
-            self.genome_warnings.append('SUSPECT {}: This CDS has a length of '
-                    '{} which is not consistent with the length of the '
-                    'translation included ({} amino acids)'.format(
-                out_feat['id'], len(feat_seq), len(prot_seq)))
+                warnings["inconsistent_CDS_length"].format(len(feat_seq),
+                                                           len(prot_seq))]
+            self.genome_warnings.append(
+                warnings['genome_inc_CDS_length'].format(
+                    out_feat['id'], len(feat_seq), len(prot_seq)))
             self.genome_suspect = 1
 
         try:
             if prot_seq and prot_seq != Seq.translate(
                     feat_seq, self.code_table, cds=True).strip("*"):
                 out_feat['warnings'] = out_feat.get('warnings', []) + [
-                    "The annotated protein translation is not "
-                    "consistent with the recorded DNA sequence"]
+                    warnings["inconsistent_translation"]]
                 self.cds_seq_not_matching += 1
 
         except TranslationError as e:

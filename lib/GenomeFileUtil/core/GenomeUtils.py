@@ -24,7 +24,26 @@ warnings = {
     "spoofed_gene": "This gene was not in the source GenBank file. It was "
                     "added to be the parent of the CDS {}.",
     "spoofed_genome": "SUSPECT: This genome has {} genes that needed to be "
-                      "spoofed for existing parentless CDS."
+                      "spoofed for existing parentless CDS.",
+    "not_trans_spliced": "The feature coordinates order are suspect and the "
+                         "feature is not flagged as being trans-spliced",
+    "genome_not_trans_spliced": "SUSPECT: This Genome has {} features with "
+                                "coordinates that are out of order and are "
+                                "not trans_splicing.",
+    "inconsistent_CDS_length": "This CDS has a length of {} which is not "
+                               "consistent with the length of the translation "
+                               "included ({} amino acids).",
+    "genome_inc_CDS_length": "SUSPECT: CDS {} has a length of {} which is "
+                             "not consistent with the length of the "
+                             "translation included ({} amino acids).",
+    "inconsistent_translation": "The annotated protein translation is not "
+                                "consistent with the recorded DNA sequence.",
+    "genome_inc_translation": "SUSPECT: This Genome has a high proportion "
+                              "({} out of {}) CDS features that do not "
+                              "translate the supplied translation.",
+    "no_translation_supplied": "This CDS did not have a supplied "
+                               "translation. The translation is derived "
+                               "directly from DNA sequence."
 }
 
 
