@@ -15,7 +15,6 @@ from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.core.GenomeUtils import warnings
 import json
 
-ts_error = "The feature coordinates order are suspect and the feature is not flagged as being trans-spliced"
 fuzzy_loc_error = "The coordinates supplied for this feature are non-exact. DNA or protein translations are approximate."
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -218,7 +217,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         has_cds_warning = False
         genome_suspect = False
         genome_warning = False
-        p = re.compile(ts_error)
         for feature in genome["features"]:
             if feature['id'] == "InvalidOrder":
                 print "FEATURE::::" + str(feature)
@@ -229,9 +227,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                         if flag == "trans_splicing":
                             gene_transpliced_flag = True
                 if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == ts_error:
-                            has_gene_warning = True
+                    if warnings['not_trans_spliced'] in feature["warnings"]:
+                        has_gene_warning = True
         self.assertTrue(has_gene_warning, "The position coordinates for gene 'InvalidOrder' are out of order and this is not listed as a transpliced gene.  It should have a warning.")
         self.assertFalse(gene_transpliced_flag, "The trans_splicing flag for the gene 'InvalidOrder' was set, technically it appears it may be transpliced, but the file does not state it to be.")
         for feature in genome["cdss"]:
@@ -243,21 +240,19 @@ class GenomeFileUtilTest(unittest.TestCase):
                         if flag == "trans_splicing":
                             cds_transpliced_flag = True
                 if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == ts_error:
-                            has_cds_warning = True
+                    if warnings['not_trans_spliced'] in feature["warnings"]:
+                        has_cds_warning = True
         self.assertTrue(has_cds_warning, "The position coordinates for CDS 'InvalidOrder' are out of order and this is not listed as a transpliced CDS.  It should have a warning.")
         self.assertFalse(cds_transpliced_flag, "The trans_splicing flag for the cds InvalidOrder_CDS_1 was set, technically it appears it may be transpliced, but the file does not state it to be.")
         if "suspect" in genome:
             if genome["suspect"] == 1:
                 genome_suspect = True
         if "warnings" in genome:
-            for warning in genome["warnings"]:
-                m = p.search(warning)
-                if m:
-                    genome_warning = True
+            #NOT SURE OF NUMBER HERE NOW, WILL NEED TO UPDATE THE VALUE.
+            if warnings['genome_not_trans_spliced'].format(3) in genome["warnings"]:
+                genome_warning = True
         self.assertTrue(genome_suspect, "This genome has invalid position order features in it. It should be deemed suspect.")
-        self.assertTrue(genome_warning, "This Genome has feature(s) with invalid coordinates, and should have a genome level warning to reflect that.")
+        self.assertTrue(genome_warning, "This Genome has feature(s) with invalid coordinates, and should have a genome level warning to reflect that." + str(genome["warnings"]))
         self.assertTrue(found_gene, "The gene InvalidOrder was not found.")
         self.assertTrue(found_cds, "The CDS InvalidOrder_CDS_1 was not found.")
 
@@ -280,9 +275,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                         if flag == "trans_splicing":
                             gene_transpliced_flag = True
                 if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == ts_error:
-                            has_gene_warning = True
+                    if warnings['not_trans_spliced'] in feature["warnings"]:
+                        has_gene_warning = True
         self.assertFalse(has_gene_warning, "The position coordinates are out of order, but they start and stop at the start and end of a circular contig, therefore it is valid.")
         self.assertFalse(gene_transpliced_flag, "The trans_splicing flag was set, technically it appears it may be transpliced, but the file does not state it to be.")
         for feature in genome["cdss"]:
@@ -295,9 +289,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                         if flag == "trans_splicing":
                             cds_transpliced_flag = True
                 if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == ts_error:
-                            has_cds_warning = True
+                    if warnings['not_trans_spliced'] in feature["warnings"]:
+                        has_cds_warning = True
         self.assertFalse(has_cds_warning, "The position coordinates for CDS 'RL4742A' are out of order, but they start and stop at the start and end of a circular contig, therefore it is valid.")
         self.assertFalse(cds_transpliced_flag, "The trans_splicing flag for the cds RL4742A_CDS_1 was set, technically it appears it may be transpliced, but the file does not state it to be.")
         self.assertTrue(found_gene, "The gene InvalidOrder was not found.")
@@ -322,9 +315,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                         if flag == "trans_splicing":
                             gene_transpliced_flag = True
                 if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == ts_error:
-                            has_gene_warning = True
+                    if warnings['not_trans_spliced'] in feature["warnings"]:
+                        has_gene_warning = True
         self.assertFalse(has_gene_warning, "The position coordinates gene 'RL4742' are out of order, but they start and stop at the start and end of a circular contig, therefore it is valid.")
         self.assertFalse(gene_transpliced_flag, "The trans_splicing flag for the gene RL4742 was set, technically it appears it may be transpliced, but the file does not state it to be.")
         for feature in genome["cdss"]:
@@ -337,9 +329,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                         if flag == "trans_splicing":
                             cds_transpliced_flag = True
                 if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == ts_error:
-                            has_cds_warning = True
+                    if warnings['not_trans_spliced'] in feature["warnings"]:
+                        has_cds_warning = True
         self.assertFalse(has_cds_warning, "The position coordinates CDS 'RL4742' are out of order, but they start and stop at the start and end of a circular contig, therefore it is valid.")
         self.assertFalse(cds_transpliced_flag, "The trans_splicing flag for the cds RL4742_CDS_1 was set, technically it appears it may be transpliced, but the file does not state it to be.")
         self.assertTrue(found_gene, "The gene RL4742 was not found.")
@@ -364,9 +355,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                         if flag == "trans_splicing":
                             gene_transpliced_flag = True
                 if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == "The feature coordinates order are suspect and the feature is not listed as being trans_splicing":
-                            has_gene_warning = True
+                    if warnings['not_trans_spliced'] in feature["warnings"]:
+                        has_gene_warning = True
         self.assertFalse(has_gene_warning, "The position coordinates gene 'Zero_Span_two_exon' are out of order, but they start and stop at the start and end of a circular contig, therefore it is valid.")
         self.assertFalse(gene_transpliced_flag, "The trans_splicing flag for the gene Zero_Span_two_exon was set, but it is not trans_spliced.")
         for feature in genome["cdss"]:
@@ -379,9 +369,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                         if flag == "trans_splicing":
                             cds_transpliced_flag = True
                 if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == "The feature coordinates order are suspect and the feature is not listed as being trans_splicing":
-                            has_cds_warning = True
+                    if warnings['not_trans_spliced'] in feature["warnings"]:
+                        has_cds_warning = True
         self.assertFalse(has_cds_warning, "The position coordinates CDS 'Zero_Span_two_exon' are out of order, but they are the child of a gene that start and stop at the start and end of a circular contig, therefore it is valid.")
         self.assertFalse(cds_transpliced_flag, "The trans_splicing flag for the cds Zero_Span_two_exon_CDS_1 was set, technically it appears it may be transpliced, but the file does not state it to be.")
         self.assertTrue(found_gene, "The gene Zero_Span_two_exon was not found.")
@@ -418,29 +407,24 @@ class GenomeFileUtilTest(unittest.TestCase):
                 found_cds = True
                 if "warnings" in feature:
                     for warning in feature["warnings"]:
-                        if warning == "This CDS has a length of 240 which is not consistent with the length of the translation included (88 amino acids)":
+                        if warning == warnings["inconsistent_CDS_length"].format(240,88):
                             has_CDS_warning = True
-                        if warning == "The annotated protein translation is not consistent with the recorded DNA sequence":
+                        if warning == warnings["inconsistent_translation"]:
                             has_translation_off_warning = True
         self.assertTrue(found_cds, "The cds ArthCp004_CDS_1 was not found.")
         self.assertTrue(has_CDS_warning, "The AA translation length is significantly off in ArthCp004_CDS_1")
         self.assertTrue(has_translation_off_warning, "The AA translation sequence is significantly off in ArthCp004_CDS_1")
         if "warnings" in genome:
-            p = re.compile("This CDS has a length of \d+ which is not consistent with the length of the translation included")
             for warning in genome["warnings"]:
-                m = p.search(warning)
-                if m:
+                if warning == warnings["genome_inc_CDS_length"].format("ArthCp004_CDS_1",240,88):
                     genome_translation_length_warning = True
-            p = re.compile("SUSPECT This Genome has a high proportion \(\d+ out of \d+\) CDS features that do not translate the supplied translation")
-            for warning in genome["warnings"]:
-                m = p.search(warning)
-                if m:
+                if warning == warnings["genome_inc_translation"].format(2,25):
                     genome_translation_warning = True
         if "suspect" in genome:
             if genome["suspect"] == 1:
                 genome_suspect = True
         self.assertTrue(genome_translation_length_warning,"This does not have the translation length warning it should.")
-        self.assertTrue(genome_translation_warning,"This does not have the CDS translation proportion warning it should.")
+        self.assertTrue(genome_translation_warning,"This does not have the CDS translation proportion warning it should." + str(genome["warnings"]))
         self.assertTrue(genome_suspect,"This has significant translation issues both in length and AA sequence.")
 
     def test_translation_not_supplied(self):
@@ -453,7 +437,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 found_cds = True
                 if "warnings" in feature:
                     for warning in feature["warnings"]:
-                        if warning == "This CDS did not have a supplied translation. The translation is derived directly from DNA sequence.":
+                        if warning == warnings["no_translation_supplied"]:
                             has_cds_warning = True
                 if feature.get("protein_translation"):
                     has_translation = True
@@ -471,7 +455,9 @@ class GenomeFileUtilTest(unittest.TestCase):
                 found_cds = True
                 if "warnings" in feature:
                     for warning in feature["warnings"]:
-                        if warning == "Protein translation not supplied. Unable to generate protein sequence:Sequence length 88 is not a multiple of three":
+                        #Note the later portion of this error is thrown by biopython
+                        #if they change their error message, this will need to be updated.
+                        if warning == warnings["no_translation_supplied"] + "Sequence length 88 is not a multiple of three" :
                             has_cds_warning = True
                 if "protein_translation" in feature:
                     if feature["protein_translation"] == "":
