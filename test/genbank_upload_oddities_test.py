@@ -524,9 +524,9 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertFalse(found_cds,"'ArthCp085__CDS_1' Should not have been added to the CDS, since it has invalid coordinates over the end of the contig")
         if "warnings" in genome:
             for warning in genome["warnings"]:
-                if warning == warnings["coordinates_off_end"].format(ArthCp085_gene):
+                if warning == warnings["coordinates_off_end"].format('ArthCp085_gene'):
                     found_gene_warning = True
-                if warning == warning == warnings["coordinates_off_end"].format(ArthCp085_CDS):
+                if warning == warning == warnings["coordinates_off_end"].format('ArthCp085_CDS'):
                    found_cds_warning = True
             self.assertTrue(found_gene_warning,"SUSPECT: The warning for the invalid gene off the end of the contig was not found.")
             self.assertTrue(found_cds_warning,"SUSPECT: The warning for the invalid CDS off the end of the contig was not found.")
