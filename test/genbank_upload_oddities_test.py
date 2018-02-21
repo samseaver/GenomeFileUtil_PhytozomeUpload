@@ -15,8 +15,6 @@ from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.core.GenomeUtils import warnings
 import json
 
-fuzzy_loc_error = "The coordinates supplied for this feature are non-exact. DNA or protein translations are approximate."
-
 class GenomeFileUtilTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -526,10 +524,10 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertFalse(found_cds,"'ArthCp085__CDS_1' Should not have been added to the CDS, since it has invalid coordinates over the end of the contig")
         if "warnings" in genome:
             for warning in genome["warnings"]:
-                if warning == "SUSPECT ArthCp085_gene: Feature has invalid coordinates off of the end of the contig and was not included":
+                if warning == warnings["coordinates_off_end"].format(ArthCp085_gene):
                     found_gene_warning = True
-                if warning == "SUSPECT ArthCp085_CDS: Feature has invalid coordinates off of the end of the contig and was not included":
-                    found_cds_warning = True
+                if warning == warning == warnings["coordinates_off_end"].format(ArthCp085_CDS):
+                   found_cds_warning = True
             self.assertTrue(found_gene_warning,"SUSPECT: The warning for the invalid gene off the end of the contig was not found.")
             self.assertTrue(found_cds_warning,"SUSPECT: The warning for the invalid CDS off the end of the contig was not found.")
 
@@ -545,14 +543,14 @@ class GenomeFileUtilTest(unittest.TestCase):
                 found_gene = True
                 #print "Gene : " + str(feature)
                 if "warnings" in feature:
-                    if fuzzy_loc_error in feature["warnings"]:
+                    if warnings["non_exact_coordinates"] in feature["warnings"]:
                         found_gene_warning = True
         for feature in genome["cdss"]:
             if feature['id'] == "ArthCp005_CDS_1":
                 found_cds = True
                 #print "CDS : " + str(feature)
                 if "warnings" in feature:
-                    if fuzzy_loc_error in feature["warnings"]:
+                    if warnings["non_exact_coordinates"] in feature["warnings"]:
                         found_cds_warning = True
         self.assertTrue(found_gene,"'ArthCp005' Was not found in the genes")
         self.assertTrue(found_cds,"'ArthCp005_CDS_1' Was not found in the cdss")
@@ -570,14 +568,14 @@ class GenomeFileUtilTest(unittest.TestCase):
                 found_gene = True
                 #print "Gene : " + str(feature)
                 if "warnings" in feature:
-                    if fuzzy_loc_error in feature["warnings"]:
+                    if warnings["non_exact_coordinates"] in feature["warnings"]:
                         found_gene_warning = True
         for feature in genome["cdss"]:
             if feature['id'] == "ArthCp006_CDS_1":
                 found_cds = True
                 #print "CDS : " + str(feature)
                 if "warnings" in feature:
-                    if fuzzy_loc_error in feature["warnings"]:
+                    if warnings["non_exact_coordinates"] in feature["warnings"]:
                         found_cds_warning = True
         self.assertTrue(found_gene,"'ArthCp006' Was not found in the genes")
         self.assertTrue(found_cds,"'ArthCp006_CDS_1' Was not found in the cdss")
@@ -595,14 +593,14 @@ class GenomeFileUtilTest(unittest.TestCase):
                 found_gene = True
                 #print "Gene : " + str(feature)
                 if "warnings" in feature:
-                    if fuzzy_loc_error in feature["warnings"]:
+                    if warnings["non_exact_coordinates"] in feature["warnings"]:
                         found_gene_upper_warning = True
         for feature in genome["cdss"]:
             if feature['id'] == "ArthCp007_CDS_1":
                 found_cds = True
                 #print "CDS : " + str(feature)
                 if "warnings" in feature:
-                    if fuzzy_loc_error in feature["warnings"]:
+                    if warnings["non_exact_coordinates"] in feature["warnings"]:
                         found_cds_upper_warning = True
         self.assertTrue(found_gene,"'ArthCp007' Was not found in the genes")
         self.assertTrue(found_cds,"'ArthCp007_CDS_1' Was not found in the cdss")
@@ -610,6 +608,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(found_cds_upper_warning,"Did not have cds unknown upper bound warning")
 
 '''
+#BIOPYTHON CURRENTLY DOES NOT HANDLE THIS.
     def test_reversed_position(self):
         genome = self.__class__.genome
         found_gene = False

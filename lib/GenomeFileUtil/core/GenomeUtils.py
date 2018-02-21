@@ -43,7 +43,12 @@ warnings = {
                               "translate the supplied translation.",
     "no_translation_supplied": "This CDS did not have a supplied "
                                "translation. The translation is derived "
-                               "directly from DNA sequence."
+                               "directly from DNA sequence.",
+    "coordinates_off_end": "SUSPECT: Feature {} has invalid coordinates off "
+                           "of the end of the contig and was not included.",
+    "non_exact_coordinates": "The coordinates supplied for this feature are "
+                             "non-exact. DNA or protein translations are "
+                             "approximate."
 }
 
 

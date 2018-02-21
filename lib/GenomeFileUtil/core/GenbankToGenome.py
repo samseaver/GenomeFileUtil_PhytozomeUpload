@@ -503,18 +503,15 @@ class GenbankToGenome:
             # validate input feature
             # note that end is the larger number regardless of strand
             if int(in_feature.location.end) > len(record):
-                self.genome_warnings.append('SUSPECT {}: Feature has '
-                    'invalid coordinates off of the end of the contig and was '
-                    'not included'.format(out_feat['id']))
+                self.genome_warnings.append(
+                    warnings["coordinates_off_end"].format(out_feat['id']))
                 self.genome_suspect = 1
                 continue
 
             for piece in in_feature.location.parts:
                 if not isinstance(piece.start, ExactPosition) \
                         or not isinstance(piece.end, ExactPosition):
-                    _warn("The coordinates supplied for this feature are "
-                          "non-exact. DNA or protein translations are "
-                          "approximate.")
+                    _warn(warnings["non_exact_coordinates"])
 
             self.feature_counts[in_feature.type] += 1
 
