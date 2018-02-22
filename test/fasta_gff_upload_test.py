@@ -189,7 +189,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         input_params = {
             'fasta_file': {'path': self.fa_path},
             'gff_file': {'path': self.gff_path},
-            'genome_name': 'MyGenome',
+            'genome_name': 'Plant',
             'workspace_name': self.getWsName(),
             'source': 'Genbank',
             'type': 'Reference',
@@ -263,7 +263,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
     def test_fungal_fasta_gff_to_genome(self):
         input_params = {
             'workspace_name': self.getWsName(),
-            'genome_name': 'fungal',
+            'genome_name': 'jgi_fungal',
             'fasta_file': {'path': self.fungal_fa_path},
             'gff_file': {'path': self.fungal_gff_path},
             'source': 'Genbank',
@@ -292,7 +292,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
     def test_refseq_bacterial_fasta_gff_to_genome(self):
         input_params = {
             'workspace_name': self.getWsName(),
-            'genome_name': 'MyGenome',
+            'genome_name': 'refseq',
             'fasta_file': {'path': self.refseq_bacterial_fa_path},
             'gff_file': {'path': self.refseq_bacterial_gff_path},
             'source': 'Genbank',
@@ -306,7 +306,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
     def test_patric_bacterial_fasta_gff_to_genome(self):
         input_params = {
             'workspace_name': self.getWsName(),
-            'genome_name': 'MyGenome',
+            'genome_name': 'patric_bacterial',
             'fasta_file': {'path': self.patric_bacterial_fa_path},
             'gff_file': {'path': self.patric_bacterial_gff_path},
             'source': 'Genbank',

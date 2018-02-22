@@ -14,11 +14,12 @@ import copy
 # KBase imports
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
-from KBaseReport.KBaseReportClient import KBaseReport
+from GenomeUtils import warnings
 from GenomeInterface import GenomeInterface
 
 # 3rd party imports
 from Bio.Data import CodonTable
+from Bio.Data.CodonTable import TranslationError
 import Bio.SeqIO
 from Bio.Seq import Seq
 
@@ -40,8 +41,9 @@ class FastaGFFToGenome:
         self.time_string = str(datetime.datetime.fromtimestamp(
             time.time()).strftime('%Y_%m_%d_%H_%M_%S'))
         yml_text = open('/kb/module/kbase.yml').read()
-        self.version = re.search("module-version:\n\W+(.+)\n", yml_text).group(
-            1)
+        self.version = re.search("module-version:\n\W+(.+)\n", yml_text
+                                 ).group(1)
+        self.code_table = 11
         self.aliases = ()
         self.is_phytozome = False
         self.strict = True
@@ -61,6 +63,7 @@ class FastaGFFToGenome:
 
         # 1) validate parameters
         self._validate_import_file_params(params)
+        self.code_table = params.get('genetic_code', 11)
 
         # 2) construct the input directory staging area
         input_directory = os.path.join(self.cfg.sharedFolder, 'fast_gff_upload_'+str(uuid.uuid4()))
@@ -76,7 +79,6 @@ class FastaGFFToGenome:
         result = self.upload_genome(
             input_fasta_file=file_paths["fasta_file"],
             input_gff_file=file_paths["gff_file"],
-
             workspace_name=params['workspace_name'],
             core_genome_name=params['genome_name'],
             scientific_name=params['scientific_name'],
@@ -135,6 +137,8 @@ class FastaGFFToGenome:
         genome = self._gen_genome_info(core_genome_name, scientific_name,
                                        assembly_ref, source, assembly_data,
                                        input_gff_file, molecule_type)
+        genome['release'] = release
+        genome['type'] = genome_type
 
         json.dump(genome, open("{}/{}.json".format(self.cfg.sharedFolder,
                                                    genome['id']), 'w'), indent=4)
@@ -151,7 +155,6 @@ class FastaGFFToGenome:
         print report_string
 
         return {'genome_info': result['info'], 'report_string': report_string}
-
 
     @staticmethod
     def _location(in_feature):
@@ -675,7 +678,13 @@ class FastaGFFToGenome:
 
         for cds_id in self.cdss:
             cds = self.feature_dict[cds_id]
-            prot_seq = str(Seq(cds['dna_sequence']).translate()).strip("*")
+            try:
+                prot_seq = str(Seq(cds['dna_sequence']).translate(
+                            self.code_table, cds=True).strip("*"))
+            except TranslationError as e:
+                cds['warnings'] = cds.get('warnings', []) + [str(e)]
+                prot_seq = ""
+
             cds.update({
                 "protein_translation": prot_seq,
                 "protein_md5": hashlib.md5(prot_seq).hexdigest(),
@@ -692,7 +701,7 @@ class FastaGFFToGenome:
                 self.feature_dict[spoof['id']] = spoof
                 cds['parent_gene'] = spoof['id']
             else:
-                raise ValueError("input file is missing genes and generate_missing_genes is not enabled")
+                raise ValueError(warnings['no_spoof'])
 
             self.feature_dict[cds['id']] = cds
 
@@ -780,6 +789,7 @@ class FastaGFFToGenome:
         genome['taxonomy'], genome['taxon_ref'], genome['domain'], \
             genome["genetic_code"] = self.gi.retrieve_taxon(self.taxon_wsname,
                                                             genome['scientific_name'])
+        genome["genetic_code"] = self.code_table
         genome['source'], genome['genome_tiers'] = self.gi.determine_tier(
             source)
 
