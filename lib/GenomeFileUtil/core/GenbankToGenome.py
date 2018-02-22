@@ -44,8 +44,7 @@ class GenbankToGenome:
         self.features_spaning_zero = set()
         self.genome_warnings = []
         self.genome_suspect = False
-        self.cds_seq_not_matching = 0
-        self.bad_parent_loc = 0
+        self.defects = Counter()
         self.spoofed_genes = 0
         self.excluded_features = ('source', 'exon')
         self.go_mapping = json.load(
@@ -299,21 +298,27 @@ class GenbankToGenome:
         # can't serialize a set
         genome['publications'] = list(genome['publications'])
 
-        if len(genome['cdss']) and self.cds_seq_not_matching / float(len(
-                genome['cdss'])) > 0.01:
+        if len(genome['cdss']) and (self.defects['cds_seq_not_matching'] /
+                                    float(len(genome['cdss'])) > 0.0):
             self.genome_warnings.append(warnings["genome_inc_translation"].format(
-                self.cds_seq_not_matching, len(genome['cdss'])))
+                self.defects['cds_seq_not_matching'], len(genome['cdss'])))
             self.genome_suspect = 1
 
-        if self.bad_parent_loc:
+        if self.defects['bad_parent_loc']:
             self.genome_warnings.append("There were {} parent/child "
                 "relationships that were not able to be determined. Some of "
                 "these may have splice variants that may be valid "
-                "relationships.".format(self.bad_parent_loc))
+                "relationships.".format(self.defects['bad_parent_loc']))
 
-        if self.spoofed_genes:
+        if self.defects['spoofed_genes']:
             self.genome_warnings.append(warnings['spoofed_genome'].format(
-                self.spoofed_genes))
+                self.defects['spoofed_genes']))
+            genome['suspect'] = 1
+
+        if self.defects['not_trans_spliced']:
+            self.genome_warnings.append(warnings['genome_not_trans_spliced']
+                                        .format(self.defects['not_trans_spliced']))
+            genome['suspect'] = 1
 
         if self.genome_warnings:
             genome['warnings'] = self.genome_warnings
@@ -472,12 +477,8 @@ class GenbankToGenome:
             if parent and parent['id'] in self.features_spaning_zero:
                 return
 
-            msg = "The feature coordinates order are suspect and the " \
-                   "feature is not flagged as being trans-spliced"
-            _warn(msg)
-            self.genome_warnings.append("SUSPECT {}:".format(out_feat['id']) +
-                                        msg)
-            self.genome_suspect = True
+            _warn(warnings['not_trans_spliced'])
+            self.defects['not_trans_spliced'] += 1
 
         genes, cdss, mrnas, noncoding = OrderedDict(), OrderedDict(), OrderedDict(), []
         for in_feature in record.features:
@@ -674,7 +675,7 @@ class GenbankToGenome:
                 out_feat['warnings'] = out_feat.get('warnings', []) + [
                     "Feature order suggests that {} is the parent gene, but it"
                     " fails location validation".format(_id)]
-                self.bad_parent_loc += 1
+                self.defects['bad_parent_loc'] += 1
             else:
                 if 'children' not in genes[_id]:
                     genes[_id]['children'] = []
@@ -696,10 +697,10 @@ class GenbankToGenome:
 
         if _id not in genes and self.generate_parents:
             new_feat = copy.copy(out_feat)
+            new_feat['id'] = _id
             new_feat['warnings'] = [warnings['spoofed_gene']]
             self.feature_counts['gene'] += 1
-            self.spoofed_genes += 1
-            self.genome_suspect = 1
+            self.defects['spoofed_genes'] += 1
             self.process_gene(_id, genes, new_feat)
 
         if _id in genes:
@@ -710,7 +711,7 @@ class GenbankToGenome:
                 self.genome_warnings.append(
                     warnings['cds_excluded'].format(_id))
                 self.genome_suspect = 1
-                self.bad_parent_loc += 1
+                self.defects['bad_parent_loc'] += 1
                 return
             else:
                 genes[_id]['cdss'].append(out_feat['id'])
@@ -726,7 +727,7 @@ class GenbankToGenome:
                     warnings['cds_mrna_cds'].format(mrna_id)]
                 mrnas[mrna_id]['warnings'] = mrnas[mrna_id].get(
                     'warnings', []) + [warnings['cds_mrna_mrna']]
-                self.bad_parent_loc += 1
+                self.defects['bad_parent_loc'] += 1
             else:
                 out_feat['parent_mrna'] = mrna_id
                 mrnas[mrna_id]['cds'] = out_feat['id']
@@ -756,7 +757,7 @@ class GenbankToGenome:
                     feat_seq, self.code_table, cds=True).strip("*"):
                 out_feat['warnings'] = out_feat.get('warnings', []) + [
                     warnings["inconsistent_translation"]]
-                self.cds_seq_not_matching += 1
+                self.defects['cds_seq_not_matching'] += 1
 
         except TranslationError as e:
             out_feat['warnings'] = out_feat.get('warnings', []) + [
@@ -775,8 +776,7 @@ class GenbankToGenome:
                     warnings['child_mrna_failed']]
                 self.genome_warnings.append(
                     warnings['mrna_excluded'].format(_id))
-                self.genome_suspect = 1
-                self.bad_parent_loc += 1
+                self.defects['bad_parent_loc'] += 1
                 return
             else:
                 genes[_id]['mrnas'].append(out_feat['id'])

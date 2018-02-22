@@ -100,10 +100,11 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'file': {'path': gbk_path},
                 'workspace_name': self.getWsName(),
                 'genome_name': ws_obj_name,
-                'generate_ids_if_needed': 1
+                'generate_ids_if_needed': 1,
+                'generate_missing_genes': 1
             })[0]
         self.assertEquals(result['genome_info'][10]['Number contigs'], '1')
-        self.assertEquals(result['genome_info'][10]['Number of Protein Encoding Genes'], '0')
+        self.assertEquals(result['genome_info'][10]['Number of Protein Encoding Genes'], '2')
 
     def test_upload_prokka(self):
         gbk_path = "data/prokka/PROKKA_012345.gbk.gz"
@@ -114,10 +115,11 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'file': {'path': gbk_path},
                 'workspace_name': self.getWsName(),
                 'genome_name': ws_obj_name,
-                'generate_ids_if_needed': 1
+                'generate_ids_if_needed': 1,
+                "generate_missing_genes": 1
             })[0]
         self.assertEquals(result['genome_info'][10]['Number contigs'], '1')
-        self.assertEquals(result['genome_info'][10]['Number of Protein Encoding Genes'], '0')
+        self.assertEquals(result['genome_info'][10]['Number of Protein Encoding Genes'], '4313')
         self.assertEquals(result['genome_info'][10]['Domain'], 'Unknown')
 
     def test_ftp_upload_bug(self):

@@ -217,7 +217,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         genome_warning = False
         for feature in genome["features"]:
             if feature['id'] == "InvalidOrder":
-                print "FEATURE::::" + str(feature)
+                # print "FEATURE::::" + str(feature)
                 print "Found InvalidOrder"
                 found_gene = True
                 if "flags" in feature:
@@ -246,8 +246,7 @@ class GenomeFileUtilTest(unittest.TestCase):
             if genome["suspect"] == 1:
                 genome_suspect = True
         if "warnings" in genome:
-            #NOT SURE OF NUMBER HERE NOW, WILL NEED TO UPDATE THE VALUE.
-            if warnings['genome_not_trans_spliced'].format(3) in genome["warnings"]:
+            if warnings['genome_not_trans_spliced'].format(4) in genome["warnings"]:
                 genome_warning = True
         self.assertTrue(genome_suspect, "This genome has invalid position order features in it. It should be deemed suspect.")
         self.assertTrue(genome_warning, "This Genome has feature(s) with invalid coordinates, and should have a genome level warning to reflect that." + str(genome["warnings"]))
