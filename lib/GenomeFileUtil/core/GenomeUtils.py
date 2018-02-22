@@ -1,3 +1,85 @@
+from itertools import izip_longest
+
+warnings = {
+    "cds_excluded": "SUSPECT: CDS from {} was excluded because the associated "
+                    "CDS failed coordinates validation",
+    "cds_mrna_cds": "Feature order suggests that {} is the parent mRNA, but it"
+                    " fails location validation",
+    "cds_mrna_mrna": "Potential child CDS relationship failed due to location "
+                    "validation.",
+    "child_cds_failed": "The child CDS failed location validation. That CDS "
+                        "has been excluded.",
+    "child_mrna_failed": "The child mRNA failed location validation. That mRNA"
+                         " has been excluded.",
+    "genome_excluded": "SUSPECT: gene {} had some of its child features "
+                       "(CDS and/or mRNAs) excluded because of failed "
+                       "coordinates validation",
+    "gene_excluded": "SUSPECT: gene {} was excluded because the associated CDS "
+                     "failed coordinates validation",
+    "mrna_excluded": "SUSPECT: mRNA from {} was excluded because the associated "
+                     "mRNA failed coordinates validation",
+    "no_spoof": "Some CDS features in the file do not have a parent gene. "
+                "Either fix the source file or select the "
+                "'generate_missing_genes' option.",
+    "spoofed_gene": "This gene was not in the source GenBank file. It was "
+                    "added to be the parent of the CDS {}.",
+    "spoofed_genome": "SUSPECT: This genome has {} genes that needed to be "
+                      "spoofed for existing parentless CDS.",
+    "not_trans_spliced": "The feature coordinates order are suspect and the "
+                         "feature is not flagged as being trans-spliced",
+    "genome_not_trans_spliced": "SUSPECT: This Genome has {} features with "
+                                "coordinates that are out of order and are "
+                                "not trans_splicing.",
+    "inconsistent_CDS_length": "This CDS has a length of {} which is not "
+                               "consistent with the length of the translation "
+                               "included ({} amino acids).",
+    "genome_inc_CDS_length": "SUSPECT: CDS {} has a length of {} which is "
+                             "not consistent with the length of the "
+                             "translation included ({} amino acids).",
+    "inconsistent_translation": "The annotated protein translation is not "
+                                "consistent with the recorded DNA sequence.",
+    "genome_inc_translation": "SUSPECT: This Genome has a high proportion "
+                              "({} out of {}) CDS features that do not "
+                              "translate the supplied translation.",
+    "no_translation_supplied": "This CDS did not have a supplied "
+                               "translation. The translation is derived "
+                               "directly from DNA sequence.",
+    "coordinates_off_end": "SUSPECT: Feature {} has invalid coordinates off "
+                           "of the end of the contig and was not included.",
+    "non_exact_coordinates": "The coordinates supplied for this feature are "
+                             "non-exact. DNA or protein translations are "
+                             "approximate."
+}
+
+
+def get_start(loc):
+    start = loc[1]
+    strand = loc[2]
+    leng = loc[3]
+    if strand == '+':
+        return start
+    if strand == '-':
+        return start - (leng - 1)
+    return 0
+
+
+def get_end(loc):
+    start = loc[1]
+    strand = loc[2]
+    leng = loc[3]
+    if strand == '+':
+        return start + (leng - 1)
+    if strand == '-':
+        return start
+    return 0
+
+
+def get_bio_end(loc):
+    if loc[2] == "+":
+        return loc[1] + loc[3]
+    else:
+        return loc[1] - loc[3]
+
 def is_parent(feat1, feat2):
     """Check if all locations in feat2 fall within a location in
     feat1"""
@@ -11,10 +93,31 @@ def is_parent(feat1, feat2):
         else:
             return loc2[1] <= loc1[1] and (
                 loc2[1] - loc2[3] >= loc1[1] - loc1[3])
-    for l2 in feat2['location']:
-        if not any(_contains(l1, l2) for l1 in feat1['location']):
-            print("No parent was found for location {}".format(l2))
+
+    if feat1.get('type') == 'gene':
+        for l2 in feat2['location']:
+            if not any(_contains(l1, l2) for l1 in feat1['location']):
+                return False
+    else:
+        # for a mrna, the first and last part match loosely (like a gene) but
+        # the internal coordinates must be an exact match
+        if not any(_contains(l1, feat2['location'][0]) for l1 in feat1['location']):
             return False
+
+        if not any(_contains(l1, feat2['location'][-1]) for l1 in feat1['location']):
+            return False
+
+        if len(feat2['location']) > 1:
+            if get_bio_end(feat2['location'][0]) != get_bio_end(feat1['location'][0]):
+                return False
+
+            if feat2['location'][-1][1] != feat1['location'][-1][1]:
+                return False
+
+            for l1, l2 in izip_longest(feat1['location'][1:-1],
+                                       feat2['location'][1:-1]):
+                if l1 != l2:
+                    return False
     return True
 
 

@@ -4,6 +4,7 @@ import os
 import time
 
 from DataFileUtil.DataFileUtilClient import DataFileUtil
+from GenomeUtils import get_start, get_end
 
 
 class GenomeToGFF:
@@ -90,7 +91,7 @@ class GenomeToGFF:
                 priority = len(order)
             else:
                 priority = order.index(feat['type'])
-            return self.get_start(self.get_common_location(
+            return get_start(self.get_common_location(
                 feat['location'])), priority
 
         gff_header = ['seqname', 'source', 'type', 'start', 'end', 'score',
@@ -141,18 +142,13 @@ class GenomeToGFF:
         return {'file_path': out_file_path}
 
     def make_feature_group(self, feature, is_gtf):
-        # genes are not present in GTF files
-        if is_gtf and feature['type'] == 'gene':
-            lines = []
         # RNA types make exons if they have compound locations
-        elif feature['type'] in {'RNA', 'mRNA', 'transcript'}:
+        if feature['type'] in {'RNA', 'mRNA', 'transcript'}:
             loc = self.get_common_location(feature['location'])
             lines = [self.make_feature(loc, feature, is_gtf)]
             for i, loc in enumerate(feature['location']):
                 exon = {'id': "{}_exon_{}".format(feature['id'], i + 1),
-                        'parent_gene': feature.get('parent_gene', ''),
-                        'parent_mrna': feature.get('id', ''),
-                        'type': 'exon'}
+                        'parent_gene': feature['id']}
                 lines.append(self.make_feature(loc, exon, is_gtf))
         # other types duplicate the feature
         else:
@@ -181,9 +177,9 @@ class GenomeToGFF:
             out_feature = {
                 'seqname': location[0],
                 'source': 'KBase',
-                'type': in_feature['type'],
-                'start': str(self.get_start(location)),
-                'end': str(self.get_end(location)),
+                'type': in_feature.get('type', 'exon'),
+                'start': str(get_start(location)),
+                'end': str(get_end(location)),
                 'score': '.',
                 'strand': location[2],
                 'frame': '0',
@@ -193,18 +189,14 @@ class GenomeToGFF:
             else:
                 out_feature['attribute'] = self.gen_gff_attr(in_feature)
         except Exception as e:
-            print("unable to parse {}".format(in_feature))
-            raise e
+            raise Exception('Unable to parse {}:{}'.format(in_feature, e))
         return out_feature
 
     @staticmethod
     def gen_gtf_attr(feature):
         """Makes the attribute line for a feature in gtf style"""
-        gene_id = feature.get('parent_gene', '')
-        trans_id = feature.get('parent_mrna', '')
-        if feature['type'] in {'RNA', 'mRNA', 'transcript'}:
-            trans_id = feature['id']
-        return 'gene_id "{}"; transcript_id "{}"'.format(gene_id, trans_id)
+        return 'gene_id "{}"; transcript_id "{}"'.format(
+            feature.get('parent_gene', ''), feature.get('parent_mrna', ''))
 
     @staticmethod
     def gen_gff_attr(feature):
@@ -219,34 +211,12 @@ class GenomeToGFF:
                           for x in feature['ontology_terms'][ont]])
         return "; ".join(attrs)
 
-    @staticmethod
-    def get_start(loc):
-        start = loc[1]
-        strand = loc[2]
-        leng = loc[3]
-        if strand == '+':
-            return start
-        if strand == '-':
-            return start - (leng - 1)
-        return 0
-
-    @staticmethod
-    def get_end(loc):
-        start = loc[1]
-        strand = loc[2]
-        leng = loc[3]
-        if strand == '+':
-            return start + (leng - 1)
-        if strand == '-':
-            return start
-        return 0
-
     def get_common_location(self, location_array):
         """Merges a compound location array into an overall location"""
         contig = location_array[0][0]
         strand = location_array[0][2]
-        min_pos = min([self.get_start(loc) for loc in location_array])
-        max_pos = max([self.get_end(loc) for loc in location_array])
+        min_pos = min([get_start(loc) for loc in location_array])
+        max_pos = max([get_end(loc) for loc in location_array])
         common_length = max_pos - min_pos + 1
         common_start = min_pos if strand == '+' else max_pos
         return [contig, common_start, strand, common_length]
