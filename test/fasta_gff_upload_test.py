@@ -123,6 +123,16 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         shutil.copy(os.path.join("data", "fasta_gff", "PATRIC", "Ecoli_O104", cls.patric_bacterial_fa_filename),
                     cls.patric_bacterial_fa_path)
 
+        cls.refseq_bacterial_gff_filename = 'NC_021490.gff.gz'
+        cls.refseq_bacterial_gff_path = os.path.join(cls.scratch, cls.refseq_bacterial_gff_filename)
+        shutil.copy(os.path.join("data", "fasta_gff", "RefSeq", "Bacterial_Data", cls.refseq_bacterial_gff_filename),
+                    cls.refseq_bacterial_gff_path)
+
+        cls.refseq_bacterial_fa_filename = 'NC_021490.fasta.gz'
+        cls.refseq_bacterial_fa_path = os.path.join(cls.scratch, cls.refseq_bacterial_fa_filename)
+        shutil.copy(os.path.join("data", "fasta_gff", "RefSeq", "Bacterial_Data", cls.refseq_bacterial_fa_filename),
+                    cls.refseq_bacterial_fa_path)
+
     def check_minimal_items_exist(self, result):
 
         self.assertTrue('genome_info' in result)
@@ -273,6 +283,20 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
             'source': 'Genbank',
             'type': 'Reference',
             'generate_missing_genes': 1
+        }
+
+        result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
+
+        self.check_minimal_items_exist(result)
+
+    def test_refseq_bacterial_fasta_gff_to_genome(self):
+        input_params = {
+            'workspace_name': self.getWsName(),
+            'genome_name': 'MyGenome',
+            'fasta_file': {'path': self.refseq_bacterial_fa_path},
+            'gff_file': {'path': self.refseq_bacterial_gff_path},
+            'source': 'Genbank',
+            'type': 'Reference'
         }
 
         result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
