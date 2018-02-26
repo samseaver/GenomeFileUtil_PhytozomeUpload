@@ -14,7 +14,7 @@ import copy
 # KBase imports
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
-from GenomeUtils import warnings
+from GenomeUtils import warnings, propagate_cds_props_to_gene
 from GenomeInterface import GenomeInterface
 
 # 3rd party imports
@@ -651,31 +651,6 @@ class FastaGFFToGenome:
     def _process_cdss(self):
         """Because CDSs can have multiple fragments, it's necessary to go
         back over them to calculate a final protein sequence"""
-        def _propagate_cds_props_to_gene(cds, gene):
-            # Put longest protein_translation to gene
-            if "protein_translation" not in gene or (
-                len(gene["protein_translation"]) <
-                    len(cds["protein_translation"])):
-                gene["protein_translation"] = cds["protein_translation"]
-                gene["protein_translation_length"] = len(
-                    cds["protein_translation"])
-            # Merge cds list attributes with gene
-            for key in ('functions', 'aliases', 'db_xrefs'):
-                if cds.get(key, []):
-                    gene[key] = cds.get(key, []) + gene.get(key, [])
-            # Merge cds["ontology_terms"] -> gene["ontology_terms"]
-            terms2 = cds.get("ontology_terms")
-            if terms2 is not None:
-                terms = gene.get("ontology_terms")
-                if terms is None:
-                    gene["ontology_terms"] = terms2
-                else:
-                    for source in terms2:
-                        if source in terms:
-                            terms[source].update(terms2[source])
-                        else:
-                            terms[source] = terms2[source]
-
         for cds_id in self.cdss:
             cds = self.feature_dict[cds_id]
             try:
@@ -692,7 +667,7 @@ class FastaGFFToGenome:
             })
             if 'parent_gene' in cds:
                 parent_gene = self.feature_dict[cds['parent_gene']]
-                _propagate_cds_props_to_gene(cds, parent_gene)
+                propagate_cds_props_to_gene(cds, parent_gene)
             elif self.generate_genes:
                 spoof = copy.copy(cds)
                 spoof['type'] = 'gene'
@@ -789,7 +764,6 @@ class FastaGFFToGenome:
         genome['taxonomy'], genome['taxon_ref'], genome['domain'], \
             genome["genetic_code"] = self.gi.retrieve_taxon(self.taxon_wsname,
                                                             genome['scientific_name'])
-        genome["genetic_code"] = self.code_table
         genome['source'], genome['genome_tiers'] = self.gi.determine_tier(
             source)
 

@@ -290,9 +290,6 @@ class GenomeInterface:
 
         log('Validating genome object contents')
         warnings = g.get('warnings', [])
-        if len(g.get('cdss', [])) < len(g['features']):
-            warnings.append("CDS array should be at at least as long as the "
-                            "Features array.")
 
         # this will fire for some annotation methods like PROKKA
         if g['domain'] == "Bacteria" and len(g.get('cdss', [])) != len(g['features']):
