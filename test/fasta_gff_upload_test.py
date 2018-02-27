@@ -339,7 +339,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
     def test_jgi_bacterial_fasta_gff2_to_genome(self):
         input_params = {
             'workspace_name': self.getWsName(),
-            'genome_name': 'jgi_bacterial',
+            'genome_name': 'jgi_bacterial2',
             'fasta_file': {'path': self.jgi_bacterial_fa2_path},
             'gff_file': {'path': self.jgi_bacterial_gff2_path},
             'source': 'Genbank',
