@@ -33,6 +33,7 @@ class GenomeInterface:
         self.auth_client = _KBaseAuth(self.auth_service_url)
         self.dfu = DataFileUtil(self.callback_url)
         self.taxon_wsname = config.raw['taxon-workspace-name']
+        self.scratch = config.raw['scratch']
 
     @staticmethod
     def _validate_save_one_genome_params(params):
@@ -155,7 +156,7 @@ class GenomeInterface:
             workspace_id = self.dfu.ws_name_to_id(workspace)
 
         dfu_save_params = {'id': workspace_id,
-                           'objects': [{'type': 'NewTempGenomes.Genome',
+                           'objects': [{'type': 'KBaseGenomes.Genome',
                                         'data': data,
                                         'name': name,
                                         'meta': meta,
