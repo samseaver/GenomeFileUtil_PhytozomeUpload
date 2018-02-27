@@ -114,12 +114,12 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
                     cls.jgi_bacterial_fa_path)
 
         cls.jgi_bacterial_gff2_filename = '91705.assembled.gff'
-        cls.jgi_bacterial_gff2_path = os.path.join(cls.scratch, cls.jgi_bacterial_gff_filename)
+        cls.jgi_bacterial_gff2_path = os.path.join(cls.scratch, cls.jgi_bacterial_gff2_filename)
         shutil.copy(os.path.join("data", "fasta_gff", "JGI", "Bacterial_Data", cls.jgi_bacterial_gff2_filename),
                     cls.jgi_bacterial_gff2_path)  
 
         cls.jgi_bacterial_fa2_filename = '91705.assembled.fna'
-        cls.jgi_bacterial_fa2_path = os.path.join(cls.scratch, cls.jgi_bacterial_fa_filename)
+        cls.jgi_bacterial_fa2_path = os.path.join(cls.scratch, cls.jgi_bacterial_fa2_filename)
         shutil.copy(os.path.join("data", "fasta_gff", "JGI", "Bacterial_Data", cls.jgi_bacterial_fa2_filename),
                     cls.jgi_bacterial_fa2_path)
 
