@@ -35,6 +35,7 @@ class GenbankToGenome:
         yml_text = open('/kb/module/kbase.yml').read()
         self.version = re.search("module-version:\n\W+(.+)\n", yml_text).group(1)
         self.generate_parents = False
+        self.generate_ids = False
         self.ontologies_present = defaultdict(dict)
         self.skiped_features = Counter()
         self.feature_counts = Counter()
@@ -81,7 +82,6 @@ class GenbankToGenome:
             'release': None,
             'genetic_code': 11,
             'generate_ids_if_needed': 0,
-            'exclude_ontologies': 0,
             'type': 'User upload',
             'metadata': {}
         }
@@ -105,6 +105,7 @@ class GenbankToGenome:
         self.default_params.update(params)
         params = self.default_params
         self.generate_parents = params.get('generate_missing_genes')
+        self.generate_ids = params.get('generate_ids_if_needed')
 
         # 4) Do the upload
         files = self._find_input_files(input_directory)
@@ -437,8 +438,22 @@ class GenbankToGenome:
             _id = ""
             if not tags:
                 tags = ['locus_tag', 'gene', 'kbase_id']
-            while tags and not _id:
-                _id = feat.qualifiers.get(tags.pop(0), [""])[0]
+            for t in tags:
+                _id = feat.qualifiers.get(t, [""])[0]
+                if _id:
+                    break
+
+            if not _id:
+                if feat.type == 'gene':
+                    if not self.generate_ids:
+                        raise ValueError("Unable to find a valid id for genes "
+                                         "among these tags: {}. Correct the "
+                                         "file or rerun with generate_ids"
+                                         .format(", ".join(tags)))
+                    _id = "gene_{}".format(len(genes)+1)
+                if feat.type in {'mRNA', 'CDS'}:
+                    _id = "gene_{}".format(len(genes))
+
             return _id
 
         def _location(feat):
@@ -665,6 +680,8 @@ class GenbankToGenome:
             "mrnas": [],
             'cdss': [],
         })
+        if _id in genes:
+            raise ValueError("Duplicate gene ID: {}".format(_id))
         genes[_id] = out_feat
 
     def process_noncodeing(self, _id, genes, in_feature, out_feat):
