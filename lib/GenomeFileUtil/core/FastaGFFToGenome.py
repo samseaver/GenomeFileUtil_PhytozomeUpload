@@ -158,10 +158,15 @@ class FastaGFFToGenome:
 
     @staticmethod
     def _location(in_feature):
+        in_feature['strand'] = in_feature['strand'].replace("-1", "-").replace(
+            "1", "+")
         if in_feature['strand'] == '+':
             start = in_feature['start']
-        else:
+        elif in_feature['strand'] == '-':
             start = in_feature['end']
+        else:
+            raise ValueError('Invalid feature strand: {}'
+                             .format(in_feature['strand']))
         return [
             in_feature['contig'],
             start,
@@ -554,7 +559,7 @@ class FastaGFFToGenome:
             return
 
         feat_seq = contig.seq[in_feature['start']-1:in_feature['end']]
-        if in_feature['strand'] == '-':
+        if in_feature['strand'] in {'-', '-1'}:
             feat_seq = feat_seq.reverse_complement()
 
         # if the feature ID is duplicated (CDS or transpliced gene) we only

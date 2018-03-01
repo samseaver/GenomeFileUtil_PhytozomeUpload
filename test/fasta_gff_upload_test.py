@@ -106,12 +106,22 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         cls.jgi_bacterial_gff_filename = '2547132501.gff.gz'
         cls.jgi_bacterial_gff_path = os.path.join(cls.scratch, cls.jgi_bacterial_gff_filename)
         shutil.copy(os.path.join("data", "fasta_gff", "JGI", "Bacterial_Data", cls.jgi_bacterial_gff_filename),
-                    cls.jgi_bacterial_gff_path)
+                    cls.jgi_bacterial_gff_path)      
 
         cls.jgi_bacterial_fa_filename = '2547132501.fna.gz'
         cls.jgi_bacterial_fa_path = os.path.join(cls.scratch, cls.jgi_bacterial_fa_filename)
         shutil.copy(os.path.join("data", "fasta_gff", "JGI", "Bacterial_Data", cls.jgi_bacterial_fa_filename),
                     cls.jgi_bacterial_fa_path)
+
+        cls.jgi_bacterial_gff2_filename = '91705.assembled.gff'
+        cls.jgi_bacterial_gff2_path = os.path.join(cls.scratch, cls.jgi_bacterial_gff2_filename)
+        shutil.copy(os.path.join("data", "fasta_gff", "JGI", "Bacterial_Data", cls.jgi_bacterial_gff2_filename),
+                    cls.jgi_bacterial_gff2_path)  
+
+        cls.jgi_bacterial_fa2_filename = '91705.assembled.fna'
+        cls.jgi_bacterial_fa2_path = os.path.join(cls.scratch, cls.jgi_bacterial_fa2_filename)
+        shutil.copy(os.path.join("data", "fasta_gff", "JGI", "Bacterial_Data", cls.jgi_bacterial_fa2_filename),
+                    cls.jgi_bacterial_fa2_path)
 
         cls.patric_bacterial_gff_filename = '1240778.3.PATRIC.gff.gz'
         cls.patric_bacterial_gff_path = os.path.join(cls.scratch, cls.patric_bacterial_gff_filename)
@@ -150,6 +160,39 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         self.assertTrue('Size' in genome_info[10])
         self.assertTrue(genome_info[10]['Size'].isdigit())
         self.assertEquals(genome_info[10]['Taxonomy'], 'Unconfirmed Organism: unknown_taxon')
+
+    def print_genome_warnings(self, result):
+        data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'],
+ #                                   token=cls.ctx['token'],
+                                    service_ver='dev')
+        genome = data_file_cli.get_objects({'object_refs': [result['genome_ref']]})['data'][0]['data']
+        if 'warnings' in genome:
+            print "Genome warnings:" + str(genome['warnings'])
+
+    def check_CDS_warnings(self, result, test_name):
+        data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'],
+ #                                   token=cls.ctx['token'],
+                                    service_ver='dev')
+        genome = data_file_cli.get_objects({'object_refs': [result['genome_ref']]})['data'][0]['data']
+        print "IN TEST NAME : " + str(test_name)
+        cds_warning_count = 0
+        cds_with_warning_count = 0
+        if 'cdss' in genome:
+            total_cds_count = len(genome['cdss'])
+            for feature in genome['cdss']:
+                if 'warnings' in feature:
+                    if test_name == "test_jgi_bacterial_fasta_gff2_to_genome":
+                        print str(feature['id']) + " warnings:" + str(feature['warnings'])
+                        print "Location: " + str(feature['location'])
+                        print "Translation: " + feature['protein_translation']
+                        print "DNA Sequence: " + feature["dna_sequence"]
+                    cds_with_warning_count = cds_with_warning_count + 1
+                    cds_warning_count = cds_warning_count + len(feature['warnings'])
+
+            print "Total CDS: " + str(total_cds_count)
+            print "CDS Warning Count: " + str(cds_warning_count)
+            print "CDSs with a warning Count: " + str(cds_with_warning_count)
+            print "Percent CDS with warning: " + str((cds_with_warning_count/float(total_cds_count)) * 100)
 
     def test_simple_fasta_gff_to_genome_w_null_params(self):
 
@@ -242,6 +285,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
 
         self.check_minimal_items_exist(result)
+        self.check_CDS_warnings(result,"test_taxon_reference_fasta_gff_to_genome")
 
     def test_shock_fasta_gff_to_genome(self):
         gff_shock_id = self.dfu.file_to_shock({'file_path': self.gff_path})['shock_id']
@@ -259,6 +303,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
 
         self.check_minimal_items_exist(result)
+        self.check_CDS_warnings(result,"test_shock_fasta_gff_to_genome")
 
     def test_fungal_fasta_gff_to_genome(self):
         input_params = {
@@ -273,6 +318,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
 
         self.check_minimal_items_exist(result)
+        self.check_CDS_warnings(result,"test_fungal_fasta_gff_to_genome")
 
     def test_jgi_bacterial_fasta_gff_to_genome(self):
         input_params = {
@@ -288,6 +334,23 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
 
         self.check_minimal_items_exist(result)
+        self.check_CDS_warnings(result,"test_jgi_bacterial_fasta_gff_to_genome")
+
+    def test_jgi_bacterial_fasta_gff2_to_genome(self):
+        input_params = {
+            'workspace_name': self.getWsName(),
+            'genome_name': 'jgi_bacterial2',
+            'fasta_file': {'path': self.jgi_bacterial_fa2_path},
+            'gff_file': {'path': self.jgi_bacterial_gff2_path},
+            'source': 'Genbank',
+            'type': 'Reference',
+            'generate_missing_genes': 1
+        }
+
+        result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
+
+        self.check_minimal_items_exist(result)
+        self.check_CDS_warnings(result,"test_jgi_bacterial_fasta_gff2_to_genome")
 
     def test_refseq_bacterial_fasta_gff_to_genome(self):
         input_params = {
@@ -302,6 +365,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
 
         self.check_minimal_items_exist(result)
+        self.check_CDS_warnings(result,"test_refseq_bacterial_fasta_gff_to_genome")
 
     def test_patric_bacterial_fasta_gff_to_genome(self):
         input_params = {
@@ -317,6 +381,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
 
         self.check_minimal_items_exist(result)
+        self.check_CDS_warnings(result,"test_patric_bacterial_fasta_gff_to_genome")
 
     def test_bad_fasta_gff_to_genome_params(self):
         invalidate_input_params = {
