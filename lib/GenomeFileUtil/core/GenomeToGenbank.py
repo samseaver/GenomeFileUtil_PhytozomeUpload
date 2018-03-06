@@ -198,14 +198,14 @@ class GenomeFile:
     def _format_feature(self, in_feature):
         def _trans_loc(loc):
             if loc[2] == "-":
-                return SeqFeature.FeatureLocation(loc[1]-1, loc[1]-loc[3]-1, -1)
+                return SeqFeature.FeatureLocation(loc[1]-loc[3], loc[1], -1)
             else:
                 return SeqFeature.FeatureLocation(loc[1]-1, loc[1]+loc[3]-1, 1)
 
         # we have to do it this way to correctly make a "CompoundLocation"
-        location = _trans_loc(in_feature['location'].pop())
+        location = _trans_loc(in_feature['location'].pop(0))
         while in_feature['location']:
-            location += _trans_loc(in_feature['location'].pop())
+            location += _trans_loc(in_feature['location'].pop(0))
         out_feature = SeqFeature.SeqFeature(location, in_feature['type'])
 
         # Extra complicated because if there is a function with "product:" in
@@ -228,21 +228,21 @@ class GenomeFile:
         if in_feature.get('protein_translation', False):
             out_feature.qualifiers['translation'] = in_feature['protein_translation']
         if in_feature.get('db_xrefs', False):
-            out_feature.qualifiers['db_xrefs'] = ["{}:{}".format(*x) for x in
-                                                  in_feature['db_xrefs']]
+            out_feature.qualifiers['db_xref'] = ["{}:{}".format(*x) for x in
+                                                 in_feature['db_xrefs']]
         if in_feature.get('ontology_terms', False):
-            if 'db_xrefs' not in out_feature.qualifiers:
-                out_feature.qualifiers['db_xrefs'] = []
+            if 'db_xref' not in out_feature.qualifiers:
+                out_feature.qualifiers['db_xref'] = []
             for ont, terms in in_feature['ontology_terms'].items():
-                out_feature.qualifiers['db_xrefs'].extend([t for t in terms])
+                out_feature.qualifiers['db_xref'].extend([t for t in terms])
 
         for alias in in_feature.get('aliases', []):
             if len(alias) == 2:
                 out_feature.qualifiers[alias[0]] = alias[1]
             else:  # back compatibility
-                if 'db_xrefs' not in out_feature.qualifiers:
-                    out_feature.qualifiers['db_xrefs'] = []
-                out_feature.qualifiers['db_xrefs'].append(alias)
+                if 'db_xref' not in out_feature.qualifiers:
+                    out_feature.qualifiers['db_xref'] = []
+                out_feature.qualifiers['db_xref'].append(alias)
 
         for flag in in_feature.get('flags', []):
             out_feature.qualifiers[flag] = None

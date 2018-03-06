@@ -619,7 +619,7 @@ class GenbankToGenome:
         for key in ("GO_process", "GO_function", "GO_component"):
             for term in feature.qualifiers.get(key, []):
                 sp = term.split(" - ")
-                ontology['GO'][sp[0]] = [1]
+                ontology['GO'][sp[0]] = [0]
                 self.ontologies_present['GO'][sp[0]] = sp[1]
         for ref in feature.qualifiers.get('db_xref', []):
             if ref.startswith('GO:'):
@@ -648,7 +648,7 @@ class GenbankToGenome:
             if key == 'function':
                 result['functions'].extend(val_list[0].split('; '))
             if key == 'product':
-                result['functions'].append("product:" + val_list[0])
+                result['functions'].insert(0, ("product:" + val_list[0]))
 
         return result
 

@@ -91,19 +91,14 @@ class GenomeFileUtilTest(unittest.TestCase):
             cls.wsClient.delete_workspace({'workspace': cls.wsName})
             print('Test workspace was deleted')
 
-    def test_incorrect(self):
-        self.assertTrue( 1 == 0, "1 ne 0")
-
-
-
     def test_gene_count(self):
         genome_orig = self.__class__.genome_orig
         genome_new = self.__class__.genome_new
-        print "Genome_OLD: " + str(genome_orig)
-        print "Genome_NEW: " + str(genome_new)
         print "Len GO: " + str(len(genome_orig['features']))
         print "Len GN: " + str(len(genome_new['features']))
         self.assertTrue(len(genome_orig['features']) == len(genome_new['features']))
+        self.maxDiff = None
+        self.assertEqual(genome_orig, genome_new)
 
 
 
