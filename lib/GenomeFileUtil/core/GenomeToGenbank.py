@@ -238,7 +238,9 @@ class GenomeFile:
 
         for alias in in_feature.get('aliases', []):
             if len(alias) == 2:
-                out_feature.qualifiers[alias[0]] = alias[1]
+                if not alias[0] in out_feature.qualifiers:
+                    out_feature.qualifiers[alias[0]] = []
+                out_feature.qualifiers[alias[0]].append(alias[1])
             else:  # back compatibility
                 if 'db_xref' not in out_feature.qualifiers:
                     out_feature.qualifiers['db_xref'] = []

@@ -620,7 +620,8 @@ class GenbankToGenome:
             for term in feature.qualifiers.get(key, []):
                 sp = term.split(" - ")
                 ontology['GO'][sp[0]] = [0]
-                self.ontologies_present['GO'][sp[0]] = sp[1]
+                self.ontologies_present['GO'][sp[0]] = self.go_mapping.get(
+                    sp[0], '')
         for ref in feature.qualifiers.get('db_xref', []):
             if ref.startswith('GO:'):
                 ontology['GO'][ref] = [0]
