@@ -82,7 +82,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         save_info = {
                 'workspace': wsName,
                 'objects': [{
-                    'type': 'NewTempGenomes.Genome',
+                    'type': 'KBaseGenomes.Genome',
                     'data': data,
                     'name': 'new_ecoli'
                 }]
