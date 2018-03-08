@@ -2,6 +2,8 @@ import unittest
 import time
 import os
 import shutil
+import json
+import sys
 
 try:
     from ConfigParser import ConfigParser  # py2
@@ -91,14 +93,79 @@ class GenomeFileUtilTest(unittest.TestCase):
             cls.wsClient.delete_workspace({'workspace': cls.wsName})
             print('Test workspace was deleted')
 
-    def test_gene_count(self):
+    def feature_list_comparison(self, feature_list_name):
         genome_orig = self.__class__.genome_orig
         genome_new = self.__class__.genome_new
-        print "Len GO: " + str(len(genome_orig['features']))
-        print "Len GN: " + str(len(genome_new['features']))
-        self.assertTrue(len(genome_orig['features']) == len(genome_new['features']))
-        self.maxDiff = None
-        self.assertEqual(genome_orig, genome_new)
+        i = 0 #counter loop over feature
+        self.assertTrue(len(genome_orig[feature_list_name]) == len(genome_new[feature_list_name]),
+                    feature_list_name + " list is not of equal length in Original and New Genomes.")
+        print "\n\n" + feature_list_name + " TOTAL NUMBER:" + str(len(genome_orig[feature_list_name]))
+        orig_dict = dict([(x['id'],x) for x in genome_orig[feature_list_name]])
+        new_dict = dict([(x['id'],x) for x in genome_new[feature_list_name]])
+
+        first_pass_matches = 0
+        first_pass_non_match = 0
+        second_pass_matches = 0
+
+        for key in orig_dict:
+            orig_feature = orig_dict[key]
+            new_feature = new_dict[key]
+            if "aliases" in orig_feature:
+                orig_feature['aliases'] = sorted(orig_feature['aliases'])
+                new_feature['aliases'] = sorted(new_feature['aliases'])
+            if "db_xrefs" in orig_feature:
+                orig_feature['db_xrefs'] = sorted(orig_feature['db_xrefs'])
+                new_feature['db_xrefs'] = sorted(new_feature['db_xrefs'])
+            if "functions" in orig_feature:
+                orig_feature["functions"] = sorted(orig_feature["functions"])
+                new_feature["functions"] = sorted(new_feature["functions"])
+            if orig_feature == new_feature:
+                first_pass_matches += 1
+            else:
+                first_pass_non_match += 1
+                note_orig = orig_feature.pop("note",None)
+                note_new = new_feature.pop("note",None)
+                inference_orig = orig_feature.pop('inference_data',None)
+                inference_new = new_feature.pop('inference_data',None)
+                if "warnings" in orig_feature and "warnings" not in new_feature:
+                    del(orig_feature["warnings"])
+####################
+#THESE ARE TEMPORARY TO FIND OTHER ISSUES:
+#                if feature_list_name == "features":
+#                    if 'protein_translation' in orig_feature:
+#                        del orig_feature['protein_translation']
+#                        del new_feature['protein_translation']
+#                if 'protein_translation_length' in orig_feature:
+#                    del orig_feature['protein_translation_length']
+#                    del new_feature['protein_translation_length']
+#                if 'protein_md5' in orig_feature:
+#                    del orig_feature['protein_md5']
+#                    del new_feature['protein_md5']                
+#                if 'functions' in orig_feature:
+#                    del orig_feature['functions']
+#                    del new_feature['functions']                
+##################
+                if orig_feature == new_feature:
+                    second_pass_matches += 1
+                else:
+                    self.maxDiff = None
+                    self.assertEqual(orig_feature,new_feature)        
+        self.assertEqual(len(orig_dict),(first_pass_matches + second_pass_matches),
+                        "There were %d first pass matches and %d second pass matches out of %d items in %s" % 
+                        (first_pass_matches, second_pass_matches, len(orig_dict), feature_list_name))
+
+    def test_gene_features(self):
+        self.feature_list_comparison("features")
+
+    def test_cds_features(self):
+        self.feature_list_comparison("cdss")
+
+    def test_mrna_features(self):
+        self.feature_list_comparison("mrnas")
+
+    def test_ncf_features(self):
+        self.feature_list_comparison("non_coding_features")
+
 
 
 
