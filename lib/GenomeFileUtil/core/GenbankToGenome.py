@@ -632,7 +632,7 @@ class GenbankToGenome:
             else:
                 db_xref.append(tuple(ref.split(":")))
         # TODO: Support other ontologies
-        return dict(ontology), db_xref
+        return dict(ontology), sorted(db_xref)
 
     @staticmethod
     def _get_aliases_flags_functions(feat):
@@ -706,13 +706,7 @@ class GenbankToGenome:
         return out_feat
 
     def process_cds(self, _id, feat_seq, genes, in_feature, mrnas, out_feat, cdss):
-        prot_seq = in_feature.qualifiers.get("translation", [""])[0]
-        out_feat.update({
-            "protein_translation": prot_seq,
-            "protein_md5": hashlib.md5(prot_seq).hexdigest(),
-            "protein_translation_length": len(prot_seq),
-        })
-
+        # Associate CDS with parents
         if _id not in genes and self.generate_parents:
             new_feat = copy.copy(out_feat)
             new_feat['id'] = _id
@@ -733,7 +727,6 @@ class GenbankToGenome:
                 return
             else:
                 genes[_id]['cdss'].append(out_feat['id'])
-                propagate_cds_props_to_gene(out_feat, genes[_id])
                 out_feat['parent_gene'] = _id
         else:
             raise ValueError(warnings['no_spoof'])
@@ -750,15 +743,8 @@ class GenbankToGenome:
                 out_feat['parent_mrna'] = mrna_id
                 mrnas[mrna_id]['cds'] = out_feat['id']
 
-        if not prot_seq:
-            try:
-                out_feat['protein_translation'] = Seq.translate(
-                        feat_seq, self.code_table, cds=True).strip("*")
-                out_feat['warnings'] = out_feat.get('warnings', []) + [
-                        warnings["no_translation_supplied"]]
-            except TranslationError as e:
-                out_feat['warnings'] = out_feat.get('warnings', []) + [
-                    warnings["no_translation_supplied"] + str(e)]
+        # process protein
+        prot_seq = in_feature.qualifiers.get("translation", [""])[0]
 
         # allow a little slack to account for frameshift and stop codon
         if prot_seq and abs(len(prot_seq) * 3 - len(feat_seq)) > 4:
@@ -780,6 +766,25 @@ class GenbankToGenome:
         except TranslationError as e:
             out_feat['warnings'] = out_feat.get('warnings', []) + [
                 "Unable to verify protein sequence:" + str(e)]
+
+        if not prot_seq:
+            try:
+                prot_seq = Seq.translate(
+                        feat_seq, self.code_table, cds=True).strip("*")
+                out_feat['warnings'] = out_feat.get('warnings', []) + [
+                        warnings["no_translation_supplied"]]
+            except TranslationError as e:
+                out_feat['warnings'] = out_feat.get('warnings', []) + [
+                    warnings["no_translation_supplied"] + str(e)]
+
+        out_feat.update({
+            "protein_translation": prot_seq,
+            "protein_md5": hashlib.md5(prot_seq).hexdigest(),
+            "protein_translation_length": len(prot_seq),
+        })
+
+        if out_feat['parent_gene']:
+            propagate_cds_props_to_gene(out_feat, genes[_id])
 
         cdss[out_feat['id']] = out_feat
 

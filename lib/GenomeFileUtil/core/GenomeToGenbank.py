@@ -216,7 +216,7 @@ class GenomeFile:
                 in_feature['functions']) if s.startswith("product:")]
             if product_ind:
                 out_feature.qualifiers['product'] = in_feature['functions'].pop(
-                    product_ind[0]).split(":")[1]
+                    product_ind[0]).split(":", 1)[1]
             if in_feature['functions']:
                 out_feature.qualifiers['function'] = "; ".join(
                     in_feature['functions'])
