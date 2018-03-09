@@ -131,6 +131,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                     del(orig_feature["warnings"])
 ####################
 #THESE ARE TEMPORARY TO FIND OTHER ISSUES:
+#I Suggest keeping these in there as they may be useful for future failures.
 #                if feature_list_name == "features":
 #                    if 'protein_translation' in orig_feature:
 #                        del orig_feature['protein_translation']
@@ -165,6 +166,28 @@ class GenomeFileUtilTest(unittest.TestCase):
 
     def test_ncf_features(self):
         self.feature_list_comparison("non_coding_features")
+    
+    def test_genome_level_attributes(self):
+        genome_orig = self.__class__.genome_orig
+        genome_new = self.__class__.genome_new 
+        self.maxDiff = None       
+        self.assertEqual(genome_orig["scientific_name"],genome_new["scientific_name"])
+        self.assertEqual(genome_orig["domain"],genome_new["domain"])
+        self.assertEqual(genome_orig["genome_tiers"],genome_new["genome_tiers"])
+        self.assertEqual(genome_orig["genetic_code"],genome_new["genetic_code"])
+        self.assertEqual(genome_orig["dna_size"],genome_new["dna_size"])
+        self.assertEqual(genome_orig["num_contigs"],genome_new["num_contigs"])
+        self.assertEqual(genome_orig["contig_lengths"],genome_new["contig_lengths"])
+        self.assertEqual(genome_orig["contig_ids"],genome_new["contig_ids"])
+        self.assertEqual(genome_orig["source"],genome_new["source"])
+        self.assertEqual(genome_orig["md5"],genome_new["md5"])
+        self.assertEqual(genome_orig["taxonomy"],genome_new["taxonomy"])
+        self.assertEqual(genome_orig["gc_content"],genome_new["gc_content"])
+        for publication in genome_orig["publications"]:
+            self.assertTrue(publication in genome_new["publications"])
+        self.assertEqual(genome_orig["ontologies_present"],genome_new["ontologies_present"])
+        self.assertEqual(genome_orig["external_source_origination_date"],genome_new["external_source_origination_date"])
+
 
 
 
