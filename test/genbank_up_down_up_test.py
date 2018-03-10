@@ -59,15 +59,10 @@ class GenomeFileUtilTest(unittest.TestCase):
                                 token=cls.ctx['token'],
                                 service_ver='dev')
         cls.genome_orig = data_file_cli.get_objects({'object_refs': [result['genome_ref']]})['data'][0]['data']
-#        genome_data = self.wsClient.get_objects2({'objects': [
-#            {'ref': result['genome_ref']}]})['data'][0]['data']
-#        json.dump(genome_data, open('/kb/module/work/tmp/{}.json'.format(
-#            genome_data['id']), 'w'))
         print('testing Genbank download by building the file')
         #genomeFileUtil.export_genome_as_genbank(cls.ctx,
         cls.serviceImpl.export_genome_as_genbank(cls.ctx,
                                 {'input_ref': result['genome_ref']})
-#        old_file_path = "/kb/module/test/data/e_coli/KBase_derived_TestEcoliAltered.gbff"
         new_gbk_path = "/kb/module/work/tmp/ecoli_2contigs_orig/KBase_derived_ecoli_2contigs_orig.gbff"
         new_ws_obj_name = 'ecoli_2contigs_new'
         new_result = cls.serviceImpl.genbank_to_genome(
@@ -80,12 +75,6 @@ class GenomeFileUtilTest(unittest.TestCase):
               'generate_ids_if_needed': 1
             })[0]
         cls.genome_new = data_file_cli.get_objects({'object_refs': [new_result['genome_ref']]})['data'][0]['data']
-
-#        print("GENE 1: ")
-#        pprint(cls.genome['features'][0])
-#        pprint(result)
-
-
 
     @classmethod
     def tearDownClass(cls):
