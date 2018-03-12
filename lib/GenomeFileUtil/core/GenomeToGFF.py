@@ -201,11 +201,22 @@ class GenomeToGFF:
     @staticmethod
     def gen_gff_attr(feature):
         """Makes the attribute line for a feature in gff style"""
-        attr_keys = (('id', 'ID'), ('parent_gene', 'Parent'))
+        attr_keys = (('id', 'ID'), ('parent_gene', 'Parent'), ('note', 'note'))
         attrs = ['{}={}'.format(pair[1], feature[pair[0]])
                  for pair in attr_keys if pair[0] in feature]
         attrs.extend(['Dbxref={}:{}'.format(*x)
                      for x in feature.get('db_xref', [])])
+        attrs.extend(['{}={}'.format(pair[1], pair[0])
+                      for pair in feature.get('aliases', [])
+                      if isinstance(pair, list)])
+        if feature.get('functions'):
+            if feature['functions'][0].startswith("product:"):
+                attrs['product'] = feature['functions'].pop(0).split(":")[1]
+            if feature['functions']:
+                attrs['function'] = "/".join(feature['functions'])
+
+        elif feature.get('function'):
+            attrs['function'] = feature['function']
         for ont in feature.get('ontology_terms', []):
             attrs.extend(['Ontology_term={}'.format(x)
                           for x in feature['ontology_terms'][ont]])
