@@ -41,6 +41,7 @@ class GenomeToGFF:
                 'ref':params['genome_ref']
             }],
             'included_fields':['gff_handle_ref'],
+            'downgrade': 0,
             'ignore_errors':0 # if we can't find the genome, throw an error
         }
         if 'ref_path_to_genome' in params:
