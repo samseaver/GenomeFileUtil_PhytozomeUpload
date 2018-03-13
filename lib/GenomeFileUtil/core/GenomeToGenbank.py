@@ -210,18 +210,13 @@ class GenomeFile:
 
         # Extra complicated because if there is a function with "product:" in
         # it we want to capture that and put it back in the product field
-        if 'functions' in in_feature and in_feature['functions']:
-            # new type genome
-            product_ind = [i for i, s in enumerate(
-                in_feature['functions']) if s.startswith("product:")]
-            if product_ind:
-                out_feature.qualifiers['product'] = in_feature['functions'].pop(
-                    product_ind[0]).split(":")[1]
-            if in_feature['functions']:
-                out_feature.qualifiers['function'] = "; ".join(
-                    in_feature['functions'])
-        elif 'function' in in_feature:  # back-compatible
-            out_feature.qualifiers['function'] = [in_feature['function']]
+        if in_feature.get('functional_descriptions'):
+            out_feature.qualifiers['function'] = "; ".join(
+                    in_feature['functional_descriptions'])
+        if in_feature.get('functions'):
+            out_feature.qualifiers['product'] = "; ".join(in_feature['functions'])
+        if 'function' in in_feature:
+            out_feature.qualifiers['product'] = in_feature['function']
 
         if in_feature.get('note', False):
             out_feature.qualifiers['note'] = in_feature['note']

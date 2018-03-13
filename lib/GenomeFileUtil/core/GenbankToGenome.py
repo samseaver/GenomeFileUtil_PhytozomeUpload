@@ -646,9 +646,9 @@ class GenbankToGenome:
             if val_list == ['']:
                 result['flags'].append(key)
             if key == 'function':
-                result['functions'].extend(val_list[0].split('; '))
+                result['functional_descriptions'].extend(val_list[0].split('; '))
             if key == 'product':
-                result['functions'].append("product:" + val_list[0])
+                result['functions'] = val_list
 
         return result
 

@@ -5,6 +5,7 @@ import time
 
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeUtils import get_start, get_end
+import traceback
 
 
 class GenomeToGFF:
@@ -189,6 +190,7 @@ class GenomeToGFF:
             else:
                 out_feature['attribute'] = self.gen_gff_attr(in_feature)
         except Exception as e:
+            traceback.print_exc()
             raise Exception('Unable to parse {}:{}'.format(in_feature, e))
         return out_feature
 
@@ -209,14 +211,12 @@ class GenomeToGFF:
         attrs.extend(['{}={}'.format(pair[1], pair[0])
                       for pair in feature.get('aliases', [])
                       if isinstance(pair, list)])
+        if feature.get('functional_descriptions'):
+            attrs['function'] = "; ".join(feature['functional_descriptions'])
+        if feature.get('function'):
+            attrs['product'] = feature['function']
         if feature.get('functions'):
-            if feature['functions'][0].startswith("product:"):
-                attrs['product'] = feature['functions'].pop(0).split(":")[1]
-            if feature['functions']:
-                attrs['function'] = "/".join(feature['functions'])
-
-        elif feature.get('function'):
-            attrs['function'] = feature['function']
+            attrs['product'] = "; ".join(feature['functions'])
         for ont in feature.get('ontology_terms', []):
             attrs.extend(['Ontology_term={}'.format(x)
                           for x in feature['ontology_terms'][ont]])

@@ -593,8 +593,7 @@ class FastaGFFToGenome:
             out_feat['db_xrefs'] = [tuple(x.split(":")) for x in
                                    in_feature['attributes']['db_xref']]
         if 'product' in in_feature['attributes']:
-            out_feat['functions'] = ["product:" + x for x in
-                                     in_feature['attributes']["product"]]
+            out_feat['functions'] = in_feature['attributes']["product"]
         parent_id = in_feature.get('Parent', '')
         if parent_id and parent_id not in self.feature_dict:
             raise ValueError("Parent ID: {} was not found in feature ID list.")
