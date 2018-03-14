@@ -208,8 +208,6 @@ class GenomeFile:
             location += _trans_loc(in_feature['location'].pop())
         out_feature = SeqFeature.SeqFeature(location, in_feature['type'])
 
-        # Extra complicated because if there is a function with "product:" in
-        # it we want to capture that and put it back in the product field
         if in_feature.get('functional_descriptions'):
             out_feature.qualifiers['function'] = "; ".join(
                     in_feature['functional_descriptions'])
