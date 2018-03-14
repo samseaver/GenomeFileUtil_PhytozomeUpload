@@ -1,0 +1,10 @@
+{
+  "skip/fasta_gff_upload_test.py": true,
+  "skip/genbank_download_test.py": true,
+  "skip/genbank_roundtrip_test.py": true,
+  "skip/genbank_upload_full_test.py": true,
+  "skip/genbank_upload_parameter_test.py": true,
+  "skip/gff_roundtrip_test.py": true,
+  "skip/save_genome_test.py": true,
+  "test/gtf_download_test.py": true
+}

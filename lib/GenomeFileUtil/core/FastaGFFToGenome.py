@@ -10,6 +10,7 @@ import collections
 import datetime
 import re
 import copy
+import urlparse as parse
 
 # KBase imports
 from DataFileUtil.DataFileUtilClient import DataFileUtil
@@ -340,10 +341,10 @@ class FastaGFFToGenome:
                     #Sometimes lack of "=", assume spaces instead
                     if("=" in attribute):
                         key, value = attribute.split("=", 1)
-                        ftr['attributes'][key].append(value.strip('"'))
+                        ftr['attributes'][key].append(parse.unquote(value.strip('"')))
                     elif(" " in attribute):
                         key, value = attribute.split(" ", 1)
-                        ftr['attributes'][key].append(value.strip('"'))
+                        ftr['attributes'][key].append(parse.unquote(value.strip('"')))
                     else:
                         log("Warning: attribute "+attribute+" cannot be separated into key,value pair")
 
@@ -602,7 +603,7 @@ class FastaGFFToGenome:
         # location and sequence of it's parent, we add the info to it parent
         # feature but not the feature dict
         if in_feature['type'] in ('exon', 'five_prime_UTR', 'three_prime_UTR',
-                                  'start_codon', 'stop_codon'):
+                                  'start_codon', 'stop_codon', 'region'):
             if parent_id:
                 # TODO: add location checks and warnings
                 parent = self.feature_dict[parent_id]
@@ -671,7 +672,8 @@ class FastaGFFToGenome:
             })
             if 'parent_gene' in cds:
                 parent_gene = self.feature_dict[cds['parent_gene']]
-                propagate_cds_props_to_gene(cds, parent_gene)
+                # no propigation for now
+                # propagate_cds_props_to_gene(cds, parent_gene)
             elif self.generate_genes:
                 spoof = copy.copy(cds)
                 spoof['type'] = 'gene'

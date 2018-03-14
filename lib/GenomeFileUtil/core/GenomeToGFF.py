@@ -2,6 +2,7 @@ from collections import defaultdict
 import csv
 import os
 import time
+import urllib
 
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeUtils import get_start, get_end
@@ -203,22 +204,26 @@ class GenomeToGFF:
     @staticmethod
     def gen_gff_attr(feature):
         """Makes the attribute line for a feature in gff style"""
+        def _one_attr(key, val):
+            return '{}={}'.format(key, urllib.quote(val, " /"))
+
         attr_keys = (('id', 'ID'), ('parent_gene', 'Parent'), ('note', 'note'))
-        attrs = ['{}={}'.format(pair[1], feature[pair[0]])
+        attrs = [_one_attr(pair[1], feature[pair[0]])
                  for pair in attr_keys if pair[0] in feature]
-        attrs.extend(['Dbxref={}:{}'.format(*x)
+        attrs.extend([_one_attr('db_xref', '{}:{}'.format(*x))
                      for x in feature.get('db_xref', [])])
-        attrs.extend(['{}={}'.format(pair[1], pair[0])
-                      for pair in feature.get('aliases', [])
+        attrs.extend([_one_attr(pair[0], pair[1])
+                      for pair in feature.get('aliases', [''])
                       if isinstance(pair, list)])
         if feature.get('functional_descriptions'):
-            attrs['function'] = "; ".join(feature['functional_descriptions'])
-        if feature.get('function'):
-            attrs['product'] = feature['function']
+            attrs.append(_one_attr('function', ";".join(
+                feature['functional_descriptions'])))
         if feature.get('functions'):
-            attrs['product'] = "; ".join(feature['functions'])
+            attrs.append(_one_attr('product', ";".join(feature['functions'])))
+        elif feature.get('function'):
+            attrs.append(_one_attr('product', feature['function']))
         for ont in feature.get('ontology_terms', []):
-            attrs.extend(['Ontology_term={}'.format(x)
+            attrs.extend([_one_attr('Ontology_terms', x)
                           for x in feature['ontology_terms'][ont]])
         return "; ".join(attrs)
 
