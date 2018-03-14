@@ -2,9 +2,11 @@ from collections import defaultdict
 import csv
 import os
 import time
+import urllib
 
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeUtils import get_start, get_end
+import traceback
 
 
 class GenomeToGFF:
@@ -189,6 +191,7 @@ class GenomeToGFF:
             else:
                 out_feature['attribute'] = self.gen_gff_attr(in_feature)
         except Exception as e:
+            traceback.print_exc()
             raise Exception('Unable to parse {}:{}'.format(in_feature, e))
         return out_feature
 
@@ -201,14 +204,32 @@ class GenomeToGFF:
     @staticmethod
     def gen_gff_attr(feature):
         """Makes the attribute line for a feature in gff style"""
-        attr_keys = (('id', 'ID'), ('parent_gene', 'Parent'))
-        attrs = ['{}={}'.format(pair[1], feature[pair[0]])
+        def _one_attr(key, val):
+            return '{}={}'.format(key, urllib.quote(val, " /"))
+
+        attr_keys = (('id', 'ID'), ('parent_gene', 'Parent'), ('note', 'note'))
+        attrs = [_one_attr(pair[1], feature[pair[0]])
                  for pair in attr_keys if pair[0] in feature]
-        attrs.extend(['Dbxref={}:{}'.format(*x)
+        attrs.extend([_one_attr('db_xref', '{}:{}'.format(*x))
                      for x in feature.get('db_xref', [])])
+        attrs.extend([_one_attr(pair[0], pair[1])
+                      for pair in feature.get('aliases', [''])
+                      if isinstance(pair, list)])
+        if feature.get('functional_descriptions'):
+            attrs.append(_one_attr('function', ";".join(
+                feature['functional_descriptions'])))
+        if feature.get('functions'):
+            attrs.append(_one_attr('product', ";".join(feature['functions'])))
+        elif feature.get('function'):
+            attrs.append(_one_attr('product', feature['function']))
         for ont in feature.get('ontology_terms', []):
-            attrs.extend(['Ontology_term={}'.format(x)
+            attrs.extend([_one_attr('Ontology_terms', x)
                           for x in feature['ontology_terms'][ont]])
+
+        if 'inference_data' in feature:
+            attrs.extend([_one_attr(
+                'inference', ":".join([x[y] for y in ('category', 'type', 'evidence') if x[y]]))
+                for x in feature['inference_data']])
         return "; ".join(attrs)
 
     def get_common_location(self, location_array):

@@ -20,7 +20,7 @@ from Bio.SeqFeature import ExactPosition
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeInterface import GenomeInterface
-from GenomeUtils import is_parent, propagate_cds_props_to_gene, warnings
+from GenomeUtils import is_parent, propagate_cds_props_to_gene, warnings, parse_inferences
 
 
 class GenbankToGenome:
@@ -544,7 +544,8 @@ class GenbankToGenome:
                 out_feat['db_xrefs'] = db_xrefs
 
             if 'inference' in in_feature.qualifiers:
-                out_feat['inference_data'] = self._inferences(in_feature)
+                out_feat['inference_data'] = parse_inferences(
+                    in_feature.qualifiers['inference'])
 
             _check_suspect_location(genes.get(_id))
 
@@ -647,30 +648,10 @@ class GenbankToGenome:
             if val_list == ['']:
                 result['flags'].append(key)
             if key == 'function':
-                result['functions'].extend(val_list[0].split('; '))
+                result['functional_descriptions'].extend(val_list[0].split('; '))
             if key == 'product':
-                result['functions'].insert(0, ("product:" + val_list[0]))
+                result['functions'] = val_list
 
-        return result
-
-    @staticmethod
-    def _inferences(feat):
-        """Whoever designed the genbank delimitation is an idiot: starts and
-        ends with a optional values and uses a delimiter ":" that is
-        used to divide it's DBs in the evidence. Anyway, this sorts that"""
-        result = []
-        for inf in feat.qualifiers['inference']:
-            try:
-                sp_inf = inf.split(":")
-                if sp_inf[0] in ('COORDINATES', 'DESCRIPTION', 'EXISTENCE'):
-                    inference = {'category': sp_inf.pop(0)}
-                else:
-                    inference = {'category': ''}
-                inference['type'] = sp_inf[0]
-                inference['evidence'] = ":".join(sp_inf[1:])
-                result.append(inference)
-            except IndexError('Unparseable inference string: ' + inf):
-                continue
         return result
 
     @staticmethod
