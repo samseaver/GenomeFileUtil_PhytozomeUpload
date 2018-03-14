@@ -4,7 +4,6 @@ import shutil
 import uuid
 import time
 import json
-import gzip
 import hashlib
 import collections
 import datetime
@@ -27,13 +26,13 @@ from Bio.Seq import Seq
 
 codon_table = CodonTable.ambiguous_generic_by_name["Standard"]
 
+
 def log(message, prefix_newline=False):
     """Logging function, provides a hook to suppress or redirect log messages."""
     print(('\n' if prefix_newline else '') + '{0:.2f}'.format(time.time()) + ': ' + str(message))
 
 
 class FastaGFFToGenome:
-
     def __init__(self, config):
         self.cfg = config
         self.au = AssemblyUtil(config.callbackURL)
@@ -491,50 +490,6 @@ class FastaGFFToGenome:
 
         return feature_list
 
-    @staticmethod
-    def _print_phytozome_gff(input_gff_file, feature_list):
-
-        #Write modified feature ids to new file
-        input_gff_file = input_gff_file.replace("gene", "edited_gene")+".gz"
-        try:
-            print "Printing to new file: "+input_gff_file
-            gff_file_handle = gzip.open(input_gff_file, 'wb')
-        except:
-            print "Failed to open"
-
-        for contig in sorted(feature_list.iterkeys()):
-            for ftr in feature_list[contig]:
-
-                #Re-build attributes
-                attributes_dict = {}
-                for attribute in ftr["attributes"]['raw'].split(";"):
-                    attribute=attribute.strip()
-
-                    #Sometimes empty string
-                    if(attribute == ""):
-                        continue
-
-                    #Use of 1 to limit split as '=' character can also be made available later
-                    #Sometimes lack of "=", assume spaces instead
-                    if("=" in attribute):
-                        key, value = attribute.split("=", 1)
-                    elif(" " in attribute):
-                        key, value = attribute.split(" ", 1)
-                    else:
-                        log("Warning: attribute "+attribute+" cannot be separated into key,value pair")
-
-                    if(ftr[key] != value):
-                        value = ftr[key]
-                    attributes_dict[key]=value
-
-                ftr["attributes"]=";".join(key+"="+attributes_dict[key] for key in attributes_dict.keys())
-
-                new_line = "\t".join( str(ftr[key]) for key in ['contig', 'source', 'type', 'start', 'end',
-                                                                'score', 'strand', 'phase', 'attributes'])
-                gff_file_handle.write(new_line)
-        gff_file_handle.close()
-        return
-
     def _get_ontology_db_xrefs(self, feature):
         """Splits the ontology info from the other db_xrefs"""
         ontology = collections.defaultdict(dict)
@@ -828,156 +783,3 @@ class FastaGFFToGenome:
         genome['feature_counts'] = dict(self.feature_counts)
 
         return genome
-
-    def _convert_ftr_object(self, old_ftr, contig):
-        new_ftr = dict()
-        new_ftr["id"] = old_ftr["ID"]
-
-        dna_sequence = Seq(contig[old_ftr["start"]-1:old_ftr["end"]], IUPAC.ambiguous_dna)
-
-        # reverse complement
-        if(old_ftr["strand"] == "-"):
-            dna_sequence = dna_sequence.reverse_complement()
-            old_start = old_ftr["start"]
-            old_ftr["start"] = old_ftr["end"]
-            old_ftr["end"]=old_start
-
-        new_ftr["dna_sequence"] = str(dna_sequence).upper()
-        new_ftr["dna_sequence_length"] = len(dna_sequence)
-        new_ftr["md5"] = hashlib.md5(str(dna_sequence)).hexdigest()
-        new_ftr["location"] = [[old_ftr["contig"], old_ftr["start"], 
-                                old_ftr["strand"], len(dna_sequence)]]
-        new_ftr["type"]=old_ftr["type"]
-
-        new_ftr["aliases"]=list()
-        for key in ("transcriptId", "proteinId", "PACid", "pacid"):
-            if(key in old_ftr.keys()):
-                new_ftr["aliases"].append(key+":"+old_ftr[key])
-
-        return new_ftr
-
-    def _utr_aggregation(self, utr_list, assembly, exons, exon_sequence):
-
-        #create copies of locations and transcript
-        utrs_exons = list(exons)
-        utr_exon_sequence = exon_sequence
-
-        five_prime_dna_sequence = ""
-        three_prime_dna_sequence = ""
-        five_prime_locations = list()
-        three_prime_locations = list()
-
-        for UTR in (utr_list):
-            contig_sequence = assembly["contigs"][UTR["contig"]]["sequence"]
-            UTR_ftr = self._convert_ftr_object(UTR, contig_sequence)  #reverse-complementation for negative strands done here
-
-            #aggregate sequences and locations
-            if("five_prime" in UTR_ftr["id"]):
-                five_prime_dna_sequence += UTR_ftr["dna_sequence"]
-                five_prime_locations.append(UTR_ftr["location"][0])
-            if("three_prime" in UTR_ftr["id"]):
-                three_prime_dna_sequence += UTR_ftr["dna_sequence"]
-                three_prime_locations.append(UTR_ftr["location"][0])
-
-        #Handle five_prime UTRs
-        if(len(five_prime_locations)>0):
-
-            #Sort UTRs by "start" (reverse-complement UTRs in Phytozome appear to be incorrectly ordered in the GFF file
-            five_prime_locations = sorted(five_prime_locations, key=lambda x: x[1])
-
-            #Merge last UTR with CDS if "next" to each other
-            if(five_prime_locations[-1][1]+five_prime_locations[-1][3] == utrs_exons[0][1]):
-
-                #Remove last UTR
-                last_five_prime_location = five_prime_locations[-1]
-                five_prime_locations = five_prime_locations[:-1]
-
-                #"Add" last UTR to first exon
-                utrs_exons[0][1]=last_five_prime_location[1]
-                utrs_exons[0][3]+=last_five_prime_location[3]
-                        
-            #Prepend other UTRs if available
-            if(len(five_prime_locations)>0):
-                utrs_exons = five_prime_locations + utrs_exons
-
-        utr_exon_sequence = five_prime_dna_sequence+utr_exon_sequence
-
-        #Handle three_prime UTRs
-        if(len(three_prime_locations)>0):
-
-            #Sort UTRs by "start" (reverse-complement UTRs in Phytozome appear to be incorrectly ordered in the GFF file
-            three_prime_locations = sorted(three_prime_locations, key=lambda x: x[1])
-
-            #Merge first UTR with CDS if "next to each other
-            if(utrs_exons[-1][1]+utrs_exons[-1][3] == three_prime_locations[0][1]):
-
-                #Remove first UTR
-                first_three_prime_location = three_prime_locations[0]
-                three_prime_locations = three_prime_locations[1:]
-
-                #"Add" first UTR to last exon
-                utrs_exons[-1][3]+=first_three_prime_location[3]
-
-        #Append other UTRs if available
-        if(len(three_prime_locations)>0):
-            utrs_exons = utrs_exons + three_prime_locations
-
-        utr_exon_sequence += three_prime_dna_sequence
-
-        return (utrs_exons, utr_exon_sequence)
-
-    def _cds_aggregation_translation(self, cds_list, feature_list, assembly, issues):
-
-        dna_sequence = ""
-        locations = list()
-
-        # collect phases, and lengths of exons
-        # right now, this is only for the purpose of error reporting
-        phases = list()
-        exons = list()
-
-        #Saving parent mRNA identifier
-        Parent_mRNA = cds_list[0]["id"]
-        for CDS in (cds_list):
-            ftr = feature_list[CDS["index"]]
-            phases.append(ftr["phase"])
-            Parent_mRNA=ftr["Parent"]
-
-            contig_sequence = assembly["contigs"][ftr["contig"]]["sequence"]
-            CDS_ftr = self._convert_ftr_object(ftr, contig_sequence) #reverse-complementation for negative strands done here
-            exons.append(len(CDS_ftr["dna_sequence"]))
-
-            # Remove base(s) according to phase, but only for first CDS
-            if(CDS == cds_list[0] and int(ftr["phase"]) != 0):
-                log("Adjusting phase for first CDS: "+CDS["id"])
-                CDS_ftr["dna_sequence"] = CDS_ftr["dna_sequence"][int(ftr["phase"]):]
-
-            #aggregate sequences and locations
-            dna_sequence += CDS_ftr["dna_sequence"]
-            locations.append(CDS_ftr["location"][0])
-
-        # translate sequence
-        dna_sequence_obj = Seq(dna_sequence, IUPAC.ambiguous_dna)
-        rna_sequence = dna_sequence_obj.transcribe()
-
-        # incomplete gene model with no start codon
-        if str(rna_sequence.upper())[:3] not in codon_table.start_codons:
-            msg = "Missing start codon for {}. Possibly incomplete gene model.".format(Parent_mRNA)
-            log(msg)
-
-        # You should never have this problem, needs to be reported rather than "fixed"
-        codon_count = len(str(rna_sequence)) % 3
-        if codon_count != 0:
-            msg = "Number of bases for RNA sequence for {} ".format(Parent_mRNA)
-            msg += "is not divisible by 3. "
-            msg += "The resulting protein may well be mis-translated."
-            log(msg)
-            issues.append(Parent_mRNA)
-
-        protein_sequence = Seq("")
-        try:
-            protein_sequence = rna_sequence.translate()
-        except CodonTable.TranslationError as te:
-            log("TranslationError for: "+feature_object["id"], phases, exons, " : "+str(te))
-
-        return (locations,dna_sequence.upper(),str(protein_sequence).upper())
