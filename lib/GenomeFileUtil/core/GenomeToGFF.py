@@ -225,6 +225,11 @@ class GenomeToGFF:
         for ont in feature.get('ontology_terms', []):
             attrs.extend([_one_attr('Ontology_terms', x)
                           for x in feature['ontology_terms'][ont]])
+
+        if 'inference_data' in feature:
+            attrs.extend([_one_attr(
+                'inference', ":".join([x[y] for y in ('category', 'type', 'evidence') if x[y]]))
+                for x in feature['inference_data']])
         return "; ".join(attrs)
 
     def get_common_location(self, location_array):

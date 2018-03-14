@@ -15,7 +15,8 @@ import urlparse as parse
 # KBase imports
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
-from GenomeUtils import warnings, propagate_cds_props_to_gene
+import GenomeUtils
+from GenomeUtils import warnings
 from GenomeInterface import GenomeInterface
 
 # 3rd party imports
@@ -44,6 +45,10 @@ class FastaGFFToGenome:
         yml_text = open('/kb/module/kbase.yml').read()
         self.version = re.search("module-version:\n\W+(.+)\n", yml_text
                                  ).group(1)
+        self.go_mapping = json.load(
+            open('/kb/module/data/go_ontology_mapping.json'))
+        self.po_mapping = json.load(
+            open('/kb/module/data/go_ontology_mapping.json'))
         self.code_table = 11
         self.aliases = ()
         self.is_phytozome = False
@@ -174,16 +179,6 @@ class FastaGFFToGenome:
             in_feature['strand'],
             in_feature['end'] - in_feature['start'] + 1
         ]
-
-    def _get_ontology(self, feature):
-        ontology = collections.defaultdict(dict)
-        for key in ("GO_process", "GO_function", "GO_component"):
-            if key in feature['attributes']:
-                sp = feature['attributes'][key][0][3:].split(" - ")
-                ontology['GO'][sp[0]] = [1]
-                self.ontologies_present['GO'][sp[0]] = sp[1]
-        # TODO: Support other ontologies
-        return dict(ontology)
 
     @staticmethod
     def _validate_import_file_params(params):
@@ -540,12 +535,35 @@ class FastaGFFToGenome:
         gff_file_handle.close()
         return
 
+    def _get_ontology_db_xrefs(self, feature):
+        """Splits the ontology info from the other db_xrefs"""
+        ontology = collections.defaultdict(dict)
+        db_xref = []
+        for key in ("GO_process", "GO_function", "GO_component"):
+            for term in feature.get(key, []):
+                sp = term.split(" - ")
+                ontology['GO'][sp[0]] = [1]
+                self.ontologies_present['GO'][sp[0]] = sp[1]
+        ont_terms = feature['Ontology_term'][0].split(",") \
+            if 'Ontology_term' in feature else []
+        for ref in feature.get('db_xref', []) + feature.get('Dbxref', [] + ont_terms):
+            if ref.startswith('GO:'):
+                ontology['GO'][ref] = [0]
+                self.ontologies_present['GO'][ref] = self.go_mapping.get(ref, '')
+            elif ref.startswith('PO:'):
+                ontology['PO'][ref] = [1]
+                self.ontologies_present['PO'][ref] = self.po_mapping.get(ref, '')
+            else:
+                db_xref.append(tuple(ref.split(":")))
+        # TODO: Support other ontologies
+        return dict(ontology), db_xref
+
     def _transform_feature(self, contig, in_feature):
         """Converts a feature from the gff ftr format into the appropriate
         format for a genome object """
         def _aliases(feat):
             keys = ('locus_tag', 'old_locus_tag', 'protein_id',
-                    'transcript_id', 'gene', 'EC_number')
+                    'transcript_id', 'gene', 'EC_number', 'gene_synonym')
             alias_list = []
             for key in keys:
                 if key in feat['attributes']:
@@ -584,17 +602,18 @@ class FastaGFFToGenome:
         # add optional fields
         if 'note' in in_feature['attributes']:
             out_feat['note'] = in_feature['attributes']["note"][0]
-        ont = self._get_ontology(in_feature)
+        ont, db_xref = self._get_ontology_db_xrefs(in_feature)
         if ont:
             out_feat['ontology_terms'] = ont
         aliases = _aliases(in_feature)
         if aliases:
             out_feat['aliases'] = aliases
-        if 'db_xref' in in_feature['attributes']:
-            out_feat['db_xrefs'] = [tuple(x.split(":")) for x in
-                                   in_feature['attributes']['db_xref']]
+        if db_xref:
+            out_feat['db_xref'] = db_xref
         if 'product' in in_feature['attributes']:
             out_feat['functions'] = in_feature['attributes']["product"]
+        if 'inference' in in_feature['attributes']:
+            GenomeUtils.parse_inferences(in_feature['attributes']['inference'])
         parent_id = in_feature.get('Parent', '')
         if parent_id and parent_id not in self.feature_dict:
             raise ValueError("Parent ID: {} was not found in feature ID list.")
