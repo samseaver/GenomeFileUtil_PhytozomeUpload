@@ -121,6 +121,26 @@ def is_parent(feat1, feat2):
     return True
 
 
+def parse_inferences(inferences):
+    """Whoever designed the genbank delimitation is an idiot: starts and
+    ends with a optional values and uses a delimiter ":" that is
+    used to divide it's DBs in the evidence. Anyway, this sorts that"""
+    result = []
+    for inf in inferences:
+        try:
+            sp_inf = inf.split(":")
+            if sp_inf[0] in ('COORDINATES', 'DESCRIPTION', 'EXISTENCE'):
+                inference = {'category': sp_inf.pop(0)}
+            else:
+                inference = {'category': ''}
+            inference['type'] = sp_inf[0]
+            inference['evidence'] = ":".join(sp_inf[1:])
+            result.append(inference)
+        except IndexError('Unparseable inference string: ' + inf):
+            continue
+    return result
+
+
 def propagate_cds_props_to_gene(cds, gene):
     # Put longest protein_translation to gene
     if "protein_translation" not in gene or (
