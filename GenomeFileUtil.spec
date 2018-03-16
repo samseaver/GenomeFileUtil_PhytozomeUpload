@@ -35,6 +35,7 @@ module GenomeFileUtil {
     type - Reference, Representative or User upload
     generate_missing_genes - If the file has CDS or mRNA with no corresponding
         gene, generate a spoofed gene.
+    use_existing_assembly - Supply an existing assembly reference
 
     */
     typedef structure {
@@ -53,6 +54,7 @@ module GenomeFileUtil {
         string type;
         usermeta metadata;
         boolean generate_missing_genes;
+        string use_existing_assembly;
     } GenbankToGenomeParams;
 
     typedef structure {

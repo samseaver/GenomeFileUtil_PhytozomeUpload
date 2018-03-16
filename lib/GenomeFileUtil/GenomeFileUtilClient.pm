@@ -134,6 +134,7 @@ GenbankToGenomeParams is a reference to a hash where the following keys are defi
 	type has a value which is a string
 	metadata has a value which is a GenomeFileUtil.usermeta
 	generate_missing_genes has a value which is a GenomeFileUtil.boolean
+	use_existing_assembly has a value which is a string
 File is a reference to a hash where the following keys are defined:
 	path has a value which is a string
 	shock_id has a value which is a string
@@ -164,6 +165,7 @@ GenbankToGenomeParams is a reference to a hash where the following keys are defi
 	type has a value which is a string
 	metadata has a value which is a GenomeFileUtil.usermeta
 	generate_missing_genes has a value which is a GenomeFileUtil.boolean
+	use_existing_assembly has a value which is a string
 File is a reference to a hash where the following keys are defined:
 	path has a value which is a string
 	shock_id has a value which is a string
@@ -1408,6 +1410,7 @@ genetic_code - Genetic code of organism. Overwrites determined GC from
 type - Reference, Representative or User upload
 generate_missing_genes - If the file has CDS or mRNA with no corresponding
     gene, generate a spoofed gene.
+use_existing_assembly - Supply an existing assembly reference
 
 
 =item Definition
@@ -1428,6 +1431,7 @@ genetic_code has a value which is an int
 type has a value which is a string
 metadata has a value which is a GenomeFileUtil.usermeta
 generate_missing_genes has a value which is a GenomeFileUtil.boolean
+use_existing_assembly has a value which is a string
 
 </pre>
 
@@ -1448,6 +1452,7 @@ genetic_code has a value which is an int
 type has a value which is a string
 metadata has a value which is a GenomeFileUtil.usermeta
 generate_missing_genes has a value which is a GenomeFileUtil.boolean
+use_existing_assembly has a value which is a string
 
 
 =end text

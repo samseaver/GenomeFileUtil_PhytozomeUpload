@@ -49,18 +49,19 @@ class GenomeFileUtil(object):
            genetic_code - Genetic code of organism. Overwrites determined GC
            from taxon object type - Reference, Representative or User upload
            generate_missing_genes - If the file has CDS or mRNA with no
-           corresponding gene, generate a spoofed gene.) -> structure:
-           parameter "file" of type "File" -> structure: parameter "path" of
-           String, parameter "shock_id" of String, parameter "ftp_url" of
-           String, parameter "genome_name" of String, parameter
-           "workspace_name" of String, parameter "source" of String,
-           parameter "taxon_wsname" of String, parameter "taxon_reference" of
-           String, parameter "release" of String, parameter
-           "generate_ids_if_needed" of String, parameter "genetic_code" of
-           Long, parameter "type" of String, parameter "metadata" of type
-           "usermeta" -> mapping from String to String, parameter
-           "generate_missing_genes" of type "boolean" (A boolean - 0 for
-           false, 1 for true. @range (0, 1))
+           corresponding gene, generate a spoofed gene. use_existing_assembly
+           - Supply an existing assembly reference) -> structure: parameter
+           "file" of type "File" -> structure: parameter "path" of String,
+           parameter "shock_id" of String, parameter "ftp_url" of String,
+           parameter "genome_name" of String, parameter "workspace_name" of
+           String, parameter "source" of String, parameter "taxon_wsname" of
+           String, parameter "taxon_reference" of String, parameter "release"
+           of String, parameter "generate_ids_if_needed" of String, parameter
+           "genetic_code" of Long, parameter "type" of String, parameter
+           "metadata" of type "usermeta" -> mapping from String to String,
+           parameter "generate_missing_genes" of type "boolean" (A boolean -
+           0 for false, 1 for true. @range (0, 1)), parameter
+           "use_existing_assembly" of String
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
            "genome_ref" of String
         """
