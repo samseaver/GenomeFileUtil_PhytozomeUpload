@@ -1,19 +1,20 @@
-import time
-import requests
+import hashlib
 import json
 import re
 import sys
+import time
+from collections import defaultdict
 
-from Workspace.WorkspaceClient import Workspace as Workspace
-from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
+import requests
 from biokbase.AbstractHandle.Client import \
     AbstractHandle as HandleService  # @UnresolvedImport @IgnorePep8
-from DataFileUtil.DataFileUtilClient import DataFileUtil
+
 from AssemblySequenceAPI.AssemblySequenceAPIServiceClient import \
     AssemblySequenceAPI
-from collections import defaultdict
-import hashlib
-
+from DataFileUtil.DataFileUtilClient import DataFileUtil
+from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
+from KBaseSearchEngine.KBaseSearchEngineClient import KBaseSearchEngine
+from Workspace.WorkspaceClient import Workspace as Workspace
 
 
 def log(message, prefix_newline=False):
@@ -34,6 +35,7 @@ class GenomeInterface:
         self.ws = Workspace(self.ws_url, token=self.token)
         self.auth_client = _KBaseAuth(self.auth_service_url)
         self.dfu = DataFileUtil(self.callback_url)
+        self.kbse = KBaseSearchEngine(config.raw['search-url'])
         self.taxon_wsname = config.raw['taxon-workspace-name']
         self.scratch = config.raw['scratch']
 
@@ -173,9 +175,9 @@ class GenomeInterface:
 
         return returnVal
 
-    def retrieve_taxon(self, taxon_wsname, scientific_name):
+    def old_retrieve_taxon(self, taxon_wsname, scientific_name):
         """
-        _retrieve_taxon: retrieve taxonomy and taxon_reference
+        old_retrieve_taxon: use SOLR to retrieve taxonomy and taxon_reference
 
         """
         default = ('Unconfirmed Organism: ' + scientific_name,
@@ -197,6 +199,48 @@ class GenomeInterface:
         genetic_code = results[0]['genetic_code']
 
         return taxonomy, taxon_reference, domain, genetic_code
+
+    def retrieve_taxon(self, taxon_wsname, scientific_name):
+        """
+        _retrieve_taxon: retrieve taxonomy and taxon_reference
+
+        """
+        default = ('Unconfirmed Organism: ' + scientific_name,
+                   'ReferenceTaxons/unknown_taxon', 'Unknown', 11)
+
+        def extract_values(search_obj):
+            return (search_obj['data']['scientific_lineage'],
+                    taxon_wsname+"/"+search_obj['object_name'],
+                    search_obj['data']['domain'],
+                    search_obj['data'].get('genetic_code', 11))
+
+        search_params = {
+            "object_types": ["taxon"],
+            "match_filter": {
+                "lookupInKeys": {
+                    "scientific_name": {"value": scientific_name}},
+                "exclude_subobjects": 1
+            },
+            "access_filter": {
+                "with_private": 0,
+                "with_public": 1
+            },
+            "sorting_rules": [{
+                "is_object_property": 0,
+                "property": "timestamp",
+                "ascending": 0
+            }]
+        }
+        objects = self.kbse.search_objects(search_params)['objects']
+        if len(objects):
+            return extract_values(objects[0])
+        search_params['match_filter']['lookupInKeys'] = {
+            "aliases": {"value": scientific_name}
+        }
+        objects = self.kbse.search_objects(search_params)['objects']
+        if len(objects):
+            return extract_values(objects[0])
+        return default
 
     @staticmethod
     def determine_tier(source):
