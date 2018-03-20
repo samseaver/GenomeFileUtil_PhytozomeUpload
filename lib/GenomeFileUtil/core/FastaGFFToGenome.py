@@ -532,7 +532,7 @@ class FastaGFFToGenome:
                 raise ValueError("Features must match fasta sequence")
             return
 
-        feat_seq = contig.seq[in_feature['start']-1:in_feature['end']]
+        feat_seq = contig.seq[in_feature['start']-1:in_feature['end']].upper()
         if in_feature['strand'] in {'-', '-1'}:
             feat_seq = feat_seq.reverse_complement()
 

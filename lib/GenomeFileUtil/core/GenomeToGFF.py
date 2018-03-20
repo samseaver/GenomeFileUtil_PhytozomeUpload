@@ -198,8 +198,10 @@ class GenomeToGFF:
     @staticmethod
     def gen_gtf_attr(feature):
         """Makes the attribute line for a feature in gtf style"""
+        gene_id = feature['id'] if feature.get('type') == 'gene' \
+            else feature.get('parent_gene', '')
         return 'gene_id "{}"; transcript_id "{}"'.format(
-            feature.get('parent_gene', ''), feature.get('parent_mrna', ''))
+            gene_id, feature.get('parent_mrna', ''))
 
     @staticmethod
     def gen_gff_attr(feature):

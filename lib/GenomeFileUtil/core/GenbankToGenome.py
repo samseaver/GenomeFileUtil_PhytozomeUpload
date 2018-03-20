@@ -294,7 +294,7 @@ class GenbankToGenome:
                 genome['external_source_origination_date'] += " _ " + \
                     time.strftime("%d-%b-%Y", dates[-1])
 
-        if self.ontoies_present:
+        if self.ontologies_present:
             genome['ontologies_present'] = dict(self.ontologies_present)
             genome["ontology_events"] = self.ontology_events
         genome['feature_counts'] = dict(self.feature_counts)
@@ -327,7 +327,7 @@ class GenbankToGenome:
             genome['warnings'] = self.genome_warnings
         if self.genome_suspect:
             genome['suspect'] = 1
-        self.log("Feature Counts: ", genome['feature_counts'])
+        print("Feature Counts: ", genome['feature_counts'])
         return genome
 
     def _save_assembly(self, genbank_file, params):
@@ -346,7 +346,7 @@ class GenbankToGenome:
             elif in_contig.annotations.get('topology', "") == 'linear':
                 extra_info[in_contig.id]['is_circ'] = 0
             out_contigs.append(in_contig)
-            self.contig_seq[in_contig.id] = in_contig.seq
+            self.contig_seq[in_contig.id] = in_contig.seq.upper()
 
         assembly_ref = params.get("use_existing_assembly")
         if assembly_ref:
