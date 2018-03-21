@@ -48,7 +48,12 @@ warnings = {
                            "of the end of the contig and was not included.",
     "non_exact_coordinates": "The coordinates supplied for this feature are "
                              "non-exact. DNA or protein translations are "
-                             "approximate."
+                             "approximate.",
+    "not_multiple_of_3CDS": "The CDS length was not a multiple of three and "
+                            "translation was not supplied. Can not translate this CDS.",
+    "non_standard_start_codon": "First codon '{}' is not a start codon",
+    "out_of_order": "The feature coordinates order are out of order. GFF does not "
+                    "designate trans_splicing."
 }
 
 
