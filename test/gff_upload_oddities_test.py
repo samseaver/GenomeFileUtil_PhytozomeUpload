@@ -117,11 +117,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         found_not_start_codon_warning = False
         for feature in genome['cdss']:
             if feature['id'] == 'rna0.CDS':
-                #print "rna0.CDS WARNINGS: " + str(feature["warnings"])
-                #print "rna0.CDS Sequence: " + str(feature["dna_sequence"])
-                #print "rna0.CDS SubSequence: " + str(feature["dna_sequence"][:3])
-                #print "rna0.CDS SubSequence Upper: " + warnings["non_standard_start_codon"].format(feature["dna_sequence"][:3].upper())
-                #NEEDS TO BE MADE UPPER CASE.
                 if warnings["non_standard_start_codon"].format(feature["dna_sequence"][:3]) in feature["warnings"]:
                     found_not_start_codon_warning = True
                 if warnings['not_multiple_of_3CDS'] in feature["warnings"]:
@@ -154,15 +149,13 @@ class GenomeFileUtilTest(unittest.TestCase):
         for feature in genome['mrnas']:
             if feature['id'] == 'rna3':
                 #print "RNA3 Feature: " + str(feature)
-                #print "Feature locations : " + str(feature["location"])
                 self.assertTrue(len(feature["location"]) == 2, "mRNA is not 2 locations as it should be.")    
 
     def test_CDS_has_2_plus_locations(self):
         genome = self.__class__.genome
         for feature in genome['cdss']:
             if feature['id'] == 'rna7.CDS':
-                print "RNA7.CDS Feature: " + str(feature)
-                #print "Feature locations : " + str(feature["location"])
+                #print "RNA7.CDS Feature: " + str(feature)
                 self.assertTrue(len(feature["location"]) == 2, "mRNA is not 2 locations as it should be.")                        
 
     def test_trans_splicing_both_strands(self):
@@ -172,10 +165,10 @@ class GenomeFileUtilTest(unittest.TestCase):
         gene_trans_splicing_flag = False
         mRNA_trans_splicing_flag = False
         CDS_trans_splicing_flag = False
+        CDS_premature_stop_warning = False
         for feature in genome['features']:
             if feature['id'] == 'gene4ts':
-                print "GENE4ts Feature: " + str(feature)
-                print "Feature locations : " + str(feature["location"])
+                #print "GENE4ts Feature: " + str(feature))
                 self.assertTrue(len(feature["location"]) == 2, "Gene is not 2 locations as it should be.")
                 self.assertTrue(feature['location'][0] == [u'NC_010127.1', 69724, u'-', 114])
                 self.assertTrue(feature['location'][1] == [u'NC_010127.1', 139856, u'+', 795]) 
@@ -184,8 +177,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                         gene_trans_splicing_flag = False           
         for feature in genome['mrnas']:
             if feature['id'] == 'rna4ts':
-                print "RNA4ts Feature: " + str(feature)
-                print "Feature locations : " + str(feature["location"])
+                #print "RNA4ts Feature: " + str(feature)
                 self.assertTrue(len(feature["location"]) == 3, "mRNA is not 3 locations as it should be.")
                 self.assertTrue(feature['location'][0] == ['NC_010127.1', 69724, '-', 114])
                 self.assertTrue(feature['location'][1] == ['NC_010127.1', 139856, '+', 232])   
@@ -195,12 +187,15 @@ class GenomeFileUtilTest(unittest.TestCase):
                         mRNA_trans_splicing_flag = False   
         for feature in genome['cdss']:
             if feature['id'] == 'rna4ts.CDS':
-                print "RNA4ts.CDS Feature: " + str(feature)
-                print "Feature locations : " + str(feature["location"])
+                #print "RNA4ts.CDS Feature: " + str(feature)
                 self.assertTrue(len(feature["location"]) == 3, "CDS is not 3 locations as it should be.")
                 if "flags" in feature:
                     if "trans_splicing" in feature["flags"]:
                         CDS_trans_splicing_flag = False
+                if "warnings" in feature:
+                    if warnings["premature_stop_codon"] in feature["warnings"]:
+                        CDS_premature_stop_warning = True
+        self.assertTrue(CDS_premature_stop_warning, "Premature stop codon not found.")            
         self.assertTrue(gene_trans_splicing_flag, "gene trans_splicing flag not set.")
         self.assertTrue(mRNA_trans_splicing_flag, "gene trans_splicing flag not set.")   
         self.assertTrue(CDS_trans_splicing_flag, "gene trans_splicing flag not set.")

@@ -53,7 +53,8 @@ warnings = {
                             "translation was not supplied. Can not translate this CDS.",
     "non_standard_start_codon": "First codon '{}' is not a start codon",
     "out_of_order": "The feature coordinates order are out of order. GFF does not "
-                    "designate trans_splicing."
+                    "designate trans_splicing.",
+    "premature_stop_codon": "Extra in frame stop codon found."
 }
 
 
