@@ -114,14 +114,10 @@ class GenomeFileUtilTest(unittest.TestCase):
         #Tests for not a multiple of 3 warning, wrong start codon, out of order exons.
         genome = self.__class__.genome
         found_not_3multiple_warning = False
-        found_not_start_codon_warning = False
         for feature in genome['cdss']:
             if feature['id'] == 'rna0.CDS':
-                if warnings["non_standard_start_codon"].format(feature["dna_sequence"][:3]) in feature["warnings"]:
-                    found_not_start_codon_warning = True
                 if warnings['not_multiple_of_3CDS'] in feature["warnings"]:
-                    found_not_3multiple_warning = True
-                self.assertTrue(found_not_start_codon_warning, "Not start codon warning not found. " + str(feature["warnings"]))   
+                    found_not_3multiple_warning = True   
                 self.assertTrue(found_not_3multiple_warning, "Not multiple of 3 warning not found. " + str(feature["warnings"]))  
 
 
