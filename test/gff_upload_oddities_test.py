@@ -110,26 +110,45 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(empty_function_count == 0, str(empty_function_count) + " features had empty functions.")     
         self.assertTrue(found_function_count > 0, "No features had functions.")    
 
-    def test_for_not_multile_of_3(self):
-        #Tests for not a multiple of 3 warning, wrong start codon, out of order exons.
+    def test_for_not_multiple_of_3(self):
+        #Tests for not a multiple of 3 warning. TEST CASE 
         genome = self.__class__.genome
         found_not_3multiple_warning = False
+        found_making_upper_case = False
         for feature in genome['cdss']:
             if feature['id'] == 'rna0.CDS':
-                if warnings['not_multiple_of_3CDS'] in feature["warnings"]:
+                #print "rna0.CDS WARNINGS: " + str(feature["warnings"])
+                #print "rna0.CDS Sequence: " + str(feature["dna_sequence"])
+                #print "rna0.CDS SubSequence: " + str(feature["dna_sequence"][:3])
+                #print "rna0.CDS SubSequence Upper: " + warnings["non_standard_start_codon"].format(feature["dna_sequence"][:3].upper())
+                #NEEDS TO BE MADE UPPER CASE.
+                if feature["dna_sequence"][:5] == "ATGTT":
+                    found_making_upper_case = True
+                if warnings['not_multiple_of_3CDS'].format(len(feature["dna_sequence"])) in feature["warnings"]:
                     found_not_3multiple_warning = True   
-                self.assertTrue(found_not_3multiple_warning, "Not multiple of 3 warning not found. " + str(feature["warnings"]))  
-
+                self.assertTrue(found_not_3multiple_warning, "Not multiple of 3 warning not found. Warnings: " + str(feature["warnings"]))  
+                self.assertTrue(found_making_upper_case, "NOT MAKING THE SEQUENCE UPPER CASE : " + feature["dna_sequence"][:5])
 
     def test_for_out_of_order(self):
-        #Tests for  out of order exons.
+        #Tests for  out of order exons. Also test not a start codon
         genome = self.__class__.genome
         found_out_of_order_warning = False
+        found_not_start_codon_warning = False
         for feature in genome['cdss']:
             if feature['id'] == 'rna1.CDS':
+                if warnings["non_standard_start_codon"].format(feature["dna_sequence"][:3]) in feature["warnings"]:
+                    found_not_start_codon_warning = True
                 if warnings['out_of_order'] in feature["warnings"]:
                     found_out_of_order_warning = True
-                self.assertTrue(found_out_of_order_warning, "Out of order warning not found." + str(feature["warnings"])) 
+                self.assertTrue(found_out_of_order_warning, "Out of order warning not found. Warnings were: "
+                            + str(feature["warnings"])) 
+                self.assertTrue(found_not_start_codon_warning, "Not start codon warning not found. Warnings: " 
+                            + str(feature["warnings"]))
+
+
+#CHECK SEQUENCE
+
+#JGI STRANDS
 
         
     def test_mrna_has_2_plus_locations(self):
