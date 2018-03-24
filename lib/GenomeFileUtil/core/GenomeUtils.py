@@ -53,7 +53,13 @@ warnings = {
     "non_standard_start_codon": "First codon '{}' is not a start codon",
     "out_of_order": "The feature coordinates order are out of order. GFF does not "
                     "designate trans_splicing.",
-    "premature_stop_codon": "Extra in frame stop codon found."
+    "premature_stop_codon": "Extra in frame stop codon found.",
+    "mRNA_fail_parent_coordinate_validation": "This mRNA lists CDS {} as its "
+                    "corresponding CDS, but fails coordinate validation.",
+    "CDS_fail_child_of_mRNA_coordinate_validation": "This CDS lists mRNA {} as its "
+                    "corresponding mRNA, but fails coordinate validation.",
+    "CDS_fail_child_of_gene_coordinate_validation": "This CDS lists gene {} as its "
+                    "corresponding gene, but fails coordinate validation.",
 }
 
 

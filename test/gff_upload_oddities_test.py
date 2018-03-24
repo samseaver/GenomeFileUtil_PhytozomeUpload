@@ -146,9 +146,131 @@ class GenomeFileUtilTest(unittest.TestCase):
                             + str(feature["warnings"]))
 
 
-#CHECK SEQUENCE
+    def test_off_contig(self):
+        #test for feature off the end of the contig.
+        #tested this it caused an error on upload, which is reasonable. So no object to actually test.
+        #If change ID=gene117_off_contig; to have end coordinate of 422617 it fails.
+        genome = self.__class__.genome
+        found_gene = False
+        for feature in genome["features"]:
+            if feature["id"] == 'gene117_off_contig':
+                found_gene = True
+        self.assertTrue(found_gene,"Did not find off contig gene")
 
-#JGI STRANDS
+    def test_2_contig_feature(self):
+        #Test for a trans_spliced feature on 2 contigs
+        genome = self.__class__.genome
+        found_gene = False
+        trans_splicing_flag = False
+        for feature in genome["features"]:
+            if feature["id"] == 'gene_on_2contigs':
+                found_gene = True
+                #print "2Contig Feature: " + str(feature)
+                self.assertTrue(len(feature["location"]) == 2, "@ contig gene does not have 2 locations.")
+                self.assertTrue(feature["location"][0] == ['NC_010127.1', 13867, '+', 369], "First location incorrect.")
+                self.assertTrue(feature["location"][1] == ['NC_010128.1', 6605, '+', 1959], "Second location incorrect.")
+                if "flags" in feature:
+                    if "trans_splicing" in feature["flags"]:
+                        trans_splicing_flag = True      
+        self.assertTrue(found_gene,"Did not find gene_on_2contigs gene")
+        self.assertTrue(trans_splicing_flag, "gene trans_splicing flag not set.")
+
+    def test_jgi_strand_plus(self):
+        #Test JGI Plus strand, strand = "1"
+        genome = self.__class__.genome
+        found_gene = False
+        for feature in genome["features"]:
+            if feature["id"] == 'gene9':
+                #found_gene = True
+                print "JGI Plus Feature: " + str(feature)
+                self.assertTrue(feature["location"][0] == ['NC_010127.1', 13867, '+', 369], "JGI Plus incorrect.")      
+        self.assertTrue(found_gene,"Did not find JGI plus gene")
+
+    def test_jgi_strand_minus(self):
+        #Test JGI Minus strand, strand = "-1"
+        #Also is testing "gene" with a child "transcript" and not "mRNA" is being put into "non_coding_features" list.
+        #NOTE THIS IS FAILING NOW. THIS GENE CODES FOR A "transcript" feature type and not an "mRNA".
+        #Thus it should be in non_coding_features. Currently being put into features.
+        genome = self.__class__.genome
+        found_gene = False
+        for feature in genome["non_coding_features"]:
+            if feature["id"] == 'gene8':
+                found_gene = True
+                #print "JGI Minus Feature: " + str(feature)
+                self.assertTrue(feature["location"][0] == ['NC_010127.1', 37028, '-', 1238], "JGI Minus incorrect.")      
+        self.assertTrue(found_gene,"Did not find JGI minus gene")
+
+
+    def test_mRNA_child_fail_coordinate_validation(self):
+        #Fail parent mRNA coordinate validation
+        genome = self.__class__.genome
+        found_mrna = False
+        found_mrna_warning = False
+        found_CDS = False
+        found_CDS_warning = False
+        found_CDS_gene_warning = False
+        for feature in genome["mrnas"]:
+            if feature["id"] == 'rna12':
+                found_mrna = True
+                #print "coordinate mRNA fail child Feature: " + str(feature)
+                if "warnings" in feature:
+                    if warnings["mRNA_fail_parent_coordinate_validation"].format('rna12.CDS') in feature["warnings"]:
+                        found_mrna_warning = True
+        for feature in genome["cdss"]:
+            if feature["id"] == 'rna12.CDS':
+                found_CDS = True
+                #print "coordinate CDS fail parent Feature: " + str(feature)
+                if "warnings" in feature:
+                    if warnings["CDS_fail_child_of_mRNA_coordinate_validation"].format('rna12') in feature["warnings"]:
+                        found_CDS_warning = True
+                    #CHECK IF PARENT GENE IS OK. NOTE IT PASSES
+                    if warnings[ "CDS_fail_child_of_gene_coordinate_validation"].format('gene12') in feature["warnings"]:
+                        found_CDS_gene_warning = True                                           
+        self.assertTrue(found_mrna,"Did not find mRNA Feature")
+        self.assertTrue(found_CDS,"Did not find CDS Feature")
+        self.assertTrue(found_mrna_warning,"Did not find mRNA fail CDS coordinate validation")
+        self.assertTrue(found_CDS_warning,"Did not find CDS fail mRNA coordinate validation")
+        self.assertFalse(found_CDS_gene_warning,"Erroneous found warning for CDS failing coordinate validation to Gene")
+
+#mRNA and gene relationship checking
+
+#CDS and gene relationship checking 
+
+
+    def test_mRNA_child_fail_coordinate_validation(self):
+        #Fail parent mRNA coordinate validation
+        genome = self.__class__.genome
+        found_mrna = False
+        found_mrna_warning = False
+        found_CDS = False
+        found_mrna_warning = False
+        for feature in genome["mrnas"]:
+            if feature["id"] == 'rna12':
+                found_mrna = True
+                #print "coordinate mRNA fail child Feature: " + str(feature)
+                if "warnings" in feature:
+                    if warnings["mRNA_fail_parent_coordinate_validation"].format('rna12.CDS') in feature["warnings"]:
+                        found_mrna_warning = True
+        for feature in genome["cdss"]:
+            if feature["id"] == 'rna12.CDS':
+                found_CDS = True
+                #print "coordinate CDS fail parent Feature: " + str(feature)
+                if "warnings" in feature:
+                    if warnings["CDS_fail_child_coordinate_validation"].format('rna12') in feature["warnings"]:
+                        found_mrna_warning = True
+                #CHECK IF PARENT GENE IS OK.                             
+        self.assertTrue(found_mrna,"Did not find mRNA Feature")
+        self.assertTrue(found_CDS,"Did not find CDS Feature")
+        self.assertTrue(found_mrna_warning,"Did not find mRNA fail CDS coordinate validation")
+        self.assertTrue(found_CDS_warning,"Did not find CDS fail mRNA coordinate validation")
+
+#
+#
+#Check mRNA outside of the CDS. That exon being used. Do UTRs that are multi exon.
+#
+#
+#
+
 
         
     def test_mrna_has_2_plus_locations(self):
@@ -189,7 +311,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 self.assertTrue(feature['location'][1] == [u'NC_010127.1', 139856, u'+', 795]) 
                 if "flags" in feature:
                     if "trans_splicing" in feature["flags"]:
-                        gene_trans_splicing_flag = False           
+                        gene_trans_splicing_flag = True           
         for feature in genome['mrnas']:
             if feature['id'] == 'rna4ts':
                 #print "RNA4ts Feature: " + str(feature)
@@ -199,14 +321,14 @@ class GenomeFileUtilTest(unittest.TestCase):
                 self.assertTrue(feature['location'][2] == ['NC_010127.1', 140625, '+', 26]) 
                 if "flags" in feature:
                     if "trans_splicing" in feature["flags"]:
-                        mRNA_trans_splicing_flag = False   
+                        mRNA_trans_splicing_flag = True   
         for feature in genome['cdss']:
             if feature['id'] == 'rna4ts.CDS':
                 #print "RNA4ts.CDS Feature: " + str(feature)
                 self.assertTrue(len(feature["location"]) == 3, "CDS is not 3 locations as it should be.")
                 if "flags" in feature:
                     if "trans_splicing" in feature["flags"]:
-                        CDS_trans_splicing_flag = False
+                        CDS_trans_splicing_flag = True
                 if "warnings" in feature:
                     if warnings["premature_stop_codon"] in feature["warnings"]:
                         CDS_premature_stop_warning = True
@@ -227,7 +349,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 for feature in genome[list_name]:
                     if "warnings" in feature:
                         features_with_warnings_count += 1
-                        print "FEATURE WITH A WARNING: " + str(feature)
+                        #print "FEATURE WITH A WARNING: " + str(feature)
                         for warning in feature["warnings"]:
                             if warning.strip() == '':
                                 empty_warning_count += 1
