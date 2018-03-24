@@ -182,8 +182,8 @@ class GenomeFileUtilTest(unittest.TestCase):
         for feature in genome["features"]:
             if feature["id"] == 'gene9':
                 found_gene = True
-                print "JGI Plus Feature: " + str(feature)
-                self.assertTrue(feature["location"][0] == ['NC_010127.1', 13867, '+', 369], "JGI Plus incorrect.")      
+                #print "JGI Plus Feature: " + str(feature)
+                self.assertTrue(feature["location"][0] == ['NC_010127.1', 37271, '+', 960], "JGI Plus incorrect.")      
         self.assertTrue(found_gene,"Did not find JGI plus gene")
 
     def test_jgi_strand_minus(self):
@@ -193,6 +193,9 @@ class GenomeFileUtilTest(unittest.TestCase):
         #Thus it should be in non_coding_features. Currently being put into features.
         genome = self.__class__.genome
         found_gene = False
+#        for feature in genome["features"]:
+#            if feature["id"] == 'gene8':
+#                print "JGI Minus Feature in wrong place: " + str(feature)        
         for feature in genome["non_coding_features"]:
             if feature["id"] == 'gene8':
                 found_gene = True
