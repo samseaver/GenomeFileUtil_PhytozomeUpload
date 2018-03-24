@@ -181,7 +181,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         found_gene = False
         for feature in genome["features"]:
             if feature["id"] == 'gene9':
-                #found_gene = True
+                found_gene = True
                 print "JGI Plus Feature: " + str(feature)
                 self.assertTrue(feature["location"][0] == ['NC_010127.1', 13867, '+', 369], "JGI Plus incorrect.")      
         self.assertTrue(found_gene,"Did not find JGI plus gene")
