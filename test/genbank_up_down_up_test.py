@@ -175,7 +175,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         for publication in genome_orig["publications"]:
             self.assertTrue(publication in genome_new["publications"])
         self.assertEqual(genome_orig["ontologies_present"],genome_new["ontologies_present"])
-        self.assertEqual(genome_orig["external_source_origination_date"],genome_new["external_source_origination_date"])
 
 
 

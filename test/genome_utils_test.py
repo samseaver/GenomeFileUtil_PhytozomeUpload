@@ -50,7 +50,8 @@ class GenomeFileUtilTest(unittest.TestCase):
 
     def test_retreve_taxon(self):
         self.assertEqual(self.genome_interface.retrieve_taxon("meh", "Escherichia coli"),
-                         ('Escherichia coli', u'meh/562_taxon', u'Bacteria', 11))
+                         (u'cellular organisms; Bacteria; Proteobacteria; Gammaproteobacteria; Enterobacterales; Enterobacteriaceae; Escherichia',
+                          u'meh/562_taxon', u'Bacteria', 11))
         print(self.genome_interface.old_retrieve_taxon("meh", "Escherichia coli"))
         self.assertEqual(self.genome_interface.retrieve_taxon("meh", "rhodobacter"),
                          ('Unconfirmed Organism: rhodobacter',
