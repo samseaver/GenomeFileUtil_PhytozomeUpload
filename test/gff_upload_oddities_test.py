@@ -395,12 +395,6 @@ class GenomeFileUtilTest(unittest.TestCase):
                                 str(feature["location"]))
                 self.assertTrue(feature.get("parent_mrna") == "rna27b")   
 
-#
-#            
-#DO NEGATIVE STRANDS
-#
-#DO SEPARATE TEST FOR SPOOFING.
-#
     def test_mRNA_coordinates_picking_up_exons_minus_strand(self):
         #accuracy of mRNA coodinates since mRNA is not taken directly from the GFF.
         genome = self.__class__.genome
