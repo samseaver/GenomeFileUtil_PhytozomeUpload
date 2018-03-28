@@ -60,6 +60,12 @@ warnings = {
                     "corresponding mRNA, but fails coordinate validation.",
     "CDS_fail_child_of_gene_coordinate_validation": "This CDS lists gene {} as its "
                     "corresponding gene, but fails coordinate validation.",
+    "genes_mRNA_child_fails_location_validation": "The mRNA {} lists this gene as its "
+                    "corresponding parent gene, but fails coordinate validation.",
+    "genes_CDS_child_fails_location_validation": "The CDS {} lists this gene as a "
+                    "corresponding parent gene, but fails coordinate validation.",
+    "mRNAs_parent_gene_fails_location_validation": "This mRNA lists gene {} as its "
+                    "corresponding parent gene, but fails coordinate validation."
 }
 
 

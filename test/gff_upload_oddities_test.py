@@ -187,12 +187,14 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(found_gene,"Did not find JGI plus gene")
 
     def test_jgi_strand_minus(self):
-        #Test JGI Minus strand, strand = "-1"
+        #Test JGI Minus strand, strand = "-1". Also check parent child for non-coding genes.
         #Also is testing "gene" with a child "transcript" and not "mRNA" is being put into "non_coding_features" list.
         #NOTE THIS IS FAILING NOW. THIS GENE CODES FOR A "transcript" feature type and not an "mRNA".
         #Thus it should be in non_coding_features. Currently being put into features.
         genome = self.__class__.genome
         found_gene = False
+        found_transcript = False
+        found_genes_transcript_child = False
 #        for feature in genome["features"]:
 #            if feature["id"] == 'gene8':
 #                print "JGI Minus Feature in wrong place: " + str(feature)        
@@ -200,8 +202,18 @@ class GenomeFileUtilTest(unittest.TestCase):
             if feature["id"] == 'gene8':
                 found_gene = True
                 #print "JGI Minus Feature: " + str(feature)
-                self.assertTrue(feature["location"][0] == ['NC_010127.1', 37028, '-', 1238], "JGI Minus incorrect.")      
+                self.assertTrue(feature["location"][0] == ['NC_010127.1', 37028, '-', 1238], "JGI Minus incorrect.") 
+                if "children" in feature:
+                    if "rna12" in feature["children"]:
+                        found_genes_transcript_child = True
+                self.assertTrue(ffound_genes_transcript_child,"The gene did not have the right child transcript.")
+                self.assertTrue(feature.get("type") == "gene","The gene did not get the gene type")
+            if feature["id"] == 'rna8':
+                found_transcript = True
+                self.assertTrue(feature.get("parent_gene") == "gene8","The transcript did not have the right gene parent")  
+                self.assertTrue(feature.get("type") == "transcript","The transcript did not get the transcript type")                    
         self.assertTrue(found_gene,"Did not find JGI minus gene")
+        self.assertTrue(found_transcript,"Did not find JGI minus transcript")
 
 
     def test_mRNA_child_fail_coordinate_validation(self):
@@ -209,13 +221,21 @@ class GenomeFileUtilTest(unittest.TestCase):
         genome = self.__class__.genome
         found_mrna = False
         found_mrna_warning = False
+        found_mrnas_cds = False
         found_CDS = False
         found_CDS_warning = False
+        found_CDSs_mrna = False
+        found_CDSs_gene = False
         found_CDS_gene_warning = False
         for feature in genome["mrnas"]:
             if feature["id"] == 'rna12':
                 found_mrna = True
                 #print "coordinate mRNA fail child Feature: " + str(feature)
+                if "cds" in feature:
+                    if feature["cds"] == "rna12.CDS":
+                        #I think in terms of behavior the relationship should still exist even though the location validation fails.
+                        #Since the relationship is defined in the file.  But should have a warning. 
+                        found_mrnas_cds = True
                 if "warnings" in feature:
                     if warnings["mRNA_fail_parent_coordinate_validation"].format('rna12.CDS') in feature["warnings"]:
                         found_mrna_warning = True
@@ -223,6 +243,14 @@ class GenomeFileUtilTest(unittest.TestCase):
             if feature["id"] == 'rna12.CDS':
                 found_CDS = True
                 #print "coordinate CDS fail parent Feature: " + str(feature)
+                if "parent_mrna" in feature:
+                    if feature["parent_mrna"] == "rna12":
+                        #I think in terms of behavior the relationship should still exist even though the location validation fails.
+                        #Since the relationship is defined in the file.  But should have a warning. 
+                        found_CDSs_mrna = True
+                if "parent_gene" in feature:
+                    if feature["parent_gene"] == "gene12":
+                        found_CDSs_gene = True
                 if "warnings" in feature:
                     if warnings["CDS_fail_child_of_mRNA_coordinate_validation"].format('rna12') in feature["warnings"]:
                         found_CDS_warning = True
@@ -231,51 +259,169 @@ class GenomeFileUtilTest(unittest.TestCase):
                         found_CDS_gene_warning = True                                           
         self.assertTrue(found_mrna,"Did not find mRNA Feature")
         self.assertTrue(found_CDS,"Did not find CDS Feature")
-        self.assertTrue(found_mrna_warning,"Did not find mRNA fail CDS coordinate validation")
-        self.assertTrue(found_CDS_warning,"Did not find CDS fail mRNA coordinate validation")
+        self.assertTrue(found_mrnas_cds,"Did not find mRNA's CDS Feature")
+        self.assertTrue(found_CDSs_mrna,"Did not find CDS's mRNA Feature")
+        self.assertTrue(found_CDSs_gene,"Did not find CDS's gene Feature")
+        self.assertTrue(found_mrna_warning,"Did not find mRNA fail CDS coordinate validation warning")
+        self.assertTrue(found_CDS_warning,"Did not find CDS fail mRNA coordinate validation warning")
         self.assertFalse(found_CDS_gene_warning,"Erroneous found warning for CDS failing coordinate validation to Gene")
 
-#mRNA and gene relationship checking
-
-#CDS and gene relationship checking 
-
-
-    def test_mRNA_child_fail_coordinate_validation(self):
+    def test_genes_mRNA_child_fail_coordinate_validation(self):
         #Fail parent mRNA coordinate validation
         genome = self.__class__.genome
+        found_gene = False
+        found_genes_cds = False
+        found_genes_mrna = False
+        found_gene_warning = False
         found_mrna = False
         found_mrna_warning = False
         found_CDS = False
-        found_mrna_warning = False
-        for feature in genome["mrnas"]:
-            if feature["id"] == 'rna12':
-                found_mrna = True
-                #print "coordinate mRNA fail child Feature: " + str(feature)
+        found_CDS_warning = False
+        for feature in genome["features"]:
+            if feature["id"] == 'gene14':
+                found_gene = True
+                if "rna14.CDS" in feature["cdss"]:
+                    found_genes_cds = True
+                if "mrnas" in feature:
+                    if "rna14" in feature["mrnas"]:
+                        found_genes_mrna = True
                 if "warnings" in feature:
-                    if warnings["mRNA_fail_parent_coordinate_validation"].format('rna12.CDS') in feature["warnings"]:
+                    if warnings["genes_mRNA_child_fails_location_validation"].format("rna14") in feature["warnings"]:
+                        found_genes_warning = True
+        for feature in genome["mrnas"]:
+            if feature["id"] == 'rna14':
+                found_mrna = True
+                #print "coordinate mRNA fail Parent Gene: " + str(feature)
+                self.assertTrue(feature.get("parent_gene") == 'gene14', "mRNA did not have the right parent gene")  
+                self.assertTrue(feature.get("cds") == 'rna14.CDS', "mRNA did not have the right CDS")                  
+                if "warnings" in feature:
+                    if warnings["mRNAs_parent_gene_fails_location_validation"].format('gene14') in feature["warnings"]:
                         found_mrna_warning = True
         for feature in genome["cdss"]:
-            if feature["id"] == 'rna12.CDS':
+            if feature["id"] == 'rna14.CDS':
                 found_CDS = True
+                self.assertTrue(feature.get("parent_gene") == 'gene14', "CDS did not have the right parent gene")  
+                self.assertTrue(feature.get("parent_mrna") == 'rna14', "CDS did not have the right parent mRNA")    
                 #print "coordinate CDS fail parent Feature: " + str(feature)
                 if "warnings" in feature:
-                    if warnings["CDS_fail_child_coordinate_validation"].format('rna12') in feature["warnings"]:
-                        found_mrna_warning = True
-                #CHECK IF PARENT GENE IS OK.                             
+                    if warnings["CDS_fail_child_coordinate_validation"].format('rna14') in feature["warnings"]:
+                        found_CDS_warning = True
+                #CHECK IF PARENT GENE IS OK.         
+        self.assertTrue(found_gene,"Did not find Gene Feature")                    
         self.assertTrue(found_mrna,"Did not find mRNA Feature")
         self.assertTrue(found_CDS,"Did not find CDS Feature")
-        self.assertTrue(found_mrna_warning,"Did not find mRNA fail CDS coordinate validation")
-        self.assertTrue(found_CDS_warning,"Did not find CDS fail mRNA coordinate validation")
-
-#
-#
-#Check mRNA outside of the CDS. That exon being used. Do UTRs that are multi exon.
-#
-#
-#
+        self.assertTrue(found_genes_cds,"Did not find Gene's CDS") 
+        self.assertTrue(found_genes_mrna,"Did not find Gene's mRNA")
+        self.assertTrue(found_gene_warning,"Did not find gene fail mRNA coordinate validation warning")
+        self.assertTrue(found_mrna_warning,"Did not find mRNA fail parnet coordinate validation warning")
+        self.assertFalse(found_CDS_warning,"The CDS has bad warning. It is valid within the mRNA")
 
 
-        
+    def test_gene_child_CDS_fail_coordinate_validation(self):
+        #CDS and gene relationship checking
+        genome = self.__class__.genome
+        found_gene = False
+        found_gene_warning = False
+        found_genes_cds = False
+        found_CDS = False
+        found_CDS_warning = False
+        for feature in genome["features"]:
+            if feature["id"] == 'gene21':
+                found_gene = True
+                #print "coordinate mRNA fail child Feature: " + str(feature)
+                if "cdss" in feature:
+                    if "gene21.CDS" in feature["cdss"]:
+                        #I think in terms of behavior the relationship should still exist even though the location validation fails.
+                        #Since the relationship is defined in the file.  But should have a warning. 
+                        found_genes_cds = True
+                if "warnings" in feature:
+                    if warnings["genes_CDS_child_fails_location_validation"].format('gene21.CDS') in feature["warnings"]:
+                        found_gene_warning = True
+        for feature in genome["cdss"]:
+            if feature["id"] == 'gene21.CDS':
+                found_CDS = True
+                #print "coordinate CDS fail parent Feature: " + str(feature)
+                self.assertFalse(feature.get("parent_mrna",False),"This CDS is not supposed to have a parent mRNA")
+                self.assertTrue(feature.get("parent_gene") == "gene21","This CDS has no parent Gene")
+                if "warnings" in feature:
+                    #CHECK IF PARENT GENE IS OK. NOTE IT PASSES
+                    if warnings[ "CDS_fail_child_of_gene_coordinate_validation"].format('gene21') in feature["warnings"]:
+                        found_CDS_warning = True                                           
+        self.assertTrue(found_gene,"Did not find gene Feature")
+        self.assertTrue(found_CDS,"Did not find CDS Feature")
+        self.assertTrue(found_genes_cds,"Did not find Gene's CDS Feature")
+        self.assertTrue(found_gene_warning,"Did not find Gene fail CDS coordinate validation warning")
+        self.assertTrue(found_CDS_warning,"Did not find CDS fail mRNA coordinate validation warning")
+
+
+
+    def test_sequences(self):
+        #CHECK SEQUENCE AND PROTEIN TRANSLATION.
+        genome = self.__class__.genome    
+        found_cds = False
+        for feature in genome['cdss']:
+            if feature['id'] == "rna19.CDS":
+                self.assertTrue(feature["protein_translation"] == "MMRRTLLSFWGLWCVIALVQSAFARPQAGTIQELLEAPASQYVE" +
+                     "NIFVDGVVALSTAAGSVQAYEGTRNPLLNSVGSAALYFTLKKCAILEPHVHTNTPEFYFVISGTGTFSLWSSNGSVVHLKTPITNGSFM" +
+                     "IIPAGWPHMITGPETSSTPLVLLANYLSGLPQVYFLASRASVFEQTSPSVMASVFNVSTAEYSTFFGAESGVGIVFNSSCLAS")
+                self.assertTrue(feature["dna_sequence"] == "ATGATGCGCAGAACTTTGCTTTCGTTTTGGGGTTTGTGGTGCGTCATAGCACTCGTGCAGT" +
+                    "CTGCGTTCGCGCGTCCACAAGCTGGTACGATCCAAGAGCTGCTGGAAGCTCCGGCTTCTCAGTACGTAGAGAATATCTTTGTCGACGGTGTGGTTGCACT" +
+                    "CTCAACTGCGGCAGGGTCCGTACAGGCATATGAAGGGACACGGAATCCGTTGTTGAACTCTGTCGGCTCGGCTGCTTTGTATTTCACGTTGAAGAAGTGC" +
+                    "GCGATTCTGGAGCCGCACGTTCACACCAATACACCCGAGTTCTATTTCGTCATTTCCGGTACGGGCACCTTCAGCCTTTGGTCCTCGAACGGCTCTGTTG" +
+                    "TCCACCTGAAGACGCCCATAACCAACGGGAGCTTCATGATAATCCCGGCCGGGTGGCCGCACATGATCACCGGGCCGGAGACATCATCGACACCGTTGGT" +
+                    "GCTCCTCGCCAACTATCTGAGCGGTCTTCCACAGGTCTATTTCCTTGCGAGCCGGGCAAGCGTCTTTGAACAAACCTCACCATCTGTGATGGCAAGCGTG" +
+                    "TTCAATGTCTCGACAGCGGAGTACTCGACGTTCTTCGGCGCTGAATCCGGCGTCGGGATCGTCTTTAACTCGTCGTGTCTGGCGAGCTAG")
+                found_cds = True
+        self.assertTrue(found_cds,"Did not find CDS")
+                
+    def test_mRNA_coordinates_picking_up_exons_plus_strand(self):
+        #accuracy of mRNA coodinates since mRNA is not taken directly from the GFF.
+        genome = self.__class__.genome
+        for feature in genome['mrnas']:
+            if feature["id"] == "rna27a":
+                self.assertTrue(feature["location"] == [['NC_010127.1', 101800, '+', 21], ['NC_010127.1', 101846, '+', 1655]])
+                self.assertTrue(feature.get("cds") == "rna27a.CDS")
+            if feature["id"] == "rna27b":
+                self.assertTrue(feature["location"] == [['NC_010127.1', 101800, '+', 201], 
+                                                        ['NC_010127.1', 102007, '+', 1423],
+                                                        ['NC_010127.1', 103450, '+', 51]])
+                self.assertTrue(feature.get("cds") == "rna27b.CDS")            
+        for feature in genome['cdss']:
+            if feature["id"] == "rna27a.CDS":
+                self.assertTrue(feature["location"] == [['NC_010127.1', 101846, '+', 1584]],str(feature["location"]))
+                self.assertTrue(feature.get("parent_mrna") == "rna27a")
+            if feature["id"] == "rna27b.CDS":
+                self.assertTrue(feature["location"] == [['NC_010127.1', 101846, '+', 155], ['NC_010127.1', 102007, '+', 1423]],
+                                str(feature["location"]))
+                self.assertTrue(feature.get("parent_mrna") == "rna27b")   
+
+#
+#            
+#DO NEGATIVE STRANDS
+#
+#DO SEPARATE TEST FOR SPOOFING.
+#
+    def test_mRNA_coordinates_picking_up_exons_minus_strand(self):
+        #accuracy of mRNA coodinates since mRNA is not taken directly from the GFF.
+        genome = self.__class__.genome
+        for feature in genome['mrnas']:
+            if feature["id"] == "rna27a":
+                self.assertTrue(feature["location"] == [['NC_010127.1', 101800, '+', 21], ['NC_010127.1', 101846, '+', 1655]])
+                self.assertTrue(feature.get("cds") == "rna27a.CDS")
+            if feature["id"] == "rna27b":
+                self.assertTrue(feature["location"] == [['NC_010127.1', 101800, '+', 201], 
+                                                        ['NC_010127.1', 102007, '+', 1423],
+                                                        ['NC_010127.1', 103450, '+', 51]])
+                self.assertTrue(feature.get("cds") == "rna27b.CDS")            
+        for feature in genome['cdss']:
+            if feature["id"] == "rna27a.CDS":
+                self.assertTrue(feature["location"] == [['NC_010127.1', 101846, '+', 1584]],str(feature["location"]))
+                self.assertTrue(feature.get("parent_mrna") == "rna27a")
+            if feature["id"] == "rna27b.CDS":
+                self.assertTrue(feature["location"] == [['NC_010127.1', 101846, '+', 155], ['NC_010127.1', 102007, '+', 1423]],
+                                str(feature["location"]))
+                self.assertTrue(feature.get("parent_mrna") == "rna27b")   
+
     def test_mrna_has_2_plus_locations(self):
         genome = self.__class__.genome
         for feature in genome['mrnas']:
