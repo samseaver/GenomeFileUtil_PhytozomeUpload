@@ -13,7 +13,6 @@ except:
     from configparser import ConfigParser  # py3
 
 from Workspace.WorkspaceClient import Workspace as workspaceService
-from GenomeAnnotationAPI.GenomeAnnotationAPIClient import GenomeAnnotationAPI
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from DataFileUtil.DataFileUtilClient import DataFileUtil
@@ -44,7 +43,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         cls.wsURL = cls.cfg['workspace-url']
         cls.ws = workspaceService(cls.wsURL, token=token)
         cls.serviceImpl = GenomeFileUtil(cls.cfg)
-        cls.gaapi = GenomeAnnotationAPI(os.environ['SDK_CALLBACK_URL'])
 
         # create one WS for all tests
         suffix = int(time.time() * 1000)
@@ -57,11 +55,14 @@ class GenomeFileUtilTest(unittest.TestCase):
         # save to ws
         save_info = {
                 'workspace': wsName,
-                'data': data,
-                'name': 'rhodobacter',
+                'objects': [{
+                    'type': 'KBaseGenomes.Genome',
+                    'data': data,
+                    'name': 'rhodobacter'
+                }]
             }
-        result = cls.gaapi.save_one_genome_v1(save_info)
-        info = result['info']
+        result = cls.ws.save_objects(save_info)
+        info = result[0]
         cls.rhodobacter_ref = str(info[6]) +'/' + str(info[0]) + '/' + str(info[4])
         print('created rhodobacter test genome: ' + cls.rhodobacter_ref)
 

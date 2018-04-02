@@ -13,7 +13,6 @@ except:
 from pprint import pprint
 
 from Workspace.WorkspaceClient import Workspace as workspaceService
-from GenomeAnnotationAPI.GenomeAnnotationAPIClient import GenomeAnnotationAPI
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 
@@ -37,7 +36,6 @@ class GenomeFileUtilTest(unittest.TestCase):
                              }],
                         'authenticated': 1})
         config_file = environ.get('KB_DEPLOYMENT_CONFIG', None)
-        cls.gaapi = GenomeAnnotationAPI(os.environ['SDK_CALLBACK_URL'])
         cls.cfg = {}
         config = ConfigParser()
         config.read(config_file)
@@ -98,11 +96,14 @@ class GenomeFileUtilTest(unittest.TestCase):
         # save to ws
         save_info = {
                 'workspace': self.getWsName(),
-                'data': data,
-                'name': obj_name + '.genome'
+                'objects': [{
+                    'type': 'KBaseGenomes.Genome',
+                    'data': data,
+                    'name': obj_name + '.genome'
+                }]
             }
-        result = self.gaapi.save_one_genome_v1(save_info)
-        info = result['info']
+        result = self.ws.save_objects(save_info)
+        info = result[0]
         ref = str(info[6]) + '/' + str(info[0]) + '/' + str(info[4])
         print('created test genome: ' + ref + ' from file ' + filename)
         return ref
