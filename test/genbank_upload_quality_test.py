@@ -175,7 +175,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(empty_function_count == 0, str(empty_function_count) + " features had empty functions.")     
         self.assertTrue(found_function_count > 0, "No features had functions.")    
 
-
     def test_getting_all_go_ontologies(self):
         genome = self.__class__.genome    
         all_ontologies_accounted_for = True
@@ -248,6 +247,18 @@ class GenomeFileUtilTest(unittest.TestCase):
         print "Overall noncoding count : " + str(overall_count)
         self.assertTrue(underscore_start_count == 0, "Non coding features are starting with an underscore.")
 
+    def test_no_ids_duplicated(self):
+        genome = self.__class__.genome
+        list_names = ['features','cdss','mrnas','non_coding_features']
+        ids_dict = dict() #key id, value number of occurrences
+        for list_name in list_names:
+            for feature in genome[list_name]:
+                if feature['id'] in ids_dict:
+                    ids_dict[feature['id']] += 1
+                else:
+                    ids_dict[feature['id']] = 1
+        ids_with_duplicates = dict((id, num) for id, num in ids_dict.items() if num > 1)
+        self.assertTrue(len(ids_with_duplicates) == 0, "These ids had duplicates : " + str(ids_with_duplicates))
 
     def test_flags_being_caught(self):
         genome = self.__class__.genome

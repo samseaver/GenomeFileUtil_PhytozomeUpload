@@ -145,6 +145,64 @@ class GenomeFileUtilTest(unittest.TestCase):
                 self.assertTrue(found_not_start_codon_warning, "Not start codon warning not found. Warnings: " 
                             + str(feature["warnings"]))
 
+    def test_for_picking_up_other_fields(self):
+        #tests for picking up ontologies. Other db_xrefs  (NOTE DB Xrefs different ways: in GenBank - /db_xref   in GFF I have seen: Dbxref=)
+        #For picking up notes, function, product, locus_tag
+        #THIS TEST NEEDS MORE WORK Check on ontologies and other stuff
+        genome = self.__class__.genome
+        found_rna6CDS_GO = False
+        found_rna6CDS_PO = False
+        found_rna5CDS_GO = False
+        found_note = False
+        found_function_product = False
+        found_functional_descriptors=False
+        found_locus_tag = False
+        for feature in genome['cdss']:
+            if feature["id"] == "rna6.CDS":
+                #Do rna6.CDS first.
+                #look for db_xrefs and ontologies.
+                print "RNA6CDS: " + str(feature)
+                #currently this is not picking up the ontologies in either form.
+                if "ontology_terms" in feature:
+                    print "GFF 6 ONTOLOGIES: " + str(feature["ontology_terms"])
+                    if "GO" in feature["ontology_terms"]:
+                        if feature["ontology_terms"]["GO"] == {"GO:0009523":[0]}:
+                            found_rna6CDS_GO = True                            
+                        print "GFF 6 G ONTOLOGY: " + str(feature["ontology_terms"]["GO"])
+                    if "PO" in feature["ontology_terms"]:
+                        if feature["ontology_terms"]["PO"] == {"PO:0000005":[0]}:
+                            found_rna6CDS_PO = True  
+                        print "GFF 6 P ONTOLOGY: " + str(feature["ontology_terms"]["PO"])                                        
+            if feature["id"] == "rna5.CDS":
+                #Do rna6.CDS first.
+                #look for db_xrefs and ontologies.
+                print "RNA5CDS: " + str(feature)
+                if "ontology_terms" in feature:
+                    print "GFF 5 ONTOLOGIES: " + str(feature["ontology_terms"])
+                    if "GO" in feature["ontology_terms"]:
+                        if feature["ontology_terms"]["GO"] == {"GO:0009523":[0]}:
+                                found_rna5CDS_GO = True  
+                        print "GFF 5 ONTOLOGY: " + str(feature["ontology_terms"]["GO"])
+                if "note" in feature:
+                    if feature["note"] == "Test":
+                        found_note = True
+                if "functional_secriptions" in feature:
+                    if feature["functional_secriptions"][0] == "Test function":
+                        found_functional_descriptors = True
+                if "functions" in feature:
+                    if feature["functions"][0] == "NAD-dependent sorbitol dehydrogenase":
+                        found_function_product = True
+                if "aliases" in feature:
+                    for alias in feature["aliases"]:
+                        if alias[0] == "locus_tag" and alias[1] == "Test_locus_tag":
+                            found_locus_tag == True
+        self.assertTrue(found_function_product)
+        self.assertTrue(found_locus_tag)
+        self.assertTrue(found_note)
+        self.assertTrue(found_functional_descriptors)
+        self.assertTrue(found_rna6CDS_GO)
+        self.assertTrue(found_rna6CDS_PO)
+        self.assertTrue(found_rna5CDS_GO)
 
     def test_off_contig(self):
         #test for feature off the end of the contig.
