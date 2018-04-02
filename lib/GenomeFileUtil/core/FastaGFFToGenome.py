@@ -335,18 +335,18 @@ class FastaGFFToGenome:
                     #Sometimes lack of "=", assume spaces instead
                     if("=" in attribute):
                         key, value = attribute.split("=", 1)
-                        ftr['attributes'][key].append(parse.unquote(value.strip('"')))
+                        ftr['attributes'][key.lower()].append(parse.unquote(value.strip('"')))
                     elif(" " in attribute):
                         key, value = attribute.split(" ", 1)
-                        ftr['attributes'][key].append(parse.unquote(value.strip('"')))
+                        ftr['attributes'][key.lower()].append(parse.unquote(value.strip('"')))
                     else:
                         log("Warning: attribute "+attribute+" cannot be separated into key,value pair")
 
                 ftr['attributes']['raw'] = attributes
-                if "ID" in ftr['attributes']:
-                    ftr['ID'] = ftr['attributes']['ID'][0]
-                if "Parent" in ftr['attributes']:
-                    ftr['Parent'] = ftr['attributes']['Parent'][0]
+                if "id" in ftr['attributes']:
+                    ftr['ID'] = ftr['attributes']['id'][0]
+                if "parent" in ftr['attributes']:
+                    ftr['Parent'] = ftr['attributes']['parent'][0]
 
                 feature_list[contig_id].append(ftr)
 
@@ -494,14 +494,14 @@ class FastaGFFToGenome:
         """Splits the ontology info from the other db_xrefs"""
         ontology = collections.defaultdict(dict)
         db_xref = []
-        for key in ("GO_process", "GO_function", "GO_component"):
+        for key in ("go_process", "go_function", "go_component"):
             for term in feature.get(key, []):
                 sp = term.split(" - ")
                 ontology['GO'][sp[0]] = [1]
                 self.ontologies_present['GO'][sp[0]] = sp[1]
         ont_terms = feature['Ontology_term'][0].split(",") \
-            if 'Ontology_term' in feature else []
-        for ref in feature.get('db_xref', []) + feature.get('Dbxref', [] + ont_terms):
+            if 'ontology_term' in feature else []
+        for ref in feature.get('db_xref', []) + feature.get('dbxref', [] + ont_terms):
             if ref.startswith('GO:'):
                 ontology['GO'][ref] = [0]
                 self.ontologies_present['GO'][ref] = self.go_mapping.get(ref, '')
@@ -518,7 +518,7 @@ class FastaGFFToGenome:
         format for a genome object """
         def _aliases(feat):
             keys = ('locus_tag', 'old_locus_tag', 'protein_id',
-                    'transcript_id', 'gene', 'EC_number', 'gene_synonym')
+                    'transcript_id', 'gene', 'ec_number', 'gene_synonym')
             alias_list = []
             for key in keys:
                 if key in feat['attributes']:
@@ -569,6 +569,8 @@ class FastaGFFToGenome:
             out_feat['functions'] = in_feature['attributes']["product"]
         if 'inference' in in_feature['attributes']:
             GenomeUtils.parse_inferences(in_feature['attributes']['inference'])
+        if 'trans-splicing' in in_feature['attributes'].get('exception', []):
+            out_feat['flags'] = ['trans_splicing']
         parent_id = in_feature.get('Parent', '')
         if parent_id and parent_id not in self.feature_dict:
             raise ValueError("Parent ID: {} was not found in feature ID list.")
@@ -765,7 +767,7 @@ class FastaGFFToGenome:
                 del feature['type']
                 genome['mrnas'].append(feature)
             elif feature['type'] == 'gene':
-                if genome['cdss']:
+                if feature['cdss']:
                     del feature['type']
                     self.feature_counts["protein_encoding_gene"] += 1
                     genome['features'].append(feature)
