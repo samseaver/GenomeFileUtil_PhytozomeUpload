@@ -48,7 +48,24 @@ warnings = {
                            "of the end of the contig and was not included.",
     "non_exact_coordinates": "The coordinates supplied for this feature are "
                              "non-exact. DNA or protein translations are "
-                             "approximate."
+                             "approximate.",
+    "not_multiple_of_3CDS": "Sequence length {} is not a multiple of three",
+    "non_standard_start_codon": "First codon '{}' is not a start codon",
+    "out_of_order": "The feature coordinates order are out of order. GFF does not "
+                    "designate trans_splicing.",
+    "premature_stop_codon": "Extra in frame stop codon found.",
+    "mRNA_fail_parent_coordinate_validation": "This mRNA lists CDS {} as its "
+                    "corresponding CDS, but fails coordinate validation.",
+    "CDS_fail_child_of_mRNA_coordinate_validation": "This CDS lists mRNA {} as its "
+                    "corresponding mRNA, but fails coordinate validation.",
+    "CDS_fail_child_of_gene_coordinate_validation": "This CDS lists gene {} as its "
+                    "corresponding gene, but fails coordinate validation.",
+    "genes_mRNA_child_fails_location_validation": "The mRNA {} lists this gene as its "
+                    "corresponding parent gene, but fails coordinate validation.",
+    "genes_CDS_child_fails_location_validation": "The CDS {} lists this gene as a "
+                    "corresponding parent gene, but fails coordinate validation.",
+    "mRNAs_parent_gene_fails_location_validation": "This mRNA lists gene {} as its "
+                    "corresponding parent gene, but fails coordinate validation."
 }
 
 

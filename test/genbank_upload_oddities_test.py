@@ -65,6 +65,18 @@ class GenomeFileUtilTest(unittest.TestCase):
             cls.wsClient.delete_workspace({'workspace': cls.wsName})
             print('Test workspace was deleted')
 
+    #Note tested duplicate locus tags and got a value error which is good.
+    #TO induce this error again add in the following lines into the GenBank file.
+    #note if these lines are added to the source file, it will fail uploading.
+#    gene            1..6
+#                     /gene="trnH_duplicate_locus_tag"
+#                     /locus_tag="ArthCt088"
+#                     /db_xref="GeneID:1466273"
+#     CDS             1..6
+#                     /gene="trnH_duplicate_locus_tag"
+#                     /locus_tag="ArthCt088"
+#                     /db_xref="GeneID:1466273"
+
     def test_refseq_latest_source_and_tiers(self):
         genome = self.__class__.genome
         has_genome_tiers = False
