@@ -195,7 +195,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 if "aliases" in feature:
                     for alias in feature["aliases"]:
                         if alias[0] == "locus_tag" and alias[1] == "Test_locus_tag":
-                            found_locus_tag == True
+                            found_locus_tag = True
         self.assertTrue(found_function_product)
         self.assertTrue(found_locus_tag)
         self.assertTrue(found_note)
@@ -210,7 +210,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         #If change ID=gene117_off_contig; to have end coordinate of 422617 it fails.
         genome = self.__class__.genome
         found_gene = False
-        for feature in genome["features"]:
+        for feature in genome["non_coding_features"]:
             if feature["id"] == 'gene117_off_contig':
                 found_gene = True
         self.assertTrue(found_gene,"Did not find off contig gene")
@@ -220,7 +220,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         genome = self.__class__.genome
         found_gene = False
         trans_splicing_flag = False
-        for feature in genome["features"]:
+        for feature in genome["non_coding_features"]:
             if feature["id"] == 'gene_on_2contigs':
                 found_gene = True
                 #print "2Contig Feature: " + str(feature)
@@ -264,7 +264,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 if "children" in feature:
                     if "rna12" in feature["children"]:
                         found_genes_transcript_child = True
-                self.assertTrue(ffound_genes_transcript_child,"The gene did not have the right child transcript.")
+                self.assertTrue(found_genes_transcript_child,"The gene did not have the right child transcript.")
                 self.assertTrue(feature.get("type") == "gene","The gene did not get the gene type")
             if feature["id"] == 'rna8':
                 found_transcript = True

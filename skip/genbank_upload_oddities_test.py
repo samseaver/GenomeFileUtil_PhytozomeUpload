@@ -50,7 +50,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                   'path': gbk_path},
               'workspace_name': cls.wsName,
               'genome_name': ws_obj_name,
-              'generate_ids_if_needed': 1
+              'generate_ids_if_needed': 1,
+              'source': "RefSeq Latest"
             })[0]
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'],
                                 token=cls.ctx['token'],
@@ -63,6 +64,32 @@ class GenomeFileUtilTest(unittest.TestCase):
         if hasattr(cls, 'wsName'):
             cls.wsClient.delete_workspace({'workspace': cls.wsName})
             print('Test workspace was deleted')
+
+    #Note tested duplicate locus tags and got a value error which is good.
+    #TO induce this error again add in the following lines into the GenBank file.
+    #note if these lines are added to the source file, it will fail uploading.
+#    gene            1..6
+#                     /gene="trnH_duplicate_locus_tag"
+#                     /locus_tag="ArthCt088"
+#                     /db_xref="GeneID:1466273"
+#     CDS             1..6
+#                     /gene="trnH_duplicate_locus_tag"
+#                     /locus_tag="ArthCt088"
+#                     /db_xref="GeneID:1466273"
+
+    def test_refseq_latest_source_and_tiers(self):
+        genome = self.__class__.genome
+        has_genome_tiers = False
+        has_external_db = False
+        if "genome_tiers" in genome:
+            has_genome_tiers = True
+            for tier in genome["genome_tiers"]:
+                if tier == "ExternalDB" :
+                    has_external_db = True
+        self.assertTrue(genome.get("source") == "RefSeq", "Source is not RefSeq : " + str(genome.get("source")))
+        self.assertTrue(has_genome_tiers, "Does not have Genome Tiers")
+        self.assertTrue(len(genome["genome_tier"]) == 1, "Should only have 1 tier in it.")
+        self.assertTrue(has_external_db, "Does not have ExternalDB Genome Tier")    
 
     def test_for_alias_colon(self):
         genome = self.__class__.genome

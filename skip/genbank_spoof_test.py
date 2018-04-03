@@ -86,6 +86,22 @@ class GenomeFileUtilTest(unittest.TestCase):
         found_cds_gene = False
         found_genome_warning = False
         suspect_genome = False
+
+        has_genome_tiers = False
+        has_representative = False
+        has_external_db = False
+        if "genome_tiers" in genome:
+            has_genome_tiers = True
+            for tier in genome["genome_tiers"]:
+                if tier == "Reference":
+                    has_representative = True
+                if tier == "ExternalDB" :
+                    has_external_db = True
+        self.assertTrue(genome.get("source") == "RefSeq", "RefSeq is not User : " + str(genome.get("source")))
+        self.assertTrue(has_genome_tiers, "Does not have Genome Tiers")
+        self.assertTrue(has_representative, "Does not have Representative Genome Tier")   
+        self.assertTrue(has_external_db, "Does not have ExternalDB Genome Tier")   
+
         if "features" in genome:
             for feature in genome["features"]:
                 if feature['id'] == "b0001":

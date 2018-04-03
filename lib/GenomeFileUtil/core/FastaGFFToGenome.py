@@ -380,7 +380,7 @@ class FastaGFFToGenome:
             for i in range(len(feature_list[contig])):
                 if "ID" not in feature_list[contig][i]:
                     for key in ("transcriptId", "proteinId", "PACid",
-                                "pacid", "Parent", "name",):
+                                "pacid", "Parent", "name", 'transcript_id'):
                         if key in feature_list[contig][i]['attributes']:
                             feature_list[contig][i]['ID'] = feature_list[
                                 contig][i]['attributes'][key][0]

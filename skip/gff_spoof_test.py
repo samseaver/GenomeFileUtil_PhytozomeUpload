@@ -65,17 +65,20 @@ class GenomeFileUtilTest(unittest.TestCase):
         return self.__class__.ctx
 
     def test_spoof_on(self):
-        gbk_path = "data/e_coli/Ecoli_spoofing_test_genome.gbff"
-        ws_obj_name = 'Ecoli_spoof'
-        result = self.getImpl().genbank_to_genome(
+        gff_path = "data/fasta_gff/JGI/Bacterial_Data/91705.assembled.gff"
+        fna_path = "data/fasta_gff/JGI/Bacterial_Data/91705.assembled.fna"
+        ws_obj_name = 'JGI_Spoof'
+        result = self.getImpl().fasta_gff_to_genome(
             self.getContext(),
             {
-                'file': {
-                    'path': gbk_path},
-                'workspace_name': self.getWsName(),
-                'genome_name': ws_obj_name,
-                'generate_ids_if_needed': 1,
-                'generate_missing_genes': 1
+              'gff_file': {
+                  'path': gff_path},
+              'fasta_file': {
+                  'path': fna_path},
+              'workspace_name': self.getWsName(),
+              'genome_name': ws_obj_name,
+              'generate_missing_genes' : 1,
+              'generate_ids_if_needed': 1
             })[0]
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
         genome = data_file_cli.get_objects({'object_refs': [result['genome_ref']]})['data'][0]['data']
@@ -88,37 +91,34 @@ class GenomeFileUtilTest(unittest.TestCase):
         suspect_genome = False
 
         has_genome_tiers = False
-        has_representative = False
-        has_external_db = False
-        if "genome_tier" in genome:
+        has_user = False
+        if "genome_tiers" in genome:
             has_genome_tiers = True
-            for tier in genome["genome_tier"]:           
-                if tier == "Reference":
-                    has_representative = True
-                if tier == "ExternalDB" :
-                    has_external_db = True
-        self.assertTrue(genome.get("source") == "RefSeq", "RefSeq is not User : " + str(genome.get("source")))
+            for tier in genome["genome_tiers"]:
+                if tier == "user":
+                    has_user = True
+        self.assertTrue(genome.get("source") == "User", "Source is not User : " + str(genome.get("source")))
         self.assertTrue(has_genome_tiers, "Does not have Genome Tiers")
-        self.assertTrue(has_representative, "Does not have Representative Genome Tier")   
-        self.assertTrue(has_external_db, "Does not have ExternalDB Genome Tier")   
+        self.assertTrue(has_user, "Does not have User Genome Tier")   
 
         if "features" in genome:
             for feature in genome["features"]:
-                if feature['id'] == "b0001":
+                print "Spoof GFF Feature ID : " + str(feature["id"])
+                if feature['id'] == "Ga0123678_11.3":
                     found_spoofed_gene = True
                     if warnings['spoofed_gene'] in feature.get("warnings", []):
                         found_spoofed_gene_warning = True
                     if "cdss" in feature:
-                        if feature["cdss"][0] == "b0001_CDS_1":
+                        if feature["cdss"][0] == "Ga0123678_11.3_CDS_1":
                             found_gene_cds = True
                     temp_location = feature['location'][0]
-                    self.assertEqual(temp_location[1], 190)
-                    self.assertEqual(temp_location[3], 63)  # first chunk
+                    self.assertEqual(temp_location[1], 1020)
+                    self.assertEqual(temp_location[3], 627)  # first chunk
         if "cdss" in genome:
             for feature in genome["cdss"]:
-                if feature['id'] == "b0001_CDS_1":
+                if feature['id'] == "Ga0123678_11.3_CDS_1":
                     found_cds = True
-                    if feature["parent_gene"] == "b0001":
+                    if feature["parent_gene"] == "Ga0123678_11.3":
                         found_cds_gene = True
         if "suspect" in genome:
             if int(genome["suspect"]) == 1:
@@ -134,17 +134,21 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(suspect_genome,"The genome was not labeled as being suspect.")  
 
     def test_spoof_off(self):
-        gbk_path = "data/e_coli/Ecoli_spoofing_test_genome.gbff"
-        ws_obj_name = 'Ecoli_spoof_fail'
+        gff_path = "data/fasta_gff/JGI/Bacterial_Data/91705.assembled.gff"
+        fna_path = "data/fasta_gff/JGI/Bacterial_Data/91705.assembled.fna"
+        ws_obj_name = 'JGI_Spoof_FAIL'
         with self.assertRaisesRegexp(
-                            ValueError, warnings['no_spoof']):
-            self.getImpl().genbank_to_genome(
-                                self.getContext(),
-                                {
-                                    'file': {
-                                        'path': gbk_path},
-                                    'workspace_name': self.getWsName(),
-                                    'genome_name': ws_obj_name,
-                                    'generate_ids_if_needed': 1
-                                })
+                        ValueError, warnings['no_spoof']):
+            self.getImpl().fasta_gff_to_genome(
+                self.getContext(),
+                {
+                'gff_file': {
+                    'path': gff_path},
+                'fasta_file': {
+                    'path': fna_path},
+                'workspace_name': self.getWsName(),
+                'genome_name': ws_obj_name,
+                'generate_ids_if_needed': 1
+            })
+
 
