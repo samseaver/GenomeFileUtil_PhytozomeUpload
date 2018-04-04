@@ -49,6 +49,8 @@ class FastaGFFToGenome:
         self.po_mapping = json.load(
             open('/kb/module/data/go_ontology_mapping.json'))
         self.code_table = 11
+        self.skip_types = ('exon', 'five_prime_UTR', 'three_prime_UTR',
+                           'start_codon', 'stop_codon', 'region')
         self.aliases = ()
         self.is_phytozome = False
         self.strict = True
@@ -375,12 +377,11 @@ class FastaGFFToGenome:
 
         return feature_list
 
-    @staticmethod
-    def _add_missing_identifiers(feature_list):
+    def _add_missing_identifiers(self, feature_list):
         print("Adding missing identifiers")
         #General rule is to iterate through a range of possibilities if "ID" is missing
         for contig in feature_list.keys():
-            for i in range(len(feature_list[contig])):
+            for i, feat in enumerate(feature_list[contig]):
                 if "ID" not in feature_list[contig][i]:
                     for key in ("transcriptId", "proteinId", "PACid",
                                 "pacid", "Parent", "name", 'transcript_id'):
@@ -390,24 +391,24 @@ class FastaGFFToGenome:
                             break
 
                     #If the process fails, throw an error
-                    if "ID" not in feature_list[contig][i]:
-                            log("Error: Cannot find unique ID to utilize in "
-                                "GFF attributes: {}.{}.{}:{}".format(
-                                    feature_list[contig][i]['contig'],
-                                    feature_list[contig][i]['source'],
-                                    feature_list[contig][i]['type'],
-                                    str(feature_list[contig][i]['attributes']))
-                                )
+                    if "ID" not in feature_list[contig][i] and \
+                            feat['type'] not in self.skip_types:
+                        raise ValueError(
+                            "Error: Cannot find unique ID to utilize in GFF "
+                            "attributes: {}.{}.{}:{}".format(
+                                feat['contig'], feat['source'],
+                                feat['type'], str(feat['attributes'])))
         return feature_list
 
-    @staticmethod
-    def _add_missing_parents(feature_list):
+    def _add_missing_parents(self, feature_list):
 
         #General rules is if CDS or RNA missing parent, add them
         for contig in feature_list.keys():
             ftrs = feature_list[contig]
             new_ftrs = []
             for i in range(len(ftrs)):
+                if ftrs[i]["type"] in self.skip_types:
+                    continue
                 if("Parent" not in ftrs[i]):
                     #Assuming parent doesn't exist at all, so create de novo instead of trying to find it
                     if("RNA" in ftrs[i]["type"] or "CDS" in ftrs[i]["type"]):
@@ -466,21 +467,20 @@ class FastaGFFToGenome:
 
         return feature_list
 
-    @staticmethod
-    def _update_identifiers(feature_list):
+    def _update_identifiers(self, feature_list):
 
         #General rules:
         #1) Genes keep identifier
         #2) RNAs keep identifier only if its different from gene, otherwise append ".mRNA"
         #3) CDS always uses RNA identifier with ".CDS" appended
 
-        CDS_count_dict = dict()
         mRNA_parent_dict = dict()
 
         for contig in feature_list.keys():
             for ftr in feature_list[contig]:
+                if ftr["type"] in self.skip_types:
+                    continue
                 if("Parent" in ftr):
-
                     #Retain old_id of parents
                     old_id = ftr["ID"]
 
@@ -581,8 +581,7 @@ class FastaGFFToGenome:
         # if the feature is a exon or UTR, it will only be used to update the
         # location and sequence of it's parent, we add the info to it parent
         # feature but not the feature dict
-        if in_feature['type'] in ('exon', 'five_prime_UTR', 'three_prime_UTR',
-                                  'start_codon', 'stop_codon', 'region'):
+        if in_feature['type'] in self.skip_types:
             if parent_id:
                 # TODO: add location checks and warnings
                 parent = self.feature_dict[parent_id]
