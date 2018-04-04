@@ -577,6 +577,49 @@ class GenomeFileUtilTest(unittest.TestCase):
         print "Overall noncoding count : " + str(overall_count)
         self.assertTrue(underscore_start_count == 0, "Non coding features are starting with an underscore.")
 
+    def test_region_and_chromosome_feature_type_not_included(self):
+        #note this also has "." as the strand.
+        genome = self.__class__.genome
+        found_region = False
+        found_chromosome = False
+        found_something_for_whole_contig = False
+        for feature in genome["features"]:
+            if feature["id"] == "id0":
+                found_region = True
+            if feature["id"] == "id0_chromosome":
+                found_chromosome = True
+            if feature['location'][0] == ['NC_010127.1', 1, '-', 422616]:
+                found_something_for_whole_contig = True
+        self.assertFalse(found_region,"This region should not have been included")
+        self.assertFalse(found_chromosome,"This chromosome should not have been included")
+        self.assertFalse(found_something_for_whole_contig,"A feature for the whole contig should not have been included")
+
+    def test_odd_strands(self):
+        #Testing cases where "." or "?" is used for the strand column.
+        genome = self.__class__.genome
+        found_dot_gene = False
+        found_question_mRNA = False
+        found_dot_warning = False
+        found_question_warning = False
+        for feature in genome["features"]:
+            if feature["id"] = "gene1":
+                found_dot_gene = True
+                if "warnings" in feature:
+                    for warning in feature["warnings"]:
+                        if warning == warnings["gff_odd_strand_type"].format("."):
+                            found_dot_warning = True
+        for feature in genome["mrnas"]:
+            if feature["id"] = "rna1":
+                found_question_mRNA = True
+                if "warnings" in feature:
+                    for warning in feature["warnings"]:
+                        if warning == warnings["gff_odd_strand_type"].format("?"):
+                            found_question_warning = True 
+        self.assertTrue(found_dot_gene) 
+        self.assertTrue(found_question_mRNA) 
+        self.assertTrue(found_dot_warning) 
+        self.assertTrue(found_question_warning) 
+                            
 
 
 

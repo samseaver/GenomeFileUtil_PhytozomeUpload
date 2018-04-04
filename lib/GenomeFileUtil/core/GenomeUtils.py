@@ -65,7 +65,9 @@ warnings = {
     "genes_CDS_child_fails_location_validation": "The CDS {} lists this gene as a "
                     "corresponding parent gene, but fails coordinate validation.",
     "mRNAs_parent_gene_fails_location_validation": "This mRNA lists gene {} as its "
-                    "corresponding parent gene, but fails coordinate validation."
+                    "corresponding parent gene, but fails coordinate validation.",
+    "gff_odd_strand_type": "This feature had \"{}\" as the strand designation and not + or -. "
+                    "The location and sequence was defaulted to the + strand."
 }
 
 
