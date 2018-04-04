@@ -47,9 +47,9 @@ class GenomeFileUtil:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "0.8.0"
+    VERSION = "0.8.2"
     GIT_URL = "https://github.com/kbaseapps/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "aa89eb2543d767c730520aeb06f180c38b09a7b3"
+    GIT_COMMIT_HASH = "22563d0fbd094c06372556c06207b9f9248643b6"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -380,6 +380,51 @@ class GenomeFileUtil:
                              'returnVal is not type dict as required.')
         # return the results
         return [returnVal]
+
+    def fasta_gff_to_genome_json(self, ctx, params):
+        """
+        As above but returns the genome instead
+        :param params: instance of type "FastaGFFToGenomeParams" (genome_name
+           - becomes the name of the object workspace_name - the name of the
+           workspace it gets saved to. source - Source of the file typically
+           something like RefSeq or Ensembl taxon_ws_name - where the
+           reference taxons are : ReferenceTaxons taxon_reference - if
+           defined, will try to link the Genome to the specified taxonomy
+           object insteas of performing the lookup during upload release -
+           Release or version number of the data per example Ensembl has
+           numbered releases of all their data: Release 31 genetic_code -
+           Genetic code of organism. Overwrites determined GC from taxon
+           object type - Reference, Representative or User upload
+           generate_missing_genes - If the file has CDS or mRNA with no
+           corresponding gene, generate a spoofed gene. Off by default) ->
+           structure: parameter "fasta_file" of type "File" -> structure:
+           parameter "path" of String, parameter "shock_id" of String,
+           parameter "ftp_url" of String, parameter "gff_file" of type "File"
+           -> structure: parameter "path" of String, parameter "shock_id" of
+           String, parameter "ftp_url" of String, parameter "genome_name" of
+           String, parameter "workspace_name" of String, parameter "source"
+           of String, parameter "taxon_wsname" of String, parameter
+           "taxon_reference" of String, parameter "release" of String,
+           parameter "genetic_code" of Long, parameter "type" of String,
+           parameter "scientific_name" of String, parameter "metadata" of
+           type "usermeta" -> mapping from String to String, parameter
+           "generate_missing_genes" of type "boolean" (A boolean - 0 for
+           false, 1 for true. @range (0, 1))
+        :returns: instance of unspecified object
+        """
+        # ctx is the context object
+        # return variables are: genome
+        #BEGIN fasta_gff_to_genome_json
+        importer = FastaGFFToGenome(self.cfg)
+        genome = importer.generate_genome_json(params)
+        #END fasta_gff_to_genome_json
+
+        # At some point might do deeper type checking...
+        if not isinstance(genome, object):
+            raise ValueError('Method fasta_gff_to_genome_json return value ' +
+                             'genome is not type object as required.')
+        # return the results
+        return [genome]
 
     def save_one_genome(self, ctx, params):
         """

@@ -64,24 +64,22 @@ class FastaGFFToGenome:
         self.warnings.append(message)
         print message
 
-    def import_file(self, params):
-
+    def generate_genome_json(self, params):
         # 1) validate parameters
         self._validate_import_file_params(params)
         self.code_table = params.get('genetic_code', 11)
-
         # 2) construct the input directory staging area
-        input_directory = os.path.join(self.cfg.sharedFolder, 'fast_gff_upload_'+str(uuid.uuid4()))
+        input_directory = os.path.join(self.cfg.sharedFolder,
+                                       'fast_gff_upload_' + str(uuid.uuid4()))
         os.makedirs(input_directory)
         file_paths = self._stage_input(params, input_directory)
-
         # 3) extract out the parameters
         params = self._set_parsed_params(params)
         if params.get('generate_missing_genes'):
             self.generate_genes = True
 
         # 4) do the upload
-        result = self.upload_genome(
+        genome = self._gen_genome_json(
             input_fasta_file=file_paths["fasta_file"],
             input_gff_file=file_paths["gff_file"],
             workspace_name=params['workspace_name'],
@@ -90,14 +88,33 @@ class FastaGFFToGenome:
             source=params['source'],
             genome_type=params['type'],
             release=params['release'],
-            metadata=params['metadata']
         )
+        return genome, input_directory
+
+    def import_file(self, params):
+
+        genome, input_directory = self.generate_genome_json(params)
+
+        json.dump(genome, open("{}/{}.json".format(self.cfg.sharedFolder,
+                                                   genome['id']), 'w'),
+                  indent=4)
+        result = self.gi.save_one_genome({
+            'workspace': params['workspace_name'],
+            'name': params['genome_name'],
+            'data': genome,
+            "meta": params['metadata'],
+        })
+        report_string = 'A genome with {} contigs and the following feature ' \
+                        'types was imported: {}'\
+            .format(len(genome['contig_ids']), "\n".join(
+                [k + ": " + str(v) for k, v in genome['feature_counts'].items()]))
+        print report_string
 
         # 5) clear the temp directory
         shutil.rmtree(input_directory)
 
         # 6) return the result
-        info = result['genome_info']
+        info = result['info']
         details = {
             'genome_ref': str(info[6]) + '/' + str(info[0]) + '/' + str(info[4]),
             'genome_info': info
@@ -105,10 +122,10 @@ class FastaGFFToGenome:
 
         return details
 
-    def upload_genome(self, input_gff_file=None, input_fasta_file=None,
-                      workspace_name=None, core_genome_name=None,
-                      scientific_name="unknown_taxon", source=None,
-                      release=None, genome_type=None, metadata=None):
+    def _gen_genome_json(self, input_gff_file=None, input_fasta_file=None,
+                        workspace_name=None, core_genome_name=None,
+                        scientific_name="unknown_taxon", source=None,
+                        release=None, genome_type=None):
 
         # save assembly file
         assembly_ref = self.au.save_assembly_from_fasta(
@@ -145,21 +162,7 @@ class FastaGFFToGenome:
         genome['release'] = release
         genome['type'] = genome_type
 
-        json.dump(genome, open("{}/{}.json".format(self.cfg.sharedFolder,
-                                                   genome['id']), 'w'), indent=4)
-        result = self.gi.save_one_genome({
-            'workspace': workspace_name,
-            'name': core_genome_name,
-            'data': genome,
-            "meta": metadata,
-        })
-        report_string = 'A genome with {} contigs and the following feature ' \
-                        'types was imported: {}'.format(len(
-            genome['contig_ids']), "\n".join([k+": "+str(v) for k, v in
-                                              genome['feature_counts'].items()]))
-        print report_string
-
-        return {'genome_info': result['info'], 'report_string': report_string}
+        return genome
 
     @staticmethod
     def _location(in_feature):

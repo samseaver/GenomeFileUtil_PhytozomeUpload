@@ -154,6 +154,10 @@ module GenomeFileUtil {
     funcdef fasta_gff_to_genome(FastaGFFToGenomeParams params)
                 returns (GenomeSaveResult returnVal) authentication required;
 
+    /* As above but returns the genome instead */
+    funcdef fasta_gff_to_genome_json(FastaGFFToGenomeParams params)
+                returns (UnspecifiedObject genome) authentication required;
+
     typedef structure {
         string workspace;
         string name;
