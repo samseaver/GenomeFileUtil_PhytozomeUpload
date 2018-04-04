@@ -50,7 +50,7 @@ class FastaGFFToGenome:
             open('/kb/module/data/go_ontology_mapping.json'))
         self.code_table = 11
         self.skip_types = ('exon', 'five_prime_UTR', 'three_prime_UTR',
-                           'start_codon', 'stop_codon', 'region')
+                           'start_codon', 'stop_codon', 'region', 'chromosome')
         self.aliases = ()
         self.is_phytozome = False
         self.strict = True
