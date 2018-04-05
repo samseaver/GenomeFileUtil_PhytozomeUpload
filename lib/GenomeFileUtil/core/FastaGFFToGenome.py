@@ -1,4 +1,5 @@
 import os
+from string import maketrans
 import sys
 import shutil
 import uuid
@@ -25,6 +26,7 @@ import Bio.SeqIO
 from Bio.Seq import Seq
 
 codon_table = CodonTable.ambiguous_generic_by_name["Standard"]
+strand_table = maketrans("1?.", "+++")
 
 
 def log(message, prefix_newline=False):
@@ -50,7 +52,8 @@ class FastaGFFToGenome:
             open('/kb/module/data/go_ontology_mapping.json'))
         self.code_table = 11
         self.skip_types = ('exon', 'five_prime_UTR', 'three_prime_UTR',
-                           'start_codon', 'stop_codon', 'region', 'chromosome')
+                           'start_codon', 'stop_codon', 'region', 'chromosome',
+                           'region', 'scaffold')
         self.aliases = ()
         self.is_phytozome = False
         self.strict = True
@@ -168,8 +171,8 @@ class FastaGFFToGenome:
 
     @staticmethod
     def _location(in_feature):
-        in_feature['strand'] = in_feature['strand'].replace("-1", "-").replace(
-            "1", "+")
+        in_feature['strand'] = in_feature['strand'].replace(
+            "-1", "-").translate(strand_table)
         if in_feature['strand'] == '+':
             start = in_feature['start']
         elif in_feature['strand'] == '-':
