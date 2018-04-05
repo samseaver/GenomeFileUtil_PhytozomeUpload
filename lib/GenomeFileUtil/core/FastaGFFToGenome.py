@@ -544,7 +544,7 @@ class FastaGFFToGenome:
 
         # if the feature ID is duplicated (CDS or transpliced gene) we only
         # need to update the location and dna_sequence
-        if in_feature['ID'] in self.feature_dict:
+        if in_feature.get('ID') in self.feature_dict:
             existing = self.feature_dict[in_feature['ID']]
             existing['location'].append(self._location(in_feature))
             existing['dna_sequence'] += str(feat_seq)
@@ -553,7 +553,7 @@ class FastaGFFToGenome:
 
         # The following is common to all the feature types
         out_feat = {
-            "id": in_feature['ID'],
+            "id": in_feature.get('ID'),
             "type": in_feature['type'],
             "location": [self._location(in_feature)],
             "dna_sequence": str(feat_seq),
