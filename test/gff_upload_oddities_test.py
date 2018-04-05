@@ -577,22 +577,37 @@ class GenomeFileUtilTest(unittest.TestCase):
         print "Overall noncoding count : " + str(overall_count)
         self.assertTrue(underscore_start_count == 0, "Non coding features are starting with an underscore.")
 
-    def test_region_and_chromosome_feature_type_not_included(self):
-        #note this also has "." as the strand.
+    def test_entire_contigs_feature_types_not_included(self):
+        #Looks at region, chromosome, scaffold and crazy full gene.
         genome = self.__class__.genome
         found_region = False
         found_chromosome = False
+        found_scaffold = False
+        found_crazy_gene = False
+        found_crazy_gene_warning = False
         found_something_for_whole_contig = False
-        for feature in genome["features"]:
+        for feature in genome["non_coding_features"]:
             if feature["id"] == "id0":
                 found_region = True
             if feature["id"] == "id0_chromosome":
                 found_chromosome = True
+            if feature["id"] == "id0_scaffold":
+                found_scaffold = True
             if feature['location'][0] == ['NC_010127.1', 1, '-', 422616]:
                 found_something_for_whole_contig = True
+        for feature in genome["features"]:
+            if feature["id"] == "id0_gene":
+                found_crazy_gene = True
+                if "warnings" in feature:
+                    for warning in feature["warnings"]:
+                        if warning == warnings["contig_length_feature"]:
+                            found_crazy_gene_warning = True
         self.assertFalse(found_region,"This region should not have been included")
         self.assertFalse(found_chromosome,"This chromosome should not have been included")
+        self.assertFalse(found_scaffold,"This scaffold should not have been included")
         self.assertFalse(found_something_for_whole_contig,"A feature for the whole contig should not have been included")
+        self.assertTrue(found_crazy_gene)
+        self.assertTrue(found_crazy_gene_warning)
 
     def test_odd_strands(self):
         #Testing cases where "." or "?" is used for the strand column.

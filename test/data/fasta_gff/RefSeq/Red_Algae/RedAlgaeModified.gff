@@ -8,6 +8,8 @@
 ##species https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=280699
 NC_010127.1	RefSeq	region	1	422616	.	+	.	ID=id0;Dbxref=taxon:280699;Name=1;chromosome=1;gbkey=Src;genome=chromosome;mol_type=genomic DNA;strain=10D
 NC_010127.1	RefSeq	chromosome	1	422616	.	.	.	ID=id0_chromosome;Dbxref=taxon:280699;Name=1;chromosome=1;gbkey=Src;genome=chromosome;mol_type=genomic DNA;strain=10D
+NC_010127.1	RefSeq	scaffold	1	422616	.	.	.	ID=id0_scaffold;Dbxref=taxon:280699;Name=1;chromosome=1;gbkey=Src;genome=chromosome;mol_type=genomic DNA;strain=10D
+NC_010127.1	RefSeq	gene	1	422616	.	.	.	ID=id0_gene;Dbxref=taxon:280699;Name=1;chromosome=1;gbkey=Src;genome=chromosome;mol_type=genomic DNA;strain=10D
 NC_010127.1	RefSeq	gene	3375	6125	.	-	.	ID=gene0;Dbxref=GeneID:16992110;Name=CYME_CMA001C;end_range=6125,.;gbkey=Gene;gene_biotype=protein_coding;locus_tag=CYME_CMA001C;partial=true;start_range=.,3375
 NC_010127.1	RefSeq	mRNA	3375	6125	.	-	.	ID=rna0;Parent=gene0;Dbxref=GeneID:16992110,Genbank:XM_005534957.1;Name=XM_005534957.1;end_range=6125,.;gbkey=mRNA;partial=true;product=similar to trefoil factor;start_range=.,3375;transcript_id=XM_005534957.1
 NC_010127.1	RefSeq	exon	4125	6125	.	-	.	ID=id1;Parent=rna0;Dbxref=GeneID:16992110,Genbank:XM_005534957.1;end_range=6125,.;gbkey=mRNA;partial=true;product=similar to trefoil factor;start_range=.,3375;transcript_id=XM_005534957.1

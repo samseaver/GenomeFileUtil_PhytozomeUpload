@@ -67,7 +67,8 @@ warnings = {
     "mRNAs_parent_gene_fails_location_validation": "This mRNA lists gene {} as its "
                     "corresponding parent gene, but fails coordinate validation.",
     "gff_odd_strand_type": "This feature had \"{}\" as the strand designation and not + or -. "
-                    "The location and sequence was defaulted to the + strand."
+                    "The location and sequence was defaulted to the + strand.",
+    "contig_length_feature": "This feature spans entire contig."
 }
 
 
