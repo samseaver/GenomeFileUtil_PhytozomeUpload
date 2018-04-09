@@ -392,15 +392,15 @@ class FastaGFFToGenome:
                             feature_list[contig][i]['ID'] = feature_list[
                                 contig][i]['attributes'][key][0]
                             break
+                    if feat['type'] not in self.skip_types:
+                        self.feature_counts[feat['type']] += 1
 
                     #If the process fails, throw an error
-                    if "ID" not in feature_list[contig][i] and \
-                            feat['type'] not in self.skip_types:
-                        raise ValueError(
-                            "Error: Cannot find unique ID to utilize in GFF "
-                            "attributes: {}.{}.{}:{}".format(
-                                feat['contig'], feat['source'],
-                                feat['type'], str(feat['attributes'])))
+                    if "ID" not in feature_list[contig][i]:
+                        feat['ID'] = "{}_{}".format(feat['type'],
+                                                    self.feature_counts[feat['type']])
+                        log("Warning: Could find unique ID to utilize in GFF attributes: {}. "
+                            "ID '{}' has been assigned".format(feat['attributes'], feat['ID']))
         return feature_list
 
     def _add_missing_parents(self, feature_list):
@@ -579,7 +579,7 @@ class FastaGFFToGenome:
             out_feat['flags'] = ['trans_splicing']
         parent_id = in_feature.get('Parent', '')
         if parent_id and parent_id not in self.feature_dict:
-            raise ValueError("Parent ID: {} was not found in feature ID list.")
+            raise ValueError("Parent ID: {} was not found in feature ID list.".format(parent_id))
 
         # if the feature is a exon or UTR, it will only be used to update the
         # location and sequence of it's parent, we add the info to it parent
