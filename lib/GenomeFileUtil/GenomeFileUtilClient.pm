@@ -134,6 +134,7 @@ GenbankToGenomeParams is a reference to a hash where the following keys are defi
 	type has a value which is a string
 	metadata has a value which is a GenomeFileUtil.usermeta
 	generate_missing_genes has a value which is a GenomeFileUtil.boolean
+	use_existing_assembly has a value which is a string
 File is a reference to a hash where the following keys are defined:
 	path has a value which is a string
 	shock_id has a value which is a string
@@ -164,6 +165,7 @@ GenbankToGenomeParams is a reference to a hash where the following keys are defi
 	type has a value which is a string
 	metadata has a value which is a GenomeFileUtil.usermeta
 	generate_missing_genes has a value which is a GenomeFileUtil.boolean
+	use_existing_assembly has a value which is a string
 File is a reference to a hash where the following keys are defined:
 	path has a value which is a string
 	shock_id has a value which is a string
@@ -744,6 +746,128 @@ GenomeSaveResult is a reference to a hash where the following keys are defined:
         Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method fasta_gff_to_genome",
 					    status_line => $self->{client}->status_line,
 					    method_name => 'fasta_gff_to_genome',
+				       );
+    }
+}
+ 
+
+
+=head2 fasta_gff_to_genome_json
+
+  $genome = $obj->fasta_gff_to_genome_json($params)
+
+=over 4
+
+=item Parameter and return types
+
+=begin html
+
+<pre>
+$params is a GenomeFileUtil.FastaGFFToGenomeParams
+$genome is an UnspecifiedObject, which can hold any non-null object
+FastaGFFToGenomeParams is a reference to a hash where the following keys are defined:
+	fasta_file has a value which is a GenomeFileUtil.File
+	gff_file has a value which is a GenomeFileUtil.File
+	genome_name has a value which is a string
+	workspace_name has a value which is a string
+	source has a value which is a string
+	taxon_wsname has a value which is a string
+	taxon_reference has a value which is a string
+	release has a value which is a string
+	genetic_code has a value which is an int
+	type has a value which is a string
+	scientific_name has a value which is a string
+	metadata has a value which is a GenomeFileUtil.usermeta
+	generate_missing_genes has a value which is a GenomeFileUtil.boolean
+File is a reference to a hash where the following keys are defined:
+	path has a value which is a string
+	shock_id has a value which is a string
+	ftp_url has a value which is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+boolean is an int
+
+</pre>
+
+=end html
+
+=begin text
+
+$params is a GenomeFileUtil.FastaGFFToGenomeParams
+$genome is an UnspecifiedObject, which can hold any non-null object
+FastaGFFToGenomeParams is a reference to a hash where the following keys are defined:
+	fasta_file has a value which is a GenomeFileUtil.File
+	gff_file has a value which is a GenomeFileUtil.File
+	genome_name has a value which is a string
+	workspace_name has a value which is a string
+	source has a value which is a string
+	taxon_wsname has a value which is a string
+	taxon_reference has a value which is a string
+	release has a value which is a string
+	genetic_code has a value which is an int
+	type has a value which is a string
+	scientific_name has a value which is a string
+	metadata has a value which is a GenomeFileUtil.usermeta
+	generate_missing_genes has a value which is a GenomeFileUtil.boolean
+File is a reference to a hash where the following keys are defined:
+	path has a value which is a string
+	shock_id has a value which is a string
+	ftp_url has a value which is a string
+usermeta is a reference to a hash where the key is a string and the value is a string
+boolean is an int
+
+
+=end text
+
+=item Description
+
+As above but returns the genome instead
+
+=back
+
+=cut
+
+ sub fasta_gff_to_genome_json
+{
+    my($self, @args) = @_;
+
+# Authentication: required
+
+    if ((my $n = @args) != 1)
+    {
+	Bio::KBase::Exceptions::ArgumentValidationError->throw(error =>
+							       "Invalid argument count for function fasta_gff_to_genome_json (received $n, expecting 1)");
+    }
+    {
+	my($params) = @args;
+
+	my @_bad_arguments;
+        (ref($params) eq 'HASH') or push(@_bad_arguments, "Invalid type for argument 1 \"params\" (value was \"$params\")");
+        if (@_bad_arguments) {
+	    my $msg = "Invalid arguments passed to fasta_gff_to_genome_json:\n" . join("", map { "\t$_\n" } @_bad_arguments);
+	    Bio::KBase::Exceptions::ArgumentValidationError->throw(error => $msg,
+								   method_name => 'fasta_gff_to_genome_json');
+	}
+    }
+
+    my $url = $self->{url};
+    my $result = $self->{client}->call($url, $self->{headers}, {
+	    method => "GenomeFileUtil.fasta_gff_to_genome_json",
+	    params => \@args,
+    });
+    if ($result) {
+	if ($result->is_error) {
+	    Bio::KBase::Exceptions::JSONRPC->throw(error => $result->error_message,
+					       code => $result->content->{error}->{code},
+					       method_name => 'fasta_gff_to_genome_json',
+					       data => $result->content->{error}->{error} # JSON::RPC::ReturnObject only supports JSONRPC 1.1 or 1.O
+					      );
+	} else {
+	    return wantarray ? @{$result->result} : $result->result->[0];
+	}
+    } else {
+        Bio::KBase::Exceptions::HTTP->throw(error => "Error invoking method fasta_gff_to_genome_json",
+					    status_line => $self->{client}->status_line,
+					    method_name => 'fasta_gff_to_genome_json',
 				       );
     }
 }
@@ -1408,6 +1532,7 @@ genetic_code - Genetic code of organism. Overwrites determined GC from
 type - Reference, Representative or User upload
 generate_missing_genes - If the file has CDS or mRNA with no corresponding
     gene, generate a spoofed gene.
+use_existing_assembly - Supply an existing assembly reference
 
 
 =item Definition
@@ -1428,6 +1553,7 @@ genetic_code has a value which is an int
 type has a value which is a string
 metadata has a value which is a GenomeFileUtil.usermeta
 generate_missing_genes has a value which is a GenomeFileUtil.boolean
+use_existing_assembly has a value which is a string
 
 </pre>
 
@@ -1448,6 +1574,7 @@ genetic_code has a value which is an int
 type has a value which is a string
 metadata has a value which is a GenomeFileUtil.usermeta
 generate_missing_genes has a value which is a GenomeFileUtil.boolean
+use_existing_assembly has a value which is a string
 
 
 =end text

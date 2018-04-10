@@ -73,6 +73,23 @@ class GenomeFileUtilTest(unittest.TestCase):
             cls.wsClient.delete_workspace({'workspace': cls.wsName})
             print('Test workspace was deleted')
 
+    def test_ensembl_source_and_tiers(self):
+        genome = self.__class__.genome
+        has_genome_tiers = False
+        has_representative = False
+        has_external_db = False
+        if "genome_tiers" in genome:
+            has_genome_tiers = True
+            for tier in genome["genome_tiers"]:
+                if tier == "Representative":
+                    has_representative = True
+                if tier == "ExternalDB" :
+                    has_external_db = True
+        self.assertTrue(genome.get("source") == "Ensembl", "Source is not Ensembl : " + str(genome.get("source")))
+        self.assertTrue(has_genome_tiers, "Does not have Genome Tiers")
+        self.assertTrue(has_representative, "Does not have Representative Genome Tier")
+        self.assertTrue(has_external_db, "Does not have ExternalDB Genome Tier")       
+        
     def test_easy_1exon_relationship(self):
         #1 exon, 1 splice variant
         genome = self.__class__.genome

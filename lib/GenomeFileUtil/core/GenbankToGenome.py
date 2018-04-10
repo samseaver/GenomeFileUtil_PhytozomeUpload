@@ -1,14 +1,14 @@
 
 import copy
 import datetime
-import time
-import os
-import re
-import sys
-import shutil
-import uuid
 import hashlib
 import json
+import os
+import re
+import shutil
+import sys
+import time
+import uuid
 from collections import Counter, defaultdict, OrderedDict
 
 import Bio.SeqIO
@@ -21,7 +21,7 @@ from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeInterface import GenomeInterface
 from GenomeUtils import is_parent, propagate_cds_props_to_gene, warnings, parse_inferences
-
+from Workspace.WorkspaceClient import Workspace
 
 class GenbankToGenome:
     def __init__(self, config):
@@ -29,6 +29,7 @@ class GenbankToGenome:
         self.gi = GenomeInterface(config)
         self.dfu = DataFileUtil(config.callbackURL)
         self.aUtil = AssemblyUtil(config.callbackURL)
+        self.ws = Workspace(config.workspaceURL)
         self._messages = []
         self.time_string = str(datetime.datetime.fromtimestamp(
             time.time()).strftime('%Y_%m_%d_%H_%M_%S'))
@@ -133,7 +134,8 @@ class GenbankToGenome:
 
         return details
 
-    def validate_params(self, params):
+    @staticmethod
+    def validate_params(params):
         if 'workspace_name' not in params:
             raise ValueError('required "workspace_name" field was not defined')
         if 'genome_name' not in params:
@@ -188,7 +190,7 @@ class GenbankToGenome:
 
         if 'shock_id' in file and file['shock_id'] is not None:
             # handle shock file
-            print('Downloading file from SHOCK node: {} - {}'.format(
+            self.log('Downloading file from SHOCK node: {} - {}'.format(
                 self.cfg.shockURL, file['shock_id']))
             sys.stdout.flush()
             file_name = self.dfu.shock_to_file({
@@ -198,7 +200,7 @@ class GenbankToGenome:
             genbank_file_path = os.path.join(input_directory, file_name)
 
         if 'ftp_url' in file and file['ftp_url'] is not None:
-            print('Downloading file from: ' + str(file['ftp_url']))
+            self.log('Downloading file from: ' + str(file['ftp_url']))
             local_file_path = self.dfu.download_web_file({
                 'file_url': file['ftp_url'],
                 'download_type': 'FTP'
@@ -209,7 +211,7 @@ class GenbankToGenome:
 
         # extract the file if it is compressed
         if genbank_file_path is not None:
-            print("staged input file =" + genbank_file_path)
+            self.log("staged input file =" + genbank_file_path)
             self.dfu.unpack_file({'file_path': genbank_file_path})
 
         else:
@@ -218,7 +220,7 @@ class GenbankToGenome:
         return input_directory
 
     def parse_genbank(self, file_path, params):
-        print("Saving original file to shock")
+        self.log("Saving original file to shock")
         shock_res = self.dfu.file_to_shock({
             'file_path': file_path,
             'make_handle': 1,
@@ -331,7 +333,6 @@ class GenbankToGenome:
     def _save_assembly(self, genbank_file, params):
         """Convert genbank file to fasta and sve as assembly"""
         contigs = Bio.SeqIO.parse(genbank_file, "genbank")
-        print("Saving sequence as Assembly object")
         assembly_id = "{}_assembly".format(params['genome_name'])
         fasta_file = "{}/{}_assembly.fasta".format(
             self.cfg.sharedFolder, params['genome_name'], self.time_string)
@@ -345,8 +346,22 @@ class GenbankToGenome:
             elif in_contig.annotations.get('topology', "") == 'linear':
                 extra_info[in_contig.id]['is_circ'] = 0
             out_contigs.append(in_contig)
-            self.contig_seq[in_contig.id] = in_contig.seq
+            self.contig_seq[in_contig.id] = in_contig.seq.upper()
 
+        assembly_ref = params.get("use_existing_assembly")
+        if assembly_ref:
+            if not re.match("\d+\/\d+\/\d+", assembly_ref):
+                raise ValueError("Assembly ref: {} is not a valid format. Must"
+                                 " be in numerical <ws>/<object>/<version>"
+                                 " format.".format(assembly_ref))
+            ref_info = self.ws.get_object_info3(
+                {'objects': [{'ref': assembly_ref}]})['infos'][0]
+            if "KBaseGenomeAnnotations.Assembly" not in ref_info[2]:
+                raise ValueError("{} is not a reference to an assembly"
+                                 .format(assembly_ref))
+            self.log("Using supplied assembly: {}".format(assembly_ref))
+            return assembly_ref
+        self.log("Saving sequence as Assembly object")
         Bio.SeqIO.write(out_contigs, fasta_file, "fasta")
         assembly_ref = self.aUtil.save_assembly_from_fasta(
             {'file': {'path': fasta_file},
@@ -357,7 +372,7 @@ class GenbankToGenome:
         return assembly_ref
 
     def _find_input_files(self, input_directory):
-        print("Scanning for Genbank Format files.")
+        self.log("Scanning for Genbank Format files.")
         valid_extensions = [".gbff", ".gbk", ".gb", ".genbank", ".dat", ".gbf"]
 
         files = os.listdir(os.path.abspath(input_directory))

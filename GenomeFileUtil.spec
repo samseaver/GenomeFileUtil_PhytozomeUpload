@@ -35,6 +35,7 @@ module GenomeFileUtil {
     type - Reference, Representative or User upload
     generate_missing_genes - If the file has CDS or mRNA with no corresponding
         gene, generate a spoofed gene.
+    use_existing_assembly - Supply an existing assembly reference
 
     */
     typedef structure {
@@ -53,6 +54,7 @@ module GenomeFileUtil {
         string type;
         usermeta metadata;
         boolean generate_missing_genes;
+        string use_existing_assembly;
     } GenbankToGenomeParams;
 
     typedef structure {
@@ -151,6 +153,10 @@ module GenomeFileUtil {
 
     funcdef fasta_gff_to_genome(FastaGFFToGenomeParams params)
                 returns (GenomeSaveResult returnVal) authentication required;
+
+    /* As above but returns the genome instead */
+    funcdef fasta_gff_to_genome_json(FastaGFFToGenomeParams params)
+                returns (UnspecifiedObject genome) authentication required;
 
     typedef structure {
         string workspace;

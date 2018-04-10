@@ -144,21 +144,6 @@ class GenomeFileUtilTest(unittest.TestCase):
                         "There were %d first pass matches and %d second pass matches out of %d items in %s" % 
                         (first_pass_matches, second_pass_matches, len(orig_dict), feature_list_name))
 
-    def test_user_source_and_tiers(self):
-        genome = self.__class__.genome_orig
-        has_genome_tiers = False
-        has_user = False
-        if "genome_tier" in genome:
-            has_genome_tiers = True
-            for tier in genome["genome_tier"]:           
-                if tier == "User":
-                    has_representative = True
-        self.assertTrue(genome.get("source") == "User", "Source is not User : " + str(genome.get("source")))
-        self.assertTrue(has_genome_tiers, "Does not have Genome Tiers")
-        self.assertTrue(has_user, "Does not have User Genome Tier")
-        if has_genome_tiers:
-            self.assertTrue(len(genome["genome_tier"]) == 1, "Should only have 1 tier in it.") 
-
     def test_gene_features(self):
         self.feature_list_comparison("features")
 
@@ -190,7 +175,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         for publication in genome_orig["publications"]:
             self.assertTrue(publication in genome_new["publications"])
         self.assertEqual(genome_orig["ontologies_present"],genome_new["ontologies_present"])
-        self.assertEqual(genome_orig["external_source_origination_date"],genome_new["external_source_origination_date"])
 
 
 

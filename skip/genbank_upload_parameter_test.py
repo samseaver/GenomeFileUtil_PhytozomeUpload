@@ -11,7 +11,7 @@ except:
     from configparser import ConfigParser  # py3
 
 
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from biokbase.workspace.client import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 
@@ -132,6 +132,27 @@ class MinimalGenbankUploadTest(unittest.TestCase):
             'cellular organisms; Eukaryota; Opisthokonta; Fungi; Dikarya; Ascomycota; '+
             'saccharomyceta; Saccharomycotina; Saccharomycetes; Saccharomycetales; '+
             'Saccharomycetaceae; Saccharomyces')
+
+    def test_supply_assembly(self):
+        genomeFileUtil = self.getImpl()
+        """Warning: This test will fail if not run against CI"""
+        gbk_path = self.MINIMAL_TEST_FILE
+        with self.assertRaisesRegexp(ValueError, "not a valid format."):
+            result = genomeFileUtil.genbank_to_genome(
+                self.getContext(), {
+                                      'file': {'path': gbk_path},
+                                      'workspace_name': self.getWsName(),
+                                      'genome_name': 'something',
+                                      'use_existing_assembly': "1",
+                                  })[0]
+        with self.assertRaisesRegexp(ValueError, "not a reference to an assembly"):
+            result = genomeFileUtil.genbank_to_genome(
+                self.getContext(), {
+                    'file': {'path': gbk_path},
+                    'workspace_name': self.getWsName(),
+                    'genome_name': 'something',
+                    'use_existing_assembly': "6976/923/6",
+                })[0]
 
     def test_translation(self):
         import string

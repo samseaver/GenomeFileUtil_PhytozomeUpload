@@ -50,7 +50,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                   'path': gbk_path},
               'workspace_name': cls.wsName,
               'genome_name': ws_obj_name,
-              'generate_ids_if_needed': 1
+              'generate_ids_if_needed': 1,
+              'source': "RefSeq Reference"
             })[0]
 #        print("HERE IS THE RESULT:")
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'], 
@@ -71,6 +72,23 @@ class GenomeFileUtilTest(unittest.TestCase):
 
 #    def test_incorrect(self):
 #        self.assertTrue( 1 == 0, "1 ne 0")
+
+    def test_refseq_ref_source_and_tiers(self):
+        genome = self.__class__.genome
+        has_genome_tiers = False
+        has_reference = False
+        has_external_db = False
+        if "genome_tiers" in genome:
+            has_genome_tiers = True
+            for tier in genome["genome_tiers"]:
+                if tier == "Reference":
+                    has_representative = True
+                if tier == "ExternalDB" :
+                    has_external_db = True
+        self.assertTrue(genome.get("source") == "RefSeq", "Source is not RefSeq : " + str(genome.get("source")))
+        self.assertTrue(has_genome_tiers, "Does not have Genome Tiers")
+        self.assertTrue(has_reference, "Does not have Reference Genome Tier")
+        self.assertTrue(has_external_db, "Does not have ExternalDB Genome Tier")    
 
     def test_unknown_molecule(self):
         genome = self.__class__.genome
@@ -157,7 +175,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(empty_function_count == 0, str(empty_function_count) + " features had empty functions.")     
         self.assertTrue(found_function_count > 0, "No features had functions.")    
 
-
     def test_getting_all_go_ontologies(self):
         genome = self.__class__.genome    
         all_ontologies_accounted_for = True
@@ -230,6 +247,18 @@ class GenomeFileUtilTest(unittest.TestCase):
         print "Overall noncoding count : " + str(overall_count)
         self.assertTrue(underscore_start_count == 0, "Non coding features are starting with an underscore.")
 
+    def test_no_ids_duplicated(self):
+        genome = self.__class__.genome
+        list_names = ['features','cdss','mrnas','non_coding_features']
+        ids_dict = dict() #key id, value number of occurrences
+        for list_name in list_names:
+            for feature in genome[list_name]:
+                if feature['id'] in ids_dict:
+                    ids_dict[feature['id']] += 1
+                else:
+                    ids_dict[feature['id']] = 1
+        ids_with_duplicates = dict((id, num) for id, num in ids_dict.items() if num > 1)
+        self.assertTrue(len(ids_with_duplicates) == 0, "These ids had duplicates : " + str(ids_with_duplicates))
 
     def test_flags_being_caught(self):
         genome = self.__class__.genome

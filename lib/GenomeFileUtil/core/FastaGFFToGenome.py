@@ -1,4 +1,5 @@
 import os
+from string import maketrans
 import sys
 import shutil
 import uuid
@@ -25,6 +26,7 @@ import Bio.SeqIO
 from Bio.Seq import Seq
 
 codon_table = CodonTable.ambiguous_generic_by_name["Standard"]
+strand_table = maketrans("1?.", "+++")
 
 
 def log(message, prefix_newline=False):
@@ -49,6 +51,9 @@ class FastaGFFToGenome:
         self.po_mapping = json.load(
             open('/kb/module/data/go_ontology_mapping.json'))
         self.code_table = 11
+        self.skip_types = ('exon', 'five_prime_UTR', 'three_prime_UTR',
+                           'start_codon', 'stop_codon', 'region', 'chromosome',
+                           'region', 'scaffold')
         self.aliases = ()
         self.is_phytozome = False
         self.strict = True
@@ -64,24 +69,22 @@ class FastaGFFToGenome:
         self.warnings.append(message)
         print message
 
-    def import_file(self, params):
-
+    def generate_genome_json(self, params):
         # 1) validate parameters
         self._validate_import_file_params(params)
         self.code_table = params.get('genetic_code', 11)
-
         # 2) construct the input directory staging area
-        input_directory = os.path.join(self.cfg.sharedFolder, 'fast_gff_upload_'+str(uuid.uuid4()))
+        input_directory = os.path.join(self.cfg.sharedFolder,
+                                       'fast_gff_upload_' + str(uuid.uuid4()))
         os.makedirs(input_directory)
         file_paths = self._stage_input(params, input_directory)
-
         # 3) extract out the parameters
         params = self._set_parsed_params(params)
         if params.get('generate_missing_genes'):
             self.generate_genes = True
 
         # 4) do the upload
-        result = self.upload_genome(
+        genome = self._gen_genome_json(
             input_fasta_file=file_paths["fasta_file"],
             input_gff_file=file_paths["gff_file"],
             workspace_name=params['workspace_name'],
@@ -90,14 +93,33 @@ class FastaGFFToGenome:
             source=params['source'],
             genome_type=params['type'],
             release=params['release'],
-            metadata=params['metadata']
         )
+        return genome, input_directory
+
+    def import_file(self, params):
+
+        genome, input_directory = self.generate_genome_json(params)
+
+        json.dump(genome, open("{}/{}.json".format(self.cfg.sharedFolder,
+                                                   genome['id']), 'w'),
+                  indent=4)
+        result = self.gi.save_one_genome({
+            'workspace': params['workspace_name'],
+            'name': params['genome_name'],
+            'data': genome,
+            "meta": params['metadata'],
+        })
+        report_string = 'A genome with {} contigs and the following feature ' \
+                        'types was imported: {}'\
+            .format(len(genome['contig_ids']), "\n".join(
+                [k + ": " + str(v) for k, v in genome['feature_counts'].items()]))
+        print report_string
 
         # 5) clear the temp directory
         shutil.rmtree(input_directory)
 
         # 6) return the result
-        info = result['genome_info']
+        info = result['info']
         details = {
             'genome_ref': str(info[6]) + '/' + str(info[0]) + '/' + str(info[4]),
             'genome_info': info
@@ -105,10 +127,10 @@ class FastaGFFToGenome:
 
         return details
 
-    def upload_genome(self, input_gff_file=None, input_fasta_file=None,
-                      workspace_name=None, core_genome_name=None,
-                      scientific_name="unknown_taxon", source=None,
-                      release=None, genome_type=None, metadata=None):
+    def _gen_genome_json(self, input_gff_file=None, input_fasta_file=None,
+                        workspace_name=None, core_genome_name=None,
+                        scientific_name="unknown_taxon", source=None,
+                        release=None, genome_type=None):
 
         # save assembly file
         assembly_ref = self.au.save_assembly_from_fasta(
@@ -145,26 +167,12 @@ class FastaGFFToGenome:
         genome['release'] = release
         genome['type'] = genome_type
 
-        json.dump(genome, open("{}/{}.json".format(self.cfg.sharedFolder,
-                                                   genome['id']), 'w'), indent=4)
-        result = self.gi.save_one_genome({
-            'workspace': workspace_name,
-            'name': core_genome_name,
-            'data': genome,
-            "meta": metadata,
-        })
-        report_string = 'A genome with {} contigs and the following feature ' \
-                        'types was imported: {}'.format(len(
-            genome['contig_ids']), "\n".join([k+": "+str(v) for k, v in
-                                              genome['feature_counts'].items()]))
-        print report_string
-
-        return {'genome_info': result['info'], 'report_string': report_string}
+        return genome
 
     @staticmethod
     def _location(in_feature):
-        in_feature['strand'] = in_feature['strand'].replace("-1", "-").replace(
-            "1", "+")
+        in_feature['strand'] = in_feature['strand'].replace(
+            "-1", "-").translate(strand_table)
         if in_feature['strand'] == '+':
             start = in_feature['start']
         elif in_feature['strand'] == '-':
@@ -335,18 +343,18 @@ class FastaGFFToGenome:
                     #Sometimes lack of "=", assume spaces instead
                     if("=" in attribute):
                         key, value = attribute.split("=", 1)
-                        ftr['attributes'][key].append(parse.unquote(value.strip('"')))
+                        ftr['attributes'][key.lower()].append(parse.unquote(value.strip('"')))
                     elif(" " in attribute):
                         key, value = attribute.split(" ", 1)
-                        ftr['attributes'][key].append(parse.unquote(value.strip('"')))
+                        ftr['attributes'][key.lower()].append(parse.unquote(value.strip('"')))
                     else:
                         log("Warning: attribute "+attribute+" cannot be separated into key,value pair")
 
                 ftr['attributes']['raw'] = attributes
-                if "ID" in ftr['attributes']:
-                    ftr['ID'] = ftr['attributes']['ID'][0]
-                if "Parent" in ftr['attributes']:
-                    ftr['Parent'] = ftr['attributes']['Parent'][0]
+                if "id" in ftr['attributes']:
+                    ftr['ID'] = ftr['attributes']['id'][0]
+                if "parent" in ftr['attributes']:
+                    ftr['Parent'] = ftr['attributes']['parent'][0]
 
                 feature_list[contig_id].append(ftr)
 
@@ -372,39 +380,38 @@ class FastaGFFToGenome:
 
         return feature_list
 
-    @staticmethod
-    def _add_missing_identifiers(feature_list):
+    def _add_missing_identifiers(self, feature_list):
         print("Adding missing identifiers")
         #General rule is to iterate through a range of possibilities if "ID" is missing
         for contig in feature_list.keys():
-            for i in range(len(feature_list[contig])):
+            for i, feat in enumerate(feature_list[contig]):
                 if "ID" not in feature_list[contig][i]:
                     for key in ("transcriptId", "proteinId", "PACid",
-                                "pacid", "Parent", "name",):
+                                "pacid", "Parent", "name", 'transcript_id'):
                         if key in feature_list[contig][i]['attributes']:
                             feature_list[contig][i]['ID'] = feature_list[
                                 contig][i]['attributes'][key][0]
                             break
+                    if feat['type'] not in self.skip_types:
+                        self.feature_counts[feat['type']] += 1
 
                     #If the process fails, throw an error
                     if "ID" not in feature_list[contig][i]:
-                            log("Error: Cannot find unique ID to utilize in "
-                                "GFF attributes: {}.{}.{}:{}".format(
-                                    feature_list[contig][i]['contig'],
-                                    feature_list[contig][i]['source'],
-                                    feature_list[contig][i]['type'],
-                                    str(feature_list[contig][i]['attributes']))
-                                )
+                        feat['ID'] = "{}_{}".format(feat['type'],
+                                                    self.feature_counts[feat['type']])
+                        log("Warning: Could find unique ID to utilize in GFF attributes: {}. "
+                            "ID '{}' has been assigned".format(feat['attributes'], feat['ID']))
         return feature_list
 
-    @staticmethod
-    def _add_missing_parents(feature_list):
+    def _add_missing_parents(self, feature_list):
 
         #General rules is if CDS or RNA missing parent, add them
         for contig in feature_list.keys():
             ftrs = feature_list[contig]
             new_ftrs = []
             for i in range(len(ftrs)):
+                if ftrs[i]["type"] in self.skip_types:
+                    continue
                 if("Parent" not in ftrs[i]):
                     #Assuming parent doesn't exist at all, so create de novo instead of trying to find it
                     if("RNA" in ftrs[i]["type"] or "CDS" in ftrs[i]["type"]):
@@ -463,21 +470,20 @@ class FastaGFFToGenome:
 
         return feature_list
 
-    @staticmethod
-    def _update_identifiers(feature_list):
+    def _update_identifiers(self, feature_list):
 
         #General rules:
         #1) Genes keep identifier
         #2) RNAs keep identifier only if its different from gene, otherwise append ".mRNA"
         #3) CDS always uses RNA identifier with ".CDS" appended
 
-        CDS_count_dict = dict()
         mRNA_parent_dict = dict()
 
         for contig in feature_list.keys():
             for ftr in feature_list[contig]:
+                if ftr["type"] in self.skip_types:
+                    continue
                 if("Parent" in ftr):
-
                     #Retain old_id of parents
                     old_id = ftr["ID"]
 
@@ -494,14 +500,14 @@ class FastaGFFToGenome:
         """Splits the ontology info from the other db_xrefs"""
         ontology = collections.defaultdict(dict)
         db_xref = []
-        for key in ("GO_process", "GO_function", "GO_component"):
+        for key in ("go_process", "go_function", "go_component"):
             for term in feature.get(key, []):
                 sp = term.split(" - ")
                 ontology['GO'][sp[0]] = [1]
                 self.ontologies_present['GO'][sp[0]] = sp[1]
         ont_terms = feature['Ontology_term'][0].split(",") \
-            if 'Ontology_term' in feature else []
-        for ref in feature.get('db_xref', []) + feature.get('Dbxref', [] + ont_terms):
+            if 'ontology_term' in feature else []
+        for ref in feature.get('db_xref', []) + feature.get('dbxref', [] + ont_terms):
             if ref.startswith('GO:'):
                 ontology['GO'][ref] = [0]
                 self.ontologies_present['GO'][ref] = self.go_mapping.get(ref, '')
@@ -518,7 +524,7 @@ class FastaGFFToGenome:
         format for a genome object """
         def _aliases(feat):
             keys = ('locus_tag', 'old_locus_tag', 'protein_id',
-                    'transcript_id', 'gene', 'EC_number', 'gene_synonym')
+                    'transcript_id', 'gene', 'ec_number', 'gene_synonym')
             alias_list = []
             for key in keys:
                 if key in feat['attributes']:
@@ -532,13 +538,13 @@ class FastaGFFToGenome:
                 raise ValueError("Features must match fasta sequence")
             return
 
-        feat_seq = contig.seq[in_feature['start']-1:in_feature['end']]
+        feat_seq = contig.seq[in_feature['start']-1:in_feature['end']].upper()
         if in_feature['strand'] in {'-', '-1'}:
             feat_seq = feat_seq.reverse_complement()
 
         # if the feature ID is duplicated (CDS or transpliced gene) we only
         # need to update the location and dna_sequence
-        if in_feature['ID'] in self.feature_dict:
+        if in_feature.get('ID') in self.feature_dict:
             existing = self.feature_dict[in_feature['ID']]
             existing['location'].append(self._location(in_feature))
             existing['dna_sequence'] += str(feat_seq)
@@ -547,7 +553,7 @@ class FastaGFFToGenome:
 
         # The following is common to all the feature types
         out_feat = {
-            "id": in_feature['ID'],
+            "id": in_feature.get('ID'),
             "type": in_feature['type'],
             "location": [self._location(in_feature)],
             "dna_sequence": str(feat_seq),
@@ -569,15 +575,16 @@ class FastaGFFToGenome:
             out_feat['functions'] = in_feature['attributes']["product"]
         if 'inference' in in_feature['attributes']:
             GenomeUtils.parse_inferences(in_feature['attributes']['inference'])
+        if 'trans-splicing' in in_feature['attributes'].get('exception', []):
+            out_feat['flags'] = ['trans_splicing']
         parent_id = in_feature.get('Parent', '')
         if parent_id and parent_id not in self.feature_dict:
-            raise ValueError("Parent ID: {} was not found in feature ID list.")
+            raise ValueError("Parent ID: {} was not found in feature ID list.".format(parent_id))
 
         # if the feature is a exon or UTR, it will only be used to update the
         # location and sequence of it's parent, we add the info to it parent
         # feature but not the feature dict
-        if in_feature['type'] in ('exon', 'five_prime_UTR', 'three_prime_UTR',
-                                  'start_codon', 'stop_codon', 'region'):
+        if in_feature['type'] in self.skip_types:
             if parent_id:
                 # TODO: add location checks and warnings
                 parent = self.feature_dict[parent_id]
@@ -765,7 +772,7 @@ class FastaGFFToGenome:
                 del feature['type']
                 genome['mrnas'].append(feature)
             elif feature['type'] == 'gene':
-                if genome['cdss']:
+                if feature['cdss']:
                     del feature['type']
                     self.feature_counts["protein_encoding_gene"] += 1
                     genome['features'].append(feature)

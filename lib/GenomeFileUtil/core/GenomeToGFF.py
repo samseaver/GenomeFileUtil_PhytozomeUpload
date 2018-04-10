@@ -198,18 +198,21 @@ class GenomeToGFF:
     @staticmethod
     def gen_gtf_attr(feature):
         """Makes the attribute line for a feature in gtf style"""
+        gene_id = feature['id'] if feature.get('type') == 'gene' \
+            else feature.get('parent_gene', '')
         return 'gene_id "{}"; transcript_id "{}"'.format(
-            feature.get('parent_gene', ''), feature.get('parent_mrna', ''))
+            gene_id, feature.get('parent_mrna', ''))
 
     @staticmethod
     def gen_gff_attr(feature):
         """Makes the attribute line for a feature in gff style"""
         def _one_attr(key, val):
-            return '{}={}'.format(key, urllib.quote(val, " /"))
+            return '{}={}'.format(key, urllib.quote(val, " /:"))
 
+        # don't add an attribute that could be 0 without refactor
         attr_keys = (('id', 'ID'), ('parent_gene', 'Parent'), ('note', 'note'))
         attrs = [_one_attr(pair[1], feature[pair[0]])
-                 for pair in attr_keys if pair[0] in feature]
+                 for pair in attr_keys if feature.get(pair[0])]
         attrs.extend([_one_attr('db_xref', '{}:{}'.format(*x))
                      for x in feature.get('db_xref', [])])
         attrs.extend([_one_attr(pair[0], pair[1])
@@ -230,6 +233,8 @@ class GenomeToGFF:
             attrs.extend([_one_attr(
                 'inference', ":".join([x[y] for y in ('category', 'type', 'evidence') if x[y]]))
                 for x in feature['inference_data']])
+        if 'trans_splicing' in feature.get('flags', []):
+            attrs.append(_one_attr("exception", "trans-splicing"))
         return "; ".join(attrs)
 
     def get_common_location(self, location_array):
