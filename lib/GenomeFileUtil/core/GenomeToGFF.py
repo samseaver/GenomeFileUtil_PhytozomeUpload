@@ -207,7 +207,7 @@ class GenomeToGFF:
     def gen_gff_attr(feature):
         """Makes the attribute line for a feature in gff style"""
         def _one_attr(key, val):
-            return '{}={}'.format(key, urllib.quote(val, " /"))
+            return '{}={}'.format(key, urllib.quote(val, " /:"))
 
         # don't add an attribute that could be 0 without refactor
         attr_keys = (('id', 'ID'), ('parent_gene', 'Parent'), ('note', 'note'))
