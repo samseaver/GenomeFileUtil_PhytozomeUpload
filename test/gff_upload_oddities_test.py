@@ -262,7 +262,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 #print "JGI Minus Feature: " + str(feature)
                 self.assertTrue(feature["location"][0] == ['NC_010127.1', 37028, '-', 1238], "JGI Minus incorrect.") 
                 if "children" in feature:
-                    if "rna12" in feature["children"]:
+                    if "rna8" in feature["children"]:
                         found_genes_transcript_child = True
                 self.assertTrue(found_genes_transcript_child,"The gene did not have the right child transcript.")
                 self.assertTrue(feature.get("type") == "gene","The gene did not get the gene type")
