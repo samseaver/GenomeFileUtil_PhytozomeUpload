@@ -345,13 +345,13 @@ class GenomeFileUtilTest(unittest.TestCase):
                         found_genes_mrna = True
                 if "warnings" in feature:
                     if warnings["genes_mRNA_child_fails_location_validation"].format("rna14") in feature["warnings"]:
-                        found_genes_warning = True
+                        found_gene_warning = True
         for feature in genome["mrnas"]:
             if feature["id"] == 'rna14':
                 found_mrna = True
                 #print "coordinate mRNA fail Parent Gene: " + str(feature)
                 self.assertTrue(feature.get("parent_gene") == 'gene14', "mRNA did not have the right parent gene")  
-                self.assertTrue(feature.get("cds") == 'rna14.CDS', "mRNA did not have the right CDS")                  
+                self.assertTrue(feature.get("cds") == 'rna14.CDS', "mRNA did not have the right CDS")                 
                 if "warnings" in feature:
                     if warnings["mRNAs_parent_gene_fails_location_validation"].format('gene14') in feature["warnings"]:
                         found_mrna_warning = True
@@ -617,14 +617,14 @@ class GenomeFileUtilTest(unittest.TestCase):
         found_dot_warning = False
         found_question_warning = False
         for feature in genome["features"]:
-            if feature["id"] = "gene1":
+            if feature["id"] == "gene1":
                 found_dot_gene = True
                 if "warnings" in feature:
                     for warning in feature["warnings"]:
                         if warning == warnings["gff_odd_strand_type"].format("."):
                             found_dot_warning = True
         for feature in genome["mrnas"]:
-            if feature["id"] = "rna1":
+            if feature["id"] == "rna1":
                 found_question_mRNA = True
                 if "warnings" in feature:
                     for warning in feature["warnings"]:
