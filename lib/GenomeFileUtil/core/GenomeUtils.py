@@ -55,11 +55,11 @@ warnings = {
                     "designate trans_splicing.",
     "premature_stop_codon": "Extra in frame stop codon found.",
     "mRNA_fail_parent_coordinate_validation": "This mRNA lists CDS {} as its "
-                    "corresponding CDS, but fails it coordinate validation.",
+                    "corresponding CDS, but it fails coordinate validation.",
     "CDS_fail_child_of_mRNA_coordinate_validation": "This CDS lists mRNA {} as its "
-                    "corresponding mRNA, but fails it coordinate validation.",
+                    "corresponding mRNA, but it fails coordinate validation.",
     "CDS_fail_child_of_gene_coordinate_validation": "This CDS lists gene {} as its "
-                    "corresponding gene, but fails it coordinate validation.",
+                    "corresponding gene, but it fails coordinate validation.",
     "genes_mRNA_child_fails_location_validation": "The mRNA {} lists this gene as its "
                     "corresponding parent gene, but it fails coordinate validation.",
     "genes_CDS_child_fails_location_validation": "The CDS {} lists this gene as a "
@@ -67,7 +67,7 @@ warnings = {
     "mRNAs_parent_gene_fails_location_validation": "This mRNA lists gene {} as its "
                     "corresponding parent gene, but it fails coordinate validation.",
     "generic_parents_child_fails_location_validation": "This feature lists feature {} as its "
-                    "corresponding child, but itfails coordinate validation.",
+                    "corresponding child, but it fails coordinate validation.",
     "generic_childs_parent_fails_location_validation": "This feature lists feature {} as its "
                     "corresponding parent, but it fails coordinate validation.",
     "gff_odd_strand_type": "This feature had \"{}\" as the strand designation and not + or -. "

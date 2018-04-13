@@ -52,8 +52,7 @@ class FastaGFFToGenome:
             open('/kb/module/data/go_ontology_mapping.json'))
         self.code_table = 11
         self.skip_types = ('exon', 'five_prime_UTR', 'three_prime_UTR',
-                           'start_codon', 'stop_codon', 'region', 'chromosome',
-                           'region', 'scaffold')
+                           'start_codon', 'stop_codon', 'region', 'chromosome', 'scaffold')
         self.aliases = ()
         self.is_phytozome = False
         self.strict = True
@@ -560,6 +559,12 @@ class FastaGFFToGenome:
             "dna_sequence_length": len(feat_seq),
             "md5": hashlib.md5(str(feat_seq)).hexdigest(),
         }
+
+        # Test for full contig length features.
+        if in_feature['start'] == 1 and in_feature['end'] == len(contig) and in_feature['type'] not in self.skip_types:
+            out_feat["warnings"] = out_feat.get('warnings', []) + [
+                                    warnings["contig_length_feature"]]  
+
         # add optional fields
         if 'note' in in_feature['attributes']:
             out_feat['note'] = in_feature['attributes']["note"][0]
@@ -573,10 +578,16 @@ class FastaGFFToGenome:
             out_feat['db_xref'] = db_xref
         if 'product' in in_feature['attributes']:
             out_feat['functions'] = in_feature['attributes']["product"]
+        if 'function' in in_feature['attributes']:
+            out_feat['functional_descriptions'] = in_feature['attributes']["function"]
         if 'inference' in in_feature['attributes']:
             GenomeUtils.parse_inferences(in_feature['attributes']['inference'])
         if 'trans-splicing' in in_feature['attributes'].get('exception', []):
-            out_feat['flags'] = ['trans_splicing']
+            out_feat['flags'] = out_feat.get('flags',[]) + ['trans_splicing']
+        if 'pseudo' in in_feature['attributes'].get('exception', []):
+            out_feat['flags'] = out_feat.get('flags',[]) + ['pseudo']
+        if 'ribosomal-slippage' in in_feature['attributes'].get('exception', []):
+            out_feat['flags'] = out_feat.get('flags',[]) + ['ribosomal_slippage']
         parent_id = in_feature.get('Parent', '')
         if parent_id and parent_id not in self.feature_dict:
             raise ValueError("Parent ID: {} was not found in feature ID list.".format(parent_id))
@@ -586,7 +597,6 @@ class FastaGFFToGenome:
         # feature but not the feature dict
         if in_feature['type'] in self.skip_types:
             if parent_id:
-                # TODO: add location checks and warnings
                 parent = self.feature_dict[parent_id]
                 if in_feature['type'] not in parent:
                     parent[in_feature['type']] = []
@@ -640,7 +650,6 @@ class FastaGFFToGenome:
         else:
             out_feat["type"] = in_feature['type']
             if parent_id:
-                # TODO: add location checks and warnings
                 parent = self.feature_dict[parent_id]
                 if 'children' not in parent:
                     parent['children'] = []
