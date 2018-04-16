@@ -586,7 +586,6 @@ class FastaGFFToGenome:
         # feature but not the feature dict
         if in_feature['type'] in self.skip_types:
             if parent_id:
-                # TODO: add location checks and warnings
                 parent = self.feature_dict[parent_id]
                 if in_feature['type'] not in parent:
                     parent[in_feature['type']] = []
@@ -640,7 +639,6 @@ class FastaGFFToGenome:
         else:
             out_feat["type"] = in_feature['type']
             if parent_id:
-                # TODO: add location checks and warnings
                 parent = self.feature_dict[parent_id]
                 if 'children' not in parent:
                     parent['children'] = []
