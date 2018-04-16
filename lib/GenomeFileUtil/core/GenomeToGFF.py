@@ -89,7 +89,7 @@ class GenomeToGFF:
     def build_gff_file(self, genome_data, output_dir, output_filename, is_gtf):
         def feature_sort(feat):
             order = ('gene', 'mRNA', 'CDS')
-            if 'gene' in feat['type']:
+            if feat.get('children'):
                 priority = 0
             elif feat['type'] not in order:
                 priority = len(order)
