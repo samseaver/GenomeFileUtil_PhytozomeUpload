@@ -154,10 +154,22 @@ class GenomeFileUtilTest(unittest.TestCase):
         found_rna6CDS_GO = False
         found_rna6CDS_PO = False
         found_rna5CDS_GO = False
+        found_rna5CDS_ONT_TERM = False
         found_note = False
         found_function_product = False
         found_functional_descriptors = False
         found_locus_tag = False
+        go_ontology_event_index = -1
+        po_ontology_event_index = -1
+        print "ONTOLOGY EVENTS: " + str(genome["ontology_events"])
+        if "ontology_events" in genome:
+            index_counter = 0
+            for ontology_event in genome["ontology_events"]:
+                if ontology_event["id"] == "GO":
+                    go_ontology_event_index = index_counter
+                if ontology_event["id"] == "PO":
+                    po_ontology_event_index = index_counter  
+                index_counter += 1                         
         for feature in genome['cdss']:
             if feature["id"] == "rna6.CDS":
                 #Do rna6.CDS first.
@@ -167,11 +179,11 @@ class GenomeFileUtilTest(unittest.TestCase):
                 if "ontology_terms" in feature:
                     print "GFF 6 ONTOLOGIES: " + str(feature["ontology_terms"])
                     if "GO" in feature["ontology_terms"]:
-                        if feature["ontology_terms"]["GO"] == {"GO:0009523":[0]}:
+                        if feature["ontology_terms"]["GO"] == {"GO:0009523":[go_ontology_event_index]}:
                             found_rna6CDS_GO = True                            
                         print "GFF 6 G ONTOLOGY: " + str(feature["ontology_terms"]["GO"])
                     if "PO" in feature["ontology_terms"]:
-                        if feature["ontology_terms"]["PO"] == {"PO:0000005":[0]}:
+                        if feature["ontology_terms"]["PO"] == {"PO:0000005":[po_ontology_event_index]}:
                             found_rna6CDS_PO = True  
                         print "GFF 6 P ONTOLOGY: " + str(feature["ontology_terms"]["PO"])                                        
             if feature["id"] == "rna5.CDS":
@@ -181,8 +193,11 @@ class GenomeFileUtilTest(unittest.TestCase):
                 if "ontology_terms" in feature:
                     print "GFF 5 ONTOLOGIES: " + str(feature["ontology_terms"])
                     if "GO" in feature["ontology_terms"]:
-                        if feature["ontology_terms"]["GO"] == {"GO:0009523":[0]}:
-                                found_rna5CDS_GO = True  
+                        for ontology in feature["ontology_terms"]["GO"]:
+                            if ontology == "GO:0009523":
+                                found_rna5CDS_GO = True 
+                            if ontology == "GO:0004413":
+                                found_rna5CDS_ONT_TERM = True 
                         print "GFF 5 ONTOLOGY: " + str(feature["ontology_terms"]["GO"])
                 if "note" in feature:
                     if feature["note"] == "Test":
@@ -201,9 +216,12 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(found_locus_tag)
         self.assertTrue(found_note)
         self.assertTrue(found_functional_descriptors)
+        self.assertTrue(found_rna5CDS_GO)
+        self.assertTrue(found_rna5CDS_ONT_TERM)
+        self.assertTrue(go_ontology_event_index > -1,"GO Ontology event not found") 
+        self.assertTrue(po_ontology_event_index > -1,"PO Ontology event not found")   
         self.assertTrue(found_rna6CDS_GO)
         self.assertTrue(found_rna6CDS_PO)
-        self.assertTrue(found_rna5CDS_GO)
 
     def test_off_contig(self):
         #test for feature off the end of the contig.
