@@ -504,9 +504,15 @@ class FastaGFFToGenome:
                 sp = term.split(" - ")
                 ontology['GO'][sp[0]] = [1]
                 self.ontologies_present['GO'][sp[0]] = sp[1]
-        ont_terms = feature['Ontology_term'][0].split(",") \
-            if 'ontology_term' in feature else []
-        for ref in feature.get('db_xref', []) + feature.get('dbxref', [] + ont_terms):
+
+        search_keys = ['ontology_term', 'db_xref', 'dbxref']
+        ont_terms = []
+        # flatten out into list of values
+        for key in search_keys:
+            if key in feature:
+                ont_terms += [x for y in feature[key] for x in y.split(',')]
+
+        for ref in ont_terms:
             if ref.startswith('GO:'):
                 ontology['GO'][ref] = [0]
                 self.ontologies_present['GO'][ref] = self.go_mapping.get(ref, '')
@@ -568,7 +574,7 @@ class FastaGFFToGenome:
         # add optional fields
         if 'note' in in_feature['attributes']:
             out_feat['note'] = in_feature['attributes']["note"][0]
-        ont, db_xref = self._get_ontology_db_xrefs(in_feature)
+        ont, db_xref = self._get_ontology_db_xrefs(in_feature['attributes'])
         if ont:
             out_feat['ontology_terms'] = ont
         aliases = _aliases(in_feature)
