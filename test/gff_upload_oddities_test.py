@@ -262,7 +262,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 #print "JGI Minus Feature: " + str(feature)
                 self.assertTrue(feature["location"][0] == ['NC_010127.1', 37028, '-', 1238], "JGI Minus incorrect.") 
                 if "children" in feature:
-                    if "rna12" in feature["children"]:
+                    if "rna8" in feature["children"]:
                         found_genes_transcript_child = True
                 self.assertTrue(found_genes_transcript_child,"The gene did not have the right child transcript.")
                 self.assertTrue(feature.get("type") == "gene","The gene did not get the gene type")
@@ -345,13 +345,13 @@ class GenomeFileUtilTest(unittest.TestCase):
                         found_genes_mrna = True
                 if "warnings" in feature:
                     if warnings["genes_mRNA_child_fails_location_validation"].format("rna14") in feature["warnings"]:
-                        found_genes_warning = True
+                        found_gene_warning = True
         for feature in genome["mrnas"]:
             if feature["id"] == 'rna14':
                 found_mrna = True
                 #print "coordinate mRNA fail Parent Gene: " + str(feature)
                 self.assertTrue(feature.get("parent_gene") == 'gene14', "mRNA did not have the right parent gene")  
-                self.assertTrue(feature.get("cds") == 'rna14.CDS', "mRNA did not have the right CDS")                  
+                self.assertTrue(feature.get("cds") == 'rna14.CDS', "mRNA did not have the right CDS")                 
                 if "warnings" in feature:
                     if warnings["mRNAs_parent_gene_fails_location_validation"].format('gene14') in feature["warnings"]:
                         found_mrna_warning = True
@@ -577,6 +577,64 @@ class GenomeFileUtilTest(unittest.TestCase):
         print "Overall noncoding count : " + str(overall_count)
         self.assertTrue(underscore_start_count == 0, "Non coding features are starting with an underscore.")
 
+    def test_entire_contigs_feature_types_not_included(self):
+        #Looks at region, chromosome, scaffold and crazy full gene.
+        genome = self.__class__.genome
+        found_region = False
+        found_chromosome = False
+        found_scaffold = False
+        found_crazy_gene = False
+        found_crazy_gene_warning = False
+        found_something_for_whole_contig = False
+        for feature in genome["non_coding_features"]:
+            if feature["id"] == "id0":
+                found_region = True
+            if feature["id"] == "id0_chromosome":
+                found_chromosome = True
+            if feature["id"] == "id0_scaffold":
+                found_scaffold = True
+            if feature['location'][0] == ['NC_010127.1', 1, '-', 422616]:
+                found_something_for_whole_contig = True
+        for feature in genome["features"]:
+            if feature["id"] == "id0_gene":
+                found_crazy_gene = True
+                if "warnings" in feature:
+                    for warning in feature["warnings"]:
+                        if warning == warnings["contig_length_feature"]:
+                            found_crazy_gene_warning = True
+        self.assertFalse(found_region,"This region should not have been included")
+        self.assertFalse(found_chromosome,"This chromosome should not have been included")
+        self.assertFalse(found_scaffold,"This scaffold should not have been included")
+        self.assertFalse(found_something_for_whole_contig,"A feature for the whole contig should not have been included")
+        self.assertTrue(found_crazy_gene)
+        self.assertTrue(found_crazy_gene_warning)
+
+    def test_odd_strands(self):
+        #Testing cases where "." or "?" is used for the strand column.
+        genome = self.__class__.genome
+        found_dot_gene = False
+        found_question_mRNA = False
+        found_dot_warning = False
+        found_question_warning = False
+        for feature in genome["features"]:
+            if feature["id"] == "gene1":
+                found_dot_gene = True
+                if "warnings" in feature:
+                    for warning in feature["warnings"]:
+                        if warning == warnings["gff_odd_strand_type"].format("."):
+                            found_dot_warning = True
+        for feature in genome["mrnas"]:
+            if feature["id"] == "rna1":
+                found_question_mRNA = True
+                if "warnings" in feature:
+                    for warning in feature["warnings"]:
+                        if warning == warnings["gff_odd_strand_type"].format("?"):
+                            found_question_warning = True 
+        self.assertTrue(found_dot_gene) 
+        self.assertTrue(found_question_mRNA) 
+        self.assertTrue(found_dot_warning) 
+        self.assertTrue(found_question_warning) 
+                            
 
 
 

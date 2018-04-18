@@ -7,6 +7,9 @@
 ##sequence-region NC_010127.1 1 422616
 ##species https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=280699
 NC_010127.1	RefSeq	region	1	422616	.	+	.	ID=id0;Dbxref=taxon:280699;Name=1;chromosome=1;gbkey=Src;genome=chromosome;mol_type=genomic DNA;strain=10D
+NC_010127.1	RefSeq	chromosome	1	422616	.	.	.	ID=id0_chromosome;Dbxref=taxon:280699;Name=1;chromosome=1;gbkey=Src;genome=chromosome;mol_type=genomic DNA;strain=10D
+NC_010127.1	RefSeq	scaffold	1	422616	.	.	.	ID=id0_scaffold;Dbxref=taxon:280699;Name=1;chromosome=1;gbkey=Src;genome=chromosome;mol_type=genomic DNA;strain=10D
+NC_010127.1	RefSeq	gene	1	422616	.	.	.	ID=id0_gene;Dbxref=taxon:280699;Name=1;chromosome=1;gbkey=Src;genome=chromosome;mol_type=genomic DNA;strain=10D
 NC_010127.1	RefSeq	gene	3375	6125	.	-	.	ID=gene0;Dbxref=GeneID:16992110;Name=CYME_CMA001C;end_range=6125,.;gbkey=Gene;gene_biotype=protein_coding;locus_tag=CYME_CMA001C;partial=true;start_range=.,3375
 NC_010127.1	RefSeq	mRNA	3375	6125	.	-	.	ID=rna0;Parent=gene0;Dbxref=GeneID:16992110,Genbank:XM_005534957.1;Name=XM_005534957.1;end_range=6125,.;gbkey=mRNA;partial=true;product=similar to trefoil factor;start_range=.,3375;transcript_id=XM_005534957.1
 NC_010127.1	RefSeq	exon	4125	6125	.	-	.	ID=id1;Parent=rna0;Dbxref=GeneID:16992110,Genbank:XM_005534957.1;end_range=6125,.;gbkey=mRNA;partial=true;product=similar to trefoil factor;start_range=.,3375;transcript_id=XM_005534957.1
@@ -15,8 +18,8 @@ NC_010127.1	RefSeq	CDS	4125	6125	.	-	0	ID=cds0;Parent=rna0;Dbxref=GeneID:1699211
 NC_010127.1	RefSeq	CDS	3375	4125	.	-	0	ID=cds0;Parent=rna0;Dbxref=GeneID:16992110,Genbank:XP_005535014.1;Name=XP_005535014.1;gbkey=CDS;product=similar to trefoil factor;protein_id=XP_005535014.1;note=Not a multiple of 3 
 NC_010127.1	RefSeq	sequence_feature	8914	10291	.	-	.	ID=id2;Note=pseudo-gene of NADPH:protochlorophyllide oxidoreductase;gbkey=misc_feature
 NC_010127.1	RefSeq	sequence_feature	10604	13824	.	+	.	ID=id3;Note=repetitive element;gbkey=misc_feature
-NC_010127.1	RefSeq	gene	13867	14238	.	+	.	ID=gene1;Dbxref=GeneID:16992107;Name=CYME_CMA004C;end_range=14238,.;gbkey=Gene;gene_biotype=protein_coding;locus_tag=CYME_CMA004C;partial=true;start_range=.,13867
-NC_010127.1	RefSeq	mRNA	13867	14238	.	+	.	ID=rna1;Parent=gene1;Dbxref=GeneID:16992107,Genbank:XM_005534958.1;Name=XM_005534958.1;end_range=14238,.;gbkey=mRNA;partial=true;product=hypothetical protein%2C conserved;start_range=.,13867;transcript_id=XM_005534958.1
+NC_010127.1	RefSeq	gene	13867	14238	.	.	.	ID=gene1;Dbxref=GeneID:16992107;Name=CYME_CMA004C;end_range=14238,.;gbkey=Gene;gene_biotype=protein_coding;locus_tag=CYME_CMA004C;partial=true;start_range=.,13867
+NC_010127.1	RefSeq	mRNA	13867	14238	.	?	.	ID=rna1;Parent=gene1;Dbxref=GeneID:16992107,Genbank:XM_005534958.1;Name=XM_005534958.1;end_range=14238,.;gbkey=mRNA;partial=true;product=hypothetical protein%2C conserved;start_range=.,13867;transcript_id=XM_005534958.1
 NC_010127.1	RefSeq	exon	14002	14238	.	+	.	ID=id4;Parent=rna1;Dbxref=GeneID:16992107,Genbank:XM_005534958.1;end_range=14238,.;gbkey=mRNA;partial=true;product=hypothetical protein%2C conserved;start_range=.,13867;transcript_id=XM_005534958.1
 NC_010127.1	RefSeq	exon	13867	14001	.	+	.	ID=id4;Parent=rna1;Dbxref=GeneID:16992107,Genbank:XM_005534958.1;end_range=14238,.;gbkey=mRNA;partial=true;product=hypothetical protein%2C conserved;start_range=.,13867;transcript_id=XM_005534958.1
 NC_010127.1	RefSeq	CDS	14002	14238	.	+	0	ID=cds1;Parent=rna1;Dbxref=GeneID:16992107,Genbank:XP_005535015.1;Name=XP_005535015.1;gbkey=CDS;product=hypothetical protein%2C conserved;protein_id=XP_005535015.1

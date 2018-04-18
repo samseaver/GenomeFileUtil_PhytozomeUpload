@@ -16,7 +16,7 @@ import urlparse as parse
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 import GenomeUtils
-from GenomeUtils import warnings
+from GenomeUtils import is_parent, warnings
 from GenomeInterface import GenomeInterface
 
 # 3rd party imports
@@ -586,7 +586,6 @@ class FastaGFFToGenome:
         # feature but not the feature dict
         if in_feature['type'] in self.skip_types:
             if parent_id:
-                # TODO: add location checks and warnings
                 parent = self.feature_dict[parent_id]
                 if in_feature['type'] not in parent:
                     parent[in_feature['type']] = []
@@ -602,9 +601,19 @@ class FastaGFFToGenome:
             if parent_id:
                 parent = self.feature_dict[parent_id]
                 if 'cdss' in parent:  # parent must be a gene
+                    if not is_parent(parent,out_feat):
+                        parent["warnings"] = parent.get('warnings', [] ) + [
+                            warnings["genes_CDS_child_fails_location_validation"].format(out_feat["id"])]
+                        out_feat["warnings"] = out_feat.get('warnings', []) + [
+                            warnings["CDS_fail_child_of_gene_coordinate_validation"].format(parent_id)]      
                     parent['cdss'].append(in_feature['ID'])
-                    out_feat['parent_gene'] = parent_id
+                    out_feat['parent_gene'] = parent_id             
                 else:  # parent must be mRNA
+                    if not is_parent(parent,out_feat):
+                        parent["warnings"] = parent.get('warnings', [] ) + [
+                            warnings["mRNA_fail_parent_coordinate_validation"].format(out_feat["id"])]
+                        out_feat["warnings"] = out_feat.get('warnings', []) + [
+                            warnings["CDS_fail_child_of_mRNA_coordinate_validation"].format(parent_id)]      
                     parent['cds'] = in_feature['ID']
                     out_feat['parent_mrna'] = parent_id
                     parent_gene = self.feature_dict[parent['parent_gene']]
@@ -616,21 +625,30 @@ class FastaGFFToGenome:
         elif in_feature['type'] == 'mRNA':
             if parent_id:
                 parent = self.feature_dict[parent_id]
-                if 'mrnas' not in parent:
+                if 'mrnas' not in parent:                         
                     parent['mrnas'] = []
                 if 'cdss' in parent:  # parent must be a gene
                     parent['mrnas'].append(in_feature['ID'])
                     out_feat['parent_gene'] = parent_id
+                if not is_parent(parent,out_feat):
+                    parent["warnings"] = parent.get('warnings', [] ) + [
+                        warnings["genes_mRNA_child_fails_location_validation"].format(out_feat["id"])]
+                    out_feat["warnings"] = out_feat.get('warnings', []) + [
+                        warnings["mRNAs_parent_gene_fails_location_validation"].format(parent_id)]    
 
         else:
             out_feat["type"] = in_feature['type']
             if parent_id:
-                # TODO: add location checks and warnings
                 parent = self.feature_dict[parent_id]
                 if 'children' not in parent:
                     parent['children'] = []
                 parent['children'].append(out_feat['id'])
                 out_feat['parent_gene'] = parent_id
+                if not is_parent(parent,out_feat):
+                    parent["warnings"] = parent.get('warnings', [] ) + [
+                        warnings["generic_parents_child_fails_location_validation"].format(out_feat["id"])]
+                    out_feat["warnings"] = out_feat.get('warnings', []) + [
+                        warnings["generic_childs_parent_fails_location_validation"].format(parent_id)]    
 
         self.feature_dict[out_feat['id']] = out_feat
 
