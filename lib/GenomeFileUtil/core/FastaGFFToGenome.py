@@ -61,6 +61,7 @@ class FastaGFFToGenome:
         self.feature_dict = {}
         self.cdss = set()
         self.ontologies_present = collections.defaultdict(dict)
+        self.ontology_events = list()
         self.skiped_features = collections.Counter()
         self.feature_counts = collections.Counter()
 
@@ -495,14 +496,38 @@ class FastaGFFToGenome:
 
         return feature_list
 
+    def _create_ontology_event(self,ontology_type):
+        #Creates the ontology_event if necessary
+        #Returns the index of the ontology event back.
+        index_counter = 0
+        if ontology_type in ("GO","PO"):
+            ontology_ref = "KBaseOntology/gene_ontology"
+            if ontology_type == "PO":
+                ontology_ref = "KBaseOntology/plant_ontology"
+            if len(self.ontology_events) > 0 :
+                for ontology_event in self.ontology_events:
+                    if ontology_event["id"] == ontology_type:
+                        return index_counter
+                    index_counter += 1
+            self.ontology_events.append({
+                "method": "GenomeFileUtils Genbank uploader from annotations",
+                "method_version": self.version,
+                "timestamp": self.time_string,
+                "id": ontology_type,
+                "ontology_ref": ontology_ref
+                })  
+            return index_counter
+        return -1  #This is not a supported ontology. Do not make the ontology.      
+
     def _get_ontology_db_xrefs(self, feature):
         """Splits the ontology info from the other db_xrefs"""
         ontology = collections.defaultdict(dict)
         db_xref = []
         for key in ("go_process", "go_function", "go_component"):
+            ontology_event_index = self._create_ontology_event("GO")
             for term in feature.get(key, []):
                 sp = term.split(" - ")
-                ontology['GO'][sp[0]] = [1]
+                ontology['GO'][sp[0]] = [ontology_event_index]
                 self.ontologies_present['GO'][sp[0]] = sp[1]
 
         search_keys = ['ontology_term', 'db_xref', 'dbxref']
@@ -514,10 +539,12 @@ class FastaGFFToGenome:
 
         for ref in ont_terms:
             if ref.startswith('GO:'):
-                ontology['GO'][ref] = [0]
+                ontology_event_index = self._create_ontology_event("GO")
+                ontology['GO'][ref] = [ontology_event_index]
                 self.ontologies_present['GO'][ref] = self.go_mapping.get(ref, '')
             elif ref.startswith('PO:'):
-                ontology['PO'][ref] = [1]
+                ontology_event_index = self._create_ontology_event("PO")
+                ontology['PO'][ref] = [ontology_event_index]
                 self.ontologies_present['PO'][ref] = self.po_mapping.get(ref, '')
             else:
                 db_xref.append(tuple(ref.split(":")))
@@ -774,15 +801,8 @@ class FastaGFFToGenome:
         genome['contig_ids'], genome['contig_lengths'] = zip(
             *[(k, v['length']) for k, v in assembly['contigs'].items()])
         genome['num_contigs'] = len(assembly['contigs'])
-        genome["ontology_events"] = [{
-            "method": "GenomeFileUtils Genbank uploader from annotations",
-            "method_version": self.version,
-            "timestamp": self.time_string,
-            # TODO: remove this hardcoding
-            "id": "GO",
-            "ontology_ref": "KBaseOntology/gene_ontology"
-        }]
         genome['ontologies_present'] = dict(self.ontologies_present)
+        genome['ontology_events'] = self.ontology_events
         genome['taxonomy'], genome['taxon_ref'], genome['domain'], \
             genome["genetic_code"] = self.gi.retrieve_taxon(self.taxon_wsname,
                                                             genome['scientific_name'])
