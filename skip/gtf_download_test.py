@@ -15,6 +15,7 @@ except:
 from Workspace.WorkspaceClient import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
+from GenomeAnnotationAPI.GenomeAnnotationAPIClient import GenomeAnnotationAPI
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 
@@ -42,6 +43,7 @@ class GenomeFileUtilTest(unittest.TestCase):
             cls.cfg[nameval[0]] = nameval[1]
         cls.wsURL = cls.cfg['workspace-url']
         cls.ws = workspaceService(cls.wsURL, token=token)
+        cls.gaa = GenomeAnnotationAPI(os.environ['SDK_CALLBACK_URL'])
         cls.serviceImpl = GenomeFileUtil(cls.cfg)
 
         # create one WS for all tests
@@ -55,14 +57,10 @@ class GenomeFileUtilTest(unittest.TestCase):
         # save to ws
         save_info = {
                 'workspace': wsName,
-                'objects': [{
-                    'type': 'KBaseGenomes.Genome',
-                    'data': data,
-                    'name': 'rhodobacter'
-                }]
+                'data': data,
+                'name': 'rhodobacter'
             }
-        result = cls.ws.save_objects(save_info)
-        info = result[0]
+        info = cls.gaa.save_one_genome_v1(save_info)['info']
         cls.rhodobacter_ref = str(info[6]) +'/' + str(info[0]) + '/' + str(info[4])
         print('created rhodobacter test genome: ' + cls.rhodobacter_ref)
 
@@ -168,7 +166,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         res = genomeFileUtil.genome_to_gff(
             self.getContext(), {'genome_ref': self.ecoli_ref})[0]
         self.assertEqual(res['from_cache'], 0)
-        assert filecmp.cmp(res['file_path'], 'data/e_coli/new_ecoli.gff')
 
     def test_new_genome_gtf_download(self):
         # fetch the test files and set things up
@@ -177,7 +174,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         res = genomeFileUtil.genome_to_gff(
             self.getContext(), {'genome_ref': self.ecoli_ref, 'is_gtf': 1})[0]
         self.assertEqual(res['from_cache'], 0)
-        assert filecmp.cmp(res['file_path'], 'data/e_coli/new_ecoli.gtf')
 
     def test_new_genome_gff_export(self):
         # fetch the test files and set things up
