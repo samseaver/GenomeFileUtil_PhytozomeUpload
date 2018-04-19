@@ -1,16 +1,6 @@
-FROM kbase/kbase:sdkbase.latest
+FROM kbase/kbase:sdkbase2.latest
 MAINTAINER KBase Developer
 # -----------------------------------------
-
-# update security libraries in the base image
-RUN pip install setuptools --upgrade\
-    && pip install cffi --upgrade \
-    && pip install cryptography==1.9 \
-    && pip install pyopenssl --upgrade \
-    && pip install ndg-httpsclient --upgrade \
-    && pip install pyasn1 --upgrade \
-    && pip install requests --upgrade \
-    && pip install 'requests[security]' --upgrade
 
 RUN pip install biopython==1.70
 
