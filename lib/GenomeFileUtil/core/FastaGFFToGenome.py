@@ -149,7 +149,7 @@ class FastaGFFToGenome:
                       "FASTA file. {} features will not be imported."
                       .format(cid, len(features_by_contig[cid])))
             if self.strict:
-                raise ValueError("Features must match fasta sequence")
+                raise ValueError("GFF features contig identifiers must match fasta file contig identifiers")
 
         # parse feature information
         fasta_contigs = Bio.SeqIO.parse(input_fasta_file, "fasta")
@@ -496,6 +496,26 @@ class FastaGFFToGenome:
 
         return feature_list
 
+    def _check_location_order(self,locations):
+        # If order looks good return None.  
+        # If out of order return warning
+        # If on multiple strands return warning
+        strand = None
+        last_start = 0
+        for location in locations:
+            if strand == None:
+                strand = location[2]
+            elif strand != location[2]:
+                return warnings["both_strand_coordinates"]
+        if strand == "-":
+            locations = reversed(locations)
+        for location in locations:
+            if last_start > location[1]:
+                return warnings["out_of_order"]
+            else:
+                last_start = location[1]
+        return None        
+
     def _create_ontology_event(self,ontology_type):
         #Creates the ontology_event if necessary
         #Returns the index of the ontology event back.
@@ -567,7 +587,7 @@ class FastaGFFToGenome:
             self.warn("Feature with invalid location for specified "
                       "contig: " + str(in_feature))
             if self.strict:
-                raise ValueError("Features must match fasta sequence")
+                raise ValueError("Features must be completely contained within the Contig in the Fasta file.")
             return
 
         feat_seq = contig.seq[in_feature['start']-1:in_feature['end']].upper()
@@ -592,11 +612,6 @@ class FastaGFFToGenome:
             "dna_sequence_length": len(feat_seq),
             "md5": hashlib.md5(str(feat_seq)).hexdigest(),
         }
-
-        # Test for full contig length features.
-        if in_feature['start'] == 1 and in_feature['end'] == len(contig) and in_feature['type'] not in self.skip_types:
-            out_feat["warnings"] = out_feat.get('warnings', []) + [
-                                    warnings["contig_length_feature"]]  
 
         # add optional fields
         if 'note' in in_feature['attributes']:
@@ -840,6 +855,47 @@ class FastaGFFToGenome:
                 if 'exon' in feature:
                     self._update_from_exons(feature)
                 genome['non_coding_features'].append(feature)
+
+            # Test if location order is in order.
+            is_transpliced = False
+            if "flags" in feature and "trans_splicing" in feature["flags"]:
+                is_transpliced = True      
+            if not is_transpliced and len(feature["location"]) > 1:
+                # Check the order only if not trans_spliced and has more than 1 location.    
+                location_warning = self._check_location_order(feature["location"])
+                if location_warning is not None:
+                    feature["warnings"] = feature.get('warnings', []) + [location_warning]     
+
+            # Test for full contig length features and if on both strands.
+            feature_min_location = None
+            feature_max_location = None
+            location_contigs = set()
+            strand_set = set()
+            #Only test if all locations on the same contig.
+            for location in feature["location"]:
+                location_contigs.add(location[0])
+            if len(location_contigs) == 1:
+                for location in feature["location"]:
+                    if location[2] == "+":
+                        strand_set.add("+")
+                        location_min = location[1]  
+                        location_max = location[1] + location[3] - 1
+                    if location[2] == "-":
+                        strand_set.add("+")
+                        location_min = location[1] + location[3] + 1   
+                        location_max = location[1]                       
+                    if feature_min_location is None or feature_min_location > location_min:
+                        feature_min_location = location_min
+                    if feature_max_location is None or feature_max_location < location_max:
+                        feature_max_location = location_max
+                if feature_min_location == 1 \
+                    and feature_max_location == \
+                    genome["contig_lengths"][genome["contig_ids"].index(feature["location"][0][0])] \
+                    and feature['type'] not in self.skip_types: 
+                    feature["warnings"] = feature.get('warnings', []) + [warnings["contig_length_feature"]]  
+                if len(strand_set) > 1 and not is_transpliced:
+                    feature["warnings"] = feature.get('warnings', []) + [warnings["both_strand_coordinates"]] 
+
         if self.warnings:
             genome['warnings'] = self.warnings
         genome['feature_counts'] = dict(self.feature_counts)

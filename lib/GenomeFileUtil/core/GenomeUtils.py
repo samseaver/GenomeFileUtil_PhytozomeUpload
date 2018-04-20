@@ -51,7 +51,9 @@ warnings = {
                              "approximate.",
     "not_multiple_of_3CDS": "Sequence length {} is not a multiple of three",
     "non_standard_start_codon": "First codon '{}' is not a start codon",
-    "out_of_order": "The feature coordinates order are out of order. GFF does not "
+    "out_of_order": "The feature coordinates order are out of order. GFF typically does not "
+                    "designate trans_splicing.",
+    "both_strand_coordinates": "The feature coordinates are both strands. GFF typically does not "
                     "designate trans_splicing.",
     "premature_stop_codon": "Extra in frame stop codon found.",
     "mRNA_fail_parent_coordinate_validation": "This mRNA lists CDS {} as its "
@@ -72,7 +74,7 @@ warnings = {
                     "corresponding parent, but it fails coordinate validation.",
     "gff_odd_strand_type": "This feature had \"{}\" as the strand designation and not + or -. "
                     "The location and sequence was defaulted to the + strand.",
-    "contig_length_feature": "This feature spans entire contig."
+    "contig_length_feature": "This feature spans entire contig length."
 }
 
 
