@@ -104,10 +104,10 @@ class GenomeFileUtilTest(unittest.TestCase):
                                 found_function_count += 1
                     else:
                         features_without_functions_count += 1
-        print "EMPTY FUNCTION COUNT: " + str(empty_function_count)
-        print "FOUND FUNCTION COUNT: " + str(found_function_count)
-        print "FEATURES WITH FUNCTIONS COUNT: " + str(features_with_functions_count)
-        print "FEATURES WITHOUT FUNCTIONS COUNT: " + str(features_without_functions_count)
+        #print "EMPTY FUNCTION COUNT: " + str(empty_function_count)
+        #print "FOUND FUNCTION COUNT: " + str(found_function_count)
+        #print "FEATURES WITH FUNCTIONS COUNT: " + str(features_with_functions_count)
+        #print "FEATURES WITHOUT FUNCTIONS COUNT: " + str(features_without_functions_count)
         self.assertTrue(empty_function_count == 0, str(empty_function_count) + " features had empty functions.")     
         self.assertTrue(found_function_count > 0, "No features had functions.")    
 
@@ -137,7 +137,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         found_not_start_codon_warning = False
         for feature in genome['cdss']:
             if feature['id'] == 'rna1.CDS':
-                print "RNA1.CDS: " + str(feature)
+                #print "RNA1.CDS: " + str(feature)
                 if warnings["non_standard_start_codon"].format(feature["dna_sequence"][:3]) in feature["warnings"]:
                     found_not_start_codon_warning = True
                 if warnings['out_of_order'] in feature["warnings"]:
@@ -591,10 +591,10 @@ class GenomeFileUtilTest(unittest.TestCase):
                                 found_warning_count += 1
                     else:
                         features_without_warnings_count += 1
-        print "EMPTY FEATURE WARNING COUNT: " + str(empty_warning_count)
-        print "FOUND FEATURE WARNING COUNT: " + str(found_warning_count)
-        print "FEATURES WITH WARNINGS COUNT: " + str(features_with_warnings_count)
-        print "FEATURES WITHOUT WARNINGS COUNT: " + str(features_without_warnings_count)
+        #print "EMPTY FEATURE WARNING COUNT: " + str(empty_warning_count)
+        #print "FOUND FEATURE WARNING COUNT: " + str(found_warning_count)
+        #print "FEATURES WITH WARNINGS COUNT: " + str(features_with_warnings_count)
+        #print "FEATURES WITHOUT WARNINGS COUNT: " + str(features_without_warnings_count)
         self.assertTrue(empty_warning_count == 0, str(empty_warning_count) + " features had empty warnings.")     
         self.assertTrue(found_warning_count > 0, "No features had warnings.")
 
@@ -606,8 +606,8 @@ class GenomeFileUtilTest(unittest.TestCase):
             overall_count += 1
             if feature["id"].startswith("_"):
                 underscore_start_count += 1 
-        print "Starts with underscore count : " + str(underscore_start_count)
-        print "Overall noncoding count : " + str(overall_count)
+        #print "Starts with underscore count : " + str(underscore_start_count)
+        #print "Overall noncoding count : " + str(overall_count)
         self.assertTrue(underscore_start_count == 0, "Non coding features are starting with an underscore.")
 
     def test_entire_contigs_feature_types_not_included(self):
@@ -635,8 +635,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                     for warning in feature["warnings"]:
                         if warning == warnings["contig_length_feature"]:
                             found_crazy_gene_warning = True
-            if feature["location"][0][1] == 1:
-                print "Starts at 1 : " + str(feature)
+#            if feature["location"][0][1] == 1:
+#                print "Starts at 1 : " + str(feature)
             if feature["id"] == "tRNA_full_contig":
                 found_crazy_gene = True
                 if "warnings" in feature:

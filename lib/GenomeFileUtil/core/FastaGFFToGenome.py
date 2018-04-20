@@ -149,7 +149,8 @@ class FastaGFFToGenome:
                       "FASTA file. {} features will not be imported."
                       .format(cid, len(features_by_contig[cid])))
             if self.strict:
-                raise ValueError("GFF features contig identifiers must match fasta file contig identifiers")
+                raise ValueError("GFF features contig identifiers must match fasta file contig identifiers. Contig ID: " +
+                    str(cid))
 
         # parse feature information
         fasta_contigs = Bio.SeqIO.parse(input_fasta_file, "fasta")
