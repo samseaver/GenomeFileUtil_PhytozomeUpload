@@ -497,9 +497,9 @@ class FastaGFFToGenome:
         return feature_list
 
     def _check_location_order(self,locations):
-        # If order looks good return None.  
-        # If out of order return warning
-        # If on multiple strands return warning
+        """If order looks good return None.  
+           If out of order return warning
+           If on multiple strands return warning"""
         strand = None
         last_start = 0
         for location in locations:
@@ -517,8 +517,8 @@ class FastaGFFToGenome:
         return None        
 
     def _create_ontology_event(self,ontology_type):
-        #Creates the ontology_event if necessary
-        #Returns the index of the ontology event back.
+        """Creates the ontology_event if necessary
+        Returns the index of the ontology event back."""
         index_counter = 0
         if ontology_type in ("GO","PO"):
             ontology_ref = "KBaseOntology/gene_ontology"
@@ -537,7 +537,8 @@ class FastaGFFToGenome:
                 "ontology_ref": ontology_ref
                 })  
             return index_counter
-        return -1  #This is not a supported ontology. Do not make the ontology.      
+        else:  #This is not a supported ontology. Do not make the ontology.      
+            raise ValueError("{} is not a supported ontology".format(ontology_type))
 
     def _get_ontology_db_xrefs(self, feature):
         """Splits the ontology info from the other db_xrefs"""
@@ -587,7 +588,8 @@ class FastaGFFToGenome:
             self.warn("Feature with invalid location for specified "
                       "contig: " + str(in_feature))
             if self.strict:
-                raise ValueError("Features must be completely contained within the Contig in the Fasta file.")
+                raise ValueError("Features must be completely contained within the Contig in the Fasta file. Feature: " +
+                    str(in_feature))
             return
 
         feat_seq = contig.seq[in_feature['start']-1:in_feature['end']].upper()
@@ -881,7 +883,7 @@ class FastaGFFToGenome:
                         location_min = location[1]  
                         location_max = location[1] + location[3] - 1
                     if location[2] == "-":
-                        strand_set.add("+")
+                        strand_set.add("-")
                         location_min = location[1] + location[3] + 1   
                         location_max = location[1]                       
                     if feature_min_location is None or feature_min_location > location_min:
