@@ -191,3 +191,37 @@ def propagate_cds_props_to_gene(cds, gene):
                     terms[source].update(terms2[source])
                 else:
                     terms[source] = terms2[source]
+
+def check_full_contig_length_or_multi_strand_feature(feature, is_transpliced, contig_ids, contig_lengths, skip_types):
+    ''' 
+    Tests for full contig length features and if on both strands.
+    '''
+    feature_min_location = None
+    feature_max_location = None
+    location_contigs = set()
+    strand_set = set()
+    #Only test if all locations on the same contig.
+    for location in feature["location"]:
+        location_contigs.add(location[0])
+    if len(location_contigs) == 1:
+        for location in feature["location"]:
+            if location[2] == "+":
+                strand_set.add("+")
+                location_min = location[1]  
+                location_max = location[1] + location[3] - 1
+            if location[2] == "-":
+                strand_set.add("-")
+                location_min = location[1] + location[3] + 1   
+                location_max = location[1]                       
+            if feature_min_location is None or feature_min_location > location_min:
+                feature_min_location = location_min
+            if feature_max_location is None or feature_max_location < location_max:
+                feature_max_location = location_max
+        if feature_min_location == 1 \
+            and feature_max_location == \
+            contig_lengths[contig_ids.index(feature["location"][0][0])] \
+            and feature['type'] not in skip_types: 
+            feature["warnings"] = feature.get('warnings', []) + [warnings["contig_length_feature"]]  
+        if len(strand_set) > 1 and not is_transpliced:
+            feature["warnings"] = feature.get('warnings', []) + [warnings["both_strand_coordinates"]]
+    return feature 

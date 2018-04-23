@@ -16,7 +16,7 @@ import urlparse as parse
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 import GenomeUtils
-from GenomeUtils import is_parent, warnings
+from GenomeUtils import is_parent, warnings, check_full_contig_length_or_multi_strand_feature
 from GenomeInterface import GenomeInterface
 
 # 3rd party imports
@@ -869,35 +869,8 @@ class FastaGFFToGenome:
                 if location_warning is not None:
                     feature["warnings"] = feature.get('warnings', []) + [location_warning]     
 
-            # Test for full contig length features and if on both strands.
-            feature_min_location = None
-            feature_max_location = None
-            location_contigs = set()
-            strand_set = set()
-            #Only test if all locations on the same contig.
-            for location in feature["location"]:
-                location_contigs.add(location[0])
-            if len(location_contigs) == 1:
-                for location in feature["location"]:
-                    if location[2] == "+":
-                        strand_set.add("+")
-                        location_min = location[1]  
-                        location_max = location[1] + location[3] - 1
-                    if location[2] == "-":
-                        strand_set.add("-")
-                        location_min = location[1] + location[3] + 1   
-                        location_max = location[1]                       
-                    if feature_min_location is None or feature_min_location > location_min:
-                        feature_min_location = location_min
-                    if feature_max_location is None or feature_max_location < location_max:
-                        feature_max_location = location_max
-                if feature_min_location == 1 \
-                    and feature_max_location == \
-                    genome["contig_lengths"][genome["contig_ids"].index(feature["location"][0][0])] \
-                    and feature['type'] not in self.skip_types: 
-                    feature["warnings"] = feature.get('warnings', []) + [warnings["contig_length_feature"]]  
-                if len(strand_set) > 1 and not is_transpliced:
-                    feature["warnings"] = feature.get('warnings', []) + [warnings["both_strand_coordinates"]] 
+            feature = check_full_contig_length_or_multi_strand_feature(
+                        feature, is_transpliced, genome["contig_ids"], genome["contig_lengths"], self.skip_types)
 
         if self.warnings:
             genome['warnings'] = self.warnings
