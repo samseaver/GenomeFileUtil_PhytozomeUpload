@@ -869,8 +869,11 @@ class FastaGFFToGenome:
                 if location_warning is not None:
                     feature["warnings"] = feature.get('warnings', []) + [location_warning]     
 
-            feature = check_full_contig_length_or_multi_strand_feature(
-                        feature, is_transpliced, genome["contig_ids"], genome["contig_lengths"], self.skip_types)
+            for location in feature["location"]:
+                location_contigs.add(location[0])
+            if len(location_contigs) == 1:              
+                feature = check_full_contig_length_or_multi_strand_feature(
+                        feature, is_transpliced, contig_lengths[contig_ids.index(feature["location"][0][0])], self.skip_types)
 
         if self.warnings:
             genome['warnings'] = self.warnings
