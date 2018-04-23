@@ -198,25 +198,19 @@ def check_full_contig_length_or_multi_strand_feature(feature, is_transpliced, co
     '''
     feature_min_location = None
     feature_max_location = None
-    location_contigs = set()
     strand_set = set()
-    #Only test if all locations on the same contig.
     for location in feature["location"]:
-        location_contigs.add(location[0])
-        return feature
-    if len(location_contigs) == 1:
-        for location in feature["location"]:
-            location_min = get_start(location)
-            location_max = get_end(location)
-            strand_set.add(location[2])                 
-            if feature_min_location is None or feature_min_location > location_min:
-                feature_min_location = location_min
-            if feature_max_location is None or feature_max_location < location_max:
-                feature_max_location = location_max
-        if feature_min_location == 1 \
-            and feature_max_location == contig_length \
-            and feature['type'] not in skip_types: 
-            feature["warnings"] = feature.get('warnings', []) + [warnings["contig_length_feature"]]  
-        if len(strand_set) > 1 and not is_transpliced:
-            feature["warnings"] = feature.get('warnings', []) + [warnings["both_strand_coordinates"]]
+        location_min = get_start(location)
+        location_max = get_end(location)
+        strand_set.add(location[2])                 
+        if feature_min_location is None or feature_min_location > location_min:
+            feature_min_location = location_min
+        if feature_max_location is None or feature_max_location < location_max:
+            feature_max_location = location_max
+    if feature_min_location == 1 \
+        and feature_max_location == contig_length \
+        and feature['type'] not in skip_types: 
+        feature["warnings"] = feature.get('warnings', []) + [warnings["contig_length_feature"]]  
+    if len(strand_set) > 1 and not is_transpliced:
+        feature["warnings"] = feature.get('warnings', []) + [warnings["both_strand_coordinates"]]
     return feature 
