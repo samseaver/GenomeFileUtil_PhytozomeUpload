@@ -58,7 +58,7 @@ class FastaGFFToGenome:
         self.strict = True
         self.generate_genes = False
         self.warnings = []
-        self.feature_dict = {}
+        self.feature_dict = collections.OrderedDict()
         self.cdss = set()
         self.ontologies_present = collections.defaultdict(dict)
         self.ontology_events = list()
@@ -769,7 +769,7 @@ class FastaGFFToGenome:
 
         # construct feature location from utrs and cdss if present
         elif 'cds' in feature:
-            cds = [copy.copy(self.feature_dict[feature['cds']])]
+            cds = [copy.deepcopy(self.feature_dict[feature['cds']])]
             locs = []
             seq = ""
             for frag in feature.get('five_prime_UTR', []) + cds + \
@@ -869,11 +869,10 @@ class FastaGFFToGenome:
                 if location_warning is not None:
                     feature["warnings"] = feature.get('warnings', []) + [location_warning]     
 
-            for location in feature["location"]:
-                location_contigs.add(location[0])
-            if len(location_contigs) == 1:              
-                feature = check_full_contig_length_or_multi_strand_feature(
-                        feature, is_transpliced, contig_lengths[contig_ids.index(feature["location"][0][0])], self.skip_types)
+            feature = check_full_contig_length_or_multi_strand_feature(
+                        feature, is_transpliced, 
+                        genome["contig_lengths"][genome["contig_ids"].index(feature["location"][0][0])], self.skip_types)
+
 
         if self.warnings:
             genome['warnings'] = self.warnings

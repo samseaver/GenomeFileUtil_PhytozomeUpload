@@ -199,7 +199,10 @@ def check_full_contig_length_or_multi_strand_feature(feature, is_transpliced, co
     feature_min_location = None
     feature_max_location = None
     strand_set = set()
+    contig_id = feature["location"][0][0]
     for location in feature["location"]:
+        if location[0] != contig_id:
+            return feature
         location_min = get_start(location)
         location_max = get_end(location)
         strand_set.add(location[2])                 
