@@ -217,7 +217,7 @@ class GenomeInterface:
         search_params = {
             "object_types": ["taxon"],
             "match_filter": {
-                "lookupInKeys": {
+                "lookup_in_keys": {
                     "scientific_name": {"value": scientific_name}},
                 "exclude_subobjects": 1
             },
@@ -234,7 +234,7 @@ class GenomeInterface:
         objects = self.kbse.search_objects(search_params)['objects']
         if len(objects):
             return extract_values(objects[0])
-        search_params['match_filter']['lookupInKeys'] = {
+        search_params['match_filter']['lookup_in_keys'] = {
             "aliases": {"value": scientific_name}
         }
         objects = self.kbse.search_objects(search_params)['objects']
