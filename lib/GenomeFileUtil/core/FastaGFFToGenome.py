@@ -59,7 +59,7 @@ class FastaGFFToGenome:
         self.strict = True
         self.generate_genes = False
         self.warnings = []
-        self.feature_dict = {}
+        self.feature_dict = collections.OrderedDict()
         self.cdss = set()
         self.ontologies_present = collections.defaultdict(dict)
         self.skiped_features = collections.Counter()
@@ -709,7 +709,7 @@ class FastaGFFToGenome:
 
         # construct feature location from utrs and cdss if present
         elif 'cds' in feature:
-            cds = [copy.copy(self.feature_dict[feature['cds']])]
+            cds = [copy.deepcopy(self.feature_dict[feature['cds']])]
             locs = []
             seq = ""
             for frag in feature.get('five_prime_UTR', []) + cds + \
