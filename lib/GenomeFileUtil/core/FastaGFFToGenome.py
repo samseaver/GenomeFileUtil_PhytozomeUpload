@@ -834,14 +834,28 @@ class FastaGFFToGenome:
                 {'file_path': input_gff_file, 'make_handle': 1, 'pack': "gzip"})
             genome['gff_handle_ref'] = gff_file_to_shock['handle']['hid']
 
-        # sort features into their respective arrays
         for feature in self.feature_dict.values():
             self.feature_counts[feature['type']] += 1
+            if 'exon' in feature or feature['type'] == 'mRNA':
+                self._update_from_exons(feature)
+
+            # Test if location order is in order.
+            is_transpliced = "flags" in feature and "trans_splicing" in feature["flags"]
+            if not is_transpliced and len(feature["location"]) > 1:
+                # Check the order only if not trans_spliced and has more than 1 location.
+                location_warning = self._check_location_order(feature["location"])
+                if location_warning is not None:
+                    feature["warnings"] = feature.get('warnings', []) + [location_warning]
+
+            contig_len = genome["contig_lengths"][genome["contig_ids"].index(feature["location"][0][0])]
+            feature = check_full_contig_length_or_multi_strand_feature(
+                feature, is_transpliced,contig_len, self.skip_types)
+
+            # sort features into their respective arrays
             if feature['type'] == 'CDS':
                 del feature['type']
                 genome['cdss'].append(feature)
             elif feature['type'] == 'mRNA':
-                self._update_from_exons(feature)
                 del feature['type']
                 genome['mrnas'].append(feature)
             elif feature['type'] == 'gene':
@@ -855,24 +869,7 @@ class FastaGFFToGenome:
                     self.feature_counts["non-protein_encoding_gene"] += 1
                     genome['non_coding_features'].append(feature)
             else:
-                if 'exon' in feature:
-                    self._update_from_exons(feature)
                 genome['non_coding_features'].append(feature)
-
-            # Test if location order is in order.
-            is_transpliced = False
-            if "flags" in feature and "trans_splicing" in feature["flags"]:
-                is_transpliced = True      
-            if not is_transpliced and len(feature["location"]) > 1:
-                # Check the order only if not trans_spliced and has more than 1 location.    
-                location_warning = self._check_location_order(feature["location"])
-                if location_warning is not None:
-                    feature["warnings"] = feature.get('warnings', []) + [location_warning]     
-
-            feature = check_full_contig_length_or_multi_strand_feature(
-                        feature, is_transpliced, 
-                        genome["contig_lengths"][genome["contig_ids"].index(feature["location"][0][0])], self.skip_types)
-
 
         if self.warnings:
             genome['warnings'] = self.warnings
