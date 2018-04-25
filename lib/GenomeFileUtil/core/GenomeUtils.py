@@ -51,15 +51,17 @@ warnings = {
                              "approximate.",
     "not_multiple_of_3CDS": "Sequence length {} is not a multiple of three",
     "non_standard_start_codon": "First codon '{}' is not a start codon",
-    "out_of_order": "The feature coordinates order are out of order. GFF does not "
+    "out_of_order": "The feature coordinates order are out of order. GFF typically does not "
+                    "designate trans_splicing.",
+    "both_strand_coordinates": "The feature coordinates are both strands. GFF typically does not "
                     "designate trans_splicing.",
     "premature_stop_codon": "Extra in frame stop codon found.",
     "mRNA_fail_parent_coordinate_validation": "This mRNA lists CDS {} as its "
-                    "corresponding CDS, but fails it coordinate validation.",
+                    "corresponding CDS, but it fails coordinate validation.",
     "CDS_fail_child_of_mRNA_coordinate_validation": "This CDS lists mRNA {} as its "
-                    "corresponding mRNA, but fails it coordinate validation.",
+                    "corresponding mRNA, but it fails coordinate validation.",
     "CDS_fail_child_of_gene_coordinate_validation": "This CDS lists gene {} as its "
-                    "corresponding gene, but fails it coordinate validation.",
+                    "corresponding gene, but it fails coordinate validation.",
     "genes_mRNA_child_fails_location_validation": "The mRNA {} lists this gene as its "
                     "corresponding parent gene, but it fails coordinate validation.",
     "genes_CDS_child_fails_location_validation": "The CDS {} lists this gene as a "
@@ -72,7 +74,7 @@ warnings = {
                     "corresponding parent, but it fails coordinate validation.",
     "gff_odd_strand_type": "This feature had \"{}\" as the strand designation and not + or -. "
                     "The location and sequence was defaulted to the + strand.",
-    "contig_length_feature": "This feature spans entire contig."
+    "contig_length_feature": "This feature spans entire contig length."
 }
 
 
@@ -189,3 +191,29 @@ def propagate_cds_props_to_gene(cds, gene):
                     terms[source].update(terms2[source])
                 else:
                     terms[source] = terms2[source]
+
+def check_full_contig_length_or_multi_strand_feature(feature, is_transpliced, contig_length, skip_types):
+    ''' 
+    Tests for full contig length features and if on both strands.
+    '''
+    feature_min_location = None
+    feature_max_location = None
+    strand_set = set()
+    contig_id = feature["location"][0][0]
+    for location in feature["location"]:
+        if location[0] != contig_id:
+            return feature
+        location_min = get_start(location)
+        location_max = get_end(location)
+        strand_set.add(location[2])                 
+        if feature_min_location is None or feature_min_location > location_min:
+            feature_min_location = location_min
+        if feature_max_location is None or feature_max_location < location_max:
+            feature_max_location = location_max
+    if feature_min_location == 1 \
+        and feature_max_location == contig_length \
+        and feature['type'] not in skip_types: 
+        feature["warnings"] = feature.get('warnings', []) + [warnings["contig_length_feature"]]  
+    if len(strand_set) > 1 and not is_transpliced:
+        feature["warnings"] = feature.get('warnings', []) + [warnings["both_strand_coordinates"]]
+    return feature 

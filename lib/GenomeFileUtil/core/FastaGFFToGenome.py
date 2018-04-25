@@ -16,7 +16,7 @@ import urlparse as parse
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 import GenomeUtils
-from GenomeUtils import is_parent, warnings
+from GenomeUtils import is_parent, warnings, check_full_contig_length_or_multi_strand_feature
 from GenomeInterface import GenomeInterface
 
 # 3rd party imports
@@ -52,8 +52,7 @@ class FastaGFFToGenome:
             open('/kb/module/data/go_ontology_mapping.json'))
         self.code_table = 11
         self.skip_types = ('exon', 'five_prime_UTR', 'three_prime_UTR',
-                           'start_codon', 'stop_codon', 'region', 'chromosome',
-                           'region', 'scaffold')
+                           'start_codon', 'stop_codon', 'region', 'chromosome', 'scaffold')
         self.aliases = ()
         self.is_phytozome = False
         self.strict = True
@@ -62,6 +61,7 @@ class FastaGFFToGenome:
         self.feature_dict = collections.OrderedDict()
         self.cdss = set()
         self.ontologies_present = collections.defaultdict(dict)
+        self.ontology_events = list()
         self.skiped_features = collections.Counter()
         self.feature_counts = collections.Counter()
 
@@ -498,23 +498,76 @@ class FastaGFFToGenome:
 
         return feature_list
 
+    def _check_location_order(self,locations):
+        """If order looks good return None.  
+           If out of order return warning
+           If on multiple strands return warning"""
+        strand = None
+        last_start = 0
+        for location in locations:
+            if strand == None:
+                strand = location[2]
+            elif strand != location[2]:
+                return warnings["both_strand_coordinates"]
+        if strand == "-":
+            locations = reversed(locations)
+        for location in locations:
+            if last_start > location[1]:
+                return warnings["out_of_order"]
+            else:
+                last_start = location[1]
+        return None        
+
+    def _create_ontology_event(self,ontology_type):
+        """Creates the ontology_event if necessary
+        Returns the index of the ontology event back."""
+        index_counter = 0
+        if ontology_type in ("GO","PO"):
+            ontology_ref = "KBaseOntology/gene_ontology"
+            if ontology_type == "PO":
+                ontology_ref = "KBaseOntology/plant_ontology"
+            if len(self.ontology_events) > 0 :
+                for ontology_event in self.ontology_events:
+                    if ontology_event["id"] == ontology_type:
+                        return index_counter
+                    index_counter += 1
+            self.ontology_events.append({
+                "method": "GenomeFileUtils Genbank uploader from annotations",
+                "method_version": self.version,
+                "timestamp": self.time_string,
+                "id": ontology_type,
+                "ontology_ref": ontology_ref
+                })  
+            return index_counter
+        else:  #This is not a supported ontology. Do not make the ontology.      
+            raise ValueError("{} is not a supported ontology".format(ontology_type))
+
     def _get_ontology_db_xrefs(self, feature):
         """Splits the ontology info from the other db_xrefs"""
         ontology = collections.defaultdict(dict)
         db_xref = []
         for key in ("go_process", "go_function", "go_component"):
+            ontology_event_index = self._create_ontology_event("GO")
             for term in feature.get(key, []):
                 sp = term.split(" - ")
-                ontology['GO'][sp[0]] = [1]
+                ontology['GO'][sp[0]] = [ontology_event_index]
                 self.ontologies_present['GO'][sp[0]] = sp[1]
-        ont_terms = feature['Ontology_term'][0].split(",") \
-            if 'ontology_term' in feature else []
-        for ref in feature.get('db_xref', []) + feature.get('dbxref', [] + ont_terms):
+
+        search_keys = ['ontology_term', 'db_xref', 'dbxref']
+        ont_terms = []
+        # flatten out into list of values
+        for key in search_keys:
+            if key in feature:
+                ont_terms += [x for y in feature[key] for x in y.split(',')]
+
+        for ref in ont_terms:
             if ref.startswith('GO:'):
-                ontology['GO'][ref] = [0]
+                ontology_event_index = self._create_ontology_event("GO")
+                ontology['GO'][ref] = [ontology_event_index]
                 self.ontologies_present['GO'][ref] = self.go_mapping.get(ref, '')
             elif ref.startswith('PO:'):
-                ontology['PO'][ref] = [1]
+                ontology_event_index = self._create_ontology_event("PO")
+                ontology['PO'][ref] = [ontology_event_index]
                 self.ontologies_present['PO'][ref] = self.po_mapping.get(ref, '')
             else:
                 db_xref.append(tuple(ref.split(":")))
@@ -537,7 +590,8 @@ class FastaGFFToGenome:
             self.warn("Feature with invalid location for specified "
                       "contig: " + str(in_feature))
             if self.strict:
-                raise ValueError("Features must match fasta sequence")
+                raise ValueError("Features must be completely contained within the Contig in the Fasta file. Feature: " +
+                    str(in_feature))
             return
 
         feat_seq = contig.seq[in_feature['start']-1:in_feature['end']].upper()
@@ -562,10 +616,11 @@ class FastaGFFToGenome:
             "dna_sequence_length": len(feat_seq),
             "md5": hashlib.md5(str(feat_seq)).hexdigest(),
         }
+
         # add optional fields
         if 'note' in in_feature['attributes']:
             out_feat['note'] = in_feature['attributes']["note"][0]
-        ont, db_xref = self._get_ontology_db_xrefs(in_feature)
+        ont, db_xref = self._get_ontology_db_xrefs(in_feature['attributes'])
         if ont:
             out_feat['ontology_terms'] = ont
         aliases = _aliases(in_feature)
@@ -575,10 +630,16 @@ class FastaGFFToGenome:
             out_feat['db_xref'] = db_xref
         if 'product' in in_feature['attributes']:
             out_feat['functions'] = in_feature['attributes']["product"]
+        if 'function' in in_feature['attributes']:
+            out_feat['functional_descriptions'] = in_feature['attributes']["function"]
         if 'inference' in in_feature['attributes']:
             GenomeUtils.parse_inferences(in_feature['attributes']['inference'])
         if 'trans-splicing' in in_feature['attributes'].get('exception', []):
-            out_feat['flags'] = ['trans_splicing']
+            out_feat['flags'] = out_feat.get('flags',[]) + ['trans_splicing']
+        if 'pseudo' in in_feature['attributes'].get('exception', []):
+            out_feat['flags'] = out_feat.get('flags',[]) + ['pseudo']
+        if 'ribosomal-slippage' in in_feature['attributes'].get('exception', []):
+            out_feat['flags'] = out_feat.get('flags',[]) + ['ribosomal_slippage']
         parent_id = in_feature.get('Parent', '')
         if parent_id and parent_id not in self.feature_dict:
             raise ValueError("Parent ID: {} was not found in feature ID list.".format(parent_id))
@@ -759,15 +820,8 @@ class FastaGFFToGenome:
         genome['contig_ids'], genome['contig_lengths'] = zip(
             *[(k, v['length']) for k, v in assembly['contigs'].items()])
         genome['num_contigs'] = len(assembly['contigs'])
-        genome["ontology_events"] = [{
-            "method": "GenomeFileUtils Genbank uploader from annotations",
-            "method_version": self.version,
-            "timestamp": self.time_string,
-            # TODO: remove this hardcoding
-            "id": "GO",
-            "ontology_ref": "KBaseOntology/gene_ontology"
-        }]
         genome['ontologies_present'] = dict(self.ontologies_present)
+        genome['ontology_events'] = self.ontology_events
         genome['taxonomy'], genome['taxon_ref'], genome['domain'], \
             genome["genetic_code"] = self.gi.retrieve_taxon(self.taxon_wsname,
                                                             genome['scientific_name'])
@@ -781,14 +835,28 @@ class FastaGFFToGenome:
                 {'file_path': input_gff_file, 'make_handle': 1, 'pack': "gzip"})
             genome['gff_handle_ref'] = gff_file_to_shock['handle']['hid']
 
-        # sort features into their respective arrays
         for feature in self.feature_dict.values():
             self.feature_counts[feature['type']] += 1
+            if 'exon' in feature or feature['type'] == 'mRNA':
+                self._update_from_exons(feature)
+
+            # Test if location order is in order.
+            is_transpliced = "flags" in feature and "trans_splicing" in feature["flags"]
+            if not is_transpliced and len(feature["location"]) > 1:
+                # Check the order only if not trans_spliced and has more than 1 location.
+                location_warning = self._check_location_order(feature["location"])
+                if location_warning is not None:
+                    feature["warnings"] = feature.get('warnings', []) + [location_warning]
+
+            contig_len = genome["contig_lengths"][genome["contig_ids"].index(feature["location"][0][0])]
+            feature = check_full_contig_length_or_multi_strand_feature(
+                feature, is_transpliced,contig_len, self.skip_types)
+
+            # sort features into their respective arrays
             if feature['type'] == 'CDS':
                 del feature['type']
                 genome['cdss'].append(feature)
             elif feature['type'] == 'mRNA':
-                self._update_from_exons(feature)
                 del feature['type']
                 genome['mrnas'].append(feature)
             elif feature['type'] == 'gene':
@@ -803,9 +871,8 @@ class FastaGFFToGenome:
                     self.feature_counts["non-protein_encoding_gene"] += 1
                     genome['non_coding_features'].append(feature)
             else:
-                if 'exon' in feature:
-                    self._update_from_exons(feature)
                 genome['non_coding_features'].append(feature)
+
         if self.warnings:
             genome['warnings'] = self.warnings
         genome['feature_counts'] = dict(self.feature_counts)

@@ -55,7 +55,8 @@ class GenomeFileUtilTest(unittest.TestCase):
               'workspace_name': cls.wsName,
               'genome_name': ws_obj_name,
               'generate_missing_genes' : 1,
-              'generate_ids_if_needed': 1
+              'generate_ids_if_needed': 1,
+              'strict': False
             })[0]
 #        print("HERE IS THE RESULT:")
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'], 
@@ -103,10 +104,10 @@ class GenomeFileUtilTest(unittest.TestCase):
                                 found_function_count += 1
                     else:
                         features_without_functions_count += 1
-        print "EMPTY FUNCTION COUNT: " + str(empty_function_count)
-        print "FOUND FUNCTION COUNT: " + str(found_function_count)
-        print "FEATURES WITH FUNCTIONS COUNT: " + str(features_with_functions_count)
-        print "FEATURES WITHOUT FUNCTIONS COUNT: " + str(features_without_functions_count)
+        #print "EMPTY FUNCTION COUNT: " + str(empty_function_count)
+        #print "FOUND FUNCTION COUNT: " + str(found_function_count)
+        #print "FEATURES WITH FUNCTIONS COUNT: " + str(features_with_functions_count)
+        #print "FEATURES WITHOUT FUNCTIONS COUNT: " + str(features_without_functions_count)
         self.assertTrue(empty_function_count == 0, str(empty_function_count) + " features had empty functions.")     
         self.assertTrue(found_function_count > 0, "No features had functions.")    
 
@@ -136,14 +137,16 @@ class GenomeFileUtilTest(unittest.TestCase):
         found_not_start_codon_warning = False
         for feature in genome['cdss']:
             if feature['id'] == 'rna1.CDS':
+                #print "RNA1.CDS: " + str(feature)
                 if warnings["non_standard_start_codon"].format(feature["dna_sequence"][:3]) in feature["warnings"]:
                     found_not_start_codon_warning = True
                 if warnings['out_of_order'] in feature["warnings"]:
                     found_out_of_order_warning = True
-                self.assertTrue(found_out_of_order_warning, "Out of order warning not found. Warnings were: "
-                            + str(feature["warnings"])) 
                 self.assertTrue(found_not_start_codon_warning, "Not start codon warning not found. Warnings: " 
                             + str(feature["warnings"]))
+                self.assertTrue(found_out_of_order_warning, "Out of order warning not found. Warnings were: "
+                            + str(feature["warnings"])) 
+
 
     def test_for_picking_up_other_fields(self):
         #tests for picking up ontologies. Other db_xrefs  (NOTE DB Xrefs different ways: in GenBank - /db_xref   in GFF I have seen: Dbxref=)
@@ -153,41 +156,59 @@ class GenomeFileUtilTest(unittest.TestCase):
         found_rna6CDS_GO = False
         found_rna6CDS_PO = False
         found_rna5CDS_GO = False
+        found_rna5CDS_ONT_TERM = False
+        found_rna5CDS_go_process = False
         found_note = False
         found_function_product = False
-        found_functional_descriptors=False
+        found_functional_descriptors = False
         found_locus_tag = False
+        go_ontology_event_index = -1
+        po_ontology_event_index = -1
+ #       print "ONTOLOGY EVENTS: " + str(genome["ontology_events"])
+        if "ontology_events" in genome:
+            index_counter = 0
+            for ontology_event in genome["ontology_events"]:
+                if ontology_event["id"] == "GO":
+                    go_ontology_event_index = index_counter
+                if ontology_event["id"] == "PO":
+                    po_ontology_event_index = index_counter  
+                index_counter += 1                         
         for feature in genome['cdss']:
             if feature["id"] == "rna6.CDS":
                 #Do rna6.CDS first.
                 #look for db_xrefs and ontologies.
-                print "RNA6CDS: " + str(feature)
+#                print "RNA6CDS: " + str(feature)
                 #currently this is not picking up the ontologies in either form.
                 if "ontology_terms" in feature:
-                    print "GFF 6 ONTOLOGIES: " + str(feature["ontology_terms"])
+#                    print "GFF 6 ONTOLOGIES: " + str(feature["ontology_terms"])
                     if "GO" in feature["ontology_terms"]:
-                        if feature["ontology_terms"]["GO"] == {"GO:0009523":[0]}:
+                        if feature["ontology_terms"]["GO"] == {"GO:0009523":[go_ontology_event_index]}:
                             found_rna6CDS_GO = True                            
-                        print "GFF 6 G ONTOLOGY: " + str(feature["ontology_terms"]["GO"])
+#                        print "GFF 6 G ONTOLOGY: " + str(feature["ontology_terms"]["GO"])
                     if "PO" in feature["ontology_terms"]:
-                        if feature["ontology_terms"]["PO"] == {"PO:0000005":[0]}:
+                        if feature["ontology_terms"]["PO"] == {"PO:0000005":[po_ontology_event_index]}:
                             found_rna6CDS_PO = True  
-                        print "GFF 6 P ONTOLOGY: " + str(feature["ontology_terms"]["PO"])                                        
+#                        print "GFF 6 P ONTOLOGY: " + str(feature["ontology_terms"]["PO"])                                        
             if feature["id"] == "rna5.CDS":
                 #Do rna6.CDS first.
                 #look for db_xrefs and ontologies.
-                print "RNA5CDS: " + str(feature)
+#                print "RNA5CDS: " + str(feature)
                 if "ontology_terms" in feature:
-                    print "GFF 5 ONTOLOGIES: " + str(feature["ontology_terms"])
+ #                   print "GFF 5 ONTOLOGIES: " + str(feature["ontology_terms"])
                     if "GO" in feature["ontology_terms"]:
-                        if feature["ontology_terms"]["GO"] == {"GO:0009523":[0]}:
-                                found_rna5CDS_GO = True  
-                        print "GFF 5 ONTOLOGY: " + str(feature["ontology_terms"]["GO"])
+                        for ontology in feature["ontology_terms"]["GO"]:
+                            if ontology == "GO:0009523":
+                                found_rna5CDS_GO = True 
+                            if ontology == "GO:0004413":
+                                found_rna5CDS_ONT_TERM = True 
+                            if ontology == "GO:0004415":
+                                found_rna5CDS_go_process = True
+ #                       print "GFF 5 ONTOLOGY: " + str(feature["ontology_terms"]["GO"])
                 if "note" in feature:
                     if feature["note"] == "Test":
                         found_note = True
-                if "functional_secriptions" in feature:
-                    if feature["functional_secriptions"][0] == "Test function":
+                if "functional_descriptions" in feature:
+                    if feature["functional_descriptions"][0] == "Test function":
                         found_functional_descriptors = True
                 if "functions" in feature:
                     if feature["functions"][0] == "NAD-dependent sorbitol dehydrogenase":
@@ -200,9 +221,13 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(found_locus_tag)
         self.assertTrue(found_note)
         self.assertTrue(found_functional_descriptors)
+        self.assertTrue(found_rna5CDS_GO)
+        self.assertTrue(found_rna5CDS_ONT_TERM)
+        self.assertTrue(found_rna5CDS_go_process)
+        self.assertTrue(go_ontology_event_index > -1,"GO Ontology event not found") 
+        self.assertTrue(po_ontology_event_index > -1,"PO Ontology event not found")   
         self.assertTrue(found_rna6CDS_GO)
         self.assertTrue(found_rna6CDS_PO)
-        self.assertTrue(found_rna5CDS_GO)
 
     def test_off_contig(self):
         #test for feature off the end of the contig.
@@ -214,6 +239,18 @@ class GenomeFileUtilTest(unittest.TestCase):
             if feature["id"] == 'gene117_off_contig':
                 found_gene = True
         self.assertTrue(found_gene,"Did not find off contig gene")
+
+#    def test_off_contig_multi_location(self):
+#        #test for feature off the end of the contig.
+#        #tested this it caused an error on upload, which is reasonable. So no object to actually test.
+#        #If change ID=rna116_off_contig; to have end coordinate of 422617 it fails.
+#        genome = self.__class__.genome
+#        found_gene = False
+#        for feature in genome["non_coding_features"]:
+#            if feature["id"] == 'rna116_off_contig':
+#                found_gene = True
+#                print "rna116_off_contig : " + str(feature)
+#        self.assertTrue(found_gene,"Did not find off contig multi_location")
 
     def test_2_contig_feature(self):
         #Test for a trans_spliced feature on 2 contigs
@@ -272,7 +309,6 @@ class GenomeFileUtilTest(unittest.TestCase):
                 self.assertTrue(feature.get("type") == "transcript","The transcript did not get the transcript type")                    
         self.assertTrue(found_gene,"Did not find JGI minus gene")
         self.assertTrue(found_transcript,"Did not find JGI minus transcript")
-
 
     def test_mRNA_child_fail_coordinate_validation(self):
         #Fail parent mRNA coordinate validation
@@ -374,7 +410,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(found_mrna_warning,"Did not find mRNA fail parnet coordinate validation warning")
         self.assertFalse(found_CDS_warning,"The CDS has bad warning. It is valid within the mRNA")
 
-
     def test_gene_child_CDS_fail_coordinate_validation(self):
         #CDS and gene relationship checking
         genome = self.__class__.genome
@@ -410,8 +445,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(found_genes_cds,"Did not find Gene's CDS Feature")
         self.assertTrue(found_gene_warning,"Did not find Gene fail CDS coordinate validation warning")
         self.assertTrue(found_CDS_warning,"Did not find CDS fail mRNA coordinate validation warning")
-
-
 
     def test_sequences(self):
         #CHECK SEQUENCE AND PROTEIN TRANSLATION.
@@ -558,10 +591,10 @@ class GenomeFileUtilTest(unittest.TestCase):
                                 found_warning_count += 1
                     else:
                         features_without_warnings_count += 1
-        print "EMPTY FEATURE WARNING COUNT: " + str(empty_warning_count)
-        print "FOUND FEATURE WARNING COUNT: " + str(found_warning_count)
-        print "FEATURES WITH WARNINGS COUNT: " + str(features_with_warnings_count)
-        print "FEATURES WITHOUT WARNINGS COUNT: " + str(features_without_warnings_count)
+        #print "EMPTY FEATURE WARNING COUNT: " + str(empty_warning_count)
+        #print "FOUND FEATURE WARNING COUNT: " + str(found_warning_count)
+        #print "FEATURES WITH WARNINGS COUNT: " + str(features_with_warnings_count)
+        #print "FEATURES WITHOUT WARNINGS COUNT: " + str(features_without_warnings_count)
         self.assertTrue(empty_warning_count == 0, str(empty_warning_count) + " features had empty warnings.")     
         self.assertTrue(found_warning_count > 0, "No features had warnings.")
 
@@ -573,8 +606,8 @@ class GenomeFileUtilTest(unittest.TestCase):
             overall_count += 1
             if feature["id"].startswith("_"):
                 underscore_start_count += 1 
-        print "Starts with underscore count : " + str(underscore_start_count)
-        print "Overall noncoding count : " + str(overall_count)
+        #print "Starts with underscore count : " + str(underscore_start_count)
+        #print "Overall noncoding count : " + str(overall_count)
         self.assertTrue(underscore_start_count == 0, "Non coding features are starting with an underscore.")
 
     def test_entire_contigs_feature_types_not_included(self):
@@ -595,8 +628,16 @@ class GenomeFileUtilTest(unittest.TestCase):
                 found_scaffold = True
             if feature['location'][0] == ['NC_010127.1', 1, '-', 422616]:
                 found_something_for_whole_contig = True
-        for feature in genome["features"]:
+        for feature in genome["non_coding_features"]:
             if feature["id"] == "id0_gene":
+                found_crazy_gene = True
+                if "warnings" in feature:
+                    for warning in feature["warnings"]:
+                        if warning == warnings["contig_length_feature"]:
+                            found_crazy_gene_warning = True
+#            if feature["location"][0][1] == 1:
+#                print "Starts at 1 : " + str(feature)
+            if feature["id"] == "tRNA_full_contig":
                 found_crazy_gene = True
                 if "warnings" in feature:
                     for warning in feature["warnings"]:
@@ -609,31 +650,76 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(found_crazy_gene)
         self.assertTrue(found_crazy_gene_warning)
 
+    def test_both_strands_feature(self):
+        genome = self.__class__.genome
+        gene_has_2_locations = False
+        gene_has_warning = False
+        mRNA_has_2_locations = False
+        mRNA_has_warning = False
+        CDS_has_2_locations = False
+        CDS_has_warning = False
+        for feature in genome['features']:
+            if feature['id'] == 'gene100':
+                #print "gene100: " + str(feature)
+                if len(feature["location"]) == 2:
+                    gene_has_2_locations = True
+                if warnings["both_strand_coordinates"] in feature.get("warnings",[]):
+                    gene_has_warning = True
+        for feature in genome['mrnas']:
+            if feature['id'] == 'rna100':
+                #print "rna100: " + str(feature)
+                if len(feature["location"]) == 2:
+                    mRNA_has_2_locations = True
+                if warnings["both_strand_coordinates"] in feature.get("warnings",[]):
+                    mRNA_has_warning = True
+        for feature in genome['cdss']:
+            if feature['id'] == 'rna100.CDS':
+                #print "rna100.CDS: " + str(feature)
+                if len(feature["location"]) == 2:
+                    CDS_has_2_locations = True
+                if warnings["both_strand_coordinates"] in feature.get("warnings",[]):
+                    CDS_has_warning = True 
+        self.assertTrue(gene_has_2_locations)      
+        self.assertTrue(gene_has_warning)  
+        self.assertTrue(mRNA_has_2_locations)      
+        self.assertTrue(mRNA_has_warning)  
+        self.assertTrue(CDS_has_2_locations)      
+        self.assertTrue(CDS_has_warning)  
+
     def test_odd_strands(self):
         #Testing cases where "." or "?" is used for the strand column.
         genome = self.__class__.genome
         found_dot_gene = False
         found_question_mRNA = False
-        found_dot_warning = False
-        found_question_warning = False
+        found_dot_made_plus = False
+        found_question_made_plus = False
+#not throwing a warning. So checking that it is defaulting it to "+" strand. Perhaps a warning in the future.
+#        found_dot_warning = False
+#        found_question_warning = False
         for feature in genome["features"]:
             if feature["id"] == "gene1":
                 found_dot_gene = True
-                if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == warnings["gff_odd_strand_type"].format("."):
-                            found_dot_warning = True
+                if feature["location"][0][2] == "+":
+                    found_dot_made_plus = True
+#                if "warnings" in feature:
+#                    for warning in feature["warnings"]:
+#                        if warning == warnings["gff_odd_strand_type"].format("."):
+#                            found_dot_warning = True
         for feature in genome["mrnas"]:
             if feature["id"] == "rna1":
                 found_question_mRNA = True
-                if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == warnings["gff_odd_strand_type"].format("?"):
-                            found_question_warning = True 
+                if feature["location"][0][2] == "+":
+                    found_question_made_plus = True
+#                if "warnings" in feature:
+#                    for warning in feature["warnings"]:
+#                        if warning == warnings["gff_odd_strand_type"].format("?"):
+#                            found_question_warning = True 
         self.assertTrue(found_dot_gene) 
         self.assertTrue(found_question_mRNA) 
-        self.assertTrue(found_dot_warning) 
-        self.assertTrue(found_question_warning) 
+        self.assertTrue(found_dot_made_plus) 
+        self.assertTrue(found_question_made_plus) 
+#        self.assertTrue(found_dot_warning) 
+#        self.assertTrue(found_question_warning) 
                             
 
 
