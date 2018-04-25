@@ -32,6 +32,7 @@ class GenomeToGFF:
         self.cfg = sdk_config
         self.dfu = DataFileUtil(self.cfg.callbackURL)
         self.child_dict = {}
+        self.transcript_counter = defaultdict(int)
 
     def export(self, ctx, params):
         # 1) validate parameters and extract defaults
@@ -89,7 +90,9 @@ class GenomeToGFF:
     def build_gff_file(self, genome_data, output_dir, output_filename, is_gtf):
         def feature_sort(feat):
             order = ('gene', 'mRNA', 'CDS')
-            if feat['type'] not in order:
+            if feat.get('children'):
+                priority = 0
+            elif feat['type'] not in order:
                 priority = len(order)
             else:
                 priority = order.index(feat['type'])
@@ -195,13 +198,21 @@ class GenomeToGFF:
             raise Exception('Unable to parse {}:{}'.format(in_feature, e))
         return out_feature
 
-    @staticmethod
-    def gen_gtf_attr(feature):
+    def gen_gtf_attr(self, feature):
         """Makes the attribute line for a feature in gtf style"""
-        gene_id = feature['id'] if feature.get('type') == 'gene' \
-            else feature.get('parent_gene', '')
+        if feature.get('type') == 'gene':
+            return 'gene_id "{}"; transcript_id ""'.format(feature['id'])
+
+        if feature.get('parent_gene'):
+            p_gene = feature['parent_gene']
+            self.transcript_counter[p_gene] += 1
+            if "parent_mrna" not in feature:
+                return 'gene_id "{}"; transcript_id "{}_{}"'.format(
+                    p_gene, p_gene, self.transcript_counter[p_gene])
+
         return 'gene_id "{}"; transcript_id "{}"'.format(
-            gene_id, feature.get('parent_mrna', ''))
+            feature.get('parent_gene', feature['id']),
+            feature.get('parent_mrna', feature['id']))
 
     @staticmethod
     def gen_gff_attr(feature):

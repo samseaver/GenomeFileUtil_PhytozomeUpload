@@ -132,6 +132,27 @@ class FastaGFFToGenome:
                         scientific_name="unknown_taxon", source=None,
                         release=None, genome_type=None):
 
+        # reading in GFF file
+        features_by_contig = self._retrieve_gff_file(input_gff_file)
+        contig_ids = set()
+
+        # parse feature information
+        fasta_contigs = Bio.SeqIO.parse(input_fasta_file, "fasta")
+        for contig in fasta_contigs:
+            molecule_type = str(contig.seq.alphabet).replace(
+                'IUPACAmbiguous', '').strip('()')
+            contig_ids.add(contig.id)
+            for feature in features_by_contig.get(contig.id, []):
+                self._transform_feature(contig, feature)
+
+        for cid in set(features_by_contig.keys()) - contig_ids:
+            self.warn("Sequence name {} does not match a sequence id in the "
+                      "FASTA file. {} features will not be imported."
+                      .format(cid, len(features_by_contig[cid])))
+            if self.strict:
+                raise ValueError("Every feature sequence id must match a fasta sequence id")
+        self._process_cdss()
+
         # save assembly file
         assembly_ref = self.au.save_assembly_from_fasta(
             {'file': {'path': input_fasta_file},
@@ -140,26 +161,6 @@ class FastaGFFToGenome:
         assembly_data = self.dfu.get_objects(
             {'object_refs': [assembly_ref],
              'ignore_errors': 0})['data'][0]['data']
-
-        # reading in GFF file
-        features_by_contig = self._retrieve_gff_file(input_gff_file)
-        contig_ids = set(assembly_data['contigs'])
-        for cid in set(features_by_contig.keys()) - contig_ids:
-            self.warn("Sequence name {} does not match a sequence id in the "
-                      "FASTA file. {} features will not be imported."
-                      .format(cid, len(features_by_contig[cid])))
-            if self.strict:
-                raise ValueError("GFF features contig identifiers must match fasta file contig identifiers. Contig ID: " +
-                    str(cid))
-
-        # parse feature information
-        fasta_contigs = Bio.SeqIO.parse(input_fasta_file, "fasta")
-        for contig in fasta_contigs:
-            molecule_type = str(contig.seq.alphabet).replace(
-                'IUPACAmbiguous', '').strip('()')
-            for feature in features_by_contig.get(contig.id, []):
-                self._transform_feature(contig, feature)
-        self._process_cdss()
 
         # generate genome info
         genome = self._gen_genome_info(core_genome_name, scientific_name,
@@ -655,7 +656,7 @@ class FastaGFFToGenome:
             return
 
         # add type specific features
-        elif in_feature['type'] == 'gene':
+        elif 'gene' in in_feature['type']:
             out_feat['protein_translation_length'] = 0
             out_feat['cdss'] = []
 
@@ -866,6 +867,7 @@ class FastaGFFToGenome:
                 else:
                     feature.pop('mrnas', None)
                     feature.pop('cdss', None)
+                    feature.pop('protein_translation_length', None)
                     self.feature_counts["non-protein_encoding_gene"] += 1
                     genome['non_coding_features'].append(feature)
             else:

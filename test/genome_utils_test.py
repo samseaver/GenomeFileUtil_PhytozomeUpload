@@ -49,10 +49,12 @@ class GenomeFileUtilTest(unittest.TestCase):
         pass
 
     def test_retreve_taxon(self):
+        self.assertEqual(self.genome_interface.retrieve_taxon("meh", "Arabidopsis thaliana"),
+                         (u'cellular organisms; Eukaryota; Viridiplantae; Streptophyta; Streptophytina; Embryophyta; Tracheophyta; Euphyllophyta; Spermatophyta; Magnoliophyta; Mesangiospermae; eudicotyledons; Gunneridae; Pentapetalae; rosids; malvids; Brassicales; Brassicaceae; Camelineae; Arabidopsis',
+                          u'meh/3702_taxon', u'Eukaryota', 11))
         self.assertEqual(self.genome_interface.retrieve_taxon("meh", "Escherichia coli"),
                          (u'cellular organisms; Bacteria; Proteobacteria; Gammaproteobacteria; Enterobacterales; Enterobacteriaceae; Escherichia',
                           u'meh/562_taxon', u'Bacteria', 11))
-        print(self.genome_interface.old_retrieve_taxon("meh", "Escherichia coli"))
         self.assertEqual(self.genome_interface.retrieve_taxon("meh", "rhodobacter"),
                          ('Unconfirmed Organism: rhodobacter',
                           'ReferenceTaxons/unknown_taxon', 'Unknown', 11)
@@ -60,3 +62,4 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertEqual(self.genome_interface.retrieve_taxon("meh", "foo"),
                          ('Unconfirmed Organism: foo',
                           'ReferenceTaxons/unknown_taxon', 'Unknown', 11))
+

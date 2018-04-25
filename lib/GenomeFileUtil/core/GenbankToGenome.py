@@ -302,7 +302,7 @@ class GenbankToGenome:
         genome['publications'] = list(genome['publications'])
 
         if len(genome['cdss']) and (self.defects['cds_seq_not_matching'] /
-                                    float(len(genome['cdss'])) > 0.0):
+                                    float(len(genome['cdss'])) > 0.02):
             self.genome_warnings.append(warnings["genome_inc_translation"].format(
                 self.defects['cds_seq_not_matching'], len(genome['cdss'])))
             self.genome_suspect = 1
