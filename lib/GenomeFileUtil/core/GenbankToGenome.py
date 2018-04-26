@@ -476,12 +476,13 @@ class GenbankToGenome:
             strand_trans = ("", "+", "-")
             loc = []
             for part in feat.location.parts:
+                contig_id = part.ref if part.ref else record.id
                 if part.strand >= 0:
                     begin = int(part.start) + 1
                 else:
                     begin = int(part.end)
                 loc.append((
-                        record.id,
+                        contig_id,
                         begin,
                         strand_trans[part.strand],
                         len(part)))

@@ -124,9 +124,10 @@ class GenomeFile:
         for feat in genome_object.get('non_coding_features', []):
             self.features_by_contig[feat['location'][0][0]].append(feat)
 
-        assembly_file_path = self._get_assembly(genome_object)
-        for contig in SeqIO.parse(open(assembly_file_path), 'fasta',
-                                  Alphabet.generic_dna):
+        assembly_file_path, circ_contigs = self._get_assembly(genome_object)
+        for contig in SeqIO.parse(open(assembly_file_path), 'fasta', Alphabet.generic_dna):
+            if contig.id in circ_contigs:
+                contig.annotations['topology'] = "circular"
             self._parse_contig(contig)
 
     def _get_assembly(self, genome):
@@ -136,11 +137,17 @@ class GenomeFile:
             assembly_ref = genome['contigset_ref']
         print('Assembly reference = ' + assembly_ref)
         print('Downloading assembly')
+        dfu = DataFileUtil(self.cfg.callbackURL)
+        assembly_data = dfu.get_objects({
+            'object_refs': [assembly_ref]
+        })['data'][0]['data']
+        circular_contigs = set([x['contig_id'] for x in assembly_data['contigs'].values()
+                                if x.get('is_circ')])
         au = AssemblyUtil(self.cfg.callbackURL)
         assembly_file_path = au.get_assembly_as_fasta(
             {'ref': assembly_ref}
         )['path']
-        return assembly_file_path
+        return assembly_file_path, circular_contigs
 
     def _parse_contig(self, raw_contig):
         def feature_sort(feat):
@@ -154,14 +161,14 @@ class GenomeFile:
 
         go = self.genome_object  # I'm lazy
         raw_contig.dbxrefs = self.genome_object.get('aliases', [])
-        raw_contig.annotations = {
+        raw_contig.annotations.update({
             "comment": go.get('notes', ""),
             "source": "KBase_" + go.get('source', ""),
             "taxonomy": go.get('taxonomy', "").split("; "),
             "organism": go.get('scientific_name', ""),
             "date": time.strftime("%d-%b-%Y",
                                   time.localtime(time.time())).upper()
-        }
+        })
         if not self.seq_records:  # Only on the first contig
             raw_contig.annotations['references'] = self._format_publications()
             print("Added {} references".format(
@@ -198,9 +205,9 @@ class GenomeFile:
     def _format_feature(self, in_feature):
         def _trans_loc(loc):
             if loc[2] == "-":
-                return SeqFeature.FeatureLocation(loc[1]-loc[3], loc[1], -1)
+                return SeqFeature.FeatureLocation(loc[1]-loc[3], loc[1], -1, loc[0])
             else:
-                return SeqFeature.FeatureLocation(loc[1]-1, loc[1]+loc[3]-1, 1)
+                return SeqFeature.FeatureLocation(loc[1]-1, loc[1]+loc[3]-1, 1, loc[0])
 
         # we have to do it this way to correctly make a "CompoundLocation"
         location = _trans_loc(in_feature['location'].pop(0))

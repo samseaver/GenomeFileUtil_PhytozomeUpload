@@ -1,9 +1,6 @@
-import unittest
-import time
 import os
-import shutil
-import json
-import sys
+import time
+import unittest
 
 try:
     from ConfigParser import ConfigParser  # py2
@@ -14,7 +11,6 @@ from Workspace.WorkspaceClient import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from DataFileUtil.DataFileUtilClient import DataFileUtil
-from pprint import pprint
 
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -123,23 +119,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                             'The coordinates supplied for this feature are non-exact. DNA or protein translations are approximate.']
                 if "warnings" in orig_feature and "warnings" not in new_feature:
                     del(orig_feature["warnings"])
-####################
-#THESE ARE TEMPORARY TO FIND OTHER ISSUES:
-#I Suggest keeping these in there as they may be useful for future failures.
-#                if feature_list_name == "features":
-#                    if 'protein_translation' in orig_feature:
-#                        del orig_feature['protein_translation']
-#                        del new_feature['protein_translation']
-#                if 'protein_translation_length' in orig_feature:
-#                    del orig_feature['protein_translation_length']
-#                    del new_feature['protein_translation_length']
-#                if 'protein_md5' in orig_feature:
-#                    del orig_feature['protein_md5']
-#                    del new_feature['protein_md5']                
-#                if 'functions' in orig_feature:
-#                    del orig_feature['functions']
-#                    del new_feature['functions']                
-##################
+
                 if orig_feature == new_feature:
                     second_pass_matches += 1
                 else:
