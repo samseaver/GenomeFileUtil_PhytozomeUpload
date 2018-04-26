@@ -15,9 +15,9 @@ from pprint import pprint
 from Workspace.WorkspaceClient import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
-
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
+from GenomeAnnotationAPI.GenomeAnnotationAPIClient import GenomeAnnotationAPI
 
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -43,6 +43,7 @@ class GenomeFileUtilTest(unittest.TestCase):
             cls.cfg[nameval[0]] = nameval[1]
         cls.wsURL = cls.cfg['workspace-url']
         cls.ws = workspaceService(cls.wsURL, token=token)
+        cls.gaa = GenomeAnnotationAPI(os.environ['SDK_CALLBACK_URL'])
         cls.serviceImpl = GenomeFileUtil(cls.cfg)
 
         # create one WS for all tests
@@ -50,10 +51,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         wsName = "test_GenomeAnnotationAPI_" + str(suffix)
         ret = cls.ws.create_workspace({'workspace': wsName})
         cls.wsName = wsName
-
-        
-
-       
 
     @classmethod
     def tearDownClass(cls):
@@ -80,7 +77,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         return self.__class__.ctx
 
 
-    def load_genome_direct(self, filename, assembly_filename, obj_name):
+    def load_genome_direct(self, filename, assembly_filename, obj_name, old=False):
         au = AssemblyUtil(os.environ['SDK_CALLBACK_URL'])
         assembly_ref = au.save_assembly_from_fasta({
             'workspace_name': self.getWsName(),
@@ -93,47 +90,14 @@ class GenomeFileUtilTest(unittest.TestCase):
             data_str = file.read()
         data = json.loads(data_str)
         data['assembly_ref'] = assembly_ref
-        # save to ws
         save_info = {
-                'workspace': self.getWsName(),
-                'objects': [{
-                    'type': 'KBaseGenomes.Genome',
-                    'data': data,
-                    'name': obj_name + '.genome'
-                }]
-            }
-        result = self.ws.save_objects(save_info)
-        info = result[0]
+            'workspace': self.getWsName(),
+            'data': data,
+            'name': obj_name + '.genome'
+        }
+        info = self.gaa.save_one_genome_v1(save_info)['info']
         ref = str(info[6]) + '/' + str(info[0]) + '/' + str(info[4])
         print('created test genome: ' + ref + ' from file ' + filename)
-        return ref
-
-    def load_genome_with_cache(self, filename, gbff_cache_filename):
-        """ cache filename needs to in scratch space """
-        with open(filename, 'r') as file:
-            data_str = file.read()
-        data = json.loads(data_str)
-        # save to ws
-        save_info = {
-                'workspace': self.getWsName(),
-                'objects': [{
-                    'type': 'KBaseGenomes.Genome',
-                    'data': data,
-                    'name': 'e_coli'
-                }]
-            }
-        dfu = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
-        shock_file = dfu.file_to_shock({
-                            'file_path': gbff_cache_filename,
-                            'make_handle': 1
-                        })
-        data['genbank_handle_ref'] = shock_file['handle']['hid']
-        # save to ws
-        save_info['objects'][0]['name'] = 'e_coli_with_genbank'
-        result = self.ws.save_objects(save_info)
-        info = result[0]
-        ref = str(info[6]) + '/' + str(info[0]) + '/' + str(info[4])
-        print('created test genome with gbff cache: ' + ref + ' from file ' + filename)
         return ref
 
     def test_simple_genbank_download(self):

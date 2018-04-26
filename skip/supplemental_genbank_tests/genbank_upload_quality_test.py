@@ -82,7 +82,7 @@ class GenomeFileUtilTest(unittest.TestCase):
             has_genome_tiers = True
             for tier in genome["genome_tiers"]:
                 if tier == "Reference":
-                    has_representative = True
+                    has_reference = True
                 if tier == "ExternalDB" :
                     has_external_db = True
         self.assertTrue(genome.get("source") == "RefSeq", "Source is not RefSeq : " + str(genome.get("source")))
@@ -133,7 +133,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         found_synonyms = False
         for feature in genome["features"]:
             if feature['id'] == "b0618":
-#                print "Found b0618"
                 for alias_tuple in feature["aliases"]:
                     if alias_tuple[0] == "gene_synonym":
                         found_synonyms = True
@@ -173,7 +172,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         print "FEATURES WITH FUNCTIONS COUNT: " + str(features_with_functions_count)
         print "FEATURES WITHOUT FUNCTIONS COUNT: " + str(features_without_functions_count)
         self.assertTrue(empty_function_count == 0, str(empty_function_count) + " features had empty functions.")     
-        self.assertTrue(found_function_count > 0, "No features had functions.")    
+        self.assertTrue(features_with_functions_count > 0, "No features had functions.")
 
     def test_getting_all_go_ontologies(self):
         genome = self.__class__.genome    
@@ -202,7 +201,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         found_warning_count = 0
         features_with_warnings_count = 0
         features_without_warnings_count = 0
-        list_names = ["features","cdss","mrnas","non_coding_features"]
+        list_names = ["features", "cdss", "mrnas", "non_coding_features"]
         for list_name in list_names:
             if list_name in genome:
                 for feature in genome[list_name]:
@@ -220,7 +219,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         print "FEATURES WITH WARNINGS COUNT: " + str(features_with_warnings_count)
         print "FEATURES WITHOUT WARNINGS COUNT: " + str(features_without_warnings_count)
         self.assertTrue(empty_warning_count == 0, str(empty_warning_count) + " features had empty warnings.")     
-        self.assertTrue(found_warning_count > 0, "No features had warnings.")
+        self.assertTrue(features_with_warnings_count > 0, "No features had warnings.")
 
 #    def test_no_empty_mRNAs(self):
 #        genome = self.__class__.genome

@@ -88,7 +88,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                     has_external_db = True
         self.assertTrue(genome.get("source") == "RefSeq", "Source is not RefSeq : " + str(genome.get("source")))
         self.assertTrue(has_genome_tiers, "Does not have Genome Tiers")
-        self.assertTrue(len(genome["genome_tier"]) == 1, "Should only have 1 tier in it.")
+        self.assertTrue(len(genome["genome_tiers"]) == 1, "Should only have 1 tier in it.")
         self.assertTrue(has_external_db, "Does not have ExternalDB Genome Tier")    
 
     def test_for_alias_colon(self):

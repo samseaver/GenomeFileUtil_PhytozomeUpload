@@ -247,7 +247,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         genome_info = result['genome_info']
         self.assertEquals(genome_info[10]['Number of Protein Encoding Genes'], '1028')
         self.assertEquals(genome_info[10]['Domain'], 'Eukaryota')
-        self.assertEquals(genome_info[10]['Genetic code'], '1')
+        self.assertEquals(genome_info[10]['Genetic code'], '11')
         self.assertEquals(genome_info[10]['Name'], 'Populus trichocarpa')
         self.assertEquals(genome_info[10]['Source'], 'Genbank')
         self.assertTrue('GC content' in genome_info[10])
