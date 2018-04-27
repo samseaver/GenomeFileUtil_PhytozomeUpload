@@ -52,6 +52,16 @@ class GenomeFileUtilTest(unittest.TestCase):
         ret = cls.ws.create_workspace({'workspace': wsName})
         cls.wsName = wsName
 
+        cls.ara_ref = cls.serviceImpl.genbank_to_genome(
+            cls.ctx,
+            {
+                'file': {
+                    'path': 'data/Arabidopsis_gbff/A_thaliana_Ensembl_TAIR10_38_chr4_minus_xref.gbff'},
+                'workspace_name': cls.wsName,
+                'genome_name': "arab",
+                'source': 'Ensembl',
+            })[0]['genome_ref']
+
         # preload with reference data
         data = json.load(open('data/rhodobacter.json'))
         # save to ws
@@ -182,3 +192,19 @@ class GenomeFileUtilTest(unittest.TestCase):
         res = genomeFileUtil.export_genome_as_gff(
             self.getContext(), {'input_ref': self.ecoli_ref})[0]
         assert 'shock_id' in res
+
+    def test_ara_gff_download(self):
+        # fetch the test files and set things up
+        genomeFileUtil = self.getImpl()
+        print('testing GFF download by building the file')
+        res = genomeFileUtil.genome_to_gff(
+            self.getContext(), {'genome_ref': self.ara_ref})[0]
+        self.assertEqual(res['from_cache'], 0)
+
+    def test_ara_gtf_download(self):
+        # fetch the test files and set things up
+        genomeFileUtil = self.getImpl()
+        print('testing GTF download by building the file')
+        res = genomeFileUtil.genome_to_gff(
+            self.getContext(), {'genome_ref': self.ara_ref, 'is_gtf': 1})[0]
+        self.assertEqual(res['from_cache'], 0)

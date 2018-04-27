@@ -148,12 +148,13 @@ class GenomeToGFF:
 
     def make_feature_group(self, feature, is_gtf):
         # RNA types make exons if they have compound locations
-        if feature['type'] in {'RNA', 'mRNA', 'transcript'}:
+        if feature['type'] in {'RNA', 'mRNA', 'tRNA', 'rRNA', 'misc_RNA', 'transcript'}:
             loc = self.get_common_location(feature['location'])
             lines = [self.make_feature(loc, feature, is_gtf)]
             for i, loc in enumerate(feature['location']):
                 exon = {'id': "{}_exon_{}".format(feature['id'], i + 1),
-                        'parent_gene': feature['id']}
+                        'parent_gene': feature.get('parent_gene', ""),
+                        'parent_mrna': feature['id']}
                 lines.append(self.make_feature(loc, exon, is_gtf))
         # other types duplicate the feature
         else:
@@ -170,8 +171,6 @@ class GenomeToGFF:
                 lines += self.make_feature_group(self.child_dict[cds_id], is_gtf)
         # if this is a mrna with a child CDS, make it here
         elif feature.get('cds', False):
-            # the parent of CDS should be the mrna if present so we force this
-            self.child_dict[feature['cds']]['parent_gene'] = feature['id']
             lines += self.make_feature_group(self.child_dict[feature['cds']], is_gtf)
 
         return lines
@@ -203,12 +202,8 @@ class GenomeToGFF:
         if feature.get('type') == 'gene':
             return 'gene_id "{}"; transcript_id ""'.format(feature['id'])
 
-        if feature.get('parent_gene'):
-            p_gene = feature['parent_gene']
-            self.transcript_counter[p_gene] += 1
-            if "parent_mrna" not in feature:
-                return 'gene_id "{}"; transcript_id "{}_{}"'.format(
-                    p_gene, p_gene, self.transcript_counter[p_gene])
+        if "parent" in feature:
+            feature['parent_gene'] = feature['parent']
 
         return 'gene_id "{}"; transcript_id "{}"'.format(
             feature.get('parent_gene', feature['id']),
@@ -221,7 +216,10 @@ class GenomeToGFF:
             return '{}={}'.format(key, urllib.quote(val, " /:"))
 
         # don't add an attribute that could be 0 without refactor
-        attr_keys = (('id', 'ID'), ('parent_gene', 'Parent'), ('note', 'note'))
+        for key in ('parent_gene', 'parent_mrna'):
+            if key in feature:
+                feature['parent'] = feature[key]
+        attr_keys = (('id', 'ID'), ('parent', 'Parent'), ('note', 'note'))
         attrs = [_one_attr(pair[1], feature[pair[0]])
                  for pair in attr_keys if feature.get(pair[0])]
         attrs.extend([_one_attr('db_xref', '{}:{}'.format(*x))
