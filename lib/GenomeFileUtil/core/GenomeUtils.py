@@ -19,8 +19,8 @@ warnings = {
     "mrna_excluded": "SUSPECT: mRNA from {} was excluded because the associated "
                      "mRNA failed coordinates validation",
     "no_spoof": "Some CDS features in the file do not have a parent gene. "
-                "Either fix the source file or select the "
-                "'generate_missing_genes' option.",
+                "Ensure the correct file source is selected, correct the source file "
+                "or select the 'generate_missing_genes' option.",
     "spoofed_gene": "This gene was not in the source GenBank file. It was "
                     "added to be the parent of the CDS {}.",
     "spoofed_genome": "SUSPECT: This genome has {} genes that needed to be "

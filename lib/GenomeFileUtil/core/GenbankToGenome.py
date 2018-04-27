@@ -726,6 +726,7 @@ class GenbankToGenome:
                 genes[_id]['cdss'].append(out_feat['id'])
                 out_feat['parent_gene'] = _id
         else:
+            print("Expected gene id: {}".format(_id))
             raise ValueError(warnings['no_spoof'])
 
         mrna_id = out_feat["id"].replace('CDS', 'mRNA')
