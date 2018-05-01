@@ -103,8 +103,8 @@ class GenomeFileUtilTest(unittest.TestCase):
 
         if "features" in genome:
             for feature in genome["features"]:
-                print "Spoof GFF Feature ID : " + str(feature["id"])
-                if feature['id'] == "Ga0123678_11.3":
+                #print "Spoof GFF Feature ID : " + str(feature["id"])
+                if feature['id'] == "Ga0123678_11.3_gene":
                     found_spoofed_gene = True
                     if warnings['spoofed_gene'] in feature.get("warnings", []):
                         found_spoofed_gene_warning = True
@@ -116,7 +116,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                     self.assertEqual(temp_location[3], 627)  # first chunk
         if "cdss" in genome:
             for feature in genome["cdss"]:
-                if feature['id'] == "Ga0123678_11.3_CDS_1":
+                #print "CDS GFF Feature ID : " + str(feature["id"])
+                if feature['id'] == "Ga0123678_11.3":
                     found_cds = True
                     if feature["parent_gene"] == "Ga0123678_11.3":
                         found_cds_gene = True
@@ -125,6 +126,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                 suspect_genome = True
         if warnings['spoofed_genome'].format(1) in genome.get("warnings", []):
             found_genome_warning = True
+        print "GENE LENGTH: " + str(len(genome["features"]))
+        print "CDS LENGTH: " + str(len(genome["cdss"]))
         self.assertTrue(found_cds,"The CDS was not found.")
         self.assertTrue(found_spoofed_gene,"The gene did not get spoofed.")
         self.assertTrue(found_spoofed_gene_warning,"The gene warning was not present.")
