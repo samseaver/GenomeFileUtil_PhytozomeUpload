@@ -54,6 +54,7 @@ class FastaGFFToGenome:
         self.skip_types = ('exon', 'five_prime_UTR', 'three_prime_UTR',
                            'start_codon', 'stop_codon', 'region', 'chromosome', 'scaffold')
         self.aliases = ()
+        self.spoof_gene_count = 0
         self.is_phytozome = False
         self.strict = True
         self.generate_genes = False
@@ -168,6 +169,11 @@ class FastaGFFToGenome:
                                        input_gff_file, molecule_type)
         genome['release'] = release
         genome['type'] = genome_type
+        #print "GENOME LEVEL SPOOF COUNT: " + str(self.spoof_gene_count)
+        if self.spoof_gene_count > 0:
+            genome['warnings'] = genome.get('warnings', []) + \
+                                    [warnings['spoofed_genome'].format(self.spoof_gene_count)]
+            genome['suspect'] = 1
 
         return genome
 
@@ -741,8 +747,11 @@ class FastaGFFToGenome:
                 spoof['type'] = 'gene'
                 spoof['id'] = cds['id']+"_gene"
                 spoof['cdss'] = [cds['id']]
+                spoof['warnings'] = [warnings['spoofed_gene'].format(cds['id'])]
                 self.feature_dict[spoof['id']] = spoof
                 cds['parent_gene'] = spoof['id']
+                self.spoof_gene_count += 1
+#                print "Process LEVEL SPOOF COUNT: " + str(self.spoof_gene_count)
             else:
                 raise ValueError(warnings['no_spoof'])
 

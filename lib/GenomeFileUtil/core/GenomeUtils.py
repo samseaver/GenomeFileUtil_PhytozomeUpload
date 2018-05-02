@@ -21,7 +21,7 @@ warnings = {
     "no_spoof": "Some CDS features in the file do not have a parent gene. "
                 "Ensure the correct file source is selected, correct the source file "
                 "or select the 'generate_missing_genes' option.",
-    "spoofed_gene": "This gene was not in the source GenBank file. It was "
+    "spoofed_gene": "This gene was not in the source GenBank or GFF file. It was "
                     "added to be the parent of the CDS {}.",
     "spoofed_genome": "SUSPECT: This genome has {} genes that needed to be "
                       "spoofed for existing parentless CDS.",

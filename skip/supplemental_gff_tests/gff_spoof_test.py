@@ -103,29 +103,30 @@ class GenomeFileUtilTest(unittest.TestCase):
 
         if "features" in genome:
             for feature in genome["features"]:
-                #print "Spoof GFF Feature ID : " + str(feature["id"])
                 if feature['id'] == "Ga0123678_11.3_gene":
+                    print "Spoof GFF Feature ID : " + str(feature)
                     found_spoofed_gene = True
-                    if warnings['spoofed_gene'] in feature.get("warnings", []):
+                    if warnings['spoofed_gene'].format("Ga0123678_11.3") in feature.get("warnings", []):
                         found_spoofed_gene_warning = True
                     if "cdss" in feature:
-                        if feature["cdss"][0] == "Ga0123678_11.3_CDS_1":
+                        if feature["cdss"][0] == "Ga0123678_11.3":
                             found_gene_cds = True
                     temp_location = feature['location'][0]
                     self.assertEqual(temp_location[1], 1020)
                     self.assertEqual(temp_location[3], 627)  # first chunk
         if "cdss" in genome:
             for feature in genome["cdss"]:
-                #print "CDS GFF Feature ID : " + str(feature["id"])
                 if feature['id'] == "Ga0123678_11.3":
+                    print "CDS GFF Feature ID : " + str(feature)
                     found_cds = True
-                    if feature["parent_gene"] == "Ga0123678_11.3":
+                    if feature["parent_gene"] == "Ga0123678_11.3_gene":
                         found_cds_gene = True
         if "suspect" in genome:
             if int(genome["suspect"]) == 1:
                 suspect_genome = True
-        if warnings['spoofed_genome'].format(1) in genome.get("warnings", []):
+        if warnings['spoofed_genome'].format(len(genome['cdss'])) in genome.get("warnings", []):
             found_genome_warning = True
+        print "GENOME WARNINGS : " + str(genome.get("warnings", []))
         print "GENE LENGTH: " + str(len(genome["features"]))
         print "CDS LENGTH: " + str(len(genome["cdss"]))
         self.assertTrue(found_cds,"The CDS was not found.")
