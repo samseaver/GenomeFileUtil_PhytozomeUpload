@@ -452,7 +452,7 @@ class GenbankToGenome:
             """Assign a id to a feature based on the first tag that exists"""
             _id = ""
             if not tags:
-                tags = ['locus_tag', 'gene', 'kbase_id']
+                tags = ['locus_tag', 'kbase_id']
             for t in tags:
                 _id = feat.qualifiers.get(t, [""])[0]
                 if _id:
