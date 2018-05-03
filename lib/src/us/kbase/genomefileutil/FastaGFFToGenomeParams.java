@@ -24,7 +24,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *       per example Ensembl has numbered releases of all their data: Release 31
  * genetic_code - Genetic code of organism. Overwrites determined GC from 
  *       taxon object
- * type - Reference, Representative or User upload
  * generate_missing_genes - If the file has CDS or mRNA with no corresponding
  *     gene, generate a spoofed gene. Off by default
  * </pre>
@@ -42,7 +41,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "taxon_reference",
     "release",
     "genetic_code",
-    "type",
     "scientific_name",
     "metadata",
     "generate_missing_genes"
@@ -77,8 +75,6 @@ public class FastaGFFToGenomeParams {
     private java.lang.String release;
     @JsonProperty("genetic_code")
     private Long geneticCode;
-    @JsonProperty("type")
-    private java.lang.String type;
     @JsonProperty("scientific_name")
     private java.lang.String scientificName;
     @JsonProperty("metadata")
@@ -242,21 +238,6 @@ public class FastaGFFToGenomeParams {
         return this;
     }
 
-    @JsonProperty("type")
-    public java.lang.String getType() {
-        return type;
-    }
-
-    @JsonProperty("type")
-    public void setType(java.lang.String type) {
-        this.type = type;
-    }
-
-    public FastaGFFToGenomeParams withType(java.lang.String type) {
-        this.type = type;
-        return this;
-    }
-
     @JsonProperty("scientific_name")
     public java.lang.String getScientificName() {
         return scientificName;
@@ -314,7 +295,7 @@ public class FastaGFFToGenomeParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((((((("FastaGFFToGenomeParams"+" [fastaFile=")+ fastaFile)+", gffFile=")+ gffFile)+", genomeName=")+ genomeName)+", workspaceName=")+ workspaceName)+", source=")+ source)+", taxonWsname=")+ taxonWsname)+", taxonReference=")+ taxonReference)+", release=")+ release)+", geneticCode=")+ geneticCode)+", type=")+ type)+", scientificName=")+ scientificName)+", metadata=")+ metadata)+", generateMissingGenes=")+ generateMissingGenes)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((("FastaGFFToGenomeParams"+" [fastaFile=")+ fastaFile)+", gffFile=")+ gffFile)+", genomeName=")+ genomeName)+", workspaceName=")+ workspaceName)+", source=")+ source)+", taxonWsname=")+ taxonWsname)+", taxonReference=")+ taxonReference)+", release=")+ release)+", geneticCode=")+ geneticCode)+", scientificName=")+ scientificName)+", metadata=")+ metadata)+", generateMissingGenes=")+ generateMissingGenes)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

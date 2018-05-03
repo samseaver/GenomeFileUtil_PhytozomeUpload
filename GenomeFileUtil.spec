@@ -32,7 +32,6 @@ module GenomeFileUtil {
           generate ids (default behavior is raising an exception)
     genetic_code - Genetic code of organism. Overwrites determined GC from 
           taxon object
-    type - Reference, Representative or User upload
     generate_missing_genes - If the file has CDS or mRNA with no corresponding
         gene, generate a spoofed gene.
     use_existing_assembly - Supply an existing assembly reference
@@ -51,7 +50,6 @@ module GenomeFileUtil {
         string release;
         string generate_ids_if_needed;
         int    genetic_code;
-        string type;
         usermeta metadata;
         boolean generate_missing_genes;
         string use_existing_assembly;
@@ -129,7 +127,6 @@ module GenomeFileUtil {
           per example Ensembl has numbered releases of all their data: Release 31
     genetic_code - Genetic code of organism. Overwrites determined GC from 
           taxon object
-    type - Reference, Representative or User upload
     generate_missing_genes - If the file has CDS or mRNA with no corresponding
         gene, generate a spoofed gene. Off by default
     */
@@ -145,7 +142,6 @@ module GenomeFileUtil {
         string taxon_reference;
         string release;
         int    genetic_code;
-        string type;
         string scientific_name;
         usermeta metadata;
         boolean generate_missing_genes;

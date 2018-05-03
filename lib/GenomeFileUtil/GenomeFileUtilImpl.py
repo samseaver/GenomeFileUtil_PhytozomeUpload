@@ -47,9 +47,9 @@ class GenomeFileUtil:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "0.8.2"
+    VERSION = "0.8.5"
     GIT_URL = "https://github.com/kbaseapps/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "22563d0fbd094c06372556c06207b9f9248643b6"
+    GIT_COMMIT_HASH = "58a15284e18342ee856e1fb23b041e4c6bc8c4c2"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -77,21 +77,20 @@ class GenomeFileUtil:
            generate_ids_if_needed - If field used for feature id is not
            there, generate ids (default behavior is raising an exception)
            genetic_code - Genetic code of organism. Overwrites determined GC
-           from taxon object type - Reference, Representative or User upload
-           generate_missing_genes - If the file has CDS or mRNA with no
-           corresponding gene, generate a spoofed gene. use_existing_assembly
-           - Supply an existing assembly reference) -> structure: parameter
-           "file" of type "File" -> structure: parameter "path" of String,
-           parameter "shock_id" of String, parameter "ftp_url" of String,
-           parameter "genome_name" of String, parameter "workspace_name" of
-           String, parameter "source" of String, parameter "taxon_wsname" of
-           String, parameter "taxon_reference" of String, parameter "release"
-           of String, parameter "generate_ids_if_needed" of String, parameter
-           "genetic_code" of Long, parameter "type" of String, parameter
-           "metadata" of type "usermeta" -> mapping from String to String,
-           parameter "generate_missing_genes" of type "boolean" (A boolean -
-           0 for false, 1 for true. @range (0, 1)), parameter
-           "use_existing_assembly" of String
+           from taxon object generate_missing_genes - If the file has CDS or
+           mRNA with no corresponding gene, generate a spoofed gene.
+           use_existing_assembly - Supply an existing assembly reference) ->
+           structure: parameter "file" of type "File" -> structure: parameter
+           "path" of String, parameter "shock_id" of String, parameter
+           "ftp_url" of String, parameter "genome_name" of String, parameter
+           "workspace_name" of String, parameter "source" of String,
+           parameter "taxon_wsname" of String, parameter "taxon_reference" of
+           String, parameter "release" of String, parameter
+           "generate_ids_if_needed" of String, parameter "genetic_code" of
+           Long, parameter "metadata" of type "usermeta" -> mapping from
+           String to String, parameter "generate_missing_genes" of type
+           "boolean" (A boolean - 0 for false, 1 for true. @range (0, 1)),
+           parameter "use_existing_assembly" of String
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
            "genome_ref" of String
         """
@@ -337,9 +336,8 @@ class GenomeFileUtil:
            Release or version number of the data per example Ensembl has
            numbered releases of all their data: Release 31 genetic_code -
            Genetic code of organism. Overwrites determined GC from taxon
-           object type - Reference, Representative or User upload
-           generate_missing_genes - If the file has CDS or mRNA with no
-           corresponding gene, generate a spoofed gene. Off by default) ->
+           object generate_missing_genes - If the file has CDS or mRNA with
+           no corresponding gene, generate a spoofed gene. Off by default) ->
            structure: parameter "fasta_file" of type "File" -> structure:
            parameter "path" of String, parameter "shock_id" of String,
            parameter "ftp_url" of String, parameter "gff_file" of type "File"
@@ -348,11 +346,10 @@ class GenomeFileUtil:
            String, parameter "workspace_name" of String, parameter "source"
            of String, parameter "taxon_wsname" of String, parameter
            "taxon_reference" of String, parameter "release" of String,
-           parameter "genetic_code" of Long, parameter "type" of String,
-           parameter "scientific_name" of String, parameter "metadata" of
-           type "usermeta" -> mapping from String to String, parameter
-           "generate_missing_genes" of type "boolean" (A boolean - 0 for
-           false, 1 for true. @range (0, 1))
+           parameter "genetic_code" of Long, parameter "scientific_name" of
+           String, parameter "metadata" of type "usermeta" -> mapping from
+           String to String, parameter "generate_missing_genes" of type
+           "boolean" (A boolean - 0 for false, 1 for true. @range (0, 1))
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
            "genome_ref" of String
         """
@@ -394,9 +391,8 @@ class GenomeFileUtil:
            Release or version number of the data per example Ensembl has
            numbered releases of all their data: Release 31 genetic_code -
            Genetic code of organism. Overwrites determined GC from taxon
-           object type - Reference, Representative or User upload
-           generate_missing_genes - If the file has CDS or mRNA with no
-           corresponding gene, generate a spoofed gene. Off by default) ->
+           object generate_missing_genes - If the file has CDS or mRNA with
+           no corresponding gene, generate a spoofed gene. Off by default) ->
            structure: parameter "fasta_file" of type "File" -> structure:
            parameter "path" of String, parameter "shock_id" of String,
            parameter "ftp_url" of String, parameter "gff_file" of type "File"
@@ -405,11 +401,10 @@ class GenomeFileUtil:
            String, parameter "workspace_name" of String, parameter "source"
            of String, parameter "taxon_wsname" of String, parameter
            "taxon_reference" of String, parameter "release" of String,
-           parameter "genetic_code" of Long, parameter "type" of String,
-           parameter "scientific_name" of String, parameter "metadata" of
-           type "usermeta" -> mapping from String to String, parameter
-           "generate_missing_genes" of type "boolean" (A boolean - 0 for
-           false, 1 for true. @range (0, 1))
+           parameter "genetic_code" of Long, parameter "scientific_name" of
+           String, parameter "metadata" of type "usermeta" -> mapping from
+           String to String, parameter "generate_missing_genes" of type
+           "boolean" (A boolean - 0 for false, 1 for true. @range (0, 1))
         :returns: instance of unspecified object
         """
         # ctx is the context object

@@ -26,7 +26,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *       generate ids (default behavior is raising an exception)
  * genetic_code - Genetic code of organism. Overwrites determined GC from 
  *       taxon object
- * type - Reference, Representative or User upload
  * generate_missing_genes - If the file has CDS or mRNA with no corresponding
  *     gene, generate a spoofed gene.
  * use_existing_assembly - Supply an existing assembly reference
@@ -45,7 +44,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "release",
     "generate_ids_if_needed",
     "genetic_code",
-    "type",
     "metadata",
     "generate_missing_genes",
     "use_existing_assembly"
@@ -75,8 +73,6 @@ public class GenbankToGenomeParams {
     private java.lang.String generateIdsIfNeeded;
     @JsonProperty("genetic_code")
     private Long geneticCode;
-    @JsonProperty("type")
-    private java.lang.String type;
     @JsonProperty("metadata")
     private Map<String, String> metadata;
     @JsonProperty("generate_missing_genes")
@@ -230,21 +226,6 @@ public class GenbankToGenomeParams {
         return this;
     }
 
-    @JsonProperty("type")
-    public java.lang.String getType() {
-        return type;
-    }
-
-    @JsonProperty("type")
-    public void setType(java.lang.String type) {
-        this.type = type;
-    }
-
-    public GenbankToGenomeParams withType(java.lang.String type) {
-        this.type = type;
-        return this;
-    }
-
     @JsonProperty("metadata")
     public Map<String, String> getMetadata() {
         return metadata;
@@ -302,7 +283,7 @@ public class GenbankToGenomeParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((((((("GenbankToGenomeParams"+" [file=")+ file)+", genomeName=")+ genomeName)+", workspaceName=")+ workspaceName)+", source=")+ source)+", taxonWsname=")+ taxonWsname)+", taxonReference=")+ taxonReference)+", release=")+ release)+", generateIdsIfNeeded=")+ generateIdsIfNeeded)+", geneticCode=")+ geneticCode)+", type=")+ type)+", metadata=")+ metadata)+", generateMissingGenes=")+ generateMissingGenes)+", useExistingAssembly=")+ useExistingAssembly)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((("GenbankToGenomeParams"+" [file=")+ file)+", genomeName=")+ genomeName)+", workspaceName=")+ workspaceName)+", source=")+ source)+", taxonWsname=")+ taxonWsname)+", taxonReference=")+ taxonReference)+", release=")+ release)+", generateIdsIfNeeded=")+ generateIdsIfNeeded)+", geneticCode=")+ geneticCode)+", metadata=")+ metadata)+", generateMissingGenes=")+ generateMissingGenes)+", useExistingAssembly=")+ useExistingAssembly)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

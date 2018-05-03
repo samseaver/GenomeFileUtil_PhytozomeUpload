@@ -131,7 +131,6 @@ GenbankToGenomeParams is a reference to a hash where the following keys are defi
 	release has a value which is a string
 	generate_ids_if_needed has a value which is a string
 	genetic_code has a value which is an int
-	type has a value which is a string
 	metadata has a value which is a GenomeFileUtil.usermeta
 	generate_missing_genes has a value which is a GenomeFileUtil.boolean
 	use_existing_assembly has a value which is a string
@@ -162,7 +161,6 @@ GenbankToGenomeParams is a reference to a hash where the following keys are defi
 	release has a value which is a string
 	generate_ids_if_needed has a value which is a string
 	genetic_code has a value which is an int
-	type has a value which is a string
 	metadata has a value which is a GenomeFileUtil.usermeta
 	generate_missing_genes has a value which is a GenomeFileUtil.boolean
 	use_existing_assembly has a value which is a string
@@ -649,7 +647,6 @@ FastaGFFToGenomeParams is a reference to a hash where the following keys are def
 	taxon_reference has a value which is a string
 	release has a value which is a string
 	genetic_code has a value which is an int
-	type has a value which is a string
 	scientific_name has a value which is a string
 	metadata has a value which is a GenomeFileUtil.usermeta
 	generate_missing_genes has a value which is a GenomeFileUtil.boolean
@@ -680,7 +677,6 @@ FastaGFFToGenomeParams is a reference to a hash where the following keys are def
 	taxon_reference has a value which is a string
 	release has a value which is a string
 	genetic_code has a value which is an int
-	type has a value which is a string
 	scientific_name has a value which is a string
 	metadata has a value which is a GenomeFileUtil.usermeta
 	generate_missing_genes has a value which is a GenomeFileUtil.boolean
@@ -775,7 +771,6 @@ FastaGFFToGenomeParams is a reference to a hash where the following keys are def
 	taxon_reference has a value which is a string
 	release has a value which is a string
 	genetic_code has a value which is an int
-	type has a value which is a string
 	scientific_name has a value which is a string
 	metadata has a value which is a GenomeFileUtil.usermeta
 	generate_missing_genes has a value which is a GenomeFileUtil.boolean
@@ -804,7 +799,6 @@ FastaGFFToGenomeParams is a reference to a hash where the following keys are def
 	taxon_reference has a value which is a string
 	release has a value which is a string
 	genetic_code has a value which is an int
-	type has a value which is a string
 	scientific_name has a value which is a string
 	metadata has a value which is a GenomeFileUtil.usermeta
 	generate_missing_genes has a value which is a GenomeFileUtil.boolean
@@ -1529,7 +1523,6 @@ generate_ids_if_needed - If field used for feature id is not there,
       generate ids (default behavior is raising an exception)
 genetic_code - Genetic code of organism. Overwrites determined GC from 
       taxon object
-type - Reference, Representative or User upload
 generate_missing_genes - If the file has CDS or mRNA with no corresponding
     gene, generate a spoofed gene.
 use_existing_assembly - Supply an existing assembly reference
@@ -1550,7 +1543,6 @@ taxon_reference has a value which is a string
 release has a value which is a string
 generate_ids_if_needed has a value which is a string
 genetic_code has a value which is an int
-type has a value which is a string
 metadata has a value which is a GenomeFileUtil.usermeta
 generate_missing_genes has a value which is a GenomeFileUtil.boolean
 use_existing_assembly has a value which is a string
@@ -1571,7 +1563,6 @@ taxon_reference has a value which is a string
 release has a value which is a string
 generate_ids_if_needed has a value which is a string
 genetic_code has a value which is an int
-type has a value which is a string
 metadata has a value which is a GenomeFileUtil.usermeta
 generate_missing_genes has a value which is a GenomeFileUtil.boolean
 use_existing_assembly has a value which is a string
@@ -1848,7 +1839,6 @@ release - Release or version number of the data
       per example Ensembl has numbered releases of all their data: Release 31
 genetic_code - Genetic code of organism. Overwrites determined GC from 
       taxon object
-type - Reference, Representative or User upload
 generate_missing_genes - If the file has CDS or mRNA with no corresponding
     gene, generate a spoofed gene. Off by default
 
@@ -1868,7 +1858,6 @@ taxon_wsname has a value which is a string
 taxon_reference has a value which is a string
 release has a value which is a string
 genetic_code has a value which is an int
-type has a value which is a string
 scientific_name has a value which is a string
 metadata has a value which is a GenomeFileUtil.usermeta
 generate_missing_genes has a value which is a GenomeFileUtil.boolean
@@ -1889,7 +1878,6 @@ taxon_wsname has a value which is a string
 taxon_reference has a value which is a string
 release has a value which is a string
 genetic_code has a value which is an int
-type has a value which is a string
 scientific_name has a value which is a string
 metadata has a value which is a GenomeFileUtil.usermeta
 generate_missing_genes has a value which is a GenomeFileUtil.boolean
