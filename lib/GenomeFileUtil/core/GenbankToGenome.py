@@ -466,7 +466,8 @@ class GenbankToGenome:
                                          "file or rerun with generate_ids"
                                          .format(", ".join(tags)))
                     _id = "gene_{}".format(len(genes)+1)
-                if 'RNA' in feat.type or feat.type == 'CDS':
+                if 'rna' in feat.type.lower() or feat.type in {'CDS', 'sig_peptide',
+                                                               'five_prime_UTR', 'three_prime_UTR'}:
                     _id = "gene_{}".format(len(genes))
 
             return _id
