@@ -86,10 +86,26 @@ class GenomeFileUtilTest(unittest.TestCase):
               'file': {'path': gbk_path},
               'workspace_name': self.getWsName(),
               'genome_name': ws_obj_name,
-              'generate_ids_if_needed': 0
+              'generate_ids_if_needed': 1
             })[0]
         self.assertTrue(int(
             result['genome_info'][10]['Number of Protein Encoding Genes']) > 0)
+
+    def test_unable_to_find_locus_tag(self):
+        gbk_path = "data/drosophila/small_test.tar.gz"
+        ws_obj_name = 'DrosophilaGenome.1'
+        with self.assertRaisesRegexp(
+                        ValueError, 
+                        "Unable to find a valid id for genes among these tags: locus_tag," + \
+                        " kbase_id. Correct the file or rerun with generate_ids"):
+            self.getImpl().genbank_to_genome(
+                self.getContext(),
+                {
+                    'file': {'path': gbk_path},
+                    'workspace_name': self.getWsName(),
+                    'genome_name': ws_obj_name,
+                    'generate_ids_if_needed': 0
+            })
 
     def test_feature_id_duplication_bug(self):
         gbk_path = "data/duplication.gbff"
