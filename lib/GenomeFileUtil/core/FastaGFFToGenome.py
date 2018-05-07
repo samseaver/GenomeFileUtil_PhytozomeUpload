@@ -68,7 +68,6 @@ class FastaGFFToGenome:
 
     def warn(self, message):
         self.warnings.append(message)
-        print message
 
     def generate_genome_json(self, params):
         # 1) validate parameters
@@ -114,7 +113,7 @@ class FastaGFFToGenome:
                         'types was imported: {}'\
             .format(len(genome['contig_ids']), "\n".join(
                 [k + ": " + str(v) for k, v in genome['feature_counts'].items()]))
-        print report_string
+        log(report_string)
 
         # 5) clear the temp directory
         shutil.rmtree(input_directory)
@@ -169,7 +168,6 @@ class FastaGFFToGenome:
                                        input_gff_file, molecule_type)
         genome['release'] = release
         genome['type'] = genome_type
-        #print "GENOME LEVEL SPOOF COUNT: " + str(self.spoof_gene_count)
         if self.spoof_gene_count > 0:
             genome['warnings'] = genome.get('warnings', []) + \
                                     [warnings['spoofed_genome'].format(self.spoof_gene_count)]
@@ -287,7 +285,7 @@ class FastaGFFToGenome:
 
             # extract the file if it is compressed
             if file_path is not None:
-                print("staged input file =" + file_path)
+                log("staged input file =" + file_path)
                 sys.stdout.flush()
                 dfUtil_result = self.dfu.unpack_file({'file_path': file_path})
                 file_paths[key] = dfUtil_result['file_path']
@@ -356,7 +354,8 @@ class FastaGFFToGenome:
                         key, value = attribute.split(" ", 1)
                         ftr['attributes'][key.lower()].append(parse.unquote(value.strip('"')))
                     else:
-                        log("Warning: attribute "+attribute+" cannot be separated into key,value pair")
+                        pass
+                        #log("Warning: attribute "+attribute+" cannot be separated into key,value pair")
 
                 ftr['attributes']['raw'] = attributes
                 if "id" in ftr['attributes']:
@@ -389,7 +388,7 @@ class FastaGFFToGenome:
         return feature_list
 
     def _add_missing_identifiers(self, feature_list):
-        print("Adding missing identifiers")
+        log("Adding missing identifiers")
         #General rule is to iterate through a range of possibilities if "ID" is missing
         for contig in feature_list.keys():
             for i, feat in enumerate(feature_list[contig]):
@@ -407,8 +406,8 @@ class FastaGFFToGenome:
                     if "ID" not in feature_list[contig][i]:
                         feat['ID'] = "{}_{}".format(feat['type'],
                                                     self.feature_counts[feat['type']])
-                        log("Warning: Could find unique ID to utilize in GFF attributes: {}. "
-                            "ID '{}' has been assigned".format(feat['attributes'], feat['ID']))
+                        #log("Warning: Could find unique ID to utilize in GFF attributes: {}. "
+                        #    "ID '{}' has been assigned".format(feat['attributes'], feat['ID']))
         return feature_list
 
     def _add_missing_parents(self, feature_list):
@@ -456,8 +455,8 @@ class FastaGFFToGenome:
                         break
                 if(old_id is None):
                     #This should be an error
-                    print ("Cannot find unique ID, PACid, or pacid in GFF "
-                           "attributes: " + feature_list[contig][i][contig])
+                    #log("Cannot find unique ID, PACid, or pacid in GFF "
+                    #    "attributes: " + feature_list[contig][i][contig])
                     continue
 
                 #Retain old_id
@@ -596,8 +595,8 @@ class FastaGFFToGenome:
             self.warn("Feature with invalid location for specified "
                       "contig: " + str(in_feature))
             if self.strict:
-                raise ValueError("Features must be completely contained within the Contig in the Fasta file. Feature: " +
-                    str(in_feature))
+                raise ValueError("Features must be completely contained within the Contig in the "
+                                 "Fasta file. Feature: " + str(in_feature))
             return
 
         feat_seq = contig.seq[in_feature['start']-1:in_feature['end']].upper()
@@ -751,7 +750,6 @@ class FastaGFFToGenome:
                 self.feature_dict[spoof['id']] = spoof
                 cds['parent_gene'] = spoof['id']
                 self.spoof_gene_count += 1
-#                print "Process LEVEL SPOOF COUNT: " + str(self.spoof_gene_count)
             else:
                 raise ValueError(warnings['no_spoof'])
 
