@@ -23,6 +23,9 @@ from GenomeInterface import GenomeInterface
 from GenomeUtils import is_parent, propagate_cds_props_to_gene, warnings, parse_inferences
 from Workspace.WorkspaceClient import Workspace
 
+MAX_MISC_FEATURE_SIZE = 10000
+
+
 class GenbankToGenome:
     def __init__(self, config):
         self.cfg = config
@@ -685,6 +688,9 @@ class GenbankToGenome:
 
     def process_noncodeing(self, _id, genes, in_feature, out_feat):
         out_feat["type"] = in_feature.type
+        # this prevents big misc_features from blowing up the genome size
+        if out_feat['dna_sequence_length'] > MAX_MISC_FEATURE_SIZE:
+            del out_feat['dna_sequence']
         # add increment number of each type
         if _id in genes:
             if not is_parent(genes[_id], out_feat):

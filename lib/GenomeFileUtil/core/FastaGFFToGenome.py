@@ -27,6 +27,7 @@ from Bio.Seq import Seq
 
 codon_table = CodonTable.ambiguous_generic_by_name["Standard"]
 strand_table = maketrans("1?.", "+++")
+MAX_MISC_FEATURE_SIZE = 10000
 
 
 def log(message, prefix_newline=False):
@@ -706,6 +707,9 @@ class FastaGFFToGenome:
 
         else:
             out_feat["type"] = in_feature['type']
+            # this prevents big misc_features from blowing up the genome size
+            if out_feat['dna_sequence_length'] > MAX_MISC_FEATURE_SIZE:
+                del out_feat['dna_sequence']
             if parent_id:
                 parent = self.feature_dict[parent_id]
                 if 'children' not in parent:
