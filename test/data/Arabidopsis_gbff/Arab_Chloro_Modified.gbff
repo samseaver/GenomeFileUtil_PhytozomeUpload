@@ -370,6 +370,14 @@ FEATURES             Location/Qualifiers
      misc_feature    9950^9951
                      /gene="BetweenBases"
                      /locus_tag="BetweenBases"
+     misc_feature    10000..21000
+                     /gene="long_misc_feature"
+                     /locus_tag="long_misc_feature"
+                     /note="long_misc_feature"
+     gene            10000..21000
+                     /gene="long_gene_feature"
+                     /locus_tag="long_gene_feature"
+                     /note="long_gene_feature"
      gene            complement(11529..12798)
                      /gene="atpF"
                      /locus_tag="ArthCp008"

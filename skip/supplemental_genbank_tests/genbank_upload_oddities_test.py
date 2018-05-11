@@ -633,6 +633,39 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(found_gene_upper_warning,"Did not have gene unknown upper bound warning")
         self.assertTrue(found_cds_upper_warning,"Did not have cds unknown upper bound warning")
 
+    def test_long_misc_feature(self):
+        genome = self.__class__.genome
+        found_feature = False
+        found_note = False
+        has_sequence = False
+        for feature in genome["non_coding_features"]:
+            if feature["location"][0] == ['NC_000932.1', 10000, '+', 11001] and feature["type"] == "misc_feature":
+                found_feature = True
+                if "note" in feature and feature["note"] == "long_misc_feature":
+                    found_note = True
+                if "dna_sequence" in feature:
+                    has_sequence = True
+        self.assertTrue(found_feature,"Did not find long_misc_feature")
+        self.assertTrue(found_note,"Did not find long_misc_feature note")
+        self.assertFalse(has_sequence,"Too large should not have had sequence")
+
+    def test_long_gene_feature(self):
+        genome = self.__class__.genome
+        found_feature = False
+        found_note = False
+        has_sequence = False
+        for feature in genome["non_coding_features"]:
+            if feature["location"][0] == ['NC_000932.1', 10000, '+', 11001] and feature["type"] == "gene":
+                found_feature = True
+                if "note" in feature and feature["note"] == "long_gene_feature":
+                    found_note = True
+                if "dna_sequence" in feature:
+                    has_sequence = True
+                #print "Gene feature : " + str(feature)
+        self.assertTrue(found_feature,"Did not find long_misc_feature")
+        self.assertTrue(found_note,"Did not find long_misc_feature note")
+        self.assertTrue(has_sequence,"Is a gene should have sequence")
+
 '''
 #BIOPYTHON CURRENTLY DOES NOT HANDLE THIS.
     def test_reversed_position(self):
