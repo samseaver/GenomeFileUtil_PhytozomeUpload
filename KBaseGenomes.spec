@@ -103,10 +103,10 @@ module KBaseGenomes {
 		@id shock
 	*/
     typedef string Fasta_ref;
-    
+
     typedef string Feature_type;
     typedef int Bool;
-    
+
     /* Type spec for a "Contig" subobject in the "ContigSet" object
 
 		Contig_id id - ID of contig in contigset
@@ -160,65 +160,360 @@ module KBaseGenomes {
 		Fasta_ref fasta_ref;
 		list<Contig> contigs;
     } ContigSet;
-   
-    /*
-		Type of a genome feature with possible values peg, rna
-	*/
-    typedef string feature_type;
-    /* A region of DNA is maintained as a tuple of four components:
 
-		the contig
-		the beginning position (from 1)
-		the strand
-		the length
-
-	   We often speak of "a region".  By "location", we mean a sequence
-	   of regions from the same genome (perhaps from distinct contigs).
-        */
-    typedef tuple<Contig_id contig_id,int begin, string strand,int length> region_of_dna;
     /*
-		a "location" refers to a list of regions of DNA on contigs
+    KBase genome ID
+    @id kb
     */
-    typedef list<region_of_dna> location;
-    
-    /*
-	Structure for a publication (from ER API)
-	also want to capture authors, journal name (not in ER)
-    */
-    typedef tuple<int id, string source_db, string article_title, string link, string pubdate, string authors, string journal_name> publication;
+    typedef string Genome_id;
+
+
 
     /*
-	Structure for subsystem data (from CDMI API)
-
+    ContigSet contig ID
+    @id external
     */
-    typedef tuple<string subsystem, string variant, string role> subsystem_data;
+    typedef string Contig_id;
+
+    typedef int Bool;
 
     /*
-	Structure for regulon data (from CDMI API)
-
+    Reference to a source_id
+    @id external
     */
-    typedef tuple<string regulon_id, list<Feature_id> regulon_set, list<Feature_id> tfs> regulon_data;
+    typedef string source_id;
 
     /*
-	Structure for an atomic regulon (from CDMI API)
-
+    Structure for a publication
+    (float pubmedid
+    string source (ex. Pubmed)
+    string title
+    string web address
+    string  publication year
+    string authors
+    string journal)
     */
-    typedef tuple<string atomic_regulon_id, int atomic_regulon_size> atomic_regulon;
+    typedef tuple<float pubmedid,string source,string title, string url,string year,string authors, string journal> publication;
 
     /*
-	Structure for co-occurring fids (from CDMI API)
-
+    KBase CDS ID
+    @id external
     */
-    typedef tuple<Feature_id scored_fid, float score> co_occurring_fid;
+    typedef string cds_id;
 
     /*
-	Structure for coexpressed fids (from CDMI API)
-
+    KBase Feature ID
+    @id external
     */
-    typedef tuple<Feature_id scored_fid, float score> coexpressed_fid;
-    
-   	/*
-	Structure for a protein family
+    typedef string Feature_id;
+
+    /*
+    KBase mRNA ID
+    @id external
+    */
+    typedef string mrna_id;
+
+        /*
+        category;#Maybe a controlled vocabulary
+    type;#Maybe a controlled vocabulary
+    */
+    typedef structure {
+      string category;
+      string type;
+      string evidence;
+    } InferenceInfo;
+    /*
+    Structure for a single CDS encoding “gene” of a genome
+    ONLY PUT GENES THAT HAVE A CORRESPONDING CDS IN THIS ARRAY
+
+        NOTE: Sequence is optional. Ideally we can keep it in here, but
+    Recognize due to space constraints another solution may be needed.
+        We may want to add additional fields for other CDM functions
+        (e.g., atomic regulons, coexpressed fids, co_occurring fids,...)
+
+        protein_translation_length and protein_translation are
+        for longest coded protein (representative protein for splice variants)
+
+        NOTE: New Aliases field definitely breaks compatibility.
+              As Does Function.
+
+        flags are flag fields in GenBank format. This will be a controlled vocabulary.
+        Initially Acceptable values are pseudo, ribosomal_slippage, and trans_splicing
+
+        Md5 is the md5 of dna_sequence.
+
+        @optional functions ontology_terms note protein_translation mrnas flags warnings
+        @optional inference_data dna_sequence aliases db_xrefs children functional_descriptions
+    */
+    typedef structure {
+      Feature_id id;
+      list<tuple<Contig_id,int,string,int>> location;
+      list<string> functions;
+      list<string> functional_descriptions;
+      mapping<string ontology_namespace,mapping<string ontology_id,list<int> evidence_events>> ontology_terms;
+      string note;
+      string md5;
+      string protein_translation;
+      int protein_translation_length;
+      list<string> cdss;
+      list<string> mrnas;
+      list<string> children;
+      list<string> flags;
+      list<string> warnings;
+      list <InferenceInfo> inference_data;
+      string dna_sequence;
+      int dna_sequence_length;
+      list<tuple<string fieldname,string alias>> aliases;
+      list<tuple<string db_source,string db_identifier>> db_xrefs;
+    } Feature;
+
+        /*
+          Structure for a single feature that is NOT one of the following:
+          Protein encoding gene (gene that has a corresponding CDS)
+          mRNA
+          CDS
+
+          Note pseudo-genes and Non protein encoding genes are put into this
+
+      flags are flag fields in GenBank format. This will be a controlled vocabulary.
+        Initially Acceptable values are pseudo, ribosomal_slippage, and trans_splicing
+        Md5 is the md5 of dna_sequence.
+
+        @optional functions ontology_terms note flags warnings functional_descriptions
+        @optional inference_data dna_sequence aliases db_xrefs children parent_gene
+    */
+    typedef structure {
+      Feature_id id;
+      list<tuple<Contig_id,int,string,int>> location;
+      string type;
+      list<string> functions;
+      list<string> functional_descriptions;
+      mapping<string ontology_namespace,mapping<string ontology_id,list<int> evidence_event>> ontology_terms;
+      string note;
+      string md5;
+      string parent_gene;
+      list<string> children;
+      list<string> flags;
+      list<string> warnings;
+      list <InferenceInfo> inference_data;
+      string dna_sequence;
+      int dna_sequence_length;
+      list<tuple<string fieldname,string alias>> aliases;
+      list<tuple<string db_source,string db_identifier>> db_xrefs;
+    } NonCodingFeature;
+
+
+        /*
+          Structure for a single feature CDS
+
+      flags are flag fields in GenBank format. This will be a controlled vocabulary.
+        Initially Acceptable values are pseudo, ribosomal_slippage, and trans_splicing
+        Md5 is the md5 of dna_sequence.
+
+        @optional parent_mrna functions ontology_terms note flags warnings
+        @optional inference_data dna_sequence aliases db_xrefs functional_descriptions
+    */
+    typedef structure {
+      cds_id id;
+      list<tuple<Contig_id,int,string,int>> location;
+      string md5;
+      string protein_md5;
+      Feature_id parent_gene;
+      mrna_id parent_mrna;
+      string note;
+      list<string> functions;
+      list<string> functional_descriptions;
+      mapping<string ontology_namespace,mapping<string ontology_id,list<int> evidence_events>> ontology_terms;
+             list<string> flags;
+      list<string> warnings;
+      list <InferenceInfo> inference_data;
+      string protein_translation;
+      int protein_translation_length;
+      list<tuple<string fieldname,string alias>> aliases;
+      list<tuple<string db_source,string db_identifier>> db_xrefs;
+      string dna_sequence;
+      int dna_sequence_length;
+    } CDS;
+
+
+        /*
+          Structure for a single feature mRNA
+
+      flags are flag fields in GenBank format. This will be a controlled vocabulary.
+        Initially Acceptable values are pseudo, ribosomal_slippage, and trans_splicing
+        Md5 is the md5 of dna_sequence.
+
+        @optional cds functions ontology_terms note flags warnings
+        @optional inference_data dna_sequence aliases db_xrefs functional_descriptions
+    */
+    typedef structure {
+      mrna_id id;
+      list<tuple<Contig_id,int,string,int>> location;
+      string md5;
+      Feature_id parent_gene;
+      cds_id cds;
+      string dna_sequence;
+      int dna_sequence_length;
+      string note;
+      list<string> functions;
+      list<string> functional_descriptions;
+      mapping<string ontology_namespace,mapping<string ontology_id,list<int> evidence_events>> ontology_terms;
+             list<string> flags;
+      list<string> warnings;
+      list <InferenceInfo> inference_data;
+      list<tuple<string fieldname,string alias>> aliases;
+      list<tuple<string db_source,string db_identifier>> db_xrefs;
+    } mRNA;
+
+
+    /*
+    Reference to an Assembly object in the workspace
+    @id ws KBaseGenomeAnnotations.Assembly
+    */
+    typedef string Assembly_ref;
+
+    /*
+    Reference to a taxon object
+        @id ws KBaseGenomeAnnotations.Taxon
+    */
+    typedef string Taxon_ref;
+
+    /*
+    Reference to a handle to the Genbank file on shock
+        @id handle
+    */
+    typedef string genbank_handle_ref;
+
+    /*
+    Reference to a handle to the GFF file on shock
+        @id handle
+    */
+    typedef string gff_handle_ref;
+
+    /*
+    Reference to a ontology object
+        @id ws KBaseOntology.OntologyDictionary
+    */
+    typedef string Ontology_ref;
+
+    /*
+    Reference to a report object
+        @id ws KBaseReport.Report
+    */
+    typedef string Method_report_ref;
+
+    /*
+        @optional ontology_ref method_version eco
+    */
+    typedef structure {
+        string id;
+        Ontology_ref ontology_ref;
+        string method;
+        string method_version;
+        string timestamp;
+        string eco;
+    } Ontology_event;
+
+    /*
+    Score_interpretation : fraction_complete - controlled vocabulary managed by API
+        @optional method_report_ref method_version
+    */
+    typedef structure {
+        string method;
+    Method_report_ref method_report_ref;
+        string method_version;
+        string score;
+        string score_interpretation;
+    string timestamp;
+    } GenomeQualityScore;
+
+
+    /*
+    Genome object holds much of the data relevant for a genome in KBase
+        Genome publications should be papers about the genome
+    Should the Genome object contain a list of contig_ids too?
+    Source: allowed entries RefSeq, Ensembl, Phytozome, RAST, Prokka, User_upload
+        #allowed entries RefSeq, Ensembl, Phytozome, RAST, Prokka,
+    User_upload controlled vocabulary managed by API
+
+    Domain is a controlled vocabulary
+    Warnings : mostly controlled vocab but also allow for unstructured
+    Genome_tiers : controlled vocabulary (based on ap input and API checked)
+    Allowed values: #Representative, Reference, ExternalDB, User
+
+    Examples Tiers:
+    All phytozome - Representative and ExternalDB
+    Phytozome flagship genomes - Reference, Representative and ExternalDB
+    Ensembl - Representative and ExternalDB
+    RefSeq Reference - Reference, Representative and ExternalDB
+    RefSeq Representative - Representative and ExternalDB
+    RefSeq Latest or All Assemblies folder - ExternalDB
+    User Data - User tagged
+
+    Example Sources:
+    RefSeq, Ensembl, Phytozome, Microcosm, User, RAST, Prokka, (other annotators)
+
+
+    @optional warnings contig_lengths contig_ids source_id taxonomy publications
+    @optional ontology_events ontologies_present non_coding_features mrnas
+    @optional genbank_handle_ref gff_handle_ref external_source_origination_date
+    @optional release original_source_file_name notes quality_scores suspect assembly_ref
+
+
+    @metadata ws gc_content as GC content
+        @metadata ws taxonomy as Taxonomy
+        @metadata ws md5 as MD5
+        @metadata ws dna_size as Size
+        @metadata ws genetic_code as Genetic code
+        @metadata ws domain as Domain
+        @metadata ws source_id as Source ID
+        @metadata ws source as Source
+        @metadata ws scientific_name as Name
+        @metadata ws length(features) as Number of Protein Encoding Genes
+    @metadata ws length(cdss) as Number of CDS
+        @metadata ws assembly_ref as Assembly Object
+    @metadata ws num_contigs as Number contigs
+    */
+    typedef structure {
+      Genome_id id;
+      string scientific_name;
+      string domain;
+      list<string> warnings;
+      list<string> genome_tiers;
+    mapping<string type, int count> feature_counts;
+      int genetic_code;
+      int dna_size;
+      int num_contigs;
+      string molecule_type;
+      list<int> contig_lengths;
+      list<string> contig_ids;
+      string source;
+      source_id source_id;
+      string md5;
+      string taxonomy;
+      float gc_content;
+      list<publication> publications;
+      list<Ontology_event> ontology_events;
+      mapping<string ontology_namespace, mapping<string ontology_id,string termname>> ontologies_present;
+      list<Feature> features;
+      list<NonCodingFeature> non_coding_features;
+      list<CDS> cdss;
+      list<mRNA> mrnas;
+      Assembly_ref assembly_ref;
+      Taxon_ref taxon_ref;
+      genbank_handle_ref genbank_handle_ref;
+      gff_handle_ref gff_handle_ref;
+      string external_source_origination_date;
+      string release;
+      string original_source_file_name;
+      string notes;
+      list<GenomeQualityScore> quality_scores;
+      Bool suspect;
+    } Genome;
+
+    /*
+        Structure for a protein family
+
 		@optional query_begin query_end subject_begin subject_end score evalue subject_description release_version
     */
     typedef structure {
@@ -234,186 +529,10 @@ module KBaseGenomes {
 		float evalue;
     } ProteinFamily;
 
-	/*
-		a notation by a curator of the genome object
-    */
     typedef tuple<string comment, string annotator, float annotation_time> annotation;
-	
-	typedef string Analysis_event_id;
-    
-    /*
-    	@optional tool_name execution_time parameters hostname
-    */
-    typedef structure {
-		Analysis_event_id id;
-		string tool_name;
-		float execution_time;
-		list<string> parameters;
-		string hostname;
-    } Analysis_event;
-	
-	/*
-    	@optional weighted_hit_count hit_count existence_priority overlap_rules pyrrolysylprotein truncated_begin truncated_end existence_confidence frameshifted selenoprotein
-    */
-	typedef structure {
-		Bool truncated_begin;
-		Bool truncated_end;
-		/* Is this a real feature? */
-		float existence_confidence;
 
-		Bool frameshifted;
-		Bool selenoprotein;
-		Bool pyrrolysylprotein;
-
-		/*
-		 * List of rules that govern the overlap removal procedure for
-		 * this feature. We don't yet have a strict definition for this but
-		 * the notion is that this will consiste of entries of the form
-		 * +feature-type which will allow overlap with the given feature type;
-		 * -feature-type which will disallow overlap with the given feature type.
-		 */
-		list<string> overlap_rules;
-
-		/*
-		 * The numeric priority of this feature's right to exist. Specialty
-		 * tools will give the features they create a high priority; more generic
-		 * tools will give their features a lower priority. The overlap removal procedure
-		 * will use this priority to determine which of a set of overlapping features
-		 * should be removed.
-		 *
-		 * The intent is that a change of 1 in the priority value represents a factor of 2 in
-		 * preference.
-		 */
-		float existence_priority;
-
-		float hit_count;
-		float weighted_hit_count;
-    } Feature_quality_measure;
-	
-	/*
-		@optional translation_provenance alignment_evidence
-	*/
-	typedef structure {
-		string method;
-		string method_version;
-		string timestamp;
-		tuple<string ontologytranslation_ref, string namespace, string source_term> translation_provenance;
-		list<tuple<int start,int stop, int align_length, float identify>> alignment_evidence;
-	} OntologyEvidence;
-
-	typedef structure {
-		string id;
-		string ontology_ref;
-		list<string> term_lineage;
-		string term_name;
-		list<OntologyEvidence> evidence;
-	} OntologyData;
-
-	/*
-    	Structure for a single feature of a genome
-		
-		Should genome_id contain the genome_id in the Genome object,
-		the workspace id of the Genome object, a genomeref,
-		something else?
-		Should sequence be in separate objects too?
-		We may want to add additional fields for other CDM functions
-		(e.g., atomic regulons, coexpressed fids, co_occurring fids,...)
-
-		@optional orthologs quality feature_creation_event md5 location function ontology_terms protein_translation protein_families subsystems publications subsystem_data aliases annotations regulon_data atomic_regulons coexpressed_fids co_occurring_fids dna_sequence protein_translation_length dna_sequence_length
-    */
-    typedef structure {
-		Feature_id id;
-		list<tuple<Contig_id,int,string,int>> location;
-		string type;
-		string function;
-		mapping<string namespace, mapping<string ontology_term, OntologyData > > ontology_terms;
-		string md5;
-		string protein_translation;
-		string dna_sequence;
-		int protein_translation_length;
-		int dna_sequence_length;
-		list<publication> publications;
-		list<string> subsystems;
-		list<ProteinFamily> protein_families;
-		list<string> aliases;
-		list<tuple<string,float>> orthologs;
-		list<annotation> annotations;
-		list<subsystem_data> subsystem_data;
-		list<regulon_data> regulon_data;
-		list<atomic_regulon> atomic_regulons;
-		list<coexpressed_fid> coexpressed_fids;
-		list<co_occurring_fid> co_occurring_fids;
-		Feature_quality_measure quality;
-		Analysis_event feature_creation_event;
-    } Feature;
-	
-	/*
-    	@optional genome closeness_measure
-    */
-	typedef structure {
-		Genome_id genome;
-		float closeness_measure;
-    } Close_genome;
-
-	/*
-    	@optional frameshift_error_rate sequence_error_rate
-    */
-    typedef structure {
-		float frameshift_error_rate;
-		float sequence_error_rate;
-    } Genome_quality_measure;
-
-    /*
-    	Genome object holds much of the data relevant for a genome in KBase
-	Genome publications should be papers about the genome, not
-	papers about certain features of the genome (which go into the
-	Feature object)
-	Should the Genome object have a list of feature ids? (in
-	addition to having a list of feature_refs)
-	Should the Genome object contain a list of contig_ids too?
-
-    	@optional assembly_ref quality close_genomes analysis_events features source_id source contigs contig_ids publications md5 taxonomy gc_content complete dna_size num_contigs contig_lengths contigset_ref
-    	@metadata ws gc_content as GC content
-    	@metadata ws taxonomy as Taxonomy
-    	@metadata ws md5 as MD5
-    	@metadata ws dna_size as Size
-    	@metadata ws genetic_code as Genetic code
-    	@metadata ws domain as Domain
-		@metadata ws source_id as Source ID
-		@metadata ws source as Source
-		@metadata ws scientific_name as Name
-		@metadata ws length(close_genomes) as Close genomes
-		@metadata ws length(features) as Number features
-		@metadata ws num_contigs as Number contigs
-    */
-    typedef structure {
-		Genome_id id;
-		string scientific_name;
-		string domain;
-		int genetic_code;
-		int dna_size;
-		int num_contigs;
-		list<Contig> contigs;
-		list<int> contig_lengths;
-		list<Contig_id> contig_ids;
-		string source;
-		source_id source_id;
-		string md5;
-		string taxonomy;
-		float gc_content;
-		int complete;
-		list<publication> publications;
-		list<Feature> features;
-		ContigSet_ref contigset_ref;
-		Assembly_ref assembly_ref;
-		
-		Genome_quality_measure quality;
-		list<Close_genome> close_genomes;
-		list <Analysis_event> analysis_events;
-    } Genome;
-    
 	/* Type spec for the "Protein" object
-	
+
 		Protein_id id - unique external ID of protein
 		string function - annotated function for protein
 		string md5 - md5 hash of protein sequence
@@ -423,7 +542,7 @@ module KBaseGenomes {
 		list<string> aliases - aliases for the protein
 		list<annotation> annotations - curator annotations on protein
 		list<subsystem_data> subsystem_data;
-		
+
 		@optional function
     	@searchable ws_subset id md5 function length aliases
 	*/
@@ -437,7 +556,7 @@ module KBaseGenomes {
 		list<string> aliases;
 		list<annotation> annotations;
     } Protein;
-   
+
    /* Type spec for the "ProteinSet" object
 
 		proteinset_id id - unique kbase ID of the protein set
@@ -461,7 +580,7 @@ module KBaseGenomes {
 		Fasta_ref fasta_ref;
 		list<Protein> proteins;
     } ProteinSet;
-    
+
     /*
        A function_probability is a (annotation, probability) pair associated with a gene
        An annotation is a "///"-delimited list of roles that could be associated with that gene.
@@ -474,9 +593,9 @@ module KBaseGenomes {
         Genome_ref genome_ref - reference to genome probabilistic annotation was built for
         mapping<Feature_id, list<function_probability>> roleset_probabilities - mapping of features to list of alternative function_probability objects
         list<Feature_id> skipped_features - list of features in genome with no probability
-        
+
     	@searchable ws_subset id genome_ref skipped_features
-        
+
     */
     typedef structure {
 		ProbabilisticAnnotation_id id;
@@ -484,16 +603,16 @@ module KBaseGenomes {
 		mapping<Feature_id,list<function_probability>> roleset_probabilities;
 		list<Feature_id> skipped_features;
     } ProbabilisticAnnotation;
-    
+
     /* Structure for the "MetagenomeAnnotationOTUFunction" object
-		
+
 		list<string> reference_genes - list of genes associated with hit
 		string functional_role - annotated function
 		string kbid - kbase ID of OTU function in metagenome
 		int abundance - number of hits with associated role and OTU
 		float confidence - confidence of functional role hit
 		string confidence_type - type of functional role hit
-		
+
     	@searchable ws_subset id abundance confidence functional_role
 	*/
     typedef structure {
@@ -503,9 +622,9 @@ module KBaseGenomes {
 		int abundance;
 		float confidence;
     } MetagenomeAnnotationOTUFunction;
-     
+
     /* Structure for the "MetagenomeAnnotationOTU" object
-	
+
 		string name - name of metagenome OTU
 		string kbid - KBase ID of OTU of metagenome object
 		string source_id - ID used for OTU in metagenome source
@@ -524,9 +643,9 @@ module KBaseGenomes {
 		string source;
 		list<MetagenomeAnnotationOTUFunction> functions;
     } MetagenomeAnnotationOTU;
-    
+
     /* Structure for the "MetagenomeAnnotation" object
-	
+
 		string type - type of metagenome object
 		string name - name of metagenome object
 		string kbid - KBase ID of metagenome object
@@ -534,7 +653,7 @@ module KBaseGenomes {
 		string source - source of metagenome data
 		string confidence_type - type of confidence score
 		list<MetagenomeAnnotationOTU> otus - list of otus in metagenome
-		
+
     	@searchable ws_subset type name id source_id source confidence_type otus.[*].(id,name,source_id,source,functions.[*].(id,abundance,confidence,functional_role))
 		@metadata ws type as Type
 		@metadata ws name as Name
@@ -551,7 +670,7 @@ module KBaseGenomes {
 		string confidence_type;
 		list<MetagenomeAnnotationOTU> otus;
     } MetagenomeAnnotation;
-    
+
     /*
 		Domain - a subobject holding information on a single protein domain
 		string id - numerical ID assigned by KBase
@@ -567,7 +686,7 @@ module KBaseGenomes {
 		string name;
 		string description;
     } Domain;
-    
+
     /*
 		FeatureDomain - a subobject holding information on how a domain appears in a gene
 		string id - numerical ID assigned by KBase
@@ -575,7 +694,7 @@ module KBaseGenomes {
 		string type - type of CDD, possible values are cd, pfam, smart, COG, PRK, CHL
 		string name - name of CDD
 		string description - description of CDD
-		
+
 		@optional feature_ref domains
     */
     typedef structure {
@@ -586,7 +705,7 @@ module KBaseGenomes {
 		int feature_length;
 		list<tuple<string domain_ref,int identity,int alignment_length,int mismatches,int gaps,float protein_start,float protein_end,float domain_start,float domain_end,float evalue,float bit_score>> domains;
     } FeatureDomainData;
-    
+
     /*
     	GenomeDomainData object: this object holds all data regarding protein domains in a genome in KBase
 
@@ -600,11 +719,11 @@ module KBaseGenomes {
 		Genome_ref genome_ref;
 		int num_domains;
 		int num_features;
-		
+
 		list<Domain> domains;
 		list<FeatureDomainData> featuredomains;
 	} GenomeDomainData;
-	
+
 	/*
     	OrthologFamily object: this object holds all data for a single ortholog family in a metagenome
 
@@ -618,7 +737,7 @@ module KBaseGenomes {
 		string protein_translation;
 		list<tuple<string,float,string>> orthologs;
 	} OrthologFamily;
-	
+
 	/*
     	Pangenome object: this object holds all data regarding a pangenome
 
@@ -635,7 +754,7 @@ module KBaseGenomes {
     	list<Genome_ref> genome_refs;
     	list<OrthologFamily> orthologs;
 	} Pangenome;
-	
+
 	/*
     	GenomeComparisonGenome object: this object holds information about a genome in a genome comparison
     */
@@ -649,7 +768,7 @@ module KBaseGenomes {
 		int families;
 		int functions;
     } GenomeComparisonGenome;
- 
+
     /*
     	GenomeComparisonFunction object: this object holds information about a genome in a function across all genomes
     */
@@ -666,7 +785,7 @@ module KBaseGenomes {
 		float fraction_consistent_families;
 		string most_consistent_family;
     } GenomeComparisonFunction;
-    
+
     /*
     	GenomeComparisonFamily object: this object holds information about a protein family across a set of genomes
     */
@@ -681,10 +800,10 @@ module KBaseGenomes {
 		float fraction_consistent_annotations;
 		string most_consistent_role;
     } GenomeComparisonFamily;
-    
+
     /*
     	GenomeComparisonData object: this object holds information about a multigenome comparison
-    	
+
     	@optional protcomp_ref pangenome_ref
     	@metadata ws core_functions as Core functions
 		@metadata ws core_families as Core families
@@ -703,4 +822,3 @@ module KBaseGenomes {
 		list<GenomeComparisonFunction> functions;
     } GenomeComparison;
 };
-

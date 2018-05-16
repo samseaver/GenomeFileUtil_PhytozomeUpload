@@ -31,29 +31,8 @@ FEATURES             Location/Qualifiers
                      /db_xref="taxon:4932"
                      /chromosome="IX"
                      /map="9"
-     CDS             <1..206
-                     /codon_start=3
-                     /product="TCP1-beta"
-                     /protein_id="AAA98665.1"
-                     /db_xref="GI:1293614"
-                     /translation="SSIYNGISTSGLDLNNGTIADMRQLGIVESYKLKRAVVSSASEA
-                     AEVLLRVDNIIRARPRTANRQHM"
      gene            687..3158
-                     /gene="AXL2"
-                     /locus_tag="b1"
-                     /gene_synonym="blah; dah;"
-                     /db_xref="Madeup:ref1"
-                     /db_xref="something:1"
-     CDS             687..3158
-                     /gene="AXL2"
-                     /locus_tag="b1"
-                     /note="plasma membrane glycoprotein"
-                     /codon_start=1
-                     /function="required for axial budding pattern of S.
-                     cerevisiae"
-                     /product="Axl2p"
-                     /protein_id="AAA98666.1"
-                     /db_xref="GI:1293615"
+     CDS             join(1560..3158,687..1550)
                      /translation="MTQLQISLLLTATISLLHLVVATPYEAYPIGKQYPPVARVNESF
                      TFQISNDTYKSSVDKTAQITYNCFDLPSWLSFDSSSRTFSGEPSSDLLSDANTTLYFN
                      VILEGTDSADSTSLNNTYQFVVTNRPSISLSSDFNLLALLKNYGYTNGKNALKLDPNE
@@ -70,18 +49,7 @@ FEATURES             Location/Qualifiers
                      HRNRHLQNIQDSQSGKNGITPTTMSTSSSDDFVPVKDGENFCWVHSMEPDRRPSKKRL
                      VDFSNKSNVNVGQVKDIHGRIPEML"
      gene            complement(3300..4037)
-                     /gene="REV7"
-                     /locus_tag="b2"
-                     /gene_synonym="blah2; dah2;"
-                     /db_xref="Madeup:ref2"
-                     /db_xref="something:2"
-     CDS             complement(3300..4037)
-                     /gene="REV7"
-                     /locus_tag="b2"
-                     /codon_start=1
-                     /product="Rev7p"
-                     /protein_id="AAA98667.1"
-                     /db_xref="GI:1293616"
+     CDS             join(complement(3300..3500),complement(3600..4037))
                      /translation="MNRWVEKWLRVYLKCYINLILFYRNVYPPQSFDYTTYQSFNLPQ
                      FVPINRHPALIDYIEELILDVLSKLTHVYRFSICIINKKNDLCIEKYVLDFSELQHVD
                      KDDQIITETEVFDEFRSSLNSLIMHLEKLPKVNDDTITFEAVINAIELELGHKLDRNR

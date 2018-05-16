@@ -32,7 +32,9 @@ module GenomeFileUtil {
           generate ids (default behavior is raising an exception)
     genetic_code - Genetic code of organism. Overwrites determined GC from 
           taxon object
-    type - Reference, Representative or User upload
+    generate_missing_genes - If the file has CDS or mRNA with no corresponding
+        gene, generate a spoofed gene.
+    use_existing_assembly - Supply an existing assembly reference
 
     */
     typedef structure {
@@ -48,8 +50,9 @@ module GenomeFileUtil {
         string release;
         string generate_ids_if_needed;
         int    genetic_code;
-        string type;
         usermeta metadata;
+        boolean generate_missing_genes;
+        string use_existing_assembly;
     } GenbankToGenomeParams;
 
     typedef structure {
@@ -110,6 +113,9 @@ module GenomeFileUtil {
     funcdef export_genome_as_genbank(ExportParams params)
                 returns (ExportOutput output) authentication required;
 
+    funcdef export_genome_as_gff(ExportParams params)
+                returns (ExportOutput output) authentication required;
+
     /* 
     genome_name - becomes the name of the object
     workspace_name - the name of the workspace it gets saved to.
@@ -121,7 +127,8 @@ module GenomeFileUtil {
           per example Ensembl has numbered releases of all their data: Release 31
     genetic_code - Genetic code of organism. Overwrites determined GC from 
           taxon object
-    type - Reference, Representative or User upload
+    generate_missing_genes - If the file has CDS or mRNA with no corresponding
+        gene, generate a spoofed gene. Off by default
     */
     typedef structure {
         File fasta_file;
@@ -135,13 +142,17 @@ module GenomeFileUtil {
         string taxon_reference;
         string release;
         int    genetic_code;
-        string type;
         string scientific_name;
         usermeta metadata;
+        boolean generate_missing_genes;
     } FastaGFFToGenomeParams;
 
     funcdef fasta_gff_to_genome(FastaGFFToGenomeParams params)
                 returns (GenomeSaveResult returnVal) authentication required;
+
+    /* As above but returns the genome instead */
+    funcdef fasta_gff_to_genome_json(FastaGFFToGenomeParams params)
+                returns (UnspecifiedObject genome) authentication required;
 
     typedef structure {
         string workspace;

@@ -2,12 +2,9 @@
 #BEGIN_HEADER
 
 import os
-import sys
 import shutil
-import traceback
-import uuid
 import json
-from pprint import pprint, pformat
+from pprint import pprint
 
 from GenomeFileUtil.core.GenbankToGenome import GenbankToGenome
 from GenomeFileUtil.core.GenomeToGFF import GenomeToGFF
@@ -15,9 +12,9 @@ from GenomeFileUtil.core.GenomeToGenbank import GenomeToGenbank
 from GenomeFileUtil.core.FastaGFFToGenome import FastaGFFToGenome
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
 
-from biokbase.workspace.client import Workspace
-
+from Workspace.WorkspaceClient import Workspace
 from DataFileUtil.DataFileUtilClient import DataFileUtil
+from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 
 # Used to store and pass around configuration URLs more easily
 class SDKConfig:
@@ -50,9 +47,9 @@ class GenomeFileUtil:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "0.6.9"
-    GIT_URL = "https://github.com/Tianhao-Gu/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "1661ded3a84156a0b980eccc44bcb9892c425e85"
+    VERSION = "0.8.5"
+    GIT_URL = "https://github.com/kbaseapps/GenomeFileUtil.git"
+    GIT_COMMIT_HASH = "58a15284e18342ee856e1fb23b041e4c6bc8c4c2"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -80,16 +77,20 @@ class GenomeFileUtil:
            generate_ids_if_needed - If field used for feature id is not
            there, generate ids (default behavior is raising an exception)
            genetic_code - Genetic code of organism. Overwrites determined GC
-           from taxon object type - Reference, Representative or User upload)
-           -> structure: parameter "file" of type "File" -> structure:
-           parameter "path" of String, parameter "shock_id" of String,
-           parameter "ftp_url" of String, parameter "genome_name" of String,
-           parameter "workspace_name" of String, parameter "source" of
-           String, parameter "taxon_wsname" of String, parameter
-           "taxon_reference" of String, parameter "release" of String,
-           parameter "generate_ids_if_needed" of String, parameter
-           "genetic_code" of Long, parameter "type" of String, parameter
-           "metadata" of type "usermeta" -> mapping from String to String
+           from taxon object generate_missing_genes - If the file has CDS or
+           mRNA with no corresponding gene, generate a spoofed gene.
+           use_existing_assembly - Supply an existing assembly reference) ->
+           structure: parameter "file" of type "File" -> structure: parameter
+           "path" of String, parameter "shock_id" of String, parameter
+           "ftp_url" of String, parameter "genome_name" of String, parameter
+           "workspace_name" of String, parameter "source" of String,
+           parameter "taxon_wsname" of String, parameter "taxon_reference" of
+           String, parameter "release" of String, parameter
+           "generate_ids_if_needed" of String, parameter "genetic_code" of
+           Long, parameter "metadata" of type "usermeta" -> mapping from
+           String to String, parameter "generate_missing_genes" of type
+           "boolean" (A boolean - 0 for false, 1 for true. @range (0, 1)),
+           parameter "use_existing_assembly" of String
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
            "genome_ref" of String
         """
@@ -100,7 +101,7 @@ class GenomeFileUtil:
         pprint(params)
 
         importer = GenbankToGenome(self.cfg)
-        result = importer.import_file(ctx, params)
+        result = importer.refactored_import(ctx, params)
 
         print('import complete -- result = ')
         pprint(result)
@@ -229,14 +230,9 @@ class GenomeFileUtil:
               os.path.join(export_package_dir, os.path.basename(original_result['file_path'])))
 
         # Make warning file about genes only.
-        warning_filename = "warning.txt"
+        warning_filename = "README.txt"
         with open(os.path.join(export_package_dir, warning_filename), 'wb') as temp_file:
-            temp_file.write('Please note: the KBase-derived GenBank file for annotated genome ' +
-                            'objects currently only shows "gene" features. CDS and mRNA ' +
-                            'feature types are not currently included in the GenBank download, ' +
-                            'but are in the KBase Genome object. ' +
-                            'We hope to address this issue in the future.\n\n' +
-                            'This directory includes the KBase-derived GenBank file and also ' +
+            temp_file.write('This directory includes the KBase-derived GenBank file and also ' +
                             '(if you originally uploaded the genome from an annotated ' +
                             'GenBank file) the original GenBank input.')
 
@@ -260,6 +256,74 @@ class GenomeFileUtil:
         # return the results
         return [output]
 
+    def export_genome_as_gff(self, ctx, params):
+        """
+        :param params: instance of type "ExportParams" (input and output
+           structure functions for standard downloaders) -> structure:
+           parameter "input_ref" of String
+        :returns: instance of type "ExportOutput" -> structure: parameter
+           "shock_id" of String
+        """
+        # ctx is the context object
+        # return variables are: output
+        #BEGIN export_genome_as_gff
+        if 'input_ref' not in params:
+            raise ValueError('Cannot run export_genome_as_gff- no "input_ref" '
+                             'field defined.')
+
+        # get WS metadata to get ws_name and obj_name
+        ws = Workspace(url=self.cfg.workspaceURL)
+        info = ws.get_objects2({'objects': [{
+            'ref': params['input_ref'],
+            'included':['/assembly_ref', 'contigset_ref', '/id']}
+        ]})['data'][0]['data']
+
+        # export to file (building from KBase Genome Object)
+        result = self.genome_to_gff(ctx, {
+            'genome_ref': params['input_ref']
+        })[0]
+
+        # get assembly
+        if 'assembly_ref' in info:
+            assembly_ref = info['assembly_ref']
+        else:
+            assembly_ref = info['contigset_ref']
+        print('Assembly reference = ' + assembly_ref)
+        print('Downloading assembly')
+        au = AssemblyUtil(self.cfg.callbackURL)
+        assembly_file_path = au.get_assembly_as_fasta(
+            {'ref': assembly_ref}
+        )['path']
+
+        # create the output directory and move the files there
+        export_package_dir = os.path.join(self.cfg.sharedFolder, info['id'])
+        os.makedirs(export_package_dir)
+        shutil.move(
+            result['file_path'],
+            os.path.join(export_package_dir,
+                         os.path.basename(result['file_path'])))
+        shutil.move(
+            assembly_file_path,
+            os.path.join(export_package_dir,
+                         os.path.basename(assembly_file_path)))
+
+        # package it up
+        dfUtil = DataFileUtil(self.cfg.callbackURL)
+        package_details = dfUtil.package_for_download({
+                                    'file_path': export_package_dir,
+                                    'ws_refs': [params['input_ref']]
+                                })
+
+        output = {'shock_id': package_details['shock_id']}
+        #END export_genome_as_gff
+
+        # At some point might do deeper type checking...
+        if not isinstance(output, dict):
+            raise ValueError('Method export_genome_as_gff return value ' +
+                             'output is not type dict as required.')
+        # return the results
+        return [output]
+
     def fasta_gff_to_genome(self, ctx, params):
         """
         :param params: instance of type "FastaGFFToGenomeParams" (genome_name
@@ -272,7 +336,8 @@ class GenomeFileUtil:
            Release or version number of the data per example Ensembl has
            numbered releases of all their data: Release 31 genetic_code -
            Genetic code of organism. Overwrites determined GC from taxon
-           object type - Reference, Representative or User upload) ->
+           object generate_missing_genes - If the file has CDS or mRNA with
+           no corresponding gene, generate a spoofed gene. Off by default) ->
            structure: parameter "fasta_file" of type "File" -> structure:
            parameter "path" of String, parameter "shock_id" of String,
            parameter "ftp_url" of String, parameter "gff_file" of type "File"
@@ -281,9 +346,10 @@ class GenomeFileUtil:
            String, parameter "workspace_name" of String, parameter "source"
            of String, parameter "taxon_wsname" of String, parameter
            "taxon_reference" of String, parameter "release" of String,
-           parameter "genetic_code" of Long, parameter "type" of String,
-           parameter "scientific_name" of String, parameter "metadata" of
-           type "usermeta" -> mapping from String to String
+           parameter "genetic_code" of Long, parameter "scientific_name" of
+           String, parameter "metadata" of type "usermeta" -> mapping from
+           String to String, parameter "generate_missing_genes" of type
+           "boolean" (A boolean - 0 for false, 1 for true. @range (0, 1))
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
            "genome_ref" of String
         """
@@ -311,6 +377,49 @@ class GenomeFileUtil:
                              'returnVal is not type dict as required.')
         # return the results
         return [returnVal]
+
+    def fasta_gff_to_genome_json(self, ctx, params):
+        """
+        As above but returns the genome instead
+        :param params: instance of type "FastaGFFToGenomeParams" (genome_name
+           - becomes the name of the object workspace_name - the name of the
+           workspace it gets saved to. source - Source of the file typically
+           something like RefSeq or Ensembl taxon_ws_name - where the
+           reference taxons are : ReferenceTaxons taxon_reference - if
+           defined, will try to link the Genome to the specified taxonomy
+           object insteas of performing the lookup during upload release -
+           Release or version number of the data per example Ensembl has
+           numbered releases of all their data: Release 31 genetic_code -
+           Genetic code of organism. Overwrites determined GC from taxon
+           object generate_missing_genes - If the file has CDS or mRNA with
+           no corresponding gene, generate a spoofed gene. Off by default) ->
+           structure: parameter "fasta_file" of type "File" -> structure:
+           parameter "path" of String, parameter "shock_id" of String,
+           parameter "ftp_url" of String, parameter "gff_file" of type "File"
+           -> structure: parameter "path" of String, parameter "shock_id" of
+           String, parameter "ftp_url" of String, parameter "genome_name" of
+           String, parameter "workspace_name" of String, parameter "source"
+           of String, parameter "taxon_wsname" of String, parameter
+           "taxon_reference" of String, parameter "release" of String,
+           parameter "genetic_code" of Long, parameter "scientific_name" of
+           String, parameter "metadata" of type "usermeta" -> mapping from
+           String to String, parameter "generate_missing_genes" of type
+           "boolean" (A boolean - 0 for false, 1 for true. @range (0, 1))
+        :returns: instance of unspecified object
+        """
+        # ctx is the context object
+        # return variables are: genome
+        #BEGIN fasta_gff_to_genome_json
+        importer = FastaGFFToGenome(self.cfg)
+        genome = importer.generate_genome_json(params)
+        #END fasta_gff_to_genome_json
+
+        # At some point might do deeper type checking...
+        if not isinstance(genome, object):
+            raise ValueError('Method fasta_gff_to_genome_json return value ' +
+                             'genome is not type object as required.')
+        # return the results
+        return [genome]
 
     def save_one_genome(self, ctx, params):
         """

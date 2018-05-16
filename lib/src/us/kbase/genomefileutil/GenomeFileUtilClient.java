@@ -11,6 +11,7 @@ import us.kbase.auth.AuthToken;
 import us.kbase.common.service.JsonClientCaller;
 import us.kbase.common.service.JsonClientException;
 import us.kbase.common.service.RpcContext;
+import us.kbase.common.service.UObject;
 import us.kbase.common.service.UnauthorizedException;
 
 /**
@@ -230,6 +231,23 @@ public class GenomeFileUtilClient {
     }
 
     /**
+     * <p>Original spec-file function name: export_genome_as_gff</p>
+     * <pre>
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.genomefileutil.ExportParams ExportParams}
+     * @return   parameter "output" of type {@link us.kbase.genomefileutil.ExportOutput ExportOutput}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public ExportOutput exportGenomeAsGff(ExportParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<ExportOutput>> retType = new TypeReference<List<ExportOutput>>() {};
+        List<ExportOutput> res = caller.jsonrpcCall("GenomeFileUtil.export_genome_as_gff", args, retType, true, true, jsonRpcContext, this.serviceVersion);
+        return res.get(0);
+    }
+
+    /**
      * <p>Original spec-file function name: fasta_gff_to_genome</p>
      * <pre>
      * </pre>
@@ -243,6 +261,24 @@ public class GenomeFileUtilClient {
         args.add(params);
         TypeReference<List<GenomeSaveResult>> retType = new TypeReference<List<GenomeSaveResult>>() {};
         List<GenomeSaveResult> res = caller.jsonrpcCall("GenomeFileUtil.fasta_gff_to_genome", args, retType, true, true, jsonRpcContext, this.serviceVersion);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: fasta_gff_to_genome_json</p>
+     * <pre>
+     * As above but returns the genome instead
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.genomefileutil.FastaGFFToGenomeParams FastaGFFToGenomeParams}
+     * @return   parameter "genome" of unspecified object
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public UObject fastaGffToGenomeJson(FastaGFFToGenomeParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<UObject>> retType = new TypeReference<List<UObject>>() {};
+        List<UObject> res = caller.jsonrpcCall("GenomeFileUtil.fasta_gff_to_genome_json", args, retType, true, true, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 
