@@ -162,28 +162,6 @@ module KBaseGenomes {
     } ContigSet;
 
     /*
-    KBase genome ID
-    @id kb
-    */
-    typedef string Genome_id;
-
-
-
-    /*
-    ContigSet contig ID
-    @id external
-    */
-    typedef string Contig_id;
-
-    typedef int Bool;
-
-    /*
-    Reference to a source_id
-    @id external
-    */
-    typedef string source_id;
-
-    /*
     Structure for a publication
     (float pubmedid
     string source (ex. Pubmed)
@@ -200,12 +178,6 @@ module KBaseGenomes {
     @id external
     */
     typedef string cds_id;
-
-    /*
-    KBase Feature ID
-    @id external
-    */
-    typedef string Feature_id;
 
     /*
     KBase mRNA ID
@@ -364,13 +336,6 @@ module KBaseGenomes {
       list<tuple<string fieldname,string alias>> aliases;
       list<tuple<string db_source,string db_identifier>> db_xrefs;
     } mRNA;
-
-
-    /*
-    Reference to an Assembly object in the workspace
-    @id ws KBaseGenomeAnnotations.Assembly
-    */
-    typedef string Assembly_ref;
 
     /*
     Reference to a taxon object
