@@ -153,6 +153,14 @@ class MinimalGenbankUploadTest(unittest.TestCase):
                     'genome_name': 'something',
                     'use_existing_assembly': "6976/923/6",
                 })[0]
+        with self.assertRaisesRegexp(ValueError, "contains contigs which are not present"):
+            result = genomeFileUtil.genbank_to_genome(
+                self.getContext(), {
+                    'file': {'path': gbk_path},
+                    'workspace_name': self.getWsName(),
+                    'genome_name': 'something',
+                    'use_existing_assembly': "31767/5/1",
+                })[0]
 
     def test_translation(self):
         import string
