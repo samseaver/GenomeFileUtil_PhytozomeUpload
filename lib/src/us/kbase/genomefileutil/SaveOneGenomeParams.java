@@ -35,25 +35,42 @@ public class SaveOneGenomeParams {
      * <p>Original spec-file type: Genome</p>
      * <pre>
      * Genome object holds much of the data relevant for a genome in KBase
-     *         Genome publications should be papers about the genome, not
-     *         papers about certain features of the genome (which go into the
-     *         Feature object)
-     *         Should the Genome object have a list of feature ids? (in
-     *         addition to having a list of feature_refs)
-     *         Should the Genome object contain a list of contig_ids too?
-     * @optional assembly_ref quality close_genomes analysis_events features source_id source contigs contig_ids publications md5 taxonomy gc_content complete dna_size num_contigs contig_lengths contigset_ref
+     *     Genome publications should be papers about the genome
+     * Should the Genome object contain a list of contig_ids too?
+     * Source: allowed entries RefSeq, Ensembl, Phytozome, RAST, Prokka, User_upload
+     *     #allowed entries RefSeq, Ensembl, Phytozome, RAST, Prokka,
+     * User_upload controlled vocabulary managed by API
+     * Domain is a controlled vocabulary
+     * Warnings : mostly controlled vocab but also allow for unstructured
+     * Genome_tiers : controlled vocabulary (based on ap input and API checked)
+     * Allowed values: #Representative, Reference, ExternalDB, User
+     * Examples Tiers:
+     * All phytozome - Representative and ExternalDB
+     * Phytozome flagship genomes - Reference, Representative and ExternalDB
+     * Ensembl - Representative and ExternalDB
+     * RefSeq Reference - Reference, Representative and ExternalDB
+     * RefSeq Representative - Representative and ExternalDB
+     * RefSeq Latest or All Assemblies folder - ExternalDB
+     * User Data - User tagged
+     * Example Sources:
+     * RefSeq, Ensembl, Phytozome, Microcosm, User, RAST, Prokka, (other annotators)
+     * @optional warnings contig_lengths contig_ids source_id taxonomy publications
+     * @optional ontology_events ontologies_present non_coding_features mrnas
+     * @optional genbank_handle_ref gff_handle_ref external_source_origination_date
+     * @optional release original_source_file_name notes quality_scores suspect assembly_ref
      * @metadata ws gc_content as GC content
-     * @metadata ws taxonomy as Taxonomy
-     * @metadata ws md5 as MD5
-     * @metadata ws dna_size as Size
-     * @metadata ws genetic_code as Genetic code
-     * @metadata ws domain as Domain
+     *     @metadata ws taxonomy as Taxonomy
+     *     @metadata ws md5 as MD5
+     *     @metadata ws dna_size as Size
+     *     @metadata ws genetic_code as Genetic code
+     *     @metadata ws domain as Domain
      *     @metadata ws source_id as Source ID
      *     @metadata ws source as Source
      *     @metadata ws scientific_name as Name
-     *     @metadata ws length(close_genomes) as Close genomes
-     *     @metadata ws length(features) as Number features
-     *     @metadata ws num_contigs as Number contigs
+     *     @metadata ws length(features) as Number of Protein Encoding Genes
+     * @metadata ws length(cdss) as Number of CDS
+     *     @metadata ws assembly_ref as Assembly Object
+     * @metadata ws num_contigs as Number contigs
      * </pre>
      * 
      */
@@ -97,25 +114,42 @@ public class SaveOneGenomeParams {
      * <p>Original spec-file type: Genome</p>
      * <pre>
      * Genome object holds much of the data relevant for a genome in KBase
-     *         Genome publications should be papers about the genome, not
-     *         papers about certain features of the genome (which go into the
-     *         Feature object)
-     *         Should the Genome object have a list of feature ids? (in
-     *         addition to having a list of feature_refs)
-     *         Should the Genome object contain a list of contig_ids too?
-     * @optional assembly_ref quality close_genomes analysis_events features source_id source contigs contig_ids publications md5 taxonomy gc_content complete dna_size num_contigs contig_lengths contigset_ref
+     *     Genome publications should be papers about the genome
+     * Should the Genome object contain a list of contig_ids too?
+     * Source: allowed entries RefSeq, Ensembl, Phytozome, RAST, Prokka, User_upload
+     *     #allowed entries RefSeq, Ensembl, Phytozome, RAST, Prokka,
+     * User_upload controlled vocabulary managed by API
+     * Domain is a controlled vocabulary
+     * Warnings : mostly controlled vocab but also allow for unstructured
+     * Genome_tiers : controlled vocabulary (based on ap input and API checked)
+     * Allowed values: #Representative, Reference, ExternalDB, User
+     * Examples Tiers:
+     * All phytozome - Representative and ExternalDB
+     * Phytozome flagship genomes - Reference, Representative and ExternalDB
+     * Ensembl - Representative and ExternalDB
+     * RefSeq Reference - Reference, Representative and ExternalDB
+     * RefSeq Representative - Representative and ExternalDB
+     * RefSeq Latest or All Assemblies folder - ExternalDB
+     * User Data - User tagged
+     * Example Sources:
+     * RefSeq, Ensembl, Phytozome, Microcosm, User, RAST, Prokka, (other annotators)
+     * @optional warnings contig_lengths contig_ids source_id taxonomy publications
+     * @optional ontology_events ontologies_present non_coding_features mrnas
+     * @optional genbank_handle_ref gff_handle_ref external_source_origination_date
+     * @optional release original_source_file_name notes quality_scores suspect assembly_ref
      * @metadata ws gc_content as GC content
-     * @metadata ws taxonomy as Taxonomy
-     * @metadata ws md5 as MD5
-     * @metadata ws dna_size as Size
-     * @metadata ws genetic_code as Genetic code
-     * @metadata ws domain as Domain
+     *     @metadata ws taxonomy as Taxonomy
+     *     @metadata ws md5 as MD5
+     *     @metadata ws dna_size as Size
+     *     @metadata ws genetic_code as Genetic code
+     *     @metadata ws domain as Domain
      *     @metadata ws source_id as Source ID
      *     @metadata ws source as Source
      *     @metadata ws scientific_name as Name
-     *     @metadata ws length(close_genomes) as Close genomes
-     *     @metadata ws length(features) as Number features
-     *     @metadata ws num_contigs as Number contigs
+     *     @metadata ws length(features) as Number of Protein Encoding Genes
+     * @metadata ws length(cdss) as Number of CDS
+     *     @metadata ws assembly_ref as Assembly Object
+     * @metadata ws num_contigs as Number contigs
      * </pre>
      * 
      */
@@ -128,25 +162,42 @@ public class SaveOneGenomeParams {
      * <p>Original spec-file type: Genome</p>
      * <pre>
      * Genome object holds much of the data relevant for a genome in KBase
-     *         Genome publications should be papers about the genome, not
-     *         papers about certain features of the genome (which go into the
-     *         Feature object)
-     *         Should the Genome object have a list of feature ids? (in
-     *         addition to having a list of feature_refs)
-     *         Should the Genome object contain a list of contig_ids too?
-     * @optional assembly_ref quality close_genomes analysis_events features source_id source contigs contig_ids publications md5 taxonomy gc_content complete dna_size num_contigs contig_lengths contigset_ref
+     *     Genome publications should be papers about the genome
+     * Should the Genome object contain a list of contig_ids too?
+     * Source: allowed entries RefSeq, Ensembl, Phytozome, RAST, Prokka, User_upload
+     *     #allowed entries RefSeq, Ensembl, Phytozome, RAST, Prokka,
+     * User_upload controlled vocabulary managed by API
+     * Domain is a controlled vocabulary
+     * Warnings : mostly controlled vocab but also allow for unstructured
+     * Genome_tiers : controlled vocabulary (based on ap input and API checked)
+     * Allowed values: #Representative, Reference, ExternalDB, User
+     * Examples Tiers:
+     * All phytozome - Representative and ExternalDB
+     * Phytozome flagship genomes - Reference, Representative and ExternalDB
+     * Ensembl - Representative and ExternalDB
+     * RefSeq Reference - Reference, Representative and ExternalDB
+     * RefSeq Representative - Representative and ExternalDB
+     * RefSeq Latest or All Assemblies folder - ExternalDB
+     * User Data - User tagged
+     * Example Sources:
+     * RefSeq, Ensembl, Phytozome, Microcosm, User, RAST, Prokka, (other annotators)
+     * @optional warnings contig_lengths contig_ids source_id taxonomy publications
+     * @optional ontology_events ontologies_present non_coding_features mrnas
+     * @optional genbank_handle_ref gff_handle_ref external_source_origination_date
+     * @optional release original_source_file_name notes quality_scores suspect assembly_ref
      * @metadata ws gc_content as GC content
-     * @metadata ws taxonomy as Taxonomy
-     * @metadata ws md5 as MD5
-     * @metadata ws dna_size as Size
-     * @metadata ws genetic_code as Genetic code
-     * @metadata ws domain as Domain
+     *     @metadata ws taxonomy as Taxonomy
+     *     @metadata ws md5 as MD5
+     *     @metadata ws dna_size as Size
+     *     @metadata ws genetic_code as Genetic code
+     *     @metadata ws domain as Domain
      *     @metadata ws source_id as Source ID
      *     @metadata ws source as Source
      *     @metadata ws scientific_name as Name
-     *     @metadata ws length(close_genomes) as Close genomes
-     *     @metadata ws length(features) as Number features
-     *     @metadata ws num_contigs as Number contigs
+     *     @metadata ws length(features) as Number of Protein Encoding Genes
+     * @metadata ws length(cdss) as Number of CDS
+     *     @metadata ws assembly_ref as Assembly Object
+     * @metadata ws num_contigs as Number contigs
      * </pre>
      * 
      */

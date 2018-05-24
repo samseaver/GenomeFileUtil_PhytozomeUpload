@@ -357,11 +357,17 @@ class GenbankToGenome:
                 raise ValueError("Assembly ref: {} is not a valid format. Must"
                                  " be in numerical <ws>/<object>/<version>"
                                  " format.".format(assembly_ref))
-            ref_info = self.ws.get_object_info3(
-                {'objects': [{'ref': assembly_ref}]})['infos'][0]
-            if "KBaseGenomeAnnotations.Assembly" not in ref_info[2]:
+            ret = self.dfu.get_objects(
+                {'object_refs': [assembly_ref]}
+            )['data'][0]
+            if "KBaseGenomeAnnotations.Assembly" not in ret['info'][2]:
                 raise ValueError("{} is not a reference to an assembly"
                                  .format(assembly_ref))
+            assembly_contig_ids = set(ret['data']['contigs'].keys())
+            unmatched_ids = set(self.contig_seq.keys()) - assembly_contig_ids
+            if unmatched_ids:
+                raise ValueError("The genbank file contains contigs which are not present in the "
+                                 "supplied assembly".format(", ".join(unmatched_ids)))
             self.log("Using supplied assembly: {}".format(assembly_ref))
             return assembly_ref
         self.log("Saving sequence as Assembly object")
