@@ -557,7 +557,7 @@ class FastaGFFToGenome:
             for term in feature.get(key, []):
                 sp = term.split(" - ")
                 ontology['GO'][sp[0]] = [ontology_event_index]
-                self.ontologies_present['GO'][sp[0]] = sp[1]
+                self.ontologies_present['GO'][sp[0]] = self.go_mapping.get(sp[0], '')
 
         search_keys = ['ontology_term', 'db_xref', 'dbxref']
         ont_terms = []
