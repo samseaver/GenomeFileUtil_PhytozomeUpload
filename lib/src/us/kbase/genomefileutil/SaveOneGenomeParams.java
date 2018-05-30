@@ -23,7 +23,8 @@ import us.kbase.kbasegenomes.Genome;
     "workspace",
     "name",
     "data",
-    "hidden"
+    "hidden",
+    "upgrade"
 })
 public class SaveOneGenomeParams {
 
@@ -78,6 +79,8 @@ public class SaveOneGenomeParams {
     private Genome data;
     @JsonProperty("hidden")
     private Long hidden;
+    @JsonProperty("upgrade")
+    private Long upgrade;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     @JsonProperty("workspace")
@@ -226,6 +229,21 @@ public class SaveOneGenomeParams {
         return this;
     }
 
+    @JsonProperty("upgrade")
+    public Long getUpgrade() {
+        return upgrade;
+    }
+
+    @JsonProperty("upgrade")
+    public void setUpgrade(Long upgrade) {
+        this.upgrade = upgrade;
+    }
+
+    public SaveOneGenomeParams withUpgrade(Long upgrade) {
+        this.upgrade = upgrade;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -238,7 +256,7 @@ public class SaveOneGenomeParams {
 
     @Override
     public String toString() {
-        return ((((((((((("SaveOneGenomeParams"+" [workspace=")+ workspace)+", name=")+ name)+", data=")+ data)+", hidden=")+ hidden)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((("SaveOneGenomeParams"+" [workspace=")+ workspace)+", name=")+ name)+", data=")+ data)+", hidden=")+ hidden)+", upgrade=")+ upgrade)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

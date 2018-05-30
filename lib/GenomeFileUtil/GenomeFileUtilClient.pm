@@ -886,6 +886,7 @@ SaveOneGenomeParams is a reference to a hash where the following keys are define
 	name has a value which is a string
 	data has a value which is a KBaseGenomes.Genome
 	hidden has a value which is a GenomeFileUtil.boolean
+	upgrade has a value which is a GenomeFileUtil.boolean
 Genome is a reference to a hash where the following keys are defined:
 	id has a value which is a KBaseGenomes.Genome_id
 	scientific_name has a value which is a string
@@ -1116,6 +1117,7 @@ SaveOneGenomeParams is a reference to a hash where the following keys are define
 	name has a value which is a string
 	data has a value which is a KBaseGenomes.Genome
 	hidden has a value which is a GenomeFileUtil.boolean
+	upgrade has a value which is a GenomeFileUtil.boolean
 Genome is a reference to a hash where the following keys are defined:
 	id has a value which is a KBaseGenomes.Genome_id
 	scientific_name has a value which is a string
@@ -1973,6 +1975,7 @@ workspace has a value which is a string
 name has a value which is a string
 data has a value which is a KBaseGenomes.Genome
 hidden has a value which is a GenomeFileUtil.boolean
+upgrade has a value which is a GenomeFileUtil.boolean
 
 </pre>
 
@@ -1985,6 +1988,7 @@ workspace has a value which is a string
 name has a value which is a string
 data has a value which is a KBaseGenomes.Genome
 hidden has a value which is a GenomeFileUtil.boolean
+upgrade has a value which is a GenomeFileUtil.boolean
 
 
 =end text
