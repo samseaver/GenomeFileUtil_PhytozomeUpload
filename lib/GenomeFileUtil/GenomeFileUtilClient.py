@@ -398,7 +398,8 @@ class GenomeFileUtil(object):
            parameter "score_interpretation" of String, parameter "timestamp"
            of String, parameter "suspect" of type "Bool", parameter "hidden"
            of type "boolean" (A boolean - 0 for false, 1 for true. @range (0,
-           1))
+           1)), parameter "upgrade" of type "boolean" (A boolean - 0 for
+           false, 1 for true. @range (0, 1))
         :returns: instance of type "SaveGenomeResult" -> structure: parameter
            "info" of type "object_info" (Information about an object,
            including user provided metadata. obj_id objid - the numerical id

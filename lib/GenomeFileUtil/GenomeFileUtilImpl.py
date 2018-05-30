@@ -49,7 +49,7 @@ class GenomeFileUtil:
     ######################################### noqa
     VERSION = "0.8.6"
     GIT_URL = "https://github.com/kbaseapps/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "57f74bb882cf624a4a42ea06b6d85a381ead7fac"
+    GIT_COMMIT_HASH = "02c587de19839c8962d43b81e299bd9f712604bf"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -622,7 +622,8 @@ class GenomeFileUtil:
            parameter "score_interpretation" of String, parameter "timestamp"
            of String, parameter "suspect" of type "Bool", parameter "hidden"
            of type "boolean" (A boolean - 0 for false, 1 for true. @range (0,
-           1))
+           1)), parameter "upgrade" of type "boolean" (A boolean - 0 for
+           false, 1 for true. @range (0, 1))
         :returns: instance of type "SaveGenomeResult" -> structure: parameter
            "info" of type "object_info" (Information about an object,
            including user provided metadata. obj_id objid - the numerical id

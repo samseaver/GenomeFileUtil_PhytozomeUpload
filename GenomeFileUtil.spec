@@ -159,6 +159,7 @@ module GenomeFileUtil {
         string name;
         KBaseGenomes.Genome data;
         boolean hidden;
+        boolean upgrade;
     } SaveOneGenomeParams;
 
     typedef structure {

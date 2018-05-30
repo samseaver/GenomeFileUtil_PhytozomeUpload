@@ -141,7 +141,7 @@ class GenomeInterface:
             meta = params['meta']
         else:
             meta = {}
-        if 'feature_counts' not in data:
+        if params.get('upgrade') or 'feature_counts' not in data:
             data = self._update_genome(data)
 
         # check all handles point to shock nodes owned by calling user
