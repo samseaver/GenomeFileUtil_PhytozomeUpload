@@ -5,6 +5,7 @@ GenomeAnnotation to GenBank file conversion.
 # Stdlib
 from collections import defaultdict
 import time
+import logging
 
 from Bio import SeqIO, SeqFeature, Alphabet
 
@@ -12,6 +13,7 @@ from Bio import SeqIO, SeqFeature, Alphabet
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 STD_PREFIX = " " * 21
+CONTIG_ID_FIELD_LENGTH = 16
 
 
 class GenomeToGenbank(object):
@@ -141,8 +143,12 @@ class GenomeFile:
         assembly_data = dfu.get_objects({
             'object_refs': [assembly_ref]
         })['data'][0]['data']
-        circular_contigs = set([x['contig_id'] for x in assembly_data['contigs'].values()
-                                if x.get('is_circ')])
+        if isinstance(assembly_data['contigs'], dict):  # is an assembly
+            circular_contigs = set([x['contig_id'] for x in assembly_data['contigs'].values()
+                                    if x.get('is_circ')])
+        else:  # is a contig set
+            circular_contigs = set([x['id'] for x in assembly_data['contigs']
+                                    if x.get('replicon_geometry') == 'circular'])
         au = AssemblyUtil(self.cfg.callbackURL)
         assembly_file_path = au.get_assembly_as_fasta(
             {'ref': assembly_ref}
@@ -186,6 +192,11 @@ class GenomeFile:
                     self.child_dict[_id]) for _id in feat.get('mrnas', [])])
                 raw_contig.features.extend([self._format_feature(
                     self.child_dict[_id]) for _id in feat.get('cdss', [])])
+        if len(raw_contig.name) > CONTIG_ID_FIELD_LENGTH:
+            logging.info("Trimming contig name {} to the last {} characters"
+                         .format(raw_contig.name, CONTIG_ID_FIELD_LENGTH))
+            raw_contig.name = raw_contig.name[-CONTIG_ID_FIELD_LENGTH:]
+
         self.seq_records.append(raw_contig)
 
     def _format_publications(self):
@@ -204,6 +215,8 @@ class GenomeFile:
 
     def _format_feature(self, in_feature):
         def _trans_loc(loc):
+            if len(loc[0]) > CONTIG_ID_FIELD_LENGTH:
+                loc[0] = loc[0][-CONTIG_ID_FIELD_LENGTH:]
             if loc[2] == "-":
                 return SeqFeature.FeatureLocation(loc[1]-loc[3], loc[1], -1, loc[0])
             else:
