@@ -8,7 +8,10 @@ This is the basic readme for this module. Include any usage or deployment instru
 
 ##Release Notes
 
-### 0.8.7 (05/15/2018)
+### 0.8.7 (05/30/2018)
+use searchapi2 in production & appdev
+
+### 0.8.7 (05/28/2018)
 Fix go term splitting for GFF uploads
 Add optional "upgrade" parameter to save_genome
 
