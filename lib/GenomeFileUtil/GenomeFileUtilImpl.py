@@ -292,7 +292,7 @@ class GenomeFileUtil:
         print('Downloading assembly')
         au = AssemblyUtil(self.cfg.callbackURL)
         assembly_file_path = au.get_assembly_as_fasta(
-            {'ref': assembly_ref}
+            {'ref': params['input_ref'] + ";" + assembly_ref}
         )['path']
 
         # create the output directory and move the files there

@@ -43,8 +43,8 @@ class GenomeToGenbank(object):
 
         # 4) build the genbank file and return it
         print('not cached, building file...')
-        result = self.build_genbank_file(data,
-                                         "KBase_derived_" + info[1] + ".gbff")
+        result = self.build_genbank_file(data, "KBase_derived_" + info[1] + ".gbff",
+                                         params['genome_ref'])
         if result is None:
             raise ValueError('Unable to generate file.  Something went wrong')
         result['from_cache'] = 0
@@ -89,8 +89,8 @@ class GenomeToGenbank(object):
             }
         }
 
-    def build_genbank_file(self, genome_data, output_filename):
-        g = GenomeFile(self.cfg, genome_data)
+    def build_genbank_file(self, genome_data, output_filename, genome_ref):
+        g = GenomeFile(self.cfg, genome_data, genome_ref)
         file_path = self.cfg.sharedFolder + "/" + output_filename
         g.write_genbank_file(file_path)
 
@@ -102,9 +102,10 @@ class GenomeToGenbank(object):
 
 
 class GenomeFile:
-    def __init__(self, cfg, genome_object):
+    def __init__(self, cfg, genome_object, genome_ref):
         self.cfg = cfg
         self.genome_object = genome_object
+        self.genome_ref = genome_ref
         self.seq_records = []
         self.features_by_contig = defaultdict(list)
         # make special dict for all mrna & cds, they will be added when their
@@ -140,8 +141,9 @@ class GenomeFile:
         print('Assembly reference = ' + assembly_ref)
         print('Downloading assembly')
         dfu = DataFileUtil(self.cfg.callbackURL)
+        print('object_refs:' + self.genome_ref + ";" + assembly_ref)
         assembly_data = dfu.get_objects({
-            'object_refs': [assembly_ref]
+            'object_refs': [self.genome_ref + ";" + assembly_ref]
         })['data'][0]['data']
         if isinstance(assembly_data['contigs'], dict):  # is an assembly
             circular_contigs = set([x['contig_id'] for x in assembly_data['contigs'].values()
@@ -151,7 +153,7 @@ class GenomeFile:
                                     if x.get('replicon_geometry') == 'circular'])
         au = AssemblyUtil(self.cfg.callbackURL)
         assembly_file_path = au.get_assembly_as_fasta(
-            {'ref': assembly_ref}
+            {'ref': self.genome_ref + ";" + assembly_ref}
         )['path']
         return assembly_file_path, circular_contigs
 

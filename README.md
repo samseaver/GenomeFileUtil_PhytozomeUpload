@@ -8,8 +8,9 @@ This is the basic readme for this module. Include any usage or deployment instru
 
 ##Release Notes
 
-### 0.8.9 (05/31/2018)
+### 0.8.9 (06/04/2018)
 Correct genbank download of old genomes with contig sets and long contig IDs
+Make reference path though genome for assembly access to prevent permissions issues
 
 ### 0.8.8 (05/30/2018)
 use searchapi2 in production & appdev

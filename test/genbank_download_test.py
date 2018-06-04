@@ -98,7 +98,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         return ref
 
     def test_simple_genbank_download(self):
-        return
         # load test data data
         assembly_file_path = os.path.join(self.cfg['scratch'], 'e_coli_assembly.fasta')
         shutil.copy('data/e_coli/e_coli_assembly.fasta', assembly_file_path)
@@ -113,7 +112,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertEqual(res1['from_cache'], 0)
 
     def test_check_for_taxonomy_bug(self):
-        return
         # load test data data
         assembly_file_path = os.path.join(self.cfg['scratch'], 'e_coli_assembly.fasta')
         shutil.copy('data/e_coli/e_coli_assembly.fasta', assembly_file_path)
