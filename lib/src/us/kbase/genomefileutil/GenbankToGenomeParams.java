@@ -26,7 +26,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  *       generate ids (default behavior is raising an exception)
  * genetic_code - Genetic code of organism. Overwrites determined GC from 
  *       taxon object
- * type - Reference, Representative or User upload
+ * generate_missing_genes - If the file has CDS or mRNA with no corresponding
+ *     gene, generate a spoofed gene.
+ * use_existing_assembly - Supply an existing assembly reference
  * </pre>
  * 
  */
@@ -42,8 +44,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "release",
     "generate_ids_if_needed",
     "genetic_code",
-    "type",
-    "metadata"
+    "metadata",
+    "generate_missing_genes",
+    "use_existing_assembly"
 })
 public class GenbankToGenomeParams {
 
@@ -70,10 +73,12 @@ public class GenbankToGenomeParams {
     private java.lang.String generateIdsIfNeeded;
     @JsonProperty("genetic_code")
     private Long geneticCode;
-    @JsonProperty("type")
-    private java.lang.String type;
     @JsonProperty("metadata")
     private Map<String, String> metadata;
+    @JsonProperty("generate_missing_genes")
+    private Long generateMissingGenes;
+    @JsonProperty("use_existing_assembly")
+    private java.lang.String useExistingAssembly;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     /**
@@ -221,21 +226,6 @@ public class GenbankToGenomeParams {
         return this;
     }
 
-    @JsonProperty("type")
-    public java.lang.String getType() {
-        return type;
-    }
-
-    @JsonProperty("type")
-    public void setType(java.lang.String type) {
-        this.type = type;
-    }
-
-    public GenbankToGenomeParams withType(java.lang.String type) {
-        this.type = type;
-        return this;
-    }
-
     @JsonProperty("metadata")
     public Map<String, String> getMetadata() {
         return metadata;
@@ -251,6 +241,36 @@ public class GenbankToGenomeParams {
         return this;
     }
 
+    @JsonProperty("generate_missing_genes")
+    public Long getGenerateMissingGenes() {
+        return generateMissingGenes;
+    }
+
+    @JsonProperty("generate_missing_genes")
+    public void setGenerateMissingGenes(Long generateMissingGenes) {
+        this.generateMissingGenes = generateMissingGenes;
+    }
+
+    public GenbankToGenomeParams withGenerateMissingGenes(Long generateMissingGenes) {
+        this.generateMissingGenes = generateMissingGenes;
+        return this;
+    }
+
+    @JsonProperty("use_existing_assembly")
+    public java.lang.String getUseExistingAssembly() {
+        return useExistingAssembly;
+    }
+
+    @JsonProperty("use_existing_assembly")
+    public void setUseExistingAssembly(java.lang.String useExistingAssembly) {
+        this.useExistingAssembly = useExistingAssembly;
+    }
+
+    public GenbankToGenomeParams withUseExistingAssembly(java.lang.String useExistingAssembly) {
+        this.useExistingAssembly = useExistingAssembly;
+        return this;
+    }
+
     @JsonAnyGetter
     public Map<java.lang.String, Object> getAdditionalProperties() {
         return this.additionalProperties;
@@ -263,7 +283,7 @@ public class GenbankToGenomeParams {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((("GenbankToGenomeParams"+" [file=")+ file)+", genomeName=")+ genomeName)+", workspaceName=")+ workspaceName)+", source=")+ source)+", taxonWsname=")+ taxonWsname)+", taxonReference=")+ taxonReference)+", release=")+ release)+", generateIdsIfNeeded=")+ generateIdsIfNeeded)+", geneticCode=")+ geneticCode)+", type=")+ type)+", metadata=")+ metadata)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((("GenbankToGenomeParams"+" [file=")+ file)+", genomeName=")+ genomeName)+", workspaceName=")+ workspaceName)+", source=")+ source)+", taxonWsname=")+ taxonWsname)+", taxonReference=")+ taxonReference)+", release=")+ release)+", generateIdsIfNeeded=")+ generateIdsIfNeeded)+", geneticCode=")+ geneticCode)+", metadata=")+ metadata)+", generateMissingGenes=")+ generateMissingGenes)+", useExistingAssembly=")+ useExistingAssembly)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }

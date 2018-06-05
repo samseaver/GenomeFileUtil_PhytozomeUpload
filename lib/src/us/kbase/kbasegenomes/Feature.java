@@ -11,23 +11,27 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import us.kbase.common.service.Tuple2;
-import us.kbase.common.service.Tuple3;
 import us.kbase.common.service.Tuple4;
-import us.kbase.common.service.Tuple7;
 
 
 /**
  * <p>Original spec-file type: Feature</p>
  * <pre>
- * Structure for a single feature of a genome
- *     
- *     Should genome_id contain the genome_id in the Genome object,
- *     the workspace id of the Genome object, a genomeref,
- *     something else?
- *     Should sequence be in separate objects too?
+ * Structure for a single CDS encoding ???gene??? of a genome
+ * ONLY PUT GENES THAT HAVE A CORRESPONDING CDS IN THIS ARRAY
+ *     NOTE: Sequence is optional. Ideally we can keep it in here, but
+ * Recognize due to space constraints another solution may be needed.
  *     We may want to add additional fields for other CDM functions
  *     (e.g., atomic regulons, coexpressed fids, co_occurring fids,...)
- *     @optional orthologs quality feature_creation_event md5 location function ontology_terms protein_translation protein_families subsystems publications subsystem_data aliases annotations regulon_data atomic_regulons coexpressed_fids co_occurring_fids dna_sequence protein_translation_length dna_sequence_length
+ *     protein_translation_length and protein_translation are
+ *     for longest coded protein (representative protein for splice variants)
+ *     NOTE: New Aliases field definitely breaks compatibility.
+ *           As Does Function.
+ *     flags are flag fields in GenBank format. This will be a controlled vocabulary.
+ *     Initially Acceptable values are pseudo, ribosomal_slippage, and trans_splicing
+ *     Md5 is the md5 of dna_sequence.
+ *     @optional functions ontology_terms note protein_translation mrnas flags warnings
+ *     @optional inference_data dna_sequence aliases db_xrefs children functional_descriptions
  * </pre>
  * 
  */
@@ -36,27 +40,23 @@ import us.kbase.common.service.Tuple7;
 @JsonPropertyOrder({
     "id",
     "location",
-    "type",
-    "function",
+    "functions",
+    "functional_descriptions",
     "ontology_terms",
+    "note",
     "md5",
     "protein_translation",
-    "dna_sequence",
     "protein_translation_length",
+    "cdss",
+    "mrnas",
+    "children",
+    "flags",
+    "warnings",
+    "inference_data",
+    "dna_sequence",
     "dna_sequence_length",
-    "publications",
-    "subsystems",
-    "protein_families",
     "aliases",
-    "orthologs",
-    "annotations",
-    "subsystem_data",
-    "regulon_data",
-    "atomic_regulons",
-    "coexpressed_fids",
-    "co_occurring_fids",
-    "quality",
-    "feature_creation_event"
+    "db_xrefs"
 })
 public class Feature {
 
@@ -64,62 +64,40 @@ public class Feature {
     private java.lang.String id;
     @JsonProperty("location")
     private List<Tuple4 <String, Long, String, Long>> location;
-    @JsonProperty("type")
-    private java.lang.String type;
-    @JsonProperty("function")
-    private java.lang.String function;
+    @JsonProperty("functions")
+    private List<String> functions;
+    @JsonProperty("functional_descriptions")
+    private List<String> functionalDescriptions;
     @JsonProperty("ontology_terms")
-    private Map<String, Map<String, OntologyData>> ontologyTerms;
+    private Map<String, Map<String, List<Long>>> ontologyTerms;
+    @JsonProperty("note")
+    private java.lang.String note;
     @JsonProperty("md5")
     private java.lang.String md5;
     @JsonProperty("protein_translation")
     private java.lang.String proteinTranslation;
-    @JsonProperty("dna_sequence")
-    private java.lang.String dnaSequence;
     @JsonProperty("protein_translation_length")
     private java.lang.Long proteinTranslationLength;
+    @JsonProperty("cdss")
+    private List<String> cdss;
+    @JsonProperty("mrnas")
+    private List<String> mrnas;
+    @JsonProperty("children")
+    private List<String> children;
+    @JsonProperty("flags")
+    private List<String> flags;
+    @JsonProperty("warnings")
+    private List<String> warnings;
+    @JsonProperty("inference_data")
+    private List<InferenceInfo> inferenceData;
+    @JsonProperty("dna_sequence")
+    private java.lang.String dnaSequence;
     @JsonProperty("dna_sequence_length")
     private java.lang.Long dnaSequenceLength;
-    @JsonProperty("publications")
-    private List<Tuple7 <Long, String, String, String, String, String, String>> publications;
-    @JsonProperty("subsystems")
-    private List<String> subsystems;
-    @JsonProperty("protein_families")
-    private List<ProteinFamily> proteinFamilies;
     @JsonProperty("aliases")
-    private List<String> aliases;
-    @JsonProperty("orthologs")
-    private List<Tuple2 <String, Double>> orthologs;
-    @JsonProperty("annotations")
-    private List<Tuple3 <String, String, Double>> annotations;
-    @JsonProperty("subsystem_data")
-    private List<Tuple3 <String, String, String>> subsystemData;
-    @JsonProperty("regulon_data")
-    private List<Tuple3 <String, List<String> , List<String>>> regulonData;
-    @JsonProperty("atomic_regulons")
-    private List<Tuple2 <String, Long>> atomicRegulons;
-    @JsonProperty("coexpressed_fids")
-    private List<Tuple2 <String, Double>> coexpressedFids;
-    @JsonProperty("co_occurring_fids")
-    private List<Tuple2 <String, Double>> coOccurringFids;
-    /**
-     * <p>Original spec-file type: Feature_quality_measure</p>
-     * <pre>
-     * @optional weighted_hit_count hit_count existence_priority overlap_rules pyrrolysylprotein truncated_begin truncated_end existence_confidence frameshifted selenoprotein
-     * </pre>
-     * 
-     */
-    @JsonProperty("quality")
-    private FeatureQualityMeasure quality;
-    /**
-     * <p>Original spec-file type: Analysis_event</p>
-     * <pre>
-     * @optional tool_name execution_time parameters hostname
-     * </pre>
-     * 
-     */
-    @JsonProperty("feature_creation_event")
-    private AnalysisEvent featureCreationEvent;
+    private List<Tuple2 <String, String>> aliases;
+    @JsonProperty("db_xrefs")
+    private List<Tuple2 <String, String>> dbXrefs;
     private Map<java.lang.String, Object> additionalProperties = new HashMap<java.lang.String, Object>();
 
     @JsonProperty("id")
@@ -152,48 +130,63 @@ public class Feature {
         return this;
     }
 
-    @JsonProperty("type")
-    public java.lang.String getType() {
-        return type;
+    @JsonProperty("functions")
+    public List<String> getFunctions() {
+        return functions;
     }
 
-    @JsonProperty("type")
-    public void setType(java.lang.String type) {
-        this.type = type;
+    @JsonProperty("functions")
+    public void setFunctions(List<String> functions) {
+        this.functions = functions;
     }
 
-    public Feature withType(java.lang.String type) {
-        this.type = type;
+    public Feature withFunctions(List<String> functions) {
+        this.functions = functions;
         return this;
     }
 
-    @JsonProperty("function")
-    public java.lang.String getFunction() {
-        return function;
+    @JsonProperty("functional_descriptions")
+    public List<String> getFunctionalDescriptions() {
+        return functionalDescriptions;
     }
 
-    @JsonProperty("function")
-    public void setFunction(java.lang.String function) {
-        this.function = function;
+    @JsonProperty("functional_descriptions")
+    public void setFunctionalDescriptions(List<String> functionalDescriptions) {
+        this.functionalDescriptions = functionalDescriptions;
     }
 
-    public Feature withFunction(java.lang.String function) {
-        this.function = function;
+    public Feature withFunctionalDescriptions(List<String> functionalDescriptions) {
+        this.functionalDescriptions = functionalDescriptions;
         return this;
     }
 
     @JsonProperty("ontology_terms")
-    public Map<String, Map<String, OntologyData>> getOntologyTerms() {
+    public Map<String, Map<String, List<Long>>> getOntologyTerms() {
         return ontologyTerms;
     }
 
     @JsonProperty("ontology_terms")
-    public void setOntologyTerms(Map<String, Map<String, OntologyData>> ontologyTerms) {
+    public void setOntologyTerms(Map<String, Map<String, List<Long>>> ontologyTerms) {
         this.ontologyTerms = ontologyTerms;
     }
 
-    public Feature withOntologyTerms(Map<String, Map<String, OntologyData>> ontologyTerms) {
+    public Feature withOntologyTerms(Map<String, Map<String, List<Long>>> ontologyTerms) {
         this.ontologyTerms = ontologyTerms;
+        return this;
+    }
+
+    @JsonProperty("note")
+    public java.lang.String getNote() {
+        return note;
+    }
+
+    @JsonProperty("note")
+    public void setNote(java.lang.String note) {
+        this.note = note;
+    }
+
+    public Feature withNote(java.lang.String note) {
+        this.note = note;
         return this;
     }
 
@@ -227,21 +220,6 @@ public class Feature {
         return this;
     }
 
-    @JsonProperty("dna_sequence")
-    public java.lang.String getDnaSequence() {
-        return dnaSequence;
-    }
-
-    @JsonProperty("dna_sequence")
-    public void setDnaSequence(java.lang.String dnaSequence) {
-        this.dnaSequence = dnaSequence;
-    }
-
-    public Feature withDnaSequence(java.lang.String dnaSequence) {
-        this.dnaSequence = dnaSequence;
-        return this;
-    }
-
     @JsonProperty("protein_translation_length")
     public java.lang.Long getProteinTranslationLength() {
         return proteinTranslationLength;
@@ -254,6 +232,111 @@ public class Feature {
 
     public Feature withProteinTranslationLength(java.lang.Long proteinTranslationLength) {
         this.proteinTranslationLength = proteinTranslationLength;
+        return this;
+    }
+
+    @JsonProperty("cdss")
+    public List<String> getCdss() {
+        return cdss;
+    }
+
+    @JsonProperty("cdss")
+    public void setCdss(List<String> cdss) {
+        this.cdss = cdss;
+    }
+
+    public Feature withCdss(List<String> cdss) {
+        this.cdss = cdss;
+        return this;
+    }
+
+    @JsonProperty("mrnas")
+    public List<String> getMrnas() {
+        return mrnas;
+    }
+
+    @JsonProperty("mrnas")
+    public void setMrnas(List<String> mrnas) {
+        this.mrnas = mrnas;
+    }
+
+    public Feature withMrnas(List<String> mrnas) {
+        this.mrnas = mrnas;
+        return this;
+    }
+
+    @JsonProperty("children")
+    public List<String> getChildren() {
+        return children;
+    }
+
+    @JsonProperty("children")
+    public void setChildren(List<String> children) {
+        this.children = children;
+    }
+
+    public Feature withChildren(List<String> children) {
+        this.children = children;
+        return this;
+    }
+
+    @JsonProperty("flags")
+    public List<String> getFlags() {
+        return flags;
+    }
+
+    @JsonProperty("flags")
+    public void setFlags(List<String> flags) {
+        this.flags = flags;
+    }
+
+    public Feature withFlags(List<String> flags) {
+        this.flags = flags;
+        return this;
+    }
+
+    @JsonProperty("warnings")
+    public List<String> getWarnings() {
+        return warnings;
+    }
+
+    @JsonProperty("warnings")
+    public void setWarnings(List<String> warnings) {
+        this.warnings = warnings;
+    }
+
+    public Feature withWarnings(List<String> warnings) {
+        this.warnings = warnings;
+        return this;
+    }
+
+    @JsonProperty("inference_data")
+    public List<InferenceInfo> getInferenceData() {
+        return inferenceData;
+    }
+
+    @JsonProperty("inference_data")
+    public void setInferenceData(List<InferenceInfo> inferenceData) {
+        this.inferenceData = inferenceData;
+    }
+
+    public Feature withInferenceData(List<InferenceInfo> inferenceData) {
+        this.inferenceData = inferenceData;
+        return this;
+    }
+
+    @JsonProperty("dna_sequence")
+    public java.lang.String getDnaSequence() {
+        return dnaSequence;
+    }
+
+    @JsonProperty("dna_sequence")
+    public void setDnaSequence(java.lang.String dnaSequence) {
+        this.dnaSequence = dnaSequence;
+    }
+
+    public Feature withDnaSequence(java.lang.String dnaSequence) {
+        this.dnaSequence = dnaSequence;
         return this;
     }
 
@@ -272,226 +355,33 @@ public class Feature {
         return this;
     }
 
-    @JsonProperty("publications")
-    public List<Tuple7 <Long, String, String, String, String, String, String>> getPublications() {
-        return publications;
-    }
-
-    @JsonProperty("publications")
-    public void setPublications(List<Tuple7 <Long, String, String, String, String, String, String>> publications) {
-        this.publications = publications;
-    }
-
-    public Feature withPublications(List<Tuple7 <Long, String, String, String, String, String, String>> publications) {
-        this.publications = publications;
-        return this;
-    }
-
-    @JsonProperty("subsystems")
-    public List<String> getSubsystems() {
-        return subsystems;
-    }
-
-    @JsonProperty("subsystems")
-    public void setSubsystems(List<String> subsystems) {
-        this.subsystems = subsystems;
-    }
-
-    public Feature withSubsystems(List<String> subsystems) {
-        this.subsystems = subsystems;
-        return this;
-    }
-
-    @JsonProperty("protein_families")
-    public List<ProteinFamily> getProteinFamilies() {
-        return proteinFamilies;
-    }
-
-    @JsonProperty("protein_families")
-    public void setProteinFamilies(List<ProteinFamily> proteinFamilies) {
-        this.proteinFamilies = proteinFamilies;
-    }
-
-    public Feature withProteinFamilies(List<ProteinFamily> proteinFamilies) {
-        this.proteinFamilies = proteinFamilies;
-        return this;
-    }
-
     @JsonProperty("aliases")
-    public List<String> getAliases() {
+    public List<Tuple2 <String, String>> getAliases() {
         return aliases;
     }
 
     @JsonProperty("aliases")
-    public void setAliases(List<String> aliases) {
+    public void setAliases(List<Tuple2 <String, String>> aliases) {
         this.aliases = aliases;
     }
 
-    public Feature withAliases(List<String> aliases) {
+    public Feature withAliases(List<Tuple2 <String, String>> aliases) {
         this.aliases = aliases;
         return this;
     }
 
-    @JsonProperty("orthologs")
-    public List<Tuple2 <String, Double>> getOrthologs() {
-        return orthologs;
+    @JsonProperty("db_xrefs")
+    public List<Tuple2 <String, String>> getDbXrefs() {
+        return dbXrefs;
     }
 
-    @JsonProperty("orthologs")
-    public void setOrthologs(List<Tuple2 <String, Double>> orthologs) {
-        this.orthologs = orthologs;
+    @JsonProperty("db_xrefs")
+    public void setDbXrefs(List<Tuple2 <String, String>> dbXrefs) {
+        this.dbXrefs = dbXrefs;
     }
 
-    public Feature withOrthologs(List<Tuple2 <String, Double>> orthologs) {
-        this.orthologs = orthologs;
-        return this;
-    }
-
-    @JsonProperty("annotations")
-    public List<Tuple3 <String, String, Double>> getAnnotations() {
-        return annotations;
-    }
-
-    @JsonProperty("annotations")
-    public void setAnnotations(List<Tuple3 <String, String, Double>> annotations) {
-        this.annotations = annotations;
-    }
-
-    public Feature withAnnotations(List<Tuple3 <String, String, Double>> annotations) {
-        this.annotations = annotations;
-        return this;
-    }
-
-    @JsonProperty("subsystem_data")
-    public List<Tuple3 <String, String, String>> getSubsystemData() {
-        return subsystemData;
-    }
-
-    @JsonProperty("subsystem_data")
-    public void setSubsystemData(List<Tuple3 <String, String, String>> subsystemData) {
-        this.subsystemData = subsystemData;
-    }
-
-    public Feature withSubsystemData(List<Tuple3 <String, String, String>> subsystemData) {
-        this.subsystemData = subsystemData;
-        return this;
-    }
-
-    @JsonProperty("regulon_data")
-    public List<Tuple3 <String, List<String> , List<String>>> getRegulonData() {
-        return regulonData;
-    }
-
-    @JsonProperty("regulon_data")
-    public void setRegulonData(List<Tuple3 <String, List<String> , List<String>>> regulonData) {
-        this.regulonData = regulonData;
-    }
-
-    public Feature withRegulonData(List<Tuple3 <String, List<String> , List<String>>> regulonData) {
-        this.regulonData = regulonData;
-        return this;
-    }
-
-    @JsonProperty("atomic_regulons")
-    public List<Tuple2 <String, Long>> getAtomicRegulons() {
-        return atomicRegulons;
-    }
-
-    @JsonProperty("atomic_regulons")
-    public void setAtomicRegulons(List<Tuple2 <String, Long>> atomicRegulons) {
-        this.atomicRegulons = atomicRegulons;
-    }
-
-    public Feature withAtomicRegulons(List<Tuple2 <String, Long>> atomicRegulons) {
-        this.atomicRegulons = atomicRegulons;
-        return this;
-    }
-
-    @JsonProperty("coexpressed_fids")
-    public List<Tuple2 <String, Double>> getCoexpressedFids() {
-        return coexpressedFids;
-    }
-
-    @JsonProperty("coexpressed_fids")
-    public void setCoexpressedFids(List<Tuple2 <String, Double>> coexpressedFids) {
-        this.coexpressedFids = coexpressedFids;
-    }
-
-    public Feature withCoexpressedFids(List<Tuple2 <String, Double>> coexpressedFids) {
-        this.coexpressedFids = coexpressedFids;
-        return this;
-    }
-
-    @JsonProperty("co_occurring_fids")
-    public List<Tuple2 <String, Double>> getCoOccurringFids() {
-        return coOccurringFids;
-    }
-
-    @JsonProperty("co_occurring_fids")
-    public void setCoOccurringFids(List<Tuple2 <String, Double>> coOccurringFids) {
-        this.coOccurringFids = coOccurringFids;
-    }
-
-    public Feature withCoOccurringFids(List<Tuple2 <String, Double>> coOccurringFids) {
-        this.coOccurringFids = coOccurringFids;
-        return this;
-    }
-
-    /**
-     * <p>Original spec-file type: Feature_quality_measure</p>
-     * <pre>
-     * @optional weighted_hit_count hit_count existence_priority overlap_rules pyrrolysylprotein truncated_begin truncated_end existence_confidence frameshifted selenoprotein
-     * </pre>
-     * 
-     */
-    @JsonProperty("quality")
-    public FeatureQualityMeasure getQuality() {
-        return quality;
-    }
-
-    /**
-     * <p>Original spec-file type: Feature_quality_measure</p>
-     * <pre>
-     * @optional weighted_hit_count hit_count existence_priority overlap_rules pyrrolysylprotein truncated_begin truncated_end existence_confidence frameshifted selenoprotein
-     * </pre>
-     * 
-     */
-    @JsonProperty("quality")
-    public void setQuality(FeatureQualityMeasure quality) {
-        this.quality = quality;
-    }
-
-    public Feature withQuality(FeatureQualityMeasure quality) {
-        this.quality = quality;
-        return this;
-    }
-
-    /**
-     * <p>Original spec-file type: Analysis_event</p>
-     * <pre>
-     * @optional tool_name execution_time parameters hostname
-     * </pre>
-     * 
-     */
-    @JsonProperty("feature_creation_event")
-    public AnalysisEvent getFeatureCreationEvent() {
-        return featureCreationEvent;
-    }
-
-    /**
-     * <p>Original spec-file type: Analysis_event</p>
-     * <pre>
-     * @optional tool_name execution_time parameters hostname
-     * </pre>
-     * 
-     */
-    @JsonProperty("feature_creation_event")
-    public void setFeatureCreationEvent(AnalysisEvent featureCreationEvent) {
-        this.featureCreationEvent = featureCreationEvent;
-    }
-
-    public Feature withFeatureCreationEvent(AnalysisEvent featureCreationEvent) {
-        this.featureCreationEvent = featureCreationEvent;
+    public Feature withDbXrefs(List<Tuple2 <String, String>> dbXrefs) {
+        this.dbXrefs = dbXrefs;
         return this;
     }
 
@@ -507,7 +397,7 @@ public class Feature {
 
     @Override
     public java.lang.String toString() {
-        return ((((((((((((((((((((((((((((((((((((((((((((((((("Feature"+" [id=")+ id)+", location=")+ location)+", type=")+ type)+", function=")+ function)+", ontologyTerms=")+ ontologyTerms)+", md5=")+ md5)+", proteinTranslation=")+ proteinTranslation)+", dnaSequence=")+ dnaSequence)+", proteinTranslationLength=")+ proteinTranslationLength)+", dnaSequenceLength=")+ dnaSequenceLength)+", publications=")+ publications)+", subsystems=")+ subsystems)+", proteinFamilies=")+ proteinFamilies)+", aliases=")+ aliases)+", orthologs=")+ orthologs)+", annotations=")+ annotations)+", subsystemData=")+ subsystemData)+", regulonData=")+ regulonData)+", atomicRegulons=")+ atomicRegulons)+", coexpressedFids=")+ coexpressedFids)+", coOccurringFids=")+ coOccurringFids)+", quality=")+ quality)+", featureCreationEvent=")+ featureCreationEvent)+", additionalProperties=")+ additionalProperties)+"]");
+        return ((((((((((((((((((((((((((((((((((((((((("Feature"+" [id=")+ id)+", location=")+ location)+", functions=")+ functions)+", functionalDescriptions=")+ functionalDescriptions)+", ontologyTerms=")+ ontologyTerms)+", note=")+ note)+", md5=")+ md5)+", proteinTranslation=")+ proteinTranslation)+", proteinTranslationLength=")+ proteinTranslationLength)+", cdss=")+ cdss)+", mrnas=")+ mrnas)+", children=")+ children)+", flags=")+ flags)+", warnings=")+ warnings)+", inferenceData=")+ inferenceData)+", dnaSequence=")+ dnaSequence)+", dnaSequenceLength=")+ dnaSequenceLength)+", aliases=")+ aliases)+", dbXrefs=")+ dbXrefs)+", additionalProperties=")+ additionalProperties)+"]");
     }
 
 }
