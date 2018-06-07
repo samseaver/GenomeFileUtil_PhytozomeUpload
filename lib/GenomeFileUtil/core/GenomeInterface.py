@@ -254,6 +254,8 @@ class GenomeInterface:
                                   'ExternalDB']
             if 'representative' in low_source:
                 return "RefSeq", ['Representative', 'ExternalDB']
+            if 'user' in low_source:
+                return "RefSeq", ['ExternalDB', 'User']
             return "RefSeq", ['ExternalDB']
         if 'phytozome' in low_source:
             if 'flagship' in source:
@@ -261,6 +263,8 @@ class GenomeInterface:
                                      'ExternalDB']
             return "Phytosome", ['Representative', 'ExternalDB']
         if 'ensembl' in low_source:
+            if 'user' in low_source:
+                return "Ensembl", ['ExternalDB', 'User']
             return "Ensembl", ['Representative', 'ExternalDB']
         return source, ['User']
 
