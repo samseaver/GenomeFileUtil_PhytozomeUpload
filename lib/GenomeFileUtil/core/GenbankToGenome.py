@@ -86,7 +86,6 @@ class GenbankToGenome:
             'release': None,
             'genetic_code': 11,
             'generate_ids_if_needed': 0,
-            'type': 'User upload',
             'metadata': {}
         }
 
@@ -163,11 +162,6 @@ class GenbankToGenome:
         if n_valid_fields > 1:
             raise ValueError('required "file" field has too many sources '
                              'specified: ' + str(file.keys()))
-
-        valid_types = ['Reference', 'User upload', 'Representative']
-        if 'type' in params and params['type'] not in valid_types:
-            raise ValueError('Entered value for type is not one of the valid '
-                             'entries: {}'.format(", ".join(valid_types)))
 
     def stage_input(self, params):
         ''' Setup the input_directory by fetching the files and uncompressing if needed. '''

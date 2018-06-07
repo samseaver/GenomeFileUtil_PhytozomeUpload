@@ -229,13 +229,6 @@ class FastaGFFToGenome:
                 error_msg += str(file.keys())
                 raise ValueError(error_msg)
 
-        # check for valid type param
-        valid_types = ['Reference', 'User upload', 'Representative']
-        if params.get('type') and params['type'] not in valid_types:
-            error_msg = 'Entered value for type is not one of the valid entries of '
-            error_msg += '[' + ''.join('"' + str(e) + '", ' for e in valid_types)[0: -2] + ']'
-            raise ValueError(error_msg)
-
     def _set_parsed_params(self, params):
         log('Setting params')
 
@@ -246,7 +239,6 @@ class FastaGFFToGenome:
             'taxon_reference': None,
             'source': 'User',
             'release': None,
-            'type': 'User upload',
             'metadata': {}
         }
 
