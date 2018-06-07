@@ -92,7 +92,6 @@ class FastaGFFToGenome:
             core_genome_name=params['genome_name'],
             scientific_name=params['scientific_name'],
             source=params['source'],
-            genome_type=params['type'],
             release=params['release'],
         )
         return genome, input_directory
@@ -131,7 +130,7 @@ class FastaGFFToGenome:
     def _gen_genome_json(self, input_gff_file=None, input_fasta_file=None,
                         workspace_name=None, core_genome_name=None,
                         scientific_name="unknown_taxon", source=None,
-                        release=None, genome_type=None):
+                        release=None):
 
         # reading in GFF file
         features_by_contig = self._retrieve_gff_file(input_gff_file)
@@ -168,7 +167,6 @@ class FastaGFFToGenome:
                                        assembly_ref, source, assembly_data,
                                        input_gff_file, molecule_type)
         genome['release'] = release
-        genome['type'] = genome_type
         if self.spoof_gene_count > 0:
             genome['warnings'] = genome.get('warnings', []) + \
                                     [warnings['spoofed_genome'].format(self.spoof_gene_count)]

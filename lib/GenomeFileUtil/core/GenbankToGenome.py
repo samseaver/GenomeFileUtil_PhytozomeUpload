@@ -230,7 +230,6 @@ class GenbankToGenome:
              'ignore_errors': 0})['data'][0]['data']
         genome = {
             "id": params['genome_name'],
-            "type": params['type'],
             "original_source_file_name": os.path.basename(file_path),
             "assembly_ref": assembly_ref,
             "gc_content": assembly_data['gc_content'],
