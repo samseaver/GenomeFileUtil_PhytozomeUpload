@@ -41,6 +41,7 @@ class GenbankToGenome:
         self.generate_parents = False
         self.generate_ids = False
         self.ontologies_present = defaultdict(dict)
+        self.ontology_events = list()
         self.skiped_features = Counter()
         self.feature_counts = Counter()
         self.orphan_types = Counter()
@@ -56,22 +57,6 @@ class GenbankToGenome:
             open('/kb/module/data/go_ontology_mapping.json'))
         self.po_mapping = json.load(
             open('/kb/module/data/go_ontology_mapping.json'))
-        self.ontology_events = [
-            {
-                "method": "GenomeFileUtils Genbank uploader from annotations",
-                "method_version": self.version,
-                "timestamp": self.time_string,
-                "id": "GO",
-                "ontology_ref": "KBaseOntology/gene_ontology"
-            },
-            {
-                "method": "GenomeFileUtils Genbank uploader from annotations",
-                "method_version": self.version,
-                "timestamp": self.time_string,
-                "id": "PO",
-                "ontology_ref": "KBaseOntology/plant_ontology"
-            }
-        ]
         self.code_table = 11
         self.default_params = {
             'source': 'Genbank',
@@ -639,22 +624,49 @@ class GenbankToGenome:
                                [part.start:part.end].reverse_complement()))
         return "".join(seq)
 
+    def _create_ontology_event(self,ontology_type):
+        """Creates the ontology_event if necessary
+        Returns the index of the ontology event back."""
+        index_counter = 0
+        if ontology_type in ("GO","PO"):
+            ontology_ref = "KBaseOntology/gene_ontology"
+            if ontology_type == "PO":
+                ontology_ref = "KBaseOntology/plant_ontology"
+            if len(self.ontology_events) > 0 :
+                for ontology_event in self.ontology_events:
+                    if ontology_event["id"] == ontology_type:
+                        return index_counter
+                    index_counter += 1
+            self.ontology_events.append({
+                "method": "GenomeFileUtils Genbank uploader from annotations",
+                "method_version": self.version,
+                "timestamp": self.time_string,
+                "id": ontology_type,
+                "ontology_ref": ontology_ref
+                })  
+            return index_counter
+        else:  #This is not a supported ontology. Do not make the ontology.      
+            raise ValueError("{} is not a supported ontology".format(ontology_type))
+
     def _get_ontology_db_xrefs(self, feature):
         """Splits the ontology info from the other db_xrefs"""
         ontology = defaultdict(dict)
         db_xref = []
         for key in ("GO_process", "GO_function", "GO_component"):
+            ontology_event_index = self._create_ontology_event("GO")
             for term in feature.qualifiers.get(key, []):
                 sp = term.split(" - ")
-                ontology['GO'][sp[0]] = [0]
+                ontology['GO'][sp[0]] = [ontology_event_index]
                 self.ontologies_present['GO'][sp[0]] = self.go_mapping.get(
                     sp[0], '')
         for ref in feature.qualifiers.get('db_xref', []):
             if ref.startswith('GO:'):
-                ontology['GO'][ref] = [0]
+                ontology_event_index = self._create_ontology_event("GO")
+                ontology['GO'][ref] = [ontology_event_index]
                 self.ontologies_present['GO'][ref] = self.go_mapping.get(ref, '')
             elif ref.startswith('PO:'):
-                ontology['PO'][ref] = [1]
+                ontology_event_index = self._create_ontology_event("PO")
+                ontology['PO'][ref] = [ontology_event_index]
                 self.ontologies_present['PO'][ref] = self.po_mapping.get(ref, '')
             else:
                 db_xref.append(tuple(ref.split(":")))
