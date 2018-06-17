@@ -644,7 +644,7 @@ class FastaGFFToGenome:
         # location and sequence of it's parent, we add the info to it parent
         # feature but not the feature dict
         if in_feature['type'] in self.skip_types:
-            if parent_id:
+            if parent_id and in_feature['type'] in {'exon', 'five_prime_UTR', 'three_prime_UTR'}:
                 parent = self.feature_dict[parent_id]
                 if in_feature['type'] not in parent:
                     parent[in_feature['type']] = []
@@ -877,5 +877,4 @@ class FastaGFFToGenome:
         if self.warnings:
             genome['warnings'] = self.warnings
         genome['feature_counts'] = dict(self.feature_counts)
-
         return genome
