@@ -16,6 +16,8 @@ from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
 from KBaseSearchEngine.KBaseSearchEngineClient import KBaseSearchEngine
 from Workspace.WorkspaceClient import Workspace as Workspace
 
+MAX_GENOME_SIZE = 1e9
+
 
 def log(message, prefix_newline=False):
     time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(time.time()))
@@ -379,13 +381,20 @@ class GenomeInterface:
         return genome
 
     @staticmethod
-    def validate_genome(g, print_size=True):
+    def validate_genome(g):
         """
         Run a series of checks on the genome object and return any warnings
         """
 
         def _get_size(obj):
             return sys.getsizeof(json.dumps(obj))
+
+        def sizeof_fmt(num):
+            for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+                if abs(num) < 1024.0:
+                    return "%3.1f %sB" % (num, unit)
+                num /= 1024.0
+            return "%.1f %sB" % (num, 'Yi')
 
         allowed_tiers = {'Representative', 'Reference', 'ExternalDB', 'User'}
 
@@ -418,11 +427,17 @@ class GenomeInterface:
         if g['taxon_ref'] == "ReferenceTaxons/unknown_taxon":
             warnings.append('Unable to determine organism taxonomy')
 
-        if print_size:
-            print("Subobject Sizes:")
-            for x in ('cdss', 'mrnas', 'features', 'non_coding_features',
-                      'ontology_present'):
-                if x in g:
-                    print("{}: {} bytes".format(x, _get_size(g[x])))
-            print("Total size {} bytes".format(_get_size(g)))
+        print("Subobject Sizes:")
+        for x in ('cdss', 'mrnas', 'features', 'non_coding_features',
+                  'ontology_present'):
+            if x in g:
+                print("{}: {}".format(x, sizeof_fmt(_get_size(g[x]))))
+        total_size = _get_size(g)
+        print("Total size {} ".format(sizeof_fmt(total_size)))
+        if total_size > MAX_GENOME_SIZE:
+            raise ValueError("This genome exceeds the maximum permitted size of {}. The size of "
+                             "the genome is primarily determined by the number of annotated "
+                             "features not the total sequence length. You may be able to avoid "
+                             "this error by reducing the number of features in your genome file."
+                             .format(sizeof_fmt(MAX_GENOME_SIZE)))
         return warnings

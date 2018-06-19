@@ -1,9 +1,5 @@
 import unittest
-import os
-import json
-import time
-import shutil
-import filecmp
+import mock
 
 from os import environ
 try:
@@ -14,6 +10,7 @@ except:
 from Workspace.WorkspaceClient import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil, SDKConfig
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
+from GenomeFileUtil import core
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
 
 
@@ -63,3 +60,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                          ('Unconfirmed Organism: foo',
                           'ReferenceTaxons/unknown_taxon', 'Unknown', 11))
 
+    def test_max_genome_size(self):
+        core.GenomeInterface.MAX_GENOME_SIZE = 1
+        with self.assertRaisesRegexp(ValueError, "genome exceeds the maximum permitted size"):
+            GenomeInterface.validate_genome({"taxon_ref": "", "domain": ""})
