@@ -16,7 +16,7 @@ from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
 from KBaseSearchEngine.KBaseSearchEngineClient import KBaseSearchEngine
 from Workspace.WorkspaceClient import Workspace as Workspace
 
-MAX_GENOME_SIZE = 1e9
+MAX_GENOME_SIZE = 2**30
 
 
 def log(message, prefix_newline=False):
@@ -428,8 +428,7 @@ class GenomeInterface:
             warnings.append('Unable to determine organism taxonomy')
 
         print("Subobject Sizes:")
-        for x in ('cdss', 'mrnas', 'features', 'non_coding_features',
-                  'ontology_present'):
+        for x in ('cdss', 'mrnas', 'features', 'non_coding_features', 'ontologies_present'):
             if x in g:
                 print("{}: {}".format(x, sizeof_fmt(_get_size(g[x]))))
         total_size = _get_size(g)
