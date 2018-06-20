@@ -57,16 +57,7 @@ class GenomeToGFF:
         if not os.path.exists(target_dir):
             os.makedirs(target_dir)
 
-        # 4) if the GFF handle is there, get it and return
-        if is_gtf != 1:
-            print('checking if GFF file is cached...')
-            result = self.get_gff_handle(data, target_dir)
-            if result is not None:
-                result['from_cache'] = 1
-                return result
-            print('not cached, building file...')
-
-        # 5) otherwise, build the GFF/GTF file and return it
+        # 4) Build the GFF/GTF file and return it
         result = self.build_gff_file(data, target_dir, info[1], is_gtf == 1)
         if result is None:
             raise ValueError('Unable to generate file.  Something went wrong')

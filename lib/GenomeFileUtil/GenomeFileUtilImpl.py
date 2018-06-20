@@ -275,7 +275,7 @@ class GenomeFileUtil:
         ws = Workspace(url=self.cfg.workspaceURL)
         info = ws.get_objects2({'objects': [{
             'ref': params['input_ref'],
-            'included':['/assembly_ref', 'contigset_ref', '/id']}
+            'included':['/assembly_ref', '/contigset_ref', '/id', '/gff_handle_ref']}
         ]})['data'][0]['data']
 
         # export to file (building from KBase Genome Object)
@@ -301,11 +301,15 @@ class GenomeFileUtil:
         shutil.move(
             result['file_path'],
             os.path.join(export_package_dir,
-                         os.path.basename(result['file_path'])))
+                         'KBase_derived_' + os.path.basename(result['file_path'])))
         shutil.move(
             assembly_file_path,
             os.path.join(export_package_dir,
                          os.path.basename(assembly_file_path)))
+
+        # add cached genome if appropriate
+        exporter = GenomeToGFF(self.cfg)
+        cached = exporter.get_gff_handle(info, export_package_dir)
 
         # package it up
         dfUtil = DataFileUtil(self.cfg.callbackURL)

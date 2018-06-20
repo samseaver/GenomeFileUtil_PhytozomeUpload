@@ -151,23 +151,19 @@ class GenomeFileUtilTest(unittest.TestCase):
     def test_old_genome_gtf_download(self):
         genomeFileUtil = self.getImpl()
         print('testing GTF download by building the file')
-        res1 = genomeFileUtil.genome_to_gff(
-            self.getContext(),
-            {'genome_ref': self.rhodobacter_ref})[0]
-        self.assertEqual(res1['from_cache'], 0)
         res2 = genomeFileUtil.genome_to_gff(
             self.getContext(),
             {'genome_ref': self.rhodobacter_ref,
              'target_dir': '/kb/module/work/tmp/rhodo_gft', 'is_gtf': 1})[0]
         self.assertEqual(res2['from_cache'], 0)
 
-    def test_simple_gff_download_from_cache(self):
+    def test_old_genome_gff_export(self):
+        # fetch the test files and set things up
         genomeFileUtil = self.getImpl()
-        print('testing GTF download from cached file')
-        res2 = genomeFileUtil.genome_to_gff(
-            self.getContext(),
-            {'genome_ref': self.rhodobacter_ref_with_gff})[0]
-        self.assertEqual(res2['from_cache'], 1)
+        print('testing GTF export')
+        res = genomeFileUtil.export_genome_as_gff(
+            self.getContext(), {'input_ref': self.rhodobacter_ref_with_gff})[0]
+        assert 'shock_id' in res
 
     def test_new_genome_gff_download(self):
         # fetch the test files and set things up
@@ -184,14 +180,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         res = genomeFileUtil.genome_to_gff(
             self.getContext(), {'genome_ref': self.ecoli_ref, 'is_gtf': 1})[0]
         self.assertEqual(res['from_cache'], 0)
-
-    def test_new_genome_gff_export(self):
-        # fetch the test files and set things up
-        genomeFileUtil = self.getImpl()
-        print('testing GTF export')
-        res = genomeFileUtil.export_genome_as_gff(
-            self.getContext(), {'input_ref': self.ecoli_ref})[0]
-        assert 'shock_id' in res
 
     def test_ara_gff_download(self):
         # fetch the test files and set things up
