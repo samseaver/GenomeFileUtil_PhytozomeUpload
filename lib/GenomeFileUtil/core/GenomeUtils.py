@@ -74,7 +74,11 @@ warnings = {
                     "corresponding parent, but it fails coordinate validation.",
     "gff_odd_strand_type": "This feature had \"{}\" as the strand designation and not + or -. "
                     "The location and sequence was defaulted to the + strand.",
-    "contig_length_feature": "This feature spans entire contig length."
+    "contig_length_feature": "This feature spans entire contig length.",
+    "assembly_ref_extra_contigs": "The genbank file contains the following contigs which are not present "
+                    "in the supplied assembly: {}",
+    "assembly_ref_diff_seq": "The genbank file contains the following contigs which sequence does not match the "
+                    "supplied assembly sequence: {}"
 }
 
 
