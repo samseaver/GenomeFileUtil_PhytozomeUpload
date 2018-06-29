@@ -359,9 +359,6 @@ class GenbankToGenome:
                                  .format(assembly_ref))
             unmatched_ids = list()
             unmatched_ids_md5s = list()
-            print "SELF CONTIG SEQ KEYS: " + str(self.contig_seq.keys())
-            print "SELF CONTIG SEQ : " + str(self.contig_seq)
-            print "PREV UPLOADED CONTIGS : " + str(ret['data']['contigs'])
             for current_contig in self.contig_seq.keys():
                 current_contig_md5 = md5(str(self.contig_seq[current_contig])).hexdigest()
                 if current_contig in ret['data']['contigs']:
