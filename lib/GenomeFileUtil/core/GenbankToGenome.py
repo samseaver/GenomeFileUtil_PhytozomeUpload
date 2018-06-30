@@ -9,6 +9,7 @@ import shutil
 import sys
 import time
 import uuid
+from hashlib import md5
 from collections import Counter, defaultdict, OrderedDict
 
 import Bio.SeqIO
@@ -356,11 +357,19 @@ class GenbankToGenome:
             if "KBaseGenomeAnnotations.Assembly" not in ret['info'][2]:
                 raise ValueError("{} is not a reference to an assembly"
                                  .format(assembly_ref))
-            assembly_contig_ids = set(ret['data']['contigs'].keys())
-            unmatched_ids = set(self.contig_seq.keys()) - assembly_contig_ids
-            if unmatched_ids:
-                raise ValueError("The genbank file contains contigs which are not present in the "
-                                 "supplied assembly".format(", ".join(unmatched_ids)))
+            unmatched_ids = list()
+            unmatched_ids_md5s = list()
+            for current_contig in self.contig_seq.keys():
+                current_contig_md5 = md5(str(self.contig_seq[current_contig])).hexdigest()
+                if current_contig in ret['data']['contigs']:
+                    if current_contig_md5 != ret['data']['contigs'][current_contig]['md5']:
+                        unmatched_ids_md5s.append(current_contig)
+                else:
+                    unmatched_ids.append(current_contig)
+            if len(unmatched_ids) > 0:
+                raise ValueError(warnings['assembly_ref_extra_contigs'].format(", ".join(unmatched_ids)))
+            if len(unmatched_ids_md5s) > 0:
+                raise ValueError(warnings["assembly_ref_diff_seq"].format(", ".join(unmatched_ids_md5s)))                
             self.log("Using supplied assembly: {}".format(assembly_ref))
             return assembly_ref
         self.log("Saving sequence as Assembly object")
