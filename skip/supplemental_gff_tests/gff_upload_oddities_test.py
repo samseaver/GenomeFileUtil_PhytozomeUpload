@@ -229,6 +229,38 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(found_rna6CDS_GO)
         self.assertTrue(found_rna6CDS_PO)
 
+    def test_for_picking_up_product_name(self):
+        #tests for product_name alone as well as product alone.
+        genome = self.__class__.genome
+        found_gene = False
+        found_gene_product = False
+        found_gene_product_name = False
+        found_cds = False
+        found_cds_product_name = False
+        for feature in genome['features']:
+            if feature["id"] == 'gene2':
+                print "Feature gene2 : " + str(feature)
+                found_gene = True
+                if "functions" in feature:
+                    for function in feature["functions"]:
+                        if function == "NAD-dependent sorbitol dehydrogenase":
+                            found_gene_product = True   
+                        if function == "Product Name NAD-dependent sorbitol dehydrogenase":
+                            found_gene_product_name = True                                                                                 
+        for feature in genome['cdss']:                                  
+            if feature["id"] == "rna2.CDS":
+                print "Feature rna2.CDS : " + str(feature)
+                found_cds = True
+                if "functions" in feature:
+                    for function in feature["functions"]:
+                        if function == "CDS Product Name NAD-dependent sorbitol dehydrogenase":
+                            found_cds_product_name = True
+        self.assertTrue(found_gene)
+        self.assertTrue(found_gene_product)
+        self.assertTrue(found_gene_product_name)
+        self.assertTrue(found_cds)
+        self.assertTrue(found_cds_product_name)
+
     def test_off_contig(self):
         #test for feature off the end of the contig.
         #tested this it caused an error on upload, which is reasonable. So no object to actually test.
