@@ -239,7 +239,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         found_cds_product_name = False
         for feature in genome['features']:
             if feature["id"] == 'gene2':
-                print "Feature gene2 : " + str(feature)
+                #print "Feature gene2 : " + str(feature)
                 found_gene = True
                 if "functions" in feature:
                     for function in feature["functions"]:
@@ -249,7 +249,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                             found_gene_product_name = True                                                                                 
         for feature in genome['cdss']:                                  
             if feature["id"] == "rna2.CDS":
-                print "Feature rna2.CDS : " + str(feature)
+                #print "Feature rna2.CDS : " + str(feature)
                 found_cds = True
                 if "functions" in feature:
                     for function in feature["functions"]:
