@@ -626,6 +626,11 @@ class FastaGFFToGenome:
             out_feat['db_xref'] = db_xref
         if 'product' in in_feature['attributes']:
             out_feat['functions'] = in_feature['attributes']["product"]
+        if 'product_name' in in_feature['attributes']:
+            if "functions" in out_feat:
+                out_feat['functions'].extend(in_feature['attributes']["product_name"])
+            else:
+                out_feat['functions'] = in_feature['attributes']["product_name"]
         if 'function' in in_feature['attributes']:
             out_feat['functional_descriptions'] = in_feature['attributes']["function"]
         if 'inference' in in_feature['attributes']:
