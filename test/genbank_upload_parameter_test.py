@@ -71,7 +71,6 @@ class MinimalGenbankUploadTest(unittest.TestCase):
         return self.__class__.ctx
 
     def test_upload(self):
-        return
         # fetch the test files and set things up
         genomeFileUtil = self.getImpl()
         gbk_path = self.MINIMAL_TEST_FILE
@@ -85,13 +84,12 @@ class MinimalGenbankUploadTest(unittest.TestCase):
                                     })[0]
         self.check_minimal_items_exist(result)
 
-        # test without using ontologies, and with setting a taxon_reference directly
+        # test with setting a taxon_reference directly
         result = genomeFileUtil.genbank_to_genome(self.getContext(),
                                     {
                                         'file':{'path': gbk_path},
                                         'workspace_name': self.getWsName(),
                                         'genome_name': 'something',
-                                        'exclude_ontologies':1,
                                         'taxon_reference':'ReferenceTaxons/4932_taxon'
                                     })[0]
         self.check_minimal_items_exist(result)
@@ -111,6 +109,17 @@ class MinimalGenbankUploadTest(unittest.TestCase):
         self.assertTrue('mydata' in metadata_saved)
         self.assertTrue('otherdata' in metadata_saved)
         self.assertEquals(metadata_saved['mydata'], 'yay')
+
+        invalidate_input_params = {
+            'workspace_name': 'workspace_name',
+            'genome_name': 'genome_name',
+            'file': {'path': 'fasta_file'},
+            'genetic_code': 'meh'
+        }
+        with self.assertRaisesRegexp(
+                ValueError,
+                'Invalid genetic code specified'):
+            self.getImpl().genbank_to_genome(self.getContext(), invalidate_input_params)
 
     def check_minimal_items_exist(self, result):
 
@@ -153,7 +162,7 @@ class MinimalGenbankUploadTest(unittest.TestCase):
                     'genome_name': 'something',
                     'use_existing_assembly': "6976/923/6",
                 })[0]
-        with self.assertRaisesRegexp(ValueError, "contains contigs which are not present"):
+        with self.assertRaisesRegexp(ValueError, "following contigs which are not present"):
             result = genomeFileUtil.genbank_to_genome(
                 self.getContext(), {
                     'file': {'path': gbk_path},

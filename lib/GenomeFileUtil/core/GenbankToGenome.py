@@ -110,11 +110,14 @@ class GenbankToGenome:
         params = self.default_params
         self.generate_parents = params.get('generate_missing_genes')
         self.generate_ids = params.get('generate_ids_if_needed')
+        self.code_table = params['genetic_code']
 
         # 4) Do the upload
         files = self._find_input_files(input_directory)
         consolidated_file = self._join_files_skip_empty_lines(files)
         genome = self.parse_genbank(consolidated_file, params)
+        if params.get('genetic_code'):
+            genome["genetic_code"] = params['genetic_code']
         result = self.gi.save_one_genome({
             'workspace': params['workspace_name'],
             'name': params['genome_name'],
@@ -163,6 +166,9 @@ class GenbankToGenome:
         if n_valid_fields > 1:
             raise ValueError('required "file" field has too many sources '
                              'specified: ' + str(file.keys()))
+        if 'genetic_code' in params:
+            if not (isinstance(params['genetic_code'], int) and 0 < params['genetic_code'] < 32):
+                raise ValueError("Invalid genetic code specified: {}".format(params))
 
     def stage_input(self, params):
         ''' Setup the input_directory by fetching the files and uncompressing if needed. '''
@@ -324,7 +330,7 @@ class GenbankToGenome:
             genome['warnings'] = self.genome_warnings
         if self.genome_suspect:
             genome['suspect'] = 1
-        print("Feature Counts: ", genome['feature_counts'])
+        self.log("Feature Counts: {}".format(genome['feature_counts']))
         return genome
 
     def _save_assembly(self, genbank_file, params):
@@ -741,7 +747,7 @@ class GenbankToGenome:
                 genes[_id]['cdss'].append(out_feat['id'])
                 out_feat['parent_gene'] = _id
         else:
-            print("Expected gene id: {}".format(_id))
+            self.log("Expected gene id: {}".format(_id))
             raise ValueError(warnings['no_spoof'])
 
         mrna_id = out_feat["id"].replace('CDS', 'mRNA')

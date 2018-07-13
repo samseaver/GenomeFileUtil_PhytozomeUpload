@@ -235,6 +235,9 @@ class GenomeInterface:
         }
         objects = self.kbse.search_objects(search_params)['objects']
         if len(objects):
+            if len(objects) > 100000:
+                raise RuntimeError("Too many matching taxons returned for {}. "
+                                   "Potential issue with searchAPI.".format(scientific_name))
             return extract_values(objects[0])
         search_params['match_filter']['lookup_in_keys'] = {
             "aliases": {"value": scientific_name}

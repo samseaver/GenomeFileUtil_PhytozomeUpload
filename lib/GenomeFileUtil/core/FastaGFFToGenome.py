@@ -94,6 +94,8 @@ class FastaGFFToGenome:
             source=params['source'],
             release=params['release'],
         )
+        if params.get('genetic_code'):
+            genome["genetic_code"] = params['genetic_code']
         return genome, input_directory
 
     def import_file(self, params):
@@ -226,6 +228,9 @@ class FastaGFFToGenome:
                 error_msg = 'Required "{}" field has too many sources specified: '.format(key)
                 error_msg += str(file.keys())
                 raise ValueError(error_msg)
+        if 'genetic_code' in params:
+            if not (isinstance(params['genetic_code'], int) and 0 < params['genetic_code'] < 32):
+                raise ValueError("invalid genetic code specified: {}".format(params))
 
     def _set_parsed_params(self, params):
         log('Setting params')

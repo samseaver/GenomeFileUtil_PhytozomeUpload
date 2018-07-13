@@ -279,12 +279,13 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
             'workspace_name': self.getWsName(),
             'source': 'Genbank',
             'taxon_reference': taxon_reference,
-            'type': 'Reference'
+            'type': 'Reference',
+            'genetic_code': 1
         }
 
         result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
 
-        self.check_minimal_items_exist(result)
+        self.assertEquals(result['genome_info'][10]['Genetic code'], '1')
         self.check_CDS_warnings(result,"test_taxon_reference_fasta_gff_to_genome")
 
     def test_shock_fasta_gff_to_genome(self):
@@ -494,6 +495,18 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         error_msg += '\["Reference", "User upload", "Representative"\]'
         with self.assertRaisesRegexp(
                 ValueError, error_msg):
+            self.getImpl().fasta_gff_to_genome(self.getContext(), invalidate_input_params)
+
+        invalidate_input_params = {
+            'workspace_name': 'workspace_name',
+            'genome_name': 'genome_name',
+            'fasta_file': {'path': 'fasta_file'},
+            'gff_file': {'path': 'gff_file'},
+            'genetic_code': 'meh'
+        }
+        with self.assertRaisesRegexp(
+                ValueError,
+                'Invalid genetic code specified'):
             self.getImpl().fasta_gff_to_genome(self.getContext(), invalidate_input_params)
 
         invalidate_input_params = {
