@@ -6,11 +6,9 @@ import time
 from collections import defaultdict
 
 import requests
-from biokbase.AbstractHandle.Client import \
-    AbstractHandle as HandleService  # @UnresolvedImport @IgnorePep8
 
-from AssemblySequenceAPI.AssemblySequenceAPIServiceClient import \
-    AssemblySequenceAPI
+from AbstractHandle.AbstractHandleClient import AbstractHandle as HandleService
+from AssemblySequenceAPI.AssemblySequenceAPIServiceClient import AssemblySequenceAPI
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
 from KBaseSearchEngine.KBaseSearchEngineClient import KBaseSearchEngine

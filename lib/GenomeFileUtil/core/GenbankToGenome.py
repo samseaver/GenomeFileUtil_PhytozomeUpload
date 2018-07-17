@@ -20,8 +20,8 @@ from Bio.SeqFeature import ExactPosition
 
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from DataFileUtil.DataFileUtilClient import DataFileUtil
-from GenomeInterface import GenomeInterface
-from GenomeUtils import is_parent, propagate_cds_props_to_gene, warnings, parse_inferences
+from .GenomeInterface import GenomeInterface
+from .GenomeUtils import is_parent, propagate_cds_props_to_gene, warnings, parse_inferences
 from Workspace.WorkspaceClient import Workspace
 
 MAX_MISC_FEATURE_SIZE = 10000
@@ -165,7 +165,7 @@ class GenbankToGenome:
                              'path | shock_id | ftp_url')
         if n_valid_fields > 1:
             raise ValueError('required "file" field has too many sources '
-                             'specified: ' + str(file.keys()))
+                             'specified: ' + str(list(file.keys())))
         if 'genetic_code' in params:
             if not (isinstance(params['genetic_code'], int) and 0 < params['genetic_code'] < 32):
                 raise ValueError("Invalid genetic code specified: {}".format(params))
@@ -545,7 +545,7 @@ class GenbankToGenome:
                 "location": _location(in_feature),
                 "dna_sequence": str(feat_seq),
                 "dna_sequence_length": len(feat_seq),
-                "md5": hashlib.md5(str(feat_seq)).hexdigest(),
+                "md5": hashlib.md5(str(feat_seq).encode('utf8')).hexdigest(),
             }
             if not _id:
                 out_feat['id'] = in_feature.type
@@ -626,7 +626,7 @@ class GenbankToGenome:
                 self.feature_counts["non-protein_encoding_gene"] += 1
 
         return {'features': coding, 'non_coding_features': noncoding,
-                'cdss': cdss.values(), 'mrnas': mrnas.values()}
+                'cdss': list(cdss.values()), 'mrnas': list(mrnas.values())}
 
     def _get_seq(self, feat, contig):
         """Extract the DNA sequence for a feature"""
@@ -798,7 +798,7 @@ class GenbankToGenome:
 
         out_feat.update({
             "protein_translation": prot_seq,
-            "protein_md5": hashlib.md5(prot_seq).hexdigest(),
+            "protein_md5": hashlib.md5(prot_seq.encode('utf8')).hexdigest(),
             "protein_translation_length": len(prot_seq),
         })
 

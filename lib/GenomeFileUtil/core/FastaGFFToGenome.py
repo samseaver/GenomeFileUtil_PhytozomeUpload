@@ -1,5 +1,4 @@
 import os
-from string import maketrans
 import sys
 import shutil
 import uuid
@@ -10,14 +9,14 @@ import collections
 import datetime
 import re
 import copy
-import urlparse as parse
+import urllib.parse as parse
 
 # KBase imports
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
-import GenomeUtils
-from GenomeUtils import is_parent, warnings, check_full_contig_length_or_multi_strand_feature
-from GenomeInterface import GenomeInterface
+from . import GenomeUtils
+from .GenomeUtils import is_parent, warnings, check_full_contig_length_or_multi_strand_feature
+from .GenomeInterface import GenomeInterface
 
 # 3rd party imports
 from Bio.Data import CodonTable
@@ -26,7 +25,7 @@ import Bio.SeqIO
 from Bio.Seq import Seq
 
 codon_table = CodonTable.ambiguous_generic_by_name["Standard"]
-strand_table = maketrans("1?.", "+++")
+strand_table = str.maketrans("1?.", "+++")
 MAX_MISC_FEATURE_SIZE = 10000
 
 
@@ -226,7 +225,7 @@ class FastaGFFToGenome:
                 raise ValueError(error_msg)
             if n_valid_fields > 1:
                 error_msg = 'Required "{}" field has too many sources specified: '.format(key)
-                error_msg += str(file.keys())
+                error_msg += str(list(file.keys()))
                 raise ValueError(error_msg)
         if 'genetic_code' in params:
             if not (isinstance(params['genetic_code'], int) and 0 < params['genetic_code'] < 32):
@@ -300,7 +299,7 @@ class FastaGFFToGenome:
         feature_list = collections.defaultdict(list)
         is_patric = 0
 
-        gff_file_handle = open(input_gff_file, 'rb')
+        gff_file_handle = open(input_gff_file)
         current_line = gff_file_handle.readline()
         line_count = 0
 
@@ -386,7 +385,7 @@ class FastaGFFToGenome:
     def _add_missing_identifiers(self, feature_list):
         log("Adding missing identifiers")
         #General rule is to iterate through a range of possibilities if "ID" is missing
-        for contig in feature_list.keys():
+        for contig in feature_list:
             for i, feat in enumerate(feature_list[contig]):
                 if "ID" not in feature_list[contig][i]:
                     for key in ("transcriptId", "proteinId", "PACid",
@@ -409,7 +408,7 @@ class FastaGFFToGenome:
     def _add_missing_parents(self, feature_list):
 
         #General rules is if CDS or RNA missing parent, add them
-        for contig in feature_list.keys():
+        for contig in feature_list:
             ftrs = feature_list[contig]
             new_ftrs = []
             for i in range(len(ftrs)):
@@ -438,7 +437,7 @@ class FastaGFFToGenome:
 
         #General rule is to use the "Name" field where possible
         #And update parent attribute correspondingly
-        for contig in feature_list.keys():
+        for contig in feature_list:
             feature_position_dict = {}
             for i in range(len(feature_list[contig])):
 
@@ -482,7 +481,7 @@ class FastaGFFToGenome:
 
         mRNA_parent_dict = dict()
 
-        for contig in feature_list.keys():
+        for contig in feature_list:
             for ftr in feature_list[contig]:
                 if ftr["type"] in self.skip_types:
                     continue
@@ -615,7 +614,7 @@ class FastaGFFToGenome:
             "location": [self._location(in_feature)],
             "dna_sequence": str(feat_seq),
             "dna_sequence_length": len(feat_seq),
-            "md5": hashlib.md5(str(feat_seq)).hexdigest(),
+            "md5": hashlib.md5(str(feat_seq).encode('utf8')).hexdigest(),
         }
 
         # add optional fields
@@ -738,7 +737,7 @@ class FastaGFFToGenome:
 
             cds.update({
                 "protein_translation": prot_seq,
-                "protein_md5": hashlib.md5(prot_seq).hexdigest(),
+                "protein_md5": hashlib.md5(prot_seq.encode('utf8')).hexdigest(),
                 "protein_translation_length": len(prot_seq),
             })
             if 'parent_gene' in cds:
