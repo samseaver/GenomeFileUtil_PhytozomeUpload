@@ -108,6 +108,7 @@ class GenomeFile:
         self.genome_ref = genome_ref
         self.seq_records = []
         self.features_by_contig = defaultdict(list)
+        self.renamed_contigs = 0
         # make special dict for all mrna & cds, they will be added when their
         # parent gene is added
         self.child_dict = {}
@@ -184,20 +185,25 @@ class GenomeFile:
             if 'notes' in go:
                 raw_contig.annotations['comment'] = go['notes']
 
+        if len(raw_contig.name) > CONTIG_ID_FIELD_LENGTH:
+            raw_contig.annotations['comment'] = raw_contig.annotations.get('comment', "") + (
+                "Renamed contig from {} because the original name exceeded {} characters"
+                .format(raw_contig.name, CONTIG_ID_FIELD_LENGTH)
+            )
+            self.renamed_contigs += 1
+            raw_contig.name = "scaffold{:0>8}".format(self.renamed_contigs)
+
         if raw_contig.id in self.features_by_contig:
             # sort all features except for cdss and mrnas
             self.features_by_contig[raw_contig.id].sort(key=feature_sort)
             for feat in self.features_by_contig[raw_contig.id]:
-                raw_contig.features.append(self._format_feature(feat))
+                raw_contig.features.append(self._format_feature(feat, raw_contig.id))
                 # process child mrnas & cdss if present
                 raw_contig.features.extend([self._format_feature(
-                    self.child_dict[_id]) for _id in feat.get('mrnas', [])])
+                    self.child_dict[_id], raw_contig.id) for _id in feat.get('mrnas', [])])
                 raw_contig.features.extend([self._format_feature(
-                    self.child_dict[_id]) for _id in feat.get('cdss', [])])
-        if len(raw_contig.name) > CONTIG_ID_FIELD_LENGTH:
-            logging.info("Trimming contig name {} to the last {} characters"
-                         .format(raw_contig.name, CONTIG_ID_FIELD_LENGTH))
-            raw_contig.name = raw_contig.name[-CONTIG_ID_FIELD_LENGTH:]
+                    self.child_dict[_id], raw_contig.id) for _id in feat.get('cdss', [])])
+
 
         self.seq_records.append(raw_contig)
 
@@ -215,10 +221,11 @@ class GenomeFile:
             references.append(ref)
         return references
 
-    def _format_feature(self, in_feature):
+    def _format_feature(self, in_feature, current_contig_id):
         def _trans_loc(loc):
-            if len(loc[0]) > CONTIG_ID_FIELD_LENGTH:
-                loc[0] = loc[0][-CONTIG_ID_FIELD_LENGTH:]
+            # Don't write the contig ID in the loc line unless it's trans-spliced
+            if loc[0] == current_contig_id:
+                loc[0] = None
             if loc[2] == "-":
                 return SeqFeature.FeatureLocation(loc[1]-loc[3], loc[1], -1, loc[0])
             else:

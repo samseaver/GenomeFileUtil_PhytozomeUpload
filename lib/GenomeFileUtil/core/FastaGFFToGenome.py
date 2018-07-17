@@ -230,7 +230,7 @@ class FastaGFFToGenome:
                 raise ValueError(error_msg)
         if 'genetic_code' in params:
             if not (isinstance(params['genetic_code'], int) and 0 < params['genetic_code'] < 32):
-                raise ValueError("invalid genetic code specified: {}".format(params))
+                raise ValueError("Invalid genetic code specified: {}".format(params))
 
     def _set_parsed_params(self, params):
         log('Setting params')
