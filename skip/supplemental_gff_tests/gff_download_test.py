@@ -1,23 +1,17 @@
-import unittest
-import os
-import filecmp
 import json
-import time
+import os
 import shutil
-
+import time
+import unittest
+from configparser import ConfigParser
 from os import environ
-import difflib
-try:
-    from ConfigParser import ConfigParser  # py2
-except:
-    from configparser import ConfigParser  # py3
 
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
+from DataFileUtil.DataFileUtilClient import DataFileUtil
+from GenomeAnnotationAPI.GenomeAnnotationAPIClient import GenomeAnnotationAPI
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
-from GenomeAnnotationAPI.GenomeAnnotationAPIClient import GenomeAnnotationAPI
-from DataFileUtil.DataFileUtilClient import DataFileUtil
-from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
+from Workspace.WorkspaceClient import Workspace as workspaceService
 
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -72,7 +66,7 @@ class GenomeFileUtilTest(unittest.TestCase):
             }
         info = cls.gaa.save_one_genome_v1(save_info)['info']
         cls.rhodobacter_ref = str(info[6]) +'/' + str(info[0]) + '/' + str(info[4])
-        print('created rhodobacter test genome: ' + cls.rhodobacter_ref)
+        print(('created rhodobacter test genome: ' + cls.rhodobacter_ref))
 
         # save new genome
         assembly_file_path = os.path.join(cls.cfg['scratch'],
@@ -98,7 +92,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         result = cls.ws.save_objects(save_info)
         info = result[0]
         cls.ecoli_ref = str(info[6]) +'/' + str(info[0]) + '/' + str(info[4])
-        print('created ecoli test genome: ' + cls.rhodobacter_ref)
+        print(('created ecoli test genome: ' + cls.rhodobacter_ref))
 
         # save a GFF file to shock, preload a genome pointing to it
         dfu = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
@@ -114,7 +108,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         result = cls.ws.save_objects(save_info)
         info = result[0]
         cls.rhodobacter_ref_with_gff = str(info[6]) +'/' + str(info[0]) + '/' + str(info[4])
-        print('created rhodobacter test genome with handle: ' + cls.rhodobacter_ref_with_gff)
+        print(('created rhodobacter test genome with handle: ' + cls.rhodobacter_ref_with_gff))
 
     @classmethod
     def tearDownClass(cls):

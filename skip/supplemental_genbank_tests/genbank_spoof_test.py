@@ -1,17 +1,13 @@
-import unittest
-import time
 import os
+import time
+import unittest
+from configparser import ConfigParser
 
-try:
-    from ConfigParser import ConfigParser  # py2
-except:
-    from configparser import ConfigParser  # py3
-
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
-from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.core.GenomeUtils import warnings
+from Workspace.WorkspaceClient import Workspace as workspaceService
 
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -137,7 +133,7 @@ class GenomeFileUtilTest(unittest.TestCase):
     def test_spoof_off(self):
         gbk_path = "data/e_coli/Ecoli_spoofing_test_genome.gbff"
         ws_obj_name = 'Ecoli_spoof_fail'
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                             ValueError, warnings['no_spoof']):
             self.getImpl().genbank_to_genome(
                                 self.getContext(),

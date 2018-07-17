@@ -1,19 +1,15 @@
-import unittest
-import time
+import json
 import os
-import re
+import time
+import unittest
+from configparser import ConfigParser
 
-try:
-    from ConfigParser import ConfigParser  # py2
-except:
-    from configparser import ConfigParser  # py3
-
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
-from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.core.GenomeUtils import warnings
-import json
+from Workspace.WorkspaceClient import Workspace as workspaceService
+
 
 class GenomeFileUtilTest(unittest.TestCase):
     @classmethod
@@ -96,7 +92,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         colon_included = False
         for feature in genome["cdss"]:
             if feature['id'] == "ArthCp001_CDS_1":
-                print "Found ArthCp001_CDS_1"
+                print("Found ArthCp001_CDS_1")
                 for alias_tuple in feature["aliases"]:
                     if alias_tuple[0] == "gene_synonym":
                         if alias_tuple[1] == "TEST:COLON":
@@ -110,7 +106,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         found_mRNA = False
         for feature in genome["features"]:
             if feature['id'] == "ArthCp001":
-                print "Found ArthCp001"
+                print("Found ArthCp001")
                 if "flags" in feature:
                     for flag in feature["flags"]:
                         if flag == "trans_splicing":
@@ -128,7 +124,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(gene_flag_found, "The trans_splicing flag for the gene ArthCp001 was not found.")
         for feature in genome["mrnas"]:
             if feature['id'] == "ArthCp001_mRNA_1":
-                print "Found ArthCp001_mRNA_1"
+                print("Found ArthCp001_mRNA_1")
                 found_mRNA = True
                 if 'parent_gene' in feature:
                     self.assertTrue(feature['parent_gene'] == 'ArthCp001',"The parent gene for ArthCp001_CDS_1 was not as expected")
@@ -137,7 +133,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(found_mRNA, "The mRNA ArthCp001_mRNA_1 was not found.")
         for feature in genome["cdss"]:
             if feature['id'] == "ArthCp001_CDS_1":
-                print "Found ArthCp001_CDS_1"
+                print("Found ArthCp001_CDS_1")
                 if "flags" in feature:
                     for flag in feature["flags"]:
                         if flag == "trans_splicing":
@@ -161,7 +157,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         cds_flag_found = False
         for feature in genome["features"]:
             if feature['id'] == "ArthCp047":
-                print "Found ArthCp047"
+                print("Found ArthCp047")
                 found_gene = True
                 if "flags" in feature:
                     for flag in feature["flags"]:
@@ -178,7 +174,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         for feature in genome["cdss"]:
             if feature['id'] == "ArthCp047_CDS_1":
                 found_cds = True
-                print "Found ArthCp047_CDS_1"
+                print("Found ArthCp047_CDS_1")
                 if "flags" in feature:
                     for flag in feature["flags"]:
                         if flag == "trans_splicing":
@@ -201,7 +197,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         cds_flag_found = False
         for feature in genome["features"]:
             if feature['id'] == "MultiContigTransSpliced":
-                print "Found MultiContigTransSpliced"
+                print("Found MultiContigTransSpliced")
                 if "flags" in feature:
                     for flag in feature["flags"]:
                         if flag == "trans_splicing":
@@ -215,7 +211,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(gene_flag_found, "The trans_splicing flag for the gene MultiContigTransSpliced was not found.")
         for feature in genome["cdss"]:
             if feature['id'] == "MultiContigTransSpliced_CDS_1":
-                print "Found MultiContigTransSpliced_CDS_1"
+                print("Found MultiContigTransSpliced_CDS_1")
                 if "flags" in feature:
                     for flag in feature["flags"]:
                         if flag == "trans_splicing":
@@ -245,7 +241,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         for feature in genome["features"]:
             if feature['id'] == "InvalidOrder":
                 # print "FEATURE::::" + str(feature)
-                print "Found InvalidOrder"
+                print("Found InvalidOrder")
                 found_gene = True
                 if "flags" in feature:
                     for flag in feature["flags"]:
@@ -258,7 +254,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertFalse(gene_transpliced_flag, "The trans_splicing flag for the gene 'InvalidOrder' was set, technically it appears it may be transpliced, but the file does not state it to be.")
         for feature in genome["cdss"]:
             if feature['id'] == "InvalidOrder_CDS_1":
-                print "Found InvalidOrder_CDS_1"
+                print("Found InvalidOrder_CDS_1")
                 found_cds = True
                 if "flags" in feature:
                     for flag in feature["flags"]:
@@ -292,7 +288,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         for feature in genome["features"]:
             if feature['id'] == "RL4742A":
 #                print "FEATURE::::" + str(feature)
-                print "Found RL4742A"
+                print("Found RL4742A")
                 found_gene = True
                 if "flags" in feature:
                     for flag in feature["flags"]:
@@ -306,7 +302,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         for feature in genome["cdss"]:
             if feature['id'] == "RL4742A_CDS_1":
 #                print "FEATURE::::" + str(feature)
-                print "Found RL4742A_CDS_1"
+                print("Found RL4742A_CDS_1")
                 found_cds = True
                 if "flags" in feature:
                     for flag in feature["flags"]:
@@ -332,7 +328,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         for feature in genome["features"]:
             if feature['id'] == "RL4742":
 #                print "FEATURE::::" + str(feature)
-                print "Found RL4742"
+                print("Found RL4742")
                 found_gene = True
                 if "flags" in feature:
                     for flag in feature["flags"]:
@@ -346,7 +342,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         for feature in genome["cdss"]:
             if feature['id'] == "RL4742_CDS_1":
 #                print "FEATURE::::" + str(feature)
-                print "Found RL4742_CDS_1"
+                print("Found RL4742_CDS_1")
                 found_cds = True
                 if "flags" in feature:
                     for flag in feature["flags"]:
@@ -372,7 +368,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         for feature in genome["features"]:
             if feature['id'] == "Zero_Span_two_exon":
 #                print "FEATURE::::" + str(feature)
-                print "Found Zero_Span_two_exon"
+                print("Found Zero_Span_two_exon")
                 found_gene = True
                 if "flags" in feature:
                     for flag in feature["flags"]:
@@ -386,7 +382,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         for feature in genome["cdss"]:
             if feature['id'] == "Zero_Span_two_exon_CDS_1":
 #                print "FEATURE::::" + str(feature)
-                print "Found Zero_Span_two_exon_CDS_1"
+                print("Found Zero_Span_two_exon_CDS_1")
                 found_cds = True
                 if "flags" in feature:
                     for flag in feature["flags"]:

@@ -1,16 +1,12 @@
 import os
 import time
 import unittest
+from configparser import ConfigParser
 
-try:
-    from ConfigParser import ConfigParser  # py2
-except:
-    from configparser import ConfigParser  # py3
-
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
-from DataFileUtil.DataFileUtilClient import DataFileUtil
+from Workspace.WorkspaceClient import Workspace as workspaceService
 
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -85,7 +81,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         i = 0 #counter loop over feature
         self.assertTrue(len(genome_orig[feature_list_name]) == len(genome_new[feature_list_name]),
                     feature_list_name + " list is not of equal length in Original and New Genomes.")
-        print "\n\n" + feature_list_name + " TOTAL NUMBER:" + str(len(genome_orig[feature_list_name]))
+        print("\n\n" + feature_list_name + " TOTAL NUMBER:" + str(len(genome_orig[feature_list_name])))
         orig_dict = dict([(x['id'],x) for x in genome_orig[feature_list_name]])
         new_dict = dict([(x['id'],x) for x in genome_new[feature_list_name]])
 

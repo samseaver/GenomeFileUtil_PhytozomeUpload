@@ -1,17 +1,13 @@
-import unittest
 import os
-import time
 import shutil
-from Bio import SeqIO
-
+import time
+import unittest
+from configparser import ConfigParser
 from os import environ
-try:
-    from ConfigParser import ConfigParser  # py2
-except:
-    from configparser import ConfigParser  # py3
 
-
+from Bio import SeqIO
 from biokbase.workspace.client import Workspace as workspaceService
+
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 
@@ -108,7 +104,7 @@ class MinimalGenbankUploadTest(unittest.TestCase):
         metadata_saved = result['genome_info'][10]
         self.assertTrue('mydata' in metadata_saved)
         self.assertTrue('otherdata' in metadata_saved)
-        self.assertEquals(metadata_saved['mydata'], 'yay')
+        self.assertEqual(metadata_saved['mydata'], 'yay')
 
         invalidate_input_params = {
             'workspace_name': 'workspace_name',
@@ -116,7 +112,7 @@ class MinimalGenbankUploadTest(unittest.TestCase):
             'file': {'path': 'fasta_file'},
             'genetic_code': 'meh'
         }
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 ValueError,
                 'Invalid genetic code specified'):
             self.getImpl().genbank_to_genome(self.getContext(), invalidate_input_params)
@@ -129,15 +125,15 @@ class MinimalGenbankUploadTest(unittest.TestCase):
         self.assertTrue('report_ref' in result)
 
         genome_info = result['genome_info']
-        self.assertEquals(genome_info[10]['Number contigs'],'1')
-        self.assertEquals(genome_info[10]['Number of Protein Encoding Genes'],'2')
-        self.assertEquals(genome_info[10]['Domain'],'Eukaryota')
-        self.assertEquals(genome_info[10]['Genetic code'],'1')
-        self.assertEquals(genome_info[10]['Name'],'Saccharomyces cerevisiae')
-        self.assertEquals(genome_info[10]['Source'], 'Genbank')
-        self.assertEquals(genome_info[10]['GC content'], '0.37967')
-        self.assertEquals(genome_info[10]['Size'], '5028')
-        self.assertEquals(genome_info[10]['Taxonomy'],
+        self.assertEqual(genome_info[10]['Number contigs'],'1')
+        self.assertEqual(genome_info[10]['Number of Protein Encoding Genes'],'2')
+        self.assertEqual(genome_info[10]['Domain'],'Eukaryota')
+        self.assertEqual(genome_info[10]['Genetic code'],'1')
+        self.assertEqual(genome_info[10]['Name'],'Saccharomyces cerevisiae')
+        self.assertEqual(genome_info[10]['Source'], 'Genbank')
+        self.assertEqual(genome_info[10]['GC content'], '0.37967')
+        self.assertEqual(genome_info[10]['Size'], '5028')
+        self.assertEqual(genome_info[10]['Taxonomy'],
             'cellular organisms; Eukaryota; Opisthokonta; Fungi; Dikarya; Ascomycota; '+
             'saccharomyceta; Saccharomycotina; Saccharomycetes; Saccharomycetales; '+
             'Saccharomycetaceae; Saccharomyces')
@@ -146,7 +142,7 @@ class MinimalGenbankUploadTest(unittest.TestCase):
         genomeFileUtil = self.getImpl()
         """Warning: This test will fail if not run against CI"""
         gbk_path = self.MINIMAL_TEST_FILE
-        with self.assertRaisesRegexp(ValueError, "not a valid format."):
+        with self.assertRaisesRegex(ValueError, "not a valid format."):
             result = genomeFileUtil.genbank_to_genome(
                 self.getContext(), {
                                       'file': {'path': gbk_path},
@@ -154,7 +150,7 @@ class MinimalGenbankUploadTest(unittest.TestCase):
                                       'genome_name': 'something',
                                       'use_existing_assembly': "1",
                                   })[0]
-        with self.assertRaisesRegexp(ValueError, "not a reference to an assembly"):
+        with self.assertRaisesRegex(ValueError, "not a reference to an assembly"):
             result = genomeFileUtil.genbank_to_genome(
                 self.getContext(), {
                     'file': {'path': gbk_path},
@@ -162,7 +158,7 @@ class MinimalGenbankUploadTest(unittest.TestCase):
                     'genome_name': 'something',
                     'use_existing_assembly': "6976/923/6",
                 })[0]
-        with self.assertRaisesRegexp(ValueError, "following contigs which are not present"):
+        with self.assertRaisesRegex(ValueError, "following contigs which are not present"):
             result = genomeFileUtil.genbank_to_genome(
                 self.getContext(), {
                     'file': {'path': gbk_path},
@@ -207,7 +203,7 @@ class MinimalGenbankUploadTest(unittest.TestCase):
                 return "".join(seq)[::-1]
 
         for feat in record.features:
-            print feat.id
+            print(feat.id)
             seq1 = feat.extract(record)
             seq2 = get_seq(feat)
             self.assertEqual(str(seq1.seq), seq2)

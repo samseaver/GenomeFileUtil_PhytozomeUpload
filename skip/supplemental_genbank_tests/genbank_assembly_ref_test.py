@@ -1,17 +1,14 @@
-import unittest
-import time
 import os
+import time
+import unittest
+from configparser import ConfigParser
 
-try:
-    from ConfigParser import ConfigParser  # py2
-except:
-    from configparser import ConfigParser  # py3
-
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
-from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.core.GenomeUtils import warnings
+from Workspace.WorkspaceClient import Workspace as workspaceService
+
 
 # 3 tests
 # 1) Happy case, make sure it kept the reference
@@ -116,7 +113,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         ws_obj_name = 'ecoli_genome'
         existing_assembly_ref = self.__class__.assembly_ref
         
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 ValueError, 
                 warnings['assembly_ref_extra_contigs'].format("NC_000913_2.3")):
                 self.getImpl().genbank_to_genome(
@@ -136,7 +133,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         gbk_path = "data/e_coli/test_base_change.gbff"
         ws_obj_name = 'ecoli_genome'
         existing_assembly_ref = self.__class__.assembly_ref    
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 ValueError, 
                 warnings['assembly_ref_diff_seq'].format("NC_000913.3")):
                 self.getImpl().genbank_to_genome(
