@@ -212,7 +212,7 @@ class GenomeToGFF:
         attrs = [_one_attr(pair[1], feature[pair[0]])
                  for pair in attr_keys if feature.get(pair[0])]
         attrs.extend([_one_attr('db_xref', '{}:{}'.format(*x))
-                     for x in feature.get('db_xref', [])])
+                     for x in feature.get('db_xrefs', [])])
         attrs.extend([_one_attr(pair[0], pair[1])
                       for pair in feature.get('aliases', [''])
                       if isinstance(pair, list)])

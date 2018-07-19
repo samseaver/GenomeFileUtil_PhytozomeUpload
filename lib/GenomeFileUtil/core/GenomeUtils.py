@@ -196,10 +196,11 @@ def propagate_cds_props_to_gene(cds, gene):
                 else:
                     terms[source] = terms2[source]
 
+
 def check_full_contig_length_or_multi_strand_feature(feature, is_transpliced, contig_length, skip_types):
-    ''' 
+    """
     Tests for full contig length features and if on both strands.
-    '''
+    """
     feature_min_location = None
     feature_max_location = None
     strand_set = set()

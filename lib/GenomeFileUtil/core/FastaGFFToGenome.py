@@ -16,7 +16,8 @@ import urlparse as parse
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 import GenomeUtils
-from GenomeUtils import is_parent, warnings, check_full_contig_length_or_multi_strand_feature
+from GenomeUtils import is_parent, warnings, check_full_contig_length_or_multi_strand_feature, \
+    propagate_cds_props_to_gene
 from GenomeInterface import GenomeInterface
 
 # 3rd party imports
@@ -546,7 +547,7 @@ class FastaGFFToGenome:
     def _get_ontology_db_xrefs(self, feature):
         """Splits the ontology info from the other db_xrefs"""
         ontology = collections.defaultdict(dict)
-        db_xref = []
+        db_xrefs = []
         for key in ("go_process", "go_function", "go_component"):
             ontology_event_index = self._create_ontology_event("GO")
             for term in feature.get(key, []):
@@ -571,9 +572,9 @@ class FastaGFFToGenome:
                 ontology['PO'][ref] = [ontology_event_index]
                 self.ontologies_present['PO'][ref] = self.po_mapping.get(ref, '')
             else:
-                db_xref.append(tuple(ref.split(":")))
+                db_xrefs.append(tuple(ref.split(":")))
         # TODO: Support other ontologies
-        return dict(ontology), db_xref
+        return dict(ontology), db_xrefs
 
     def _transform_feature(self, contig, in_feature):
         """Converts a feature from the gff ftr format into the appropriate
@@ -621,14 +622,14 @@ class FastaGFFToGenome:
         # add optional fields
         if 'note' in in_feature['attributes']:
             out_feat['note'] = in_feature['attributes']["note"][0]
-        ont, db_xref = self._get_ontology_db_xrefs(in_feature['attributes'])
+        ont, db_xrefs = self._get_ontology_db_xrefs(in_feature['attributes'])
         if ont:
             out_feat['ontology_terms'] = ont
         aliases = _aliases(in_feature)
         if aliases:
             out_feat['aliases'] = aliases
-        if db_xref:
-            out_feat['db_xref'] = db_xref
+        if db_xrefs:
+            out_feat['db_xrefs'] = db_xrefs
         if 'product' in in_feature['attributes']:
             out_feat['functions'] = in_feature['attributes']["product"]
         if 'product_name' in in_feature['attributes']:
@@ -744,7 +745,7 @@ class FastaGFFToGenome:
             if 'parent_gene' in cds:
                 parent_gene = self.feature_dict[cds['parent_gene']]
                 # no propigation for now
-                # propagate_cds_props_to_gene(cds, parent_gene)
+                propagate_cds_props_to_gene(cds, parent_gene)
             elif self.generate_genes:
                 spoof = copy.copy(cds)
                 spoof['type'] = 'gene'
@@ -871,6 +872,10 @@ class FastaGFFToGenome:
                 del feature['type']
                 genome['mrnas'].append(feature)
             elif feature['type'] == 'gene':
+                # remove duplicates that may arise from CDS info propagation
+                for key in ('functions', 'aliases', 'db_xrefs'):
+                    if key in feature:
+                        feature[key] = list(set(feature[key]))
                 if feature['cdss']:
                     del feature['type']
                     self.feature_counts["protein_encoding_gene"] += 1
