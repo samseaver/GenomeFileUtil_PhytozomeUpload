@@ -1,19 +1,13 @@
-import unittest
-import time
 import os
-import shutil
+import time
+import unittest
+from configparser import ConfigParser
 
-try:
-    from ConfigParser import ConfigParser  # py2
-except:
-    from configparser import ConfigParser  # py3
-
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
-from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.core.GenomeUtils import warnings
-from pprint import pprint
+from Workspace.WorkspaceClient import Workspace as workspaceService
 
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -573,8 +567,8 @@ class GenomeFileUtilTest(unittest.TestCase):
             if feature['id'] == 'gene4ts':
                 #print "GENE4ts Feature: " + str(feature))
                 self.assertTrue(len(feature["location"]) == 2, "Gene is not 2 locations as it should be.")
-                self.assertTrue(feature['location'][0] == [u'NC_010127.1', 69724, u'-', 114])
-                self.assertTrue(feature['location'][1] == [u'NC_010127.1', 139856, u'+', 795]) 
+                self.assertTrue(feature['location'][0] == ['NC_010127.1', 69724, '-', 114])
+                self.assertTrue(feature['location'][1] == ['NC_010127.1', 139856, '+', 795]) 
                 if "flags" in feature:
                     if "trans_splicing" in feature["flags"]:
                         gene_trans_splicing_flag = True           

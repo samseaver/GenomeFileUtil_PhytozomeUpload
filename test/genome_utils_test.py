@@ -1,16 +1,13 @@
 import unittest
+from configparser import ConfigParser
+from os import environ
+
 import mock
 
-from os import environ
-try:
-    from ConfigParser import ConfigParser  # py2
-except:
-    from configparser import ConfigParser  # py3
-
-from Workspace.WorkspaceClient import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil, SDKConfig
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
+from Workspace.WorkspaceClient import Workspace as workspaceService
 
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -46,11 +43,11 @@ class GenomeFileUtilTest(unittest.TestCase):
 
     def test_retreve_taxon(self):
         self.assertEqual(self.genome_interface.retrieve_taxon("meh", "Arabidopsis thaliana"),
-                         (u'cellular organisms; Eukaryota; Viridiplantae; Streptophyta; Streptophytina; Embryophyta; Tracheophyta; Euphyllophyta; Spermatophyta; Magnoliophyta; Mesangiospermae; eudicotyledons; Gunneridae; Pentapetalae; rosids; malvids; Brassicales; Brassicaceae; Camelineae; Arabidopsis',
-                          u'meh/3702_taxon', u'Eukaryota', 11))
+                         ('cellular organisms; Eukaryota; Viridiplantae; Streptophyta; Streptophytina; Embryophyta; Tracheophyta; Euphyllophyta; Spermatophyta; Magnoliophyta; Mesangiospermae; eudicotyledons; Gunneridae; Pentapetalae; rosids; malvids; Brassicales; Brassicaceae; Camelineae; Arabidopsis',
+                          'meh/3702_taxon', 'Eukaryota', 11))
         self.assertEqual(self.genome_interface.retrieve_taxon("meh", "Escherichia coli"),
-                         (u'cellular organisms; Bacteria; Proteobacteria; Gammaproteobacteria; Enterobacterales; Enterobacteriaceae; Escherichia',
-                          u'meh/562_taxon', u'Bacteria', 11))
+                         ('cellular organisms; Bacteria; Proteobacteria; Gammaproteobacteria; Enterobacterales; Enterobacteriaceae; Escherichia',
+                          'meh/562_taxon', 'Bacteria', 11))
         self.assertEqual(self.genome_interface.retrieve_taxon("meh", "rhodobacter"),
                          ('Unconfirmed Organism: rhodobacter',
                           'ReferenceTaxons/unknown_taxon', 'Unknown', 11)
@@ -61,7 +58,7 @@ class GenomeFileUtilTest(unittest.TestCase):
 
     @mock.patch("GenomeFileUtil.core.GenomeInterface.MAX_GENOME_SIZE", 1)
     def test_max_genome_size(self):
-        with self.assertRaisesRegexp(ValueError, "genome exceeds the maximum permitted size"):
+        with self.assertRaisesRegex(ValueError, "genome exceeds the maximum permitted size"):
             GenomeInterface.validate_genome({"taxon_ref": "", "domain": ""})
 
     def test_user(self):

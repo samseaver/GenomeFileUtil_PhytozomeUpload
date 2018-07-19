@@ -204,14 +204,15 @@ class GenomeFileUtil:
 
         # get WS metadata to get ws_name and obj_name
         ws = Workspace(url=self.cfg.workspaceURL)
-        info = ws.get_object_info_new({'objects':[{'ref': params['input_ref'] }],'includeMetadata':0, 'ignoreErrors':0})[0]
+        info = ws.get_object_info_new({'objects': [{'ref': params['input_ref']}],
+                                       'includeMetadata': 0, 'ignoreErrors': 0})[0]
 
         genome_to_genbank_params = {
             'genome_ref': params['input_ref']
         }
 
         # export to file (building from KBase Genome Object)
-        result = self.genome_to_genbank(ctx, genome_to_genbank_params)[0]['genbank_file'];
+        result = self.genome_to_genbank(ctx, genome_to_genbank_params)[0]['genbank_file']
 
         # create the output directory and move the file there
         export_package_dir = os.path.join(self.cfg.sharedFolder, info[1])
@@ -231,7 +232,7 @@ class GenomeFileUtil:
 
         # Make warning file about genes only.
         warning_filename = "README.txt"
-        with open(os.path.join(export_package_dir, warning_filename), 'wb') as temp_file:
+        with open(os.path.join(export_package_dir, warning_filename), 'w') as temp_file:
             temp_file.write('This directory includes the KBase-derived GenBank file and also ' +
                             '(if you originally uploaded the genome from an annotated ' +
                             'GenBank file) the original GenBank input.')
@@ -288,7 +289,7 @@ class GenomeFileUtil:
             assembly_ref = info['assembly_ref']
         else:
             assembly_ref = info['contigset_ref']
-        print('Assembly reference = ' + assembly_ref)
+        print(('Assembly reference = ' + assembly_ref))
         print('Downloading assembly')
         au = AssemblyUtil(self.cfg.callbackURL)
         assembly_file_path = au.get_assembly_as_fasta(
@@ -360,15 +361,15 @@ class GenomeFileUtil:
         # ctx is the context object
         # return variables are: returnVal
         #BEGIN fasta_gff_to_genome
-        print '--->\nRunning GenomeFileUtil.fasta_gff_to_genome\nparams:'
-        print json.dumps(params, indent=1)
+        print('--->\nRunning GenomeFileUtil.fasta_gff_to_genome\nparams:')
+        print(json.dumps(params, indent=1))
 
-        for key in params.keys():
+        for key in list(params.keys()):
             if params[key] is None:
                 del params[key]
 
-        for key, value in params.iteritems():
-            if isinstance(value, basestring):
+        for key, value in params.items():
+            if isinstance(value, str):
                 params[key] = value.strip()
 
         importer = FastaGFFToGenome(self.cfg)

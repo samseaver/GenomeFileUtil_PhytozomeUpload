@@ -1,18 +1,12 @@
-import unittest
-import time
 import os
-import shutil
+import time
+import unittest
+from configparser import ConfigParser
 
-try:
-    from ConfigParser import ConfigParser  # py2
-except:
-    from configparser import ConfigParser  # py3
-
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
-from DataFileUtil.DataFileUtilClient import DataFileUtil
-from pprint import pprint
+from Workspace.WorkspaceClient import Workspace as workspaceService
 
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -82,7 +76,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         if 'warnings' in genome:
             for genome_warning in genome['warnings']:
                 print("WARNING")
-                print(str(genome_warning)) 
+                print((str(genome_warning))) 
                 self.assertNotIn("Genome molecule_type Unknown is not expected for domain Bacteria.", genome_warning)
 
     def test_empty_publications(self):
@@ -103,11 +97,11 @@ class GenomeFileUtilTest(unittest.TestCase):
         found_synonyms = False
         for feature in genome["features"]:
             if "b0618" in feature['id'] :
-                print "*****************************************Found b0618"
+                print("*****************************************Found b0618")
                 for alias_tuple in feature["aliases"]:
                     if alias_tuple[0] == "gene_synonym":
                         found_synonyms = True
-        print "FEATURES WITH SYNONYMS COUNT: " + str(found_synonyms)
+        print("FEATURES WITH SYNONYMS COUNT: " + str(found_synonyms))
         self.assertTrue( found_synonyms, "Expected Gene Synonyms were not found")
 
     def test_neg_strand_off_by_one_issue(self):
@@ -131,7 +125,7 @@ class GenomeFileUtilTest(unittest.TestCase):
             if list_name in genome:
                 for feature in genome[list_name]:
                     if "id" in feature and 'b0003' in feature['id']:
-                        print "FUNCTION EMPTY?:", feature
+                        print("FUNCTION EMPTY?:", feature)
                     if "functions" in feature:
                         features_with_functions_count += 1
                         for function in feature["functions"]:
@@ -141,10 +135,10 @@ class GenomeFileUtilTest(unittest.TestCase):
                                 found_function_count += 1
                     else:
                         features_without_functions_count += 1
-        print "EMPTY FUNCTION COUNT: " + str(empty_function_count)
-        print "FOUND FUNCTION COUNT: " + str(found_function_count)
-        print "FEATURES WITH FUNCTIONS COUNT: " + str(features_with_functions_count)
-        print "FEATURES WITHOUT FUNCTIONS COUNT: " + str(features_without_functions_count)
+        print("EMPTY FUNCTION COUNT: " + str(empty_function_count))
+        print("FOUND FUNCTION COUNT: " + str(found_function_count))
+        print("FEATURES WITH FUNCTIONS COUNT: " + str(features_with_functions_count))
+        print("FEATURES WITHOUT FUNCTIONS COUNT: " + str(features_without_functions_count))
         self.assertTrue(empty_function_count == 0, str(empty_function_count) + " features had empty functions.")     
         self.assertTrue(found_function_count > 0, "No features had functions.")    
 
@@ -158,12 +152,12 @@ class GenomeFileUtilTest(unittest.TestCase):
                                     "GO:0016564":0,
                                     "GO:0006350":0
         }
-        print genome
+        print(genome)
         for cds in genome["cdss"]:
             if "b3357" in cds['id']:
-                print "Found b3357_CDS_1", cds
+                print("Found b3357_CDS_1", cds)
                 for ontology in cds["ontology_terms"]["GO"]:
-                    print "Ontology : " + str(ontology)
+                    print("Ontology : " + str(ontology))
                     if ontology in check_all_go_ontologies:
                         check_all_go_ontologies[ontology] = 1
         for ontology in check_all_go_ontologies:
@@ -182,7 +176,7 @@ class GenomeFileUtilTest(unittest.TestCase):
             if list_name in genome:
                 for feature in genome[list_name]:
                     if "id" in feature and 'b0002' in feature['id']:
-                        print "FEATURE EMPTY?:", feature
+                        print("FEATURE EMPTY?:", feature)
                     if "warnings" in feature:
                         features_with_warnings_count += 1
                         for warning in feature["warnings"]:
@@ -192,10 +186,10 @@ class GenomeFileUtilTest(unittest.TestCase):
                                 found_warning_count += 1
                     else:
                         features_without_warnings_count += 1
-        print "EMPTY FEATURE WARNING COUNT: " + str(empty_warning_count)
-        print "FOUND FEATURE WARNING COUNT: " + str(found_warning_count)
-        print "FEATURES WITH WARNINGS COUNT: " + str(features_with_warnings_count)
-        print "FEATURES WITHOUT WARNINGS COUNT: " + str(features_without_warnings_count)
+        print("EMPTY FEATURE WARNING COUNT: " + str(empty_warning_count))
+        print("FOUND FEATURE WARNING COUNT: " + str(found_warning_count))
+        print("FEATURES WITH WARNINGS COUNT: " + str(features_with_warnings_count))
+        print("FEATURES WITHOUT WARNINGS COUNT: " + str(features_without_warnings_count))
         self.assertTrue(empty_warning_count == 0, str(empty_warning_count) + " features had empty warnings.")     
         self.assertTrue(found_warning_count > 0, "No features had warnings.")
 
@@ -220,8 +214,8 @@ class GenomeFileUtilTest(unittest.TestCase):
             overall_count += 1
             if feature["id"].startswith("_"):
                 underscore_start_count += 1 
-        print "Starts with underscore count : " + str(underscore_start_count)
-        print "Overall noncoding count : " + str(overall_count)
+        print("Starts with underscore count : " + str(underscore_start_count))
+        print("Overall noncoding count : " + str(overall_count))
         self.assertTrue(underscore_start_count == 0, "Non coding features are starting with an underscore.")
 
 

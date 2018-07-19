@@ -1,18 +1,15 @@
 # -*- coding: utf-8 -*-
-import unittest
 import os  # noqa: F401
-import json  # noqa: F401
-import time
-import shutil
 import re
-
+import shutil
+import time
+import unittest
 from os import environ
+
 try:
-    from ConfigParser import ConfigParser  # py2
+    from configparser import ConfigParser  # py2
 except:
     from configparser import ConfigParser  # py3
-
-from pprint import pprint  # noqa: F401
 
 from Workspace.WorkspaceClient import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
@@ -149,17 +146,17 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         self.assertTrue('genome_ref' in result)
 
         genome_info = result['genome_info']
-        self.assertEquals(genome_info[10]['Domain'], 'Unknown')
-        self.assertEquals(genome_info[10]['Genetic code'], '11')
-        self.assertEquals(genome_info[10]['Name'], 'unknown_taxon')
-        self.assertEquals(genome_info[10]['Source'], 'Genbank')
+        self.assertEqual(genome_info[10]['Domain'], 'Unknown')
+        self.assertEqual(genome_info[10]['Genetic code'], '11')
+        self.assertEqual(genome_info[10]['Name'], 'unknown_taxon')
+        self.assertEqual(genome_info[10]['Source'], 'Genbank')
         self.assertTrue('GC content' in genome_info[10])
         self.assertTrue(re.match("^\d+?\.\d+?$", genome_info[10]['GC content']) is not None)
         self.assertTrue('Number of Protein Encoding Genes' in genome_info[10])
         self.assertTrue(genome_info[10]['Number of Protein Encoding Genes'].isdigit())
         self.assertTrue('Size' in genome_info[10])
         self.assertTrue(genome_info[10]['Size'].isdigit())
-        self.assertEquals(genome_info[10]['Taxonomy'], 'Unconfirmed Organism: unknown_taxon')
+        self.assertEqual(genome_info[10]['Taxonomy'], 'Unconfirmed Organism: unknown_taxon')
 
     def print_genome_warnings(self, result):
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'],
@@ -167,14 +164,14 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
                                     service_ver='dev')
         genome = data_file_cli.get_objects({'object_refs': [result['genome_ref']]})['data'][0]['data']
         if 'warnings' in genome:
-            print "Genome warnings:" + str(genome['warnings'])
+            print("Genome warnings:" + str(genome['warnings']))
 
     def check_CDS_warnings(self, result, test_name):
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'],
  #                                   token=cls.ctx['token'],
                                     service_ver='dev')
         genome = data_file_cli.get_objects({'object_refs': [result['genome_ref']]})['data'][0]['data']
-        print "IN TEST NAME : " + str(test_name)
+        print("IN TEST NAME : " + str(test_name))
         cds_warning_count = 0
         cds_with_warning_count = 0
         if 'cdss' in genome:
@@ -182,17 +179,17 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
             for feature in genome['cdss']:
                 if 'warnings' in feature:
                     if test_name == "test_jgi_bacterial_fasta_gff2_to_genome":
-                        print str(feature['id']) + " warnings:" + str(feature['warnings'])
-                        print "Location: " + str(feature['location'])
-                        print "Translation: " + feature['protein_translation']
-                        print "DNA Sequence: " + feature["dna_sequence"]
+                        print(str(feature['id']) + " warnings:" + str(feature['warnings']))
+                        print("Location: " + str(feature['location']))
+                        print("Translation: " + feature['protein_translation'])
+                        print("DNA Sequence: " + feature["dna_sequence"])
                     cds_with_warning_count = cds_with_warning_count + 1
                     cds_warning_count = cds_warning_count + len(feature['warnings'])
 
-            print "Total CDS: " + str(total_cds_count)
-            print "CDS Warning Count: " + str(cds_warning_count)
-            print "CDSs with a warning Count: " + str(cds_with_warning_count)
-            print "Percent CDS with warning: " + str((cds_with_warning_count/float(total_cds_count)) * 100)
+            print("Total CDS: " + str(total_cds_count))
+            print("CDS Warning Count: " + str(cds_warning_count))
+            print("CDSs with a warning Count: " + str(cds_with_warning_count))
+            print("Percent CDS with warning: " + str((cds_with_warning_count/float(total_cds_count)) * 100))
 
     def test_simple_fasta_gff_to_genome_w_null_params(self):
 
@@ -216,17 +213,17 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         self.assertTrue('genome_ref' in result)
 
         genome_info = result['genome_info']
-        self.assertEquals(genome_info[10]['Domain'], 'Unknown')
-        self.assertEquals(genome_info[10]['Genetic code'], '11')
-        self.assertEquals(genome_info[10]['Name'], 'unknown_taxon')
-        self.assertEquals(genome_info[10]['Source'], 'User')
+        self.assertEqual(genome_info[10]['Domain'], 'Unknown')
+        self.assertEqual(genome_info[10]['Genetic code'], '11')
+        self.assertEqual(genome_info[10]['Name'], 'unknown_taxon')
+        self.assertEqual(genome_info[10]['Source'], 'User')
         self.assertTrue('GC content' in genome_info[10])
         self.assertTrue(re.match("^\d+?\.\d+?$", genome_info[10]['GC content']) is not None)
         self.assertTrue('Number of Protein Encoding Genes' in genome_info[10])
         self.assertTrue(genome_info[10]['Number of Protein Encoding Genes'].isdigit())
         self.assertTrue('Size' in genome_info[10])
         self.assertTrue(genome_info[10]['Size'].isdigit())
-        self.assertEquals(genome_info[10]['Taxonomy'], 'Unconfirmed Organism: unknown_taxon')
+        self.assertEqual(genome_info[10]['Taxonomy'], 'Unconfirmed Organism: unknown_taxon')
 
     def test_simple_fasta_gff_to_genome(self):
         input_params = {
@@ -245,18 +242,18 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         self.assertTrue('genome_ref' in result)
 
         genome_info = result['genome_info']
-        self.assertEquals(genome_info[10]['Number of Protein Encoding Genes'], '1028')
-        self.assertEquals(genome_info[10]['Domain'], 'Eukaryota')
-        self.assertEquals(genome_info[10]['Genetic code'], '11')
-        self.assertEquals(genome_info[10]['Name'], 'Populus trichocarpa')
-        self.assertEquals(genome_info[10]['Source'], 'Genbank')
+        self.assertEqual(genome_info[10]['Number of Protein Encoding Genes'], '1028')
+        self.assertEqual(genome_info[10]['Domain'], 'Eukaryota')
+        self.assertEqual(genome_info[10]['Genetic code'], '11')
+        self.assertEqual(genome_info[10]['Name'], 'Populus trichocarpa')
+        self.assertEqual(genome_info[10]['Source'], 'Genbank')
         self.assertTrue('GC content' in genome_info[10])
         self.assertTrue(re.match("^\d+?\.\d+?$", genome_info[10]['GC content']) is not None)
         self.assertTrue('Number of Protein Encoding Genes' in genome_info[10])
         self.assertTrue(genome_info[10]['Number of Protein Encoding Genes'].isdigit())
         self.assertTrue('Size' in genome_info[10])
         self.assertTrue(genome_info[10]['Size'].isdigit())
-        self.assertEquals(genome_info[10]['Taxonomy'],
+        self.assertEqual(genome_info[10]['Taxonomy'],
                           'cellular organisms; Eukaryota; Viridiplantae; Streptophyta; ' +
                           'Streptophytina; Embryophyta; Tracheophyta; Euphyllophyta; ' +
                           'Spermatophyta; Magnoliophyta; Mesangiospermae; eudicotyledons; ' +
@@ -285,7 +282,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
 
         result = self.getImpl().fasta_gff_to_genome(self.getContext(), input_params)[0]
 
-        self.assertEquals(result['genome_info'][10]['Genetic code'], '1')
+        self.assertEqual(result['genome_info'][10]['Genetic code'], '1')
         self.check_CDS_warnings(result,"test_taxon_reference_fasta_gff_to_genome")
 
     def test_shock_fasta_gff_to_genome(self):
@@ -391,7 +388,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
           'fasta_file': {'path': 'fasta_file'},
           'gff_file': {'path': 'gff_file'}
         }
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                     ValueError,
                     '"workspace_name" parameter is required, but missing'):
             self.getImpl().fasta_gff_to_genome(self.getContext(), invalidate_input_params)
@@ -402,7 +399,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
           'fasta_file': {'path': 'fasta_file'},
           'gff_file': {'path': 'gff_file'}
         }
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                     ValueError,
                     '"genome_name" parameter is required, but missing'):
             self.getImpl().fasta_gff_to_genome(self.getContext(), invalidate_input_params)
@@ -413,7 +410,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
           'missing_fasta_file': {'path': 'fasta_file'},
           'gff_file': {'path': 'gff_file'}
         }
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 ValueError,
                 '"fasta_file" parameter is required, but missing'):
             self.getImpl().fasta_gff_to_genome(self.getContext(), invalidate_input_params)
@@ -424,7 +421,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
           'fasta_file': {'path': 'fasta_file'},
           'missing_gff_file': {'path': 'gff_file'}
         }
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 ValueError,
                 '"gff_file" parameter is required, but missing'):
             self.getImpl().fasta_gff_to_genome(self.getContext(), invalidate_input_params)
@@ -435,7 +432,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
           'fasta_file': 'not_a_dict',
           'gff_file': {'path': 'gff_file'}
         }
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 ValueError,
                 'Required "fasta_file" field must be a map/dict'):
             self.getImpl().fasta_gff_to_genome(self.getContext(), invalidate_input_params)
@@ -446,7 +443,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
           'fasta_file': {'path': 'fasta_file'},
           'gff_file': 'not_a_dict'
         }
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 ValueError,
                 'Required "gff_file" field must be a map/dict'):
             self.getImpl().fasta_gff_to_genome(self.getContext(), invalidate_input_params)
@@ -457,7 +454,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
           'fasta_file': {'path': 'fasta_file'},
           'gff_file': {'ftp_url': 'gff_file'}
         }
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 ValueError,
                 'FTP link is currently not supported for FastaGFFToGenome'):
             self.getImpl().fasta_gff_to_genome(self.getContext(), invalidate_input_params)
@@ -468,7 +465,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
           'fasta_file': {'missing_path': 'fasta_file'},
           'gff_file': {'path': 'gff_file'}
         }
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 ValueError,
                 'Required "fasta_file" field must include one source: path | shock_id'):
             self.getImpl().fasta_gff_to_genome(self.getContext(), invalidate_input_params)
@@ -479,22 +476,9 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
           'fasta_file': {'path': 'fasta_file', 'shock_id': 'shock_id'},
           'gff_file': {'path': 'gff_file'}
         }
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 ValueError,
                 'Required "fasta_file" field has too many sources specified: '):
-            self.getImpl().fasta_gff_to_genome(self.getContext(), invalidate_input_params)
-
-        invalidate_input_params = {
-          'workspace_name': 'workspace_name',
-          'genome_name': 'genome_name',
-          'fasta_file': {'path': 'fasta_file'},
-          'gff_file': {'path': 'gff_file'},
-          'type': 'invalid_type'
-        }
-        error_msg = 'Entered value for type is not one of the valid entries of '
-        error_msg += '\["Reference", "User upload", "Representative"\]'
-        with self.assertRaisesRegexp(
-                ValueError, error_msg):
             self.getImpl().fasta_gff_to_genome(self.getContext(), invalidate_input_params)
 
         invalidate_input_params = {
@@ -504,7 +488,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
             'gff_file': {'path': 'gff_file'},
             'genetic_code': 'meh'
         }
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 ValueError,
                 'Invalid genetic code specified'):
             self.getImpl().fasta_gff_to_genome(self.getContext(), invalidate_input_params)
@@ -517,7 +501,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
             'source': 'Genbank',
             'type': 'Reference',
         }
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 ValueError, "generate_missing_genes"):
             self.getImpl().fasta_gff_to_genome(self.getContext(),
                                                invalidate_input_params)
@@ -540,9 +524,9 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         self.assertTrue(self.fa_filename.rpartition('.')[0] in os.listdir(input_directory))
         self.assertTrue('gff_file' in file_paths)
         self.assertTrue('fasta_file' in file_paths)
-        self.assertEquals(file_paths.get('gff_file'),
+        self.assertEqual(file_paths.get('gff_file'),
                           os.path.join(input_directory, self.gff_filename).rpartition('.')[0])
-        self.assertEquals(file_paths.get('fasta_file'),
+        self.assertEqual(file_paths.get('fasta_file'),
                           os.path.join(input_directory, self.fa_filename).rpartition('.')[0])
 
         # test shock id
@@ -564,9 +548,9 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         self.assertTrue(self.fa_filename.rpartition('.')[0] in os.listdir(input_directory))
         self.assertTrue('gff_file' in file_paths)
         self.assertTrue('fasta_file' in file_paths)
-        self.assertEquals(file_paths.get('gff_file'),
+        self.assertEqual(file_paths.get('gff_file'),
                           os.path.join(input_directory, self.gff_filename).rpartition('.')[0])
-        self.assertEquals(file_paths.get('fasta_file'),
+        self.assertEqual(file_paths.get('fasta_file'),
                           os.path.join(input_directory, self.fa_filename).rpartition('.')[0])
 
     def test_FastaGFFToGenome_set_parsed_params(self):
@@ -581,13 +565,13 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
 
         parsed_params = self.importer._set_parsed_params(input_params)
 
-        expect_param_keys = ['source', 'taxon_wsname', 'taxon_reference', 'release',
+        expect_param_keys = {'source', 'taxon_wsname', 'taxon_reference', 'release',
                              'type', 'metadata', 'workspace_name',
-                             'genome_name', 'scientific_name', 'gff_file', 'fasta_file']
-        self.assertItemsEqual(parsed_params.keys(), expect_param_keys)
-        self.assertEquals(parsed_params['genome_name'], 'MyGenome')
-        self.assertEquals(parsed_params['source'], 'Genbank')
-        self.assertEquals(parsed_params['type'], 'Reference')
+                             'genome_name', 'scientific_name', 'gff_file', 'fasta_file'}
+        self.assertEqual(set(parsed_params.keys()), expect_param_keys)
+        self.assertEqual(parsed_params['genome_name'], 'MyGenome')
+        self.assertEqual(parsed_params['source'], 'Genbank')
+        self.assertEqual(parsed_params['type'], 'Reference')
 
     def test_FastaGFFToGenome_retrieve_gff_file(self):
 
@@ -671,4 +655,4 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
                                       'strand': '-'}]}
 
         updated_features_list = self.importer._update_identifiers(features_identifiers_list)
-        self.assertEquals(updated_features_list, features_identifiers_list)
+        self.assertEqual(updated_features_list, features_identifiers_list)

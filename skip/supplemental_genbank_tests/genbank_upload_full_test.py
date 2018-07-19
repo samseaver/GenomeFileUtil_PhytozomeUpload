@@ -1,17 +1,13 @@
-import unittest
-import time
 import os
 import shutil
+import time
+import unittest
+from configparser import ConfigParser
 
-try:
-    from ConfigParser import ConfigParser  # py2
-except:
-    from configparser import ConfigParser  # py3
-
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
-from DataFileUtil.DataFileUtilClient import DataFileUtil
+from Workspace.WorkspaceClient import Workspace as workspaceService
 
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -94,7 +90,7 @@ class GenomeFileUtilTest(unittest.TestCase):
     def test_unable_to_find_locus_tag(self):
         gbk_path = "data/drosophila/small_test.tar.gz"
         ws_obj_name = 'DrosophilaGenome.1'
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                         ValueError, 
                         "Unable to find a valid id for genes among these tags: locus_tag," + \
                         " kbase_id. Correct the file or rerun with generate_ids"):
@@ -119,8 +115,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'generate_ids_if_needed': 1,
                 'generate_missing_genes': 1
             })[0]
-        self.assertEquals(result['genome_info'][10]['Number contigs'], '1')
-        self.assertEquals(result['genome_info'][10]['Number of Protein Encoding Genes'], '2')
+        self.assertEqual(result['genome_info'][10]['Number contigs'], '1')
+        self.assertEqual(result['genome_info'][10]['Number of Protein Encoding Genes'], '2')
 
     def test_upload_prokka(self):
         gbk_path = "data/prokka/PROKKA_012345.gbk.gz"
@@ -134,9 +130,9 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'generate_ids_if_needed': 1,
                 "generate_missing_genes": 1
             })[0]
-        self.assertEquals(result['genome_info'][10]['Number contigs'], '1')
-        self.assertEquals(result['genome_info'][10]['Number of Protein Encoding Genes'], '4313')
-        self.assertEquals(result['genome_info'][10]['Domain'], 'Unknown')
+        self.assertEqual(result['genome_info'][10]['Number contigs'], '1')
+        self.assertEqual(result['genome_info'][10]['Number of Protein Encoding Genes'], '4313')
+        self.assertEqual(result['genome_info'][10]['Domain'], 'Unknown')
 
     def test_ftp_upload_bug(self):
         gbk_url = "ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/001/589/275/GCF_001589275.1_sce3192.1/GCF_001589275.1_sce3192.1_genomic.gbff.gz"

@@ -1,4 +1,4 @@
-from itertools import izip_longest
+from itertools import zip_longest
 
 warnings = {
     "cds_excluded": "SUSPECT: CDS from {} was excluded because the associated "
@@ -110,6 +110,7 @@ def get_bio_end(loc):
     else:
         return loc[1] - loc[3]
 
+
 def is_parent(feat1, feat2):
     """Check if all locations in feat2 fall within a location in
     feat1"""
@@ -144,7 +145,7 @@ def is_parent(feat1, feat2):
             if feat2['location'][-1][1] != feat1['location'][-1][1]:
                 return False
 
-            for l1, l2 in izip_longest(feat1['location'][1:-1],
+            for l1, l2 in zip_longest(feat1['location'][1:-1],
                                        feat2['location'][1:-1]):
                 if l1 != l2:
                     return False

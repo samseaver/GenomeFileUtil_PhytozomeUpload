@@ -1,16 +1,18 @@
-from collections import defaultdict
 import csv
 import os
 import time
-import urllib
+import traceback
+import urllib.error
+import urllib.parse
+import urllib.request
+from collections import defaultdict
 
 from DataFileUtil.DataFileUtilClient import DataFileUtil
-from GenomeUtils import get_start, get_end
-import traceback
+from .GenomeUtils import get_start, get_end
 
 
 class GenomeToGFF:
-    '''
+    """
     typedef structure {
         string genome_ref;
         list <string> ref_path_to_genome;
@@ -26,7 +28,7 @@ class GenomeToGFF:
 
     funcdef genome_to_gff(GenomeToGFFParams params)
                 returns (GenomeToGFFResult result) authentication required;
-    '''
+    """
 
     def __init__(self, sdk_config):
         self.cfg = sdk_config
@@ -186,7 +188,8 @@ class GenomeToGFF:
             raise Exception('Unable to parse {}:{}'.format(in_feature, e))
         return out_feature
 
-    def gen_gtf_attr(self, feature):
+    @staticmethod
+    def gen_gtf_attr(feature):
         """Makes the attribute line for a feature in gtf style"""
         if feature.get('type') == 'gene':
             return 'gene_id "{}"; transcript_id ""'.format(feature['id'])
@@ -201,8 +204,8 @@ class GenomeToGFF:
     @staticmethod
     def gen_gff_attr(feature):
         """Makes the attribute line for a feature in gff style"""
-        def _one_attr(key, val):
-            return '{}={}'.format(key, urllib.quote(val, " /:"))
+        def _one_attr(k, val):
+            return '{}={}'.format(k, urllib.parse.quote(val, " /:"))
 
         # don't add an attribute that could be 0 without refactor
         for key in ('parent_gene', 'parent_mrna'):
@@ -235,7 +238,8 @@ class GenomeToGFF:
             attrs.append(_one_attr("exception", "trans-splicing"))
         return "; ".join(attrs)
 
-    def get_common_location(self, location_array):
+    @staticmethod
+    def get_common_location(location_array):
         """Merges a compound location array into an overall location"""
         contig = location_array[0][0]
         strand = location_array[0][2]
