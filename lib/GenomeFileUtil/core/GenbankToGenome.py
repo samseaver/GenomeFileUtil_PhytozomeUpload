@@ -165,7 +165,7 @@ class GenbankToGenome:
         if n_valid_fields > 1:
             raise ValueError('required "file" field has too many sources '
                              'specified: ' + str(list(file.keys())))
-        if 'genetic_code' in params:
+        if params.get('genetic_code'):
             if not (isinstance(params['genetic_code'], int) and 0 < params['genetic_code'] < 32):
                 raise ValueError("Invalid genetic code specified: {}".format(params))
 
