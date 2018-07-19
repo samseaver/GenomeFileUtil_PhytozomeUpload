@@ -228,7 +228,7 @@ class FastaGFFToGenome:
                 error_msg = 'Required "{}" field has too many sources specified: '.format(key)
                 error_msg += str(list(file.keys()))
                 raise ValueError(error_msg)
-        if 'genetic_code' in params:
+        if params.get('genetic_code'):
             if not (isinstance(params['genetic_code'], int) and 0 < params['genetic_code'] < 32):
                 raise ValueError("Invalid genetic code specified: {}".format(params))
 
