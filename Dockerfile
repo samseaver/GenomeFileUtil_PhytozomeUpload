@@ -3,6 +3,7 @@ MAINTAINER KBase Developer
 # -----------------------------------------
 
 RUN pip install biopython==1.70
+RUN pip install mock
 
 COPY ./ /kb/module
 RUN mkdir -p /kb/module/work

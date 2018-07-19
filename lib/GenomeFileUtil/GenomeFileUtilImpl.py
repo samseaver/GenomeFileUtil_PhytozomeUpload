@@ -204,14 +204,15 @@ class GenomeFileUtil:
 
         # get WS metadata to get ws_name and obj_name
         ws = Workspace(url=self.cfg.workspaceURL)
-        info = ws.get_object_info_new({'objects':[{'ref': params['input_ref'] }],'includeMetadata':0, 'ignoreErrors':0})[0]
+        info = ws.get_object_info_new({'objects': [{'ref': params['input_ref']}],
+                                       'includeMetadata': 0, 'ignoreErrors': 0})[0]
 
         genome_to_genbank_params = {
             'genome_ref': params['input_ref']
         }
 
         # export to file (building from KBase Genome Object)
-        result = self.genome_to_genbank(ctx, genome_to_genbank_params)[0]['genbank_file'];
+        result = self.genome_to_genbank(ctx, genome_to_genbank_params)[0]['genbank_file']
 
         # create the output directory and move the file there
         export_package_dir = os.path.join(self.cfg.sharedFolder, info[1])
@@ -231,7 +232,7 @@ class GenomeFileUtil:
 
         # Make warning file about genes only.
         warning_filename = "README.txt"
-        with open(os.path.join(export_package_dir, warning_filename), 'wb') as temp_file:
+        with open(os.path.join(export_package_dir, warning_filename), 'w') as temp_file:
             temp_file.write('This directory includes the KBase-derived GenBank file and also ' +
                             '(if you originally uploaded the genome from an annotated ' +
                             'GenBank file) the original GenBank input.')
@@ -363,7 +364,7 @@ class GenomeFileUtil:
         print('--->\nRunning GenomeFileUtil.fasta_gff_to_genome\nparams:')
         print(json.dumps(params, indent=1))
 
-        for key in params.keys():
+        for key in list(params.keys()):
             if params[key] is None:
                 del params[key]
 

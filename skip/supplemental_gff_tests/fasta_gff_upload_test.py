@@ -1,18 +1,15 @@
 # -*- coding: utf-8 -*-
-import unittest
 import os  # noqa: F401
-import json  # noqa: F401
-import time
-import shutil
 import re
-
+import shutil
+import time
+import unittest
 from os import environ
+
 try:
     from configparser import ConfigParser  # py2
 except:
     from configparser import ConfigParser  # py3
-
-from pprint import pprint  # noqa: F401
 
 from Workspace.WorkspaceClient import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
@@ -568,10 +565,10 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
 
         parsed_params = self.importer._set_parsed_params(input_params)
 
-        expect_param_keys = ['source', 'taxon_wsname', 'taxon_reference', 'release',
+        expect_param_keys = {'source', 'taxon_wsname', 'taxon_reference', 'release',
                              'type', 'metadata', 'workspace_name',
-                             'genome_name', 'scientific_name', 'gff_file', 'fasta_file']
-        self.assertItemsEqual(list(parsed_params.keys()), expect_param_keys)
+                             'genome_name', 'scientific_name', 'gff_file', 'fasta_file'}
+        self.assertEqual(set(parsed_params.keys()), expect_param_keys)
         self.assertEqual(parsed_params['genome_name'], 'MyGenome')
         self.assertEqual(parsed_params['source'], 'Genbank')
         self.assertEqual(parsed_params['type'], 'Reference')

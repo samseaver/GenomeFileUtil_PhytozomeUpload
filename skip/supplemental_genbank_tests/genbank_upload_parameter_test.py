@@ -168,10 +168,9 @@ class MinimalGenbankUploadTest(unittest.TestCase):
                 })[0]
 
     def test_translation(self):
-        import string
         record = next(SeqIO.parse(open(self.MINIMAL_TEST_FILE), 'genbank'))
         f_seq = str(record.seq)
-        r_seq = f_seq.translate(string.maketrans("CTAG", "GATC"))
+        r_seq = f_seq.translate(str.maketrans("CTAG", "GATC"))
 
         def _location(feat):
             strand_trans = ("", "+", "-")

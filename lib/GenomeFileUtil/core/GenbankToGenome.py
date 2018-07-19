@@ -9,7 +9,6 @@ import shutil
 import sys
 import time
 import uuid
-from hashlib import md5
 from collections import Counter, defaultdict, OrderedDict
 
 import Bio.SeqIO
@@ -366,7 +365,9 @@ class GenbankToGenome:
             unmatched_ids = list()
             unmatched_ids_md5s = list()
             for current_contig in self.contig_seq.keys():
-                current_contig_md5 = md5(str(self.contig_seq[current_contig])).hexdigest()
+                current_contig_md5 = hashlib.md5(
+                    str(self.contig_seq[current_contig]).encode('utf8')
+                ).hexdigest()
                 if current_contig in ret['data']['contigs']:
                     if current_contig_md5 != ret['data']['contigs'][current_contig]['md5']:
                         unmatched_ids_md5s.append(current_contig)

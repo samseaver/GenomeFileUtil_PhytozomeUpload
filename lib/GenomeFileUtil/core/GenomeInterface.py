@@ -346,8 +346,9 @@ class GenomeInterface:
                     feat['dna_sequence_length'] = sum(x[3] for x in feat['location'])
 
                 if 'protein_translation' in feat and 'protein_md5' not in feat:
-                    feat['protein_md5'] = hashlib.md5(feat.get(
-                        'protein_translation', '')).hexdigest()
+                    feat['protein_md5'] = hashlib.md5(
+                        feat.get('protein_translation', '').encode('utf8')
+                    ).hexdigest()
 
                 # split all the stuff lumped together in old versions into the
                 # right arrays
