@@ -77,28 +77,30 @@ class MinimalGenbankUploadTest(unittest.TestCase):
                                         'file':{'path': gbk_path},
                                         'workspace_name': self.getWsName(),
                                         'genome_name': 'something',
+                                        'generate_ids_if_needed': 1
                                     })[0]
         self.check_minimal_items_exist(result)
 
         # test with setting a taxon_reference directly
         result = genomeFileUtil.genbank_to_genome(self.getContext(),
                                     {
-                                        'file':{'path': gbk_path},
+                                        'file': {'path': gbk_path},
                                         'workspace_name': self.getWsName(),
                                         'genome_name': 'something',
-                                        'taxon_reference':'ReferenceTaxons/4932_taxon'
+                                        'taxon_reference': 'ReferenceTaxons/4932_taxon',
+                                        'generate_ids_if_needed': 1
                                     })[0]
         self.check_minimal_items_exist(result)
 
         # test setting additional metadata
         result = genomeFileUtil.genbank_to_genome(self.getContext(),
                                     {
-                                        'file':{'path': gbk_path},
+                                        'file': {'path': gbk_path},
                                         'workspace_name': self.getWsName(),
                                         'genome_name': 'something',
-                                        'exclude_ontologies':1,
-                                        'taxon_reference':'ReferenceTaxons/4932_taxon',
-                                        'metadata': { 'mydata' : 'yay', 'otherdata':'ok' }
+                                        'taxon_reference': 'ReferenceTaxons/4932_taxon',
+                                        'metadata': {'mydata': 'yay', 'otherdata': 'ok' },
+                                        'generate_ids_if_needed': 1
                                     })[0]
         self.check_minimal_items_exist(result)
         metadata_saved = result['genome_info'][10]
@@ -121,14 +123,12 @@ class MinimalGenbankUploadTest(unittest.TestCase):
 
         self.assertTrue('genome_info' in result)
         self.assertTrue('genome_ref' in result)
-        self.assertTrue('report_name' in result)
-        self.assertTrue('report_ref' in result)
 
         genome_info = result['genome_info']
         self.assertEqual(genome_info[10]['Number contigs'],'1')
         self.assertEqual(genome_info[10]['Number of Protein Encoding Genes'],'2')
         self.assertEqual(genome_info[10]['Domain'],'Eukaryota')
-        self.assertEqual(genome_info[10]['Genetic code'],'1')
+        self.assertEqual(genome_info[10]['Genetic code'],'11')
         self.assertEqual(genome_info[10]['Name'],'Saccharomyces cerevisiae')
         self.assertEqual(genome_info[10]['Source'], 'Genbank')
         self.assertEqual(genome_info[10]['GC content'], '0.37967')
