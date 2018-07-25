@@ -40,6 +40,10 @@ class GenbankToGenome:
         self.version = re.search("module-version:\n\W+(.+)\n", yml_text).group(1)
         self.generate_parents = False
         self.generate_ids = False
+        self.genes = OrderedDict()
+        self.mrnas = OrderedDict()
+        self.cdss = OrderedDict()
+        self.noncoding = []
         self.ontologies_present = defaultdict(dict)
         self.skiped_features = Counter()
         self.feature_counts = Counter()
@@ -170,7 +174,7 @@ class GenbankToGenome:
                 raise ValueError("Invalid genetic code specified: {}".format(params))
 
     def stage_input(self, params):
-        ''' Setup the input_directory by fetching the files and uncompressing if needed. '''
+        """ Setup the input_directory by fetching the files and uncompressing if needed. """
 
         # construct the input directory where we stage files
         input_directory =  os.path.join(self.cfg.sharedFolder, 'genome-upload-staging-'+str(uuid.uuid4()))
@@ -245,10 +249,6 @@ class GenbankToGenome:
             "publications": set(),
             "contig_ids": [],
             "contig_lengths": [],
-            "features": [],
-            "non_coding_features": [],
-            "cdss": [],
-            'mrnas': [],
         }
         genome['source'], genome['genome_tiers'] = \
             self.gi.determine_tier(params['source'])
@@ -282,9 +282,9 @@ class GenbankToGenome:
                 genome["molecule_type"] = r_annot.get('molecule_type', 'DNA')
                 genome['notes'] = r_annot.get('comment', "").replace('\\n', '\n')
 
-            # extends the feature, cdss, mrna & non_coding_genes arrays
-            for k, v in self._parse_features(record, params['source']).items():
-                genome[k].extend(v)
+            self._parse_features(record, params['source'])
+
+        genome.update(self.get_feature_lists())
 
         genome['num_contigs'] = len(genome['contig_ids'])
         # add dates
@@ -483,10 +483,10 @@ class GenbankToGenome:
                                          "among these tags: {}. Correct the "
                                          "file or rerun with generate_ids"
                                          .format(", ".join(tags)))
-                    _id = "gene_{}".format(len(genes)+1)
+                    _id = "gene_{}".format(len(self.genes)+1)
                 if 'rna' in feat.type.lower() or feat.type in {'CDS', 'sig_peptide',
                                                                'five_prime_UTR', 'three_prime_UTR'}:
-                    _id = "gene_{}".format(len(genes))
+                    _id = "gene_{}".format(len(self.genes))
 
             return _id
 
@@ -530,7 +530,6 @@ class GenbankToGenome:
             _warn(warnings['not_trans_spliced'])
             self.defects['not_trans_spliced'] += 1
 
-        genes, cdss, mrnas, noncoding = OrderedDict(), OrderedDict(), OrderedDict(), []
         for in_feature in record.features:
             if in_feature.type in self.excluded_features:
                 self.skiped_features[in_feature.type] += 1
@@ -582,26 +581,25 @@ class GenbankToGenome:
                 out_feat['inference_data'] = parse_inferences(
                     in_feature.qualifiers['inference'])
 
-            _check_suspect_location(genes.get(_id))
+            _check_suspect_location(self.genes.get(_id))
 
             # add type specific features
             if in_feature.type == 'CDS':
-                self.process_cds(
-                    _id, feat_seq, genes, in_feature, mrnas, out_feat, cdss)
+                self.process_cds(_id, feat_seq, in_feature, out_feat)
 
             elif in_feature.type == 'gene':
-                self.process_gene(_id, genes, out_feat)
+                self.process_gene(_id, out_feat)
 
             elif in_feature.type == 'mRNA':
-                self.process_mrna(_id, genes, out_feat, mrnas)
+                self.process_mrna(_id, out_feat)
 
             else:
-                noncoding.append(self.process_noncodeing(_id, genes,
-                                                         in_feature, out_feat))
+                self.noncoding.append(self.process_noncodeing(_id, in_feature, out_feat))
 
-        # sort genes into their final arrays
+    def get_feature_lists(self):
+        """sort genes into their final arrays"""
         coding = []
-        for g in genes.values():
+        for g in self.genes.values():
             if len(g['cdss']):
                 if g['mrnas'] and len(g['mrnas']) != len(g['cdss']):
                     msg = "The length of the mrna and cdss arrays are not equal"
@@ -623,11 +621,10 @@ class GenbankToGenome:
                 continue
             else:
                 del g['mrnas'], g['cdss']
-                noncoding.append(g)
+                self.noncoding.append(g)
                 self.feature_counts["non-protein_encoding_gene"] += 1
-
-        return {'features': coding, 'non_coding_features': noncoding,
-                'cdss': list(cdss.values()), 'mrnas': list(mrnas.values())}
+        return {'features': coding, 'non_coding_features': self.noncoding,
+                'cdss': list(self.cdss.values()), 'mrnas': list(self.mrnas.values())}
 
     def _get_seq(self, feat, contig):
         """Extract the DNA sequence for a feature"""
@@ -689,55 +686,54 @@ class GenbankToGenome:
 
         return result
 
-    @staticmethod
-    def process_gene(_id, genes, out_feat):
+    def process_gene(self, _id, out_feat):
         out_feat.update({
             "id": _id,
             "type": 'gene',
             "mrnas": [],
             'cdss': [],
         })
-        if _id in genes:
+        if _id in self.genes:
             raise ValueError("Duplicate gene ID: {}".format(_id))
-        genes[_id] = out_feat
+        self.genes[_id] = out_feat
 
-    def process_noncodeing(self, _id, genes, in_feature, out_feat):
+    def process_noncodeing(self, _id, in_feature, out_feat):
         out_feat["type"] = in_feature.type
         # this prevents big misc_features from blowing up the genome size
         if out_feat['dna_sequence_length'] > MAX_MISC_FEATURE_SIZE:
             del out_feat['dna_sequence']
         # add increment number of each type
-        if _id in genes:
-            if not is_parent(genes[_id], out_feat):
+        if _id in self.genes:
+            if not is_parent(self.genes[_id], out_feat):
                 out_feat['warnings'] = out_feat.get('warnings', []) + [
                     "Feature order suggests that {} is the parent gene, but it"
                     " fails location validation".format(_id)]
                 self.defects['bad_parent_loc'] += 1
             else:
-                if 'children' not in genes[_id]:
-                    genes[_id]['children'] = []
-                out_feat['id'] += "_" + str(len(genes[_id]['children']) + 1)
-                genes[_id]['children'].append(out_feat['id'])
+                if 'children' not in self.genes[_id]:
+                    self.genes[_id]['children'] = []
+                out_feat['id'] += "_" + str(len(self.genes[_id]['children']) + 1)
+                self.genes[_id]['children'].append(out_feat['id'])
                 out_feat['parent_gene'] = _id
         else:
             self.orphan_types[in_feature.type] += 1
             out_feat['id'] += "_" + str(self.orphan_types[in_feature.type])
         return out_feat
 
-    def process_cds(self, _id, feat_seq, genes, in_feature, mrnas, out_feat, cdss):
+    def process_cds(self, _id, feat_seq, in_feature, out_feat):
         # Associate CDS with parents
-        if _id not in genes and self.generate_parents:
+        if _id not in self.genes and self.generate_parents:
             new_feat = copy.copy(out_feat)
             new_feat['id'] = _id
             new_feat['warnings'] = [warnings['spoofed_gene']]
             self.feature_counts['gene'] += 1
             self.defects['spoofed_genes'] += 1
-            self.process_gene(_id, genes, new_feat)
+            self.process_gene(_id, new_feat)
 
-        if _id in genes:
-            out_feat['id'] += "_" + str(len(genes[_id]['cdss']) + 1)
-            if not is_parent(genes[_id], out_feat):
-                genes[_id]['warnings'] = genes[_id].get('warnings', []) + [
+        if _id in self.genes:
+            out_feat['id'] += "_" + str(len(self.genes[_id]['cdss']) + 1)
+            if not is_parent(self.genes[_id], out_feat):
+                self.genes[_id]['warnings'] = self.genes[_id].get('warnings', []) + [
                     warnings['child_cds_failed']]
                 self.genome_warnings.append(
                     warnings['cds_excluded'].format(_id))
@@ -745,23 +741,23 @@ class GenbankToGenome:
                 self.defects['bad_parent_loc'] += 1
                 return
             else:
-                genes[_id]['cdss'].append(out_feat['id'])
+                self.genes[_id]['cdss'].append(out_feat['id'])
                 out_feat['parent_gene'] = _id
         else:
             self.log("Expected gene id: {}".format(_id))
             raise ValueError(warnings['no_spoof'])
 
         mrna_id = out_feat["id"].replace('CDS', 'mRNA')
-        if mrna_id in mrnas:
-            if not is_parent(mrnas[mrna_id], out_feat):
+        if mrna_id in self.mrnas:
+            if not is_parent(self.mrnas[mrna_id], out_feat):
                 out_feat['warnings'] = out_feat.get('warnings', []) + [
                     warnings['cds_mrna_cds'].format(mrna_id)]
-                mrnas[mrna_id]['warnings'] = mrnas[mrna_id].get(
+                self.mrnas[mrna_id]['warnings'] = self.mrnas[mrna_id].get(
                     'warnings', []) + [warnings['cds_mrna_mrna']]
                 self.defects['bad_parent_loc'] += 1
             else:
                 out_feat['parent_mrna'] = mrna_id
-                mrnas[mrna_id]['cds'] = out_feat['id']
+                self.mrnas[mrna_id]['cds'] = out_feat['id']
 
         # process protein
         prot_seq = in_feature.qualifiers.get("translation", [""])[0]
@@ -804,28 +800,28 @@ class GenbankToGenome:
         })
 
         if out_feat['parent_gene']:
-            propagate_cds_props_to_gene(out_feat, genes[_id])
+            propagate_cds_props_to_gene(out_feat, self.genes[_id])
 
-        cdss[out_feat['id']] = out_feat
+        self.cdss[out_feat['id']] = out_feat
 
-    def process_mrna(self, _id, genes, out_feat, mrnas):
-        if _id not in genes and self.generate_parents:
-                self.process_gene(_id, genes, copy.copy(out_feat))
+    def process_mrna(self, _id, out_feat):
+        if _id not in self.genes and self.generate_parents:
+                self.process_gene(_id, copy.copy(out_feat))
 
-        if _id in genes:
-            out_feat['id'] += "_" + str(len(genes[_id]['mrnas']) + 1)
-            if not is_parent(genes[_id], out_feat):
-                genes[_id]['warnings'] = genes[_id].get('warnings', []) + [
+        if _id in self.genes:
+            out_feat['id'] += "_" + str(len(self.genes[_id]['mrnas']) + 1)
+            if not is_parent(self.genes[_id], out_feat):
+                self.genes[_id]['warnings'] = self.genes[_id].get('warnings', []) + [
                     warnings['child_mrna_failed']]
                 self.genome_warnings.append(
                     warnings['mrna_excluded'].format(_id))
                 self.defects['bad_parent_loc'] += 1
                 return
             else:
-                genes[_id]['mrnas'].append(out_feat['id'])
+                self.genes[_id]['mrnas'].append(out_feat['id'])
                 out_feat['parent_gene'] = _id
         else:
             out_feat['warnings'] = out_feat.get('warnings', []) + [
                 'Unable to find parent gene for ' + str(out_feat)]
             out_feat['parent_gene'] = ""
-        mrnas[out_feat['id']] = out_feat
+        self.mrnas[out_feat['id']] = out_feat
