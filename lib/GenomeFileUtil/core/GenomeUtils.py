@@ -1,4 +1,5 @@
 from itertools import zip_longest
+import logging
 
 warnings = {
     "cds_excluded": "SUSPECT: CDS from {} was excluded because the associated "
@@ -112,10 +113,11 @@ def get_bio_end(loc):
 
 
 def is_parent(feat1, feat2):
-    """Check if all locations in feat2 fall within a location in
-    feat1"""
+    """Check if all locations in feat2 fall within a location in feat1"""
 
     def _contains(loc1, loc2):
+        if loc1[0] != loc2[0]:  # different contigs
+            return False
         if loc1[2] != loc2[2]:  # different strands
             return False
         elif loc1[2] == "+":
@@ -125,30 +127,35 @@ def is_parent(feat1, feat2):
             return loc2[1] <= loc1[1] and (
                 loc2[1] - loc2[3] >= loc1[1] - loc1[3])
 
-    if feat1.get('type') == 'gene':
-        for l2 in feat2['location']:
-            if not any(_contains(l1, l2) for l1 in feat1['location']):
-                return False
-    else:
-        # for a mrna, the first and last part match loosely (like a gene) but
-        # the internal coordinates must be an exact match
-        if not any(_contains(l1, feat2['location'][0]) for l1 in feat1['location']):
+    j = 0
+    for i, l2 in enumerate(feat2['location']):
+        if j >= len(feat1['location']):
+            logging.info("No part in {} contains {}".format(feat1['location'], l2))
             return False
-
-        if not any(_contains(l1, feat2['location'][-1]) for l1 in feat1['location']):
-            return False
-
-        if len(feat2['location']) > 1:
-            if get_bio_end(feat2['location'][0]) != get_bio_end(feat1['location'][0]):
-                return False
-
-            if feat2['location'][-1][1] != feat1['location'][-1][1]:
-                return False
-
-            for l1, l2 in zip_longest(feat1['location'][1:-1],
-                                       feat2['location'][1:-1]):
-                if l1 != l2:
+        if feat1.get('type') == 'gene' or i == 0:
+            while not _contains(feat1['location'][j], l2):
+                j += 1
+                if j == len(feat1['location']):
+                    logging.info("No part in {} contains {}".format(feat1['location'], l2))
                     return False
+            if feat1.get('type') == 'gene' or len(feat2['location']) == 1:
+                continue
+
+        l1 = feat1['location'][j]
+        print(j,l1,i,l2)
+        if i == 0 and get_bio_end(l2) != get_bio_end(l1):
+            logging.info("For the first exon of the CDS the end sites must match: "
+                         "L1{} vs L2{}".format(l1, l2))
+            return False
+        elif i == len(feat2['location']) - 1 and l2[1] != l1[1]:
+            logging.info("For the last exon of the CDS the start sites must match: "
+                         "L1{} vs L2{}".format(l1, l2))
+            return False
+        elif 0 < i < (len(feat2['location']) - 1) and l1 != l2:
+            logging.info("For an interior exon all coordinates must match: "
+                         "L1{} vs L2{}".format(l1, l2))
+            return False
+        j += 1
     return True
 
 

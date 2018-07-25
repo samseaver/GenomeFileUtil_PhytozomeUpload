@@ -768,14 +768,14 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(found_gene, "The gene AT4G12560 was not found in features.")
         self.assertTrue(found_mRNA, "The mRNA AT4G12560_mRNA_1 was not found.")
         self.assertTrue(found_CDS, "The CDS AT4G12560_CDS_1 was not found.")
-        self.assertTrue(gene_has_CDS,"The gene did not have the good CDS1")
-        self.assertTrue(gene_has_mRNA,"The gene did not have the good mRNA1.")
-        self.assertTrue(found_mRNA_warning,"No mRNA related warning.")
-        self.assertTrue(found_CDS_warning,"No CDS related warning.")
-        self.assertTrue(found_mRNA_parent,"The mRNA did not have the parent gene.")
-        self.assertTrue(found_CDS_parent,"The CDS did not have the parent gene.")
-        self.assertFalse(found_mRNA_CDS,"The mRNA should not have had a corresponding CDS.")
-        self.assertFalse(found_CDS_mRNA,"The CDS should not have had a corresponding mRNA.") 
+        self.assertTrue(gene_has_CDS, "The gene did not have the good CDS1")
+        self.assertTrue(gene_has_mRNA, "The gene did not have the good mRNA1.")
+        self.assertTrue(found_mRNA_warning, "No mRNA related warning.")
+        self.assertFalse(found_CDS_warning, "Found CDS related warning.")
+        self.assertTrue(found_mRNA_parent, "The mRNA did not have the parent gene.")
+        self.assertTrue(found_CDS_parent, "The CDS did not have the parent gene.")
+        self.assertTrue(found_mRNA_CDS, "The mRNA should have had a corresponding CDS.")
+        self.assertTrue(found_CDS_mRNA, "The CDS should have had a corresponding mRNA.")
             
     def test_CDS_minus1_internal_exon_mRNA(self):
         #CDS has 1 less internal exon than the parent mRNA. 
