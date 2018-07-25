@@ -142,7 +142,6 @@ def is_parent(feat1, feat2):
                 continue
 
         l1 = feat1['location'][j]
-        print(j,l1,i,l2)
         if i == 0 and get_bio_end(l2) != get_bio_end(l1):
             logging.info("For the first exon of the CDS the end sites must match: "
                          "L1{} vs L2{}".format(l1, l2))
