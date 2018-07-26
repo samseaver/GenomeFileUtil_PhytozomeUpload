@@ -24,6 +24,8 @@ from .GenomeUtils import is_parent, propagate_cds_props_to_gene, warnings, parse
 from Workspace.WorkspaceClient import Workspace
 
 MAX_MISC_FEATURE_SIZE = 10000
+POTENTIAL_ID_KEYS = ('kbase_id', 'locus_tag', 'gene', )
+EXCLUDED_FEATURES = {'source', 'exon'}
 
 
 class GenbankToGenome:
@@ -55,7 +57,7 @@ class GenbankToGenome:
         self.genome_suspect = False
         self.defects = Counter()
         self.spoofed_genes = 0
-        self.excluded_features = ('source', 'exon')
+        self.id_key = "UNKNOWN"
         self.go_mapping = json.load(
             open('/kb/module/data/go_ontology_mapping.json'))
         self.po_mapping = json.load(
@@ -268,21 +270,16 @@ class GenbankToGenome:
             if 'scientific_name' not in genome:
                 genome['scientific_name'] = organism
             elif genome['scientific_name'] != organism:
-                warn = "Multiple organism in provided files: {}, {}".format(
-                    genome['scientific_name'], organism)
-                genome['warnings'] = genome.get('warnings', []) + [warn]
+                self.genome_warnings.append("Multiple organism in provided files: {}, {}".format(
+                    genome['scientific_name'], organism))
+                self.genome_suspect = 1
 
             # only do the following once(on the first contig)
-            if "source_id" not in genome:
-                genome["source_id"] = record.id.split('.')[0]
-                genome['taxonomy'], genome['taxon_ref'], genome['domain'], \
-                genome['genetic_code'] = self.gi.retrieve_taxon(
-                    params['taxon_wsname'], genome['scientific_name'])
-                self.code_table = genome['genetic_code']
-                genome["molecule_type"] = r_annot.get('molecule_type', 'DNA')
-                genome['notes'] = r_annot.get('comment', "").replace('\\n', '\n')
+            if self.id_key == "UNKNOWN":
+                genome.update(self._one_time_data(record, params['taxon_wsname'], organism))
+                self.id_key = self._get_id_key(record)
 
-            self._parse_features(record, params['source'])
+            self._parse_features(record)
 
         genome.update(self.get_feature_lists())
 
@@ -303,34 +300,55 @@ class GenbankToGenome:
         # can't serialize a set
         genome['publications'] = list(genome['publications'])
 
-        if len(genome['cdss']) and (self.defects['cds_seq_not_matching'] /
-                                    float(len(genome['cdss'])) > 0.02):
-            self.genome_warnings.append(warnings["genome_inc_translation"].format(
-                self.defects['cds_seq_not_matching'], len(genome['cdss'])))
-            self.genome_suspect = 1
+        genome.update(self.get_genome_warnings())
+        self.log("Feature Counts: {}".format(genome['feature_counts']))
+        return genome
 
+    def get_genome_warnings(self):
+        gen_warn = {}
+        if self.cdss and (self.defects['cds_seq_not_matching'] / float(len(self.cdss)) > 0.02):
+            self.genome_warnings.append(warnings["genome_inc_translation"].format(
+                self.defects['cds_seq_not_matching'], len(self.cdss)))
+            self.genome_suspect = 1
         if self.defects['bad_parent_loc']:
             self.genome_warnings.append("There were {} parent/child "
-                "relationships that were not able to be determined. Some of "
-                "these may have splice variants that may be valid "
-                "relationships.".format(self.defects['bad_parent_loc']))
-
+                                        "relationships that were not able to be determined. Some of "
+                                        "these may have splice variants that may be valid "
+                                        "relationships.".format(self.defects['bad_parent_loc']))
         if self.defects['spoofed_genes']:
             self.genome_warnings.append(warnings['spoofed_genome'].format(
                 self.defects['spoofed_genes']))
-            genome['suspect'] = 1
-
+            self.genome_suspect = 1
         if self.defects['not_trans_spliced']:
             self.genome_warnings.append(warnings['genome_not_trans_spliced']
                                         .format(self.defects['not_trans_spliced']))
-            genome['suspect'] = 1
-
+            self.genome_suspect = 1
         if self.genome_warnings:
-            genome['warnings'] = self.genome_warnings
+            gen_warn['warnings'] = self.genome_warnings
         if self.genome_suspect:
-            genome['suspect'] = 1
-        self.log("Feature Counts: {}".format(genome['feature_counts']))
-        return genome
+            gen_warn['suspect'] = 1
+        return gen_warn
+
+    def _one_time_data(self, record, taxon_wsname, organism):
+        genome_data = {
+            "source_id": record.id.split('.')[0],
+            "molecule_type": record.annotations.get('molecule_type', 'DNA'),
+            "notes": record.annotations.get('comment', "").replace('\\n', '\n')
+        }
+        genome_data.update(self.gi.retrieve_taxon(taxon_wsname, organism)._asdict())
+        return genome_data
+
+    @staticmethod
+    def _get_id_key(record):
+        key_count = Counter()
+        for feature in record.features[0:min(10, len(record.features))]:
+            if feature.type in {"gene", "CDS", 'mRNA'}:
+                key_count.update(feature.qualifiers.keys())
+                key_count['total'] += 1
+        for id_key in POTENTIAL_ID_KEYS:
+            if key_count['total'] and key_count[id_key]/key_count['total'] == 1:
+                return id_key
+        return None
 
     def _save_assembly(self, genbank_file, params):
         """Convert genbank file to fasta and sve as assembly"""
@@ -465,16 +483,10 @@ class GenbankToGenome:
         self.log("Parsed {} publication records".format(len(pub_list)))
         return set(pub_list)
 
-    def _parse_features(self, record, source):
-        def _get_id(feat, tags=None):
-            """Assign a id to a feature based on the first tag that exists"""
-            _id = ""
-            if not tags:
-                tags = ['locus_tag', 'kbase_id']
-            for t in tags:
-                _id = feat.qualifiers.get(t, [""])[0]
-                if _id:
-                    break
+    def _parse_features(self, record):
+        def _get_id(feat):
+            """Assign a id to a feature based on the id_key if that exists"""
+            _id = feat.qualifiers.get(self.id_key, [""])[0]
 
             if not _id:
                 if feat.type == 'gene':
@@ -482,7 +494,7 @@ class GenbankToGenome:
                         raise ValueError("Unable to find a valid id for genes "
                                          "among these tags: {}. Correct the "
                                          "file or rerun with generate_ids"
-                                         .format(", ".join(tags)))
+                                         .format(", ".join(POTENTIAL_ID_KEYS)))
                     _id = "gene_{}".format(len(self.genes)+1)
                 if 'rna' in feat.type.lower() or feat.type in {'CDS', 'sig_peptide',
                                                                'five_prime_UTR', 'three_prime_UTR'}:
@@ -531,14 +543,11 @@ class GenbankToGenome:
             self.defects['not_trans_spliced'] += 1
 
         for in_feature in record.features:
-            if in_feature.type in self.excluded_features:
+            if in_feature.type in EXCLUDED_FEATURES:
                 self.skiped_features[in_feature.type] += 1
                 continue
             feat_seq = self._get_seq(in_feature, record.id)
-            if source == "Ensembl":
-                _id = _get_id(in_feature, ['gene', 'locus_tag'])
-            else:
-                _id = _get_id(in_feature)
+            _id = _get_id(in_feature)
             # The following is common to all the feature types
             out_feat = {
                 "id": "_".join([_id, in_feature.type]),
