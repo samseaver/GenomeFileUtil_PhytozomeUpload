@@ -3,7 +3,7 @@ import json
 import re
 import sys
 import time
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 
 import requests
 
@@ -205,13 +205,11 @@ class GenomeInterface:
         _retrieve_taxon: retrieve taxonomy and taxon_reference
 
         """
-        TaxTuple = namedtuple("TaxTuple",
-                              ['taxonomy', 'taxon_ref', 'domain', 'genetic_code'])
-        default = TaxTuple('Unconfirmed Organism: ' + scientific_name,
-                           'ReferenceTaxons/unknown_taxon', 'Unknown', 11)
+        default = ('Unconfirmed Organism: ' + scientific_name,
+                   'ReferenceTaxons/unknown_taxon', 'Unknown', 11)
 
         def extract_values(search_obj):
-            return TaxTuple(search_obj['data']['scientific_lineage'],
+            return (search_obj['data']['scientific_lineage'],
                     taxon_wsname+"/"+search_obj['object_name'],
                     search_obj['data']['domain'],
                     search_obj['data'].get('genetic_code', 11))
