@@ -100,7 +100,8 @@ class GenbankToGenome:
         params = self.default_params
         self.generate_parents = params.get('generate_missing_genes')
         self.generate_ids = params.get('generate_ids_if_needed')
-        self.code_table = params['genetic_code']
+        if params.get('genetic_code'):
+            self.code_table = params['genetic_code']
 
         # 4) Do the upload
         files = self._find_input_files(input_directory)
@@ -658,9 +659,9 @@ class GenbankToGenome:
                 "timestamp": self.time_string,
                 "id": ontology_type,
                 "ontology_ref": ontology_ref
-                })  
+                })
             return index_counter
-        else:  #This is not a supported ontology. Do not make the ontology.      
+        else:  #This is not a supported ontology. Do not make the ontology.
             raise ValueError("{} is not a supported ontology".format(ontology_type))
 
     def _get_ontology_db_xrefs(self, feature):
