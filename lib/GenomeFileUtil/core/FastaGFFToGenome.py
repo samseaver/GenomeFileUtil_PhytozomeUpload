@@ -389,8 +389,8 @@ class FastaGFFToGenome:
         for contig in feature_list:
             for i, feat in enumerate(feature_list[contig]):
                 if "ID" not in feature_list[contig][i]:
-                    for key in ("transcriptId", "proteinId", "PACid",
-                                "pacid", "Parent", "name", 'transcript_id'):
+                    for key in ("transcriptid", "proteinid", "pacid",
+                                "parent", "name", 'transcript_id'):
                         if key in feature_list[contig][i]['attributes']:
                             feature_list[contig][i]['ID'] = feature_list[
                                 contig][i]['attributes'][key][0]
@@ -445,9 +445,9 @@ class FastaGFFToGenome:
                 #Maintain old_id for reference
                 #Sometimes ID isn't available, so use PACid
                 old_id = None
-                for key in ("ID", "PACid", "pacid"):
-                    if(key in feature_list[contig][i]):
-                        old_id = feature_list[contig][i][key]
+                for key in ("id", "pacid"):
+                    if(key in feature_list[contig][i]['attributes']):
+                        old_id = feature_list[contig][i]['attributes'][key][0]
                         break
                 if(old_id is None):
                     #This should be an error
@@ -464,8 +464,8 @@ class FastaGFFToGenome:
                     feature_list[contig][i]["ID"] = feature_list[contig][i]["ID"].rsplit('.', 1)[0]
 
                 #In Phytozome, gene and mRNA have "Name" field, CDS do not
-                if("Name" in feature_list[contig][i]):
-                    feature_list[contig][i]["ID"] = feature_list[contig][i]["Name"]
+                if("name" in feature_list[contig][i]['attributes']):
+                    feature_list[contig][i]["ID"] = feature_list[contig][i]['attributes']['name'][0]
 
                 if("Parent" in feature_list[contig][i]):
                     #Update Parent to match new ID of parent ftr
