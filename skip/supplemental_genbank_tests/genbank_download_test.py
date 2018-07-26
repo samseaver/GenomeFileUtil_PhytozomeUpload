@@ -1,23 +1,21 @@
-import unittest
-import os
 import json
-import time
+import os
 import shutil
-
+import time
+import unittest
 from os import environ
+from pprint import pprint
+
 try:
-    from ConfigParser import ConfigParser  # py2
+    from configparser import ConfigParser  # py2
 except:
     from configparser import ConfigParser  # py3
 
-from pprint import pprint
-
-from Workspace.WorkspaceClient import Workspace as workspaceService
-from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
-from GenomeFileUtil.GenomeFileUtilServer import MethodContext
-from DataFileUtil.DataFileUtilClient import DataFileUtil
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from GenomeAnnotationAPI.GenomeAnnotationAPIClient import GenomeAnnotationAPI
+from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
+from GenomeFileUtil.GenomeFileUtilServer import MethodContext
+from Workspace.WorkspaceClient import Workspace as workspaceService
 
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -76,8 +74,7 @@ class GenomeFileUtilTest(unittest.TestCase):
     def getContext(self):
         return self.__class__.ctx
 
-
-    def load_genome_direct(self, filename, assembly_filename, obj_name, old=False):
+    def load_genome_direct(self, filename, assembly_filename, obj_name):
         au = AssemblyUtil(os.environ['SDK_CALLBACK_URL'])
         assembly_ref = au.save_assembly_from_fasta({
             'workspace_name': self.getWsName(),
@@ -96,8 +93,8 @@ class GenomeFileUtilTest(unittest.TestCase):
             'name': obj_name + '.genome'
         }
         info = self.gaa.save_one_genome_v1(save_info)['info']
-        ref = str(info[6]) + '/' + str(info[0]) + '/' + str(info[4])
-        print('created test genome: ' + ref + ' from file ' + filename)
+        ref = "{}/{}/{}".format(info[6], info[0], info[4])
+        print(('created test genome: ' + ref + ' from file ' + filename))
         return ref
 
     def test_simple_genbank_download(self):
@@ -126,6 +123,37 @@ class GenomeFileUtilTest(unittest.TestCase):
         res1 = genomeFileUtil.genome_to_genbank(self.getContext(),
             {'genome_ref': e_coli_ref})[0]
         self.assertEqual(res1['from_cache'], 0)
+
+    def test_contig_set_download(self):
+        contig_data = json.load(open('data/rhodobacter_contigs.json'))
+        save_info = {
+            'workspace': self.getWsName(),
+            'objects': [{
+                'type': 'KBaseGenomes.ContigSet',
+                'data': contig_data,
+                'name': 'rhodobacter_contigs'
+            }]
+        }
+        info = self.ws.save_objects(save_info)[0]
+        cs_ref = "{}/{}/{}".format(info[6], info[0], info[4])
+
+        genome_data = json.load(open('data/rhodobacter.json'))
+        genome_data['contigset_ref'] = cs_ref
+        save_info = {
+            'workspace': self.getWsName(),
+            'data': genome_data,
+            'name': 'rhodobacter_genome'
+        }
+        info = self.gaa.save_one_genome_v1(save_info)['info']
+        ref = "{}/{}/{}".format(info[6], info[0], info[4])
+        # run the test
+        genomeFileUtil = self.getImpl()
+        print('testing Genbank download by building the file')
+        res1 = genomeFileUtil.genome_to_genbank(self.getContext(),
+                                                {'genome_ref': ref})[0]
+        self.assertEqual(res1['from_cache'], 0)
+
+
 
 
 

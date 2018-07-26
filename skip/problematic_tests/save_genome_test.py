@@ -1,32 +1,27 @@
 # -*- coding: utf-8 -*-
-import unittest
-import os  # noqa: F401
-import json  # noqa: F401
-import time
-import requests  # noqa: F401
 import inspect
-import StringIO
-import urllib
+import io
+import json  # noqa: F401
+import os  # noqa: F401
 import shutil
-
-
+import time
+import unittest
+import urllib.error
+import urllib.parse
+import urllib.request
+from configparser import ConfigParser
 from os import environ
-try:
-    from ConfigParser import ConfigParser  # py2
-except:
-    from configparser import ConfigParser  # py3
 
-from pprint import pprint  # noqa: F401
+import requests  # noqa: F401
 
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
+from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import SDKConfig
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
-
-from DataFileUtil.DataFileUtilClient import DataFileUtil
-from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
+from Workspace.WorkspaceClient import Workspace as workspaceService
 
 
 class SaveGenomeTest(unittest.TestCase):
@@ -76,7 +71,7 @@ class SaveGenomeTest(unittest.TestCase):
             test_cfg_text += f.read()
 
         config = ConfigParser()
-        config.readfp(StringIO.StringIO(test_cfg_text))
+        config.readfp(io.StringIO(test_cfg_text))
 
         test_cfg_dict = dict(config.items("test"))
         if ('test_token2' not in test_cfg_dict):
@@ -115,7 +110,7 @@ class SaveGenomeTest(unittest.TestCase):
         header = {'Authorization': 'Oauth {0}'.format(cls.token)}
         requests.delete(cls.shockURL + '/node/' + node_id, headers=header,
                         allow_redirects=True)
-        print('Deleted shock node ' + node_id)
+        print(('Deleted shock node ' + node_id))
 
     @classmethod
     def prepare_data(cls):
@@ -145,7 +140,7 @@ class SaveGenomeTest(unittest.TestCase):
 
     def start_test(self):
         testname = inspect.stack()[1][3]
-        print('\n*** starting test: ' + testname + ' **')
+        print(('\n*** starting test: ' + testname + ' **'))
 
     def fail_save_one_genome(self, params, error, exception=ValueError, contains=False):
         with self.assertRaises(exception) as context:
@@ -242,7 +237,7 @@ class SaveGenomeTest(unittest.TestCase):
         hid = shock_ret['handle']['hid']
 
         genome = {'genbank_handle_ref': hid}
-        with self.assertRaisesRegexp(ValueError, 
+        with self.assertRaisesRegex(ValueError, 
                                      'Error getting ACLs for Shock node'):
             self.genome_interface._own_handle(genome, 'genbank_handle_ref')
 
@@ -270,12 +265,12 @@ class SaveGenomeTest(unittest.TestCase):
         user1 = self.ctx['user_id']
         acl = 'read'
         url = self.shockURL + '/node/' + node + '/acl'
-        url += '/' + acl + '?users=' + urllib.quote(user1)
+        url += '/' + acl + '?users=' + urllib.parse.quote(user1)
         auth_header = {'Authorization': 'OAuth {}'.format(token2)}
         req = requests.put(url, headers=auth_header, allow_redirects=True)
         if not req.ok:
             err = json.loads(req.content)['error'][0]
-            print 'response error: {}'.format(err)
+            print('response error: {}'.format(err))
 
         genome = {'genbank_handle_ref': hid}
         origin_genome = genome.copy()

@@ -1,5 +1,4 @@
 import os
-from string import maketrans
 import sys
 import shutil
 import uuid
@@ -10,14 +9,15 @@ import collections
 import datetime
 import re
 import copy
-import urlparse as parse
+import urllib.parse as parse
 
 # KBase imports
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
-import GenomeUtils
-from GenomeUtils import is_parent, warnings, check_full_contig_length_or_multi_strand_feature
-from GenomeInterface import GenomeInterface
+from . import GenomeUtils
+from .GenomeUtils import is_parent, warnings, check_full_contig_length_or_multi_strand_feature
+from .GenomeUtils import propagate_cds_props_to_gene
+from .GenomeInterface import GenomeInterface
 
 # 3rd party imports
 from Bio.Data import CodonTable
@@ -26,7 +26,7 @@ import Bio.SeqIO
 from Bio.Seq import Seq
 
 codon_table = CodonTable.ambiguous_generic_by_name["Standard"]
-strand_table = maketrans("1?.", "+++")
+strand_table = str.maketrans("1?.", "+++")
 MAX_MISC_FEATURE_SIZE = 10000
 
 
@@ -92,9 +92,10 @@ class FastaGFFToGenome:
             core_genome_name=params['genome_name'],
             scientific_name=params['scientific_name'],
             source=params['source'],
-            genome_type=params['type'],
             release=params['release'],
         )
+        if params.get('genetic_code'):
+            genome["genetic_code"] = params['genetic_code']
         return genome, input_directory
 
     def import_file(self, params):
@@ -131,7 +132,7 @@ class FastaGFFToGenome:
     def _gen_genome_json(self, input_gff_file=None, input_fasta_file=None,
                         workspace_name=None, core_genome_name=None,
                         scientific_name="unknown_taxon", source=None,
-                        release=None, genome_type=None):
+                        release=None):
 
         # reading in GFF file
         features_by_contig = self._retrieve_gff_file(input_gff_file)
@@ -168,7 +169,6 @@ class FastaGFFToGenome:
                                        assembly_ref, source, assembly_data,
                                        input_gff_file, molecule_type)
         genome['release'] = release
-        genome['type'] = genome_type
         if self.spoof_gene_count > 0:
             genome['warnings'] = genome.get('warnings', []) + \
                                     [warnings['spoofed_genome'].format(self.spoof_gene_count)]
@@ -226,15 +226,11 @@ class FastaGFFToGenome:
                 raise ValueError(error_msg)
             if n_valid_fields > 1:
                 error_msg = 'Required "{}" field has too many sources specified: '.format(key)
-                error_msg += str(file.keys())
+                error_msg += str(list(file.keys()))
                 raise ValueError(error_msg)
-
-        # check for valid type param
-        valid_types = ['Reference', 'User upload', 'Representative']
-        if params.get('type') and params['type'] not in valid_types:
-            error_msg = 'Entered value for type is not one of the valid entries of '
-            error_msg += '[' + ''.join('"' + str(e) + '", ' for e in valid_types)[0: -2] + ']'
-            raise ValueError(error_msg)
+        if params.get('genetic_code'):
+            if not (isinstance(params['genetic_code'], int) and 0 < params['genetic_code'] < 32):
+                raise ValueError("Invalid genetic code specified: {}".format(params))
 
     def _set_parsed_params(self, params):
         log('Setting params')
@@ -246,7 +242,6 @@ class FastaGFFToGenome:
             'taxon_reference': None,
             'source': 'User',
             'release': None,
-            'type': 'User upload',
             'metadata': {}
         }
 
@@ -305,7 +300,7 @@ class FastaGFFToGenome:
         feature_list = collections.defaultdict(list)
         is_patric = 0
 
-        gff_file_handle = open(input_gff_file, 'rb')
+        gff_file_handle = open(input_gff_file)
         current_line = gff_file_handle.readline()
         line_count = 0
 
@@ -391,7 +386,7 @@ class FastaGFFToGenome:
     def _add_missing_identifiers(self, feature_list):
         log("Adding missing identifiers")
         #General rule is to iterate through a range of possibilities if "ID" is missing
-        for contig in feature_list.keys():
+        for contig in feature_list:
             for i, feat in enumerate(feature_list[contig]):
                 if "ID" not in feature_list[contig][i]:
                     for key in ("transcriptid", "proteinid", "pacid",
@@ -414,7 +409,7 @@ class FastaGFFToGenome:
     def _add_missing_parents(self, feature_list):
 
         #General rules is if CDS or RNA missing parent, add them
-        for contig in feature_list.keys():
+        for contig in feature_list:
             ftrs = feature_list[contig]
             new_ftrs = []
             for i in range(len(ftrs)):
@@ -443,7 +438,7 @@ class FastaGFFToGenome:
 
         #General rule is to use the "Name" field where possible
         #And update parent attribute correspondingly
-        for contig in feature_list.keys():
+        for contig in feature_list:
             feature_position_dict = {}
             for i in range(len(feature_list[contig])):
 
@@ -487,7 +482,7 @@ class FastaGFFToGenome:
 
         mRNA_parent_dict = dict()
 
-        for contig in feature_list.keys():
+        for contig in feature_list:
             for ftr in feature_list[contig]:
                 if ftr["type"] in self.skip_types:
                     continue
@@ -551,7 +546,7 @@ class FastaGFFToGenome:
     def _get_ontology_db_xrefs(self, feature):
         """Splits the ontology info from the other db_xrefs"""
         ontology = collections.defaultdict(dict)
-        db_xref = []
+        db_xrefs = []
         for key in ("go_process", "go_function", "go_component"):
             ontology_event_index = self._create_ontology_event("GO")
             for term in feature.get(key, []):
@@ -576,9 +571,9 @@ class FastaGFFToGenome:
                 ontology['PO'][ref] = [ontology_event_index]
                 self.ontologies_present['PO'][ref] = self.po_mapping.get(ref, '')
             else:
-                db_xref.append(tuple(ref.split(":")))
+                db_xrefs.append(tuple(ref.split(":")))
         # TODO: Support other ontologies
-        return dict(ontology), db_xref
+        return dict(ontology), db_xrefs
 
     def _transform_feature(self, contig, in_feature):
         """Converts a feature from the gff ftr format into the appropriate
@@ -620,22 +615,27 @@ class FastaGFFToGenome:
             "location": [self._location(in_feature)],
             "dna_sequence": str(feat_seq),
             "dna_sequence_length": len(feat_seq),
-            "md5": hashlib.md5(str(feat_seq)).hexdigest(),
+            "md5": hashlib.md5(str(feat_seq).encode('utf8')).hexdigest(),
         }
 
         # add optional fields
         if 'note' in in_feature['attributes']:
             out_feat['note'] = in_feature['attributes']["note"][0]
-        ont, db_xref = self._get_ontology_db_xrefs(in_feature['attributes'])
+        ont, db_xrefs = self._get_ontology_db_xrefs(in_feature['attributes'])
         if ont:
             out_feat['ontology_terms'] = ont
         aliases = _aliases(in_feature)
         if aliases:
             out_feat['aliases'] = aliases
-        if db_xref:
-            out_feat['db_xref'] = db_xref
+        if db_xrefs:
+            out_feat['db_xrefs'] = db_xrefs
         if 'product' in in_feature['attributes']:
             out_feat['functions'] = in_feature['attributes']["product"]
+        if 'product_name' in in_feature['attributes']:
+            if "functions" in out_feat:
+                out_feat['functions'].extend(in_feature['attributes']["product_name"])
+            else:
+                out_feat['functions'] = in_feature['attributes']["product_name"]
         if 'function' in in_feature['attributes']:
             out_feat['functional_descriptions'] = in_feature['attributes']["function"]
         if 'inference' in in_feature['attributes']:
@@ -654,7 +654,7 @@ class FastaGFFToGenome:
         # location and sequence of it's parent, we add the info to it parent
         # feature but not the feature dict
         if in_feature['type'] in self.skip_types:
-            if parent_id:
+            if parent_id and in_feature['type'] in {'exon', 'five_prime_UTR', 'three_prime_UTR'}:
                 parent = self.feature_dict[parent_id]
                 if in_feature['type'] not in parent:
                     parent[in_feature['type']] = []
@@ -738,13 +738,13 @@ class FastaGFFToGenome:
 
             cds.update({
                 "protein_translation": prot_seq,
-                "protein_md5": hashlib.md5(prot_seq).hexdigest(),
+                "protein_md5": hashlib.md5(prot_seq.encode('utf8')).hexdigest(),
                 "protein_translation_length": len(prot_seq),
             })
             if 'parent_gene' in cds:
                 parent_gene = self.feature_dict[cds['parent_gene']]
                 # no propigation for now
-                # propagate_cds_props_to_gene(cds, parent_gene)
+                propagate_cds_props_to_gene(cds, parent_gene)
             elif self.generate_genes:
                 spoof = copy.copy(cds)
                 spoof['type'] = 'gene'
@@ -871,6 +871,10 @@ class FastaGFFToGenome:
                 del feature['type']
                 genome['mrnas'].append(feature)
             elif feature['type'] == 'gene':
+                # remove duplicates that may arise from CDS info propagation
+                for key in ('functions', 'aliases', 'db_xrefs'):
+                    if key in feature:
+                        feature[key] = list(set(feature[key]))
                 if feature['cdss']:
                     del feature['type']
                     self.feature_counts["protein_encoding_gene"] += 1
@@ -887,5 +891,4 @@ class FastaGFFToGenome:
         if self.warnings:
             genome['warnings'] = self.warnings
         genome['feature_counts'] = dict(self.feature_counts)
-
         return genome

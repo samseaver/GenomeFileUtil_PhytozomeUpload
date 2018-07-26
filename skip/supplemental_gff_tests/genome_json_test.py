@@ -1,26 +1,19 @@
 # -*- coding: utf-8 -*-
-import unittest
 import os  # noqa: F401
-import json  # noqa: F401
-import time
-import shutil
 import re
-
+import shutil
+import time
+import unittest
+from configparser import ConfigParser
 from os import environ
-try:
-    from ConfigParser import ConfigParser  # py2
-except:
-    from configparser import ConfigParser  # py3
 
-from pprint import pprint  # noqa: F401
-
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import SDKConfig
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
 from GenomeFileUtil.core.FastaGFFToGenome import FastaGFFToGenome
-from DataFileUtil.DataFileUtilClient import DataFileUtil
+from Workspace.WorkspaceClient import Workspace as workspaceService
 
 
 class FastaGFFToGenomeUploadTest(unittest.TestCase):
@@ -149,17 +142,17 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         self.assertTrue('genome_ref' in result)
 
         genome_info = result['genome_info']
-        self.assertEquals(genome_info[10]['Domain'], 'Unknown')
-        self.assertEquals(genome_info[10]['Genetic code'], '11')
-        self.assertEquals(genome_info[10]['Name'], 'unknown_taxon')
-        self.assertEquals(genome_info[10]['Source'], 'Genbank')
+        self.assertEqual(genome_info[10]['Domain'], 'Unknown')
+        self.assertEqual(genome_info[10]['Genetic code'], '11')
+        self.assertEqual(genome_info[10]['Name'], 'unknown_taxon')
+        self.assertEqual(genome_info[10]['Source'], 'Genbank')
         self.assertTrue('GC content' in genome_info[10])
         self.assertTrue(re.match("^\d+?\.\d+?$", genome_info[10]['GC content']) is not None)
         self.assertTrue('Number of Protein Encoding Genes' in genome_info[10])
         self.assertTrue(genome_info[10]['Number of Protein Encoding Genes'].isdigit())
         self.assertTrue('Size' in genome_info[10])
         self.assertTrue(genome_info[10]['Size'].isdigit())
-        self.assertEquals(genome_info[10]['Taxonomy'], 'Unconfirmed Organism: unknown_taxon')
+        self.assertEqual(genome_info[10]['Taxonomy'], 'Unconfirmed Organism: unknown_taxon')
 
     def print_genome_warnings(self, result):
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'],
@@ -167,14 +160,14 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
                                     service_ver='dev')
         genome = data_file_cli.get_objects({'object_refs': [result['genome_ref']]})['data'][0]['data']
         if 'warnings' in genome:
-            print "Genome warnings:" + str(genome['warnings'])
+            print("Genome warnings:" + str(genome['warnings']))
 
     def check_CDS_warnings(self, result, test_name):
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'],
  #                                   token=cls.ctx['token'],
                                     service_ver='dev')
         genome = data_file_cli.get_objects({'object_refs': [result['genome_ref']]})['data'][0]['data']
-        print "IN TEST NAME : " + str(test_name)
+        print("IN TEST NAME : " + str(test_name))
         cds_warning_count = 0
         cds_with_warning_count = 0
         if 'cdss' in genome:
@@ -182,17 +175,17 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
             for feature in genome['cdss']:
                 if 'warnings' in feature:
                     if test_name == "test_jgi_bacterial_fasta_gff2_to_genome":
-                        print str(feature['id']) + " warnings:" + str(feature['warnings'])
-                        print "Location: " + str(feature['location'])
-                        print "Translation: " + feature['protein_translation']
-                        print "DNA Sequence: " + feature["dna_sequence"]
+                        print(str(feature['id']) + " warnings:" + str(feature['warnings']))
+                        print("Location: " + str(feature['location']))
+                        print("Translation: " + feature['protein_translation'])
+                        print("DNA Sequence: " + feature["dna_sequence"])
                     cds_with_warning_count = cds_with_warning_count + 1
                     cds_warning_count = cds_warning_count + len(feature['warnings'])
 
-            print "Total CDS: " + str(total_cds_count)
-            print "CDS Warning Count: " + str(cds_warning_count)
-            print "CDSs with a warning Count: " + str(cds_with_warning_count)
-            print "Percent CDS with warning: " + str((cds_with_warning_count/float(total_cds_count)) * 100)
+            print("Total CDS: " + str(total_cds_count))
+            print("CDS Warning Count: " + str(cds_warning_count))
+            print("CDSs with a warning Count: " + str(cds_with_warning_count))
+            print("Percent CDS with warning: " + str((cds_with_warning_count/float(total_cds_count)) * 100))
 
     def test_simple_fasta_gff_to_genome_w_null_params(self):
 
@@ -216,17 +209,17 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         self.assertTrue('genome_ref' in result)
 
         genome_info = result['genome_info']
-        self.assertEquals(genome_info[10]['Domain'], 'Unknown')
-        self.assertEquals(genome_info[10]['Genetic code'], '11')
-        self.assertEquals(genome_info[10]['Name'], 'unknown_taxon')
-        self.assertEquals(genome_info[10]['Source'], 'User')
+        self.assertEqual(genome_info[10]['Domain'], 'Unknown')
+        self.assertEqual(genome_info[10]['Genetic code'], '11')
+        self.assertEqual(genome_info[10]['Name'], 'unknown_taxon')
+        self.assertEqual(genome_info[10]['Source'], 'User')
         self.assertTrue('GC content' in genome_info[10])
         self.assertTrue(re.match("^\d+?\.\d+?$", genome_info[10]['GC content']) is not None)
         self.assertTrue('Number of Protein Encoding Genes' in genome_info[10])
         self.assertTrue(genome_info[10]['Number of Protein Encoding Genes'].isdigit())
         self.assertTrue('Size' in genome_info[10])
         self.assertTrue(genome_info[10]['Size'].isdigit())
-        self.assertEquals(genome_info[10]['Taxonomy'], 'Unconfirmed Organism: unknown_taxon')
+        self.assertEqual(genome_info[10]['Taxonomy'], 'Unconfirmed Organism: unknown_taxon')
 
     def test_fasta_gff_to_genome_json(self):
         input_params = {
@@ -244,13 +237,13 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         assert 'feature_counts' in genome_json
         assert 'genome_tiers' in genome_json
 
-        self.assertEquals(genome_json['domain'], 'Eukaryota')
-        self.assertEquals(genome_json['genetic_code'], 11)
-        self.assertEquals(genome_json['scientific_name'], 'Populus trichocarpa')
-        self.assertEquals(genome_json['source'], 'Genbank')
+        self.assertEqual(genome_json['domain'], 'Eukaryota')
+        self.assertEqual(genome_json['genetic_code'], 11)
+        self.assertEqual(genome_json['scientific_name'], 'Populus trichocarpa')
+        self.assertEqual(genome_json['source'], 'Genbank')
         self.assertTrue('gc_content' in genome_json)
         self.assertTrue('dna_size' in genome_json)
-        self.assertEquals(genome_json['taxonomy'],
+        self.assertEqual(genome_json['taxonomy'],
                           'cellular organisms; Eukaryota; Viridiplantae; Streptophyta; ' +
                           'Streptophytina; Embryophyta; Tracheophyta; Euphyllophyta; ' +
                           'Spermatophyta; Magnoliophyta; Mesangiospermae; eudicotyledons; ' +

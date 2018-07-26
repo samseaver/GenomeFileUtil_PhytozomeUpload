@@ -1,22 +1,17 @@
-import unittest
-import os
 import json
-import time
+import os
 import shutil
-import filecmp
-
+import time
+import unittest
+from configparser import ConfigParser
 from os import environ
-try:
-    from ConfigParser import ConfigParser  # py2
-except:
-    from configparser import ConfigParser  # py3
 
-from Workspace.WorkspaceClient import Workspace as workspaceService
-from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
-from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
-from GenomeFileUtil.core.GenomeInterface import GenomeInterface
+from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import SDKConfig
+from GenomeFileUtil.GenomeFileUtilServer import MethodContext
+from GenomeFileUtil.core.GenomeInterface import GenomeInterface
+from Workspace.WorkspaceClient import Workspace as workspaceService
 
 
 class GenomeFileUtilTest(unittest.TestCase):

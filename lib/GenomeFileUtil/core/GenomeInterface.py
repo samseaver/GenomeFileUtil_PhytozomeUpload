@@ -3,18 +3,18 @@ import json
 import re
 import sys
 import time
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 import requests
-from biokbase.AbstractHandle.Client import \
-    AbstractHandle as HandleService  # @UnresolvedImport @IgnorePep8
 
-from AssemblySequenceAPI.AssemblySequenceAPIServiceClient import \
-    AssemblySequenceAPI
+from AbstractHandle.AbstractHandleClient import AbstractHandle as HandleService
+from AssemblySequenceAPI.AssemblySequenceAPIServiceClient import AssemblySequenceAPI
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
 from KBaseSearchEngine.KBaseSearchEngineClient import KBaseSearchEngine
 from Workspace.WorkspaceClient import Workspace as Workspace
+
+MAX_GENOME_SIZE = 2**30
 
 
 def log(message, prefix_newline=False):
@@ -205,11 +205,13 @@ class GenomeInterface:
         _retrieve_taxon: retrieve taxonomy and taxon_reference
 
         """
-        default = ('Unconfirmed Organism: ' + scientific_name,
-                   'ReferenceTaxons/unknown_taxon', 'Unknown', 11)
+        TaxTuple = namedtuple("TaxTuple",
+                              ['taxonomy', 'taxon_ref', 'domain', 'genetic_code'])
+        default = TaxTuple('Unconfirmed Organism: ' + scientific_name,
+                           'ReferenceTaxons/unknown_taxon', 'Unknown', 11)
 
         def extract_values(search_obj):
-            return (search_obj['data']['scientific_lineage'],
+            return TaxTuple(search_obj['data']['scientific_lineage'],
                     taxon_wsname+"/"+search_obj['object_name'],
                     search_obj['data']['domain'],
                     search_obj['data'].get('genetic_code', 11))
@@ -233,6 +235,9 @@ class GenomeInterface:
         }
         objects = self.kbse.search_objects(search_params)['objects']
         if len(objects):
+            if len(objects) > 100000:
+                raise RuntimeError("Too many matching taxons returned for {}. "
+                                   "Potential issue with searchAPI.".format(scientific_name))
             return extract_values(objects[0])
         search_params['match_filter']['lookup_in_keys'] = {
             "aliases": {"value": scientific_name}
@@ -254,6 +259,8 @@ class GenomeInterface:
                                   'ExternalDB']
             if 'representative' in low_source:
                 return "RefSeq", ['Representative', 'ExternalDB']
+            if 'user' in low_source:
+                return "RefSeq", ['ExternalDB', 'User']
             return "RefSeq", ['ExternalDB']
         if 'phytozome' in low_source:
             if 'flagship' in source:
@@ -261,6 +268,8 @@ class GenomeInterface:
                                      'ExternalDB']
             return "Phytosome", ['Representative', 'ExternalDB']
         if 'ensembl' in low_source:
+            if 'user' in low_source:
+                return "Ensembl", ['ExternalDB', 'User']
             return "Ensembl", ['Representative', 'ExternalDB']
         return source, ['User']
 
@@ -339,8 +348,9 @@ class GenomeInterface:
                     feat['dna_sequence_length'] = sum(x[3] for x in feat['location'])
 
                 if 'protein_translation' in feat and 'protein_md5' not in feat:
-                    feat['protein_md5'] = hashlib.md5(feat.get(
-                        'protein_translation', '')).hexdigest()
+                    feat['protein_md5'] = hashlib.md5(
+                        feat.get('protein_translation', '').encode('utf8')
+                    ).hexdigest()
 
                 # split all the stuff lumped together in old versions into the
                 # right arrays
@@ -375,13 +385,20 @@ class GenomeInterface:
         return genome
 
     @staticmethod
-    def validate_genome(g, print_size=True):
+    def validate_genome(g):
         """
         Run a series of checks on the genome object and return any warnings
         """
 
         def _get_size(obj):
             return sys.getsizeof(json.dumps(obj))
+
+        def sizeof_fmt(num):
+            for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+                if abs(num) < 1024.0:
+                    return "%3.1f %sB" % (num, unit)
+                num /= 1024.0
+            return "%.1f %sB" % (num, 'Yi')
 
         allowed_tiers = {'Representative', 'Reference', 'ExternalDB', 'User'}
 
@@ -414,11 +431,16 @@ class GenomeInterface:
         if g['taxon_ref'] == "ReferenceTaxons/unknown_taxon":
             warnings.append('Unable to determine organism taxonomy')
 
-        if print_size:
-            print("Subobject Sizes:")
-            for x in ('cdss', 'mrnas', 'features', 'non_coding_features',
-                      'ontology_present'):
-                if x in g:
-                    print("{}: {} bytes".format(x, _get_size(g[x])))
-            print("Total size {} bytes".format(_get_size(g)))
+        print("Subobject Sizes:")
+        for x in ('cdss', 'mrnas', 'features', 'non_coding_features', 'ontologies_present'):
+            if x in g:
+                print("{}: {}".format(x, sizeof_fmt(_get_size(g[x]))))
+        total_size = _get_size(g)
+        print("Total size {} ".format(sizeof_fmt(total_size)))
+        if total_size > MAX_GENOME_SIZE:
+            raise ValueError("This genome exceeds the maximum permitted size of {}. The size of "
+                             "the genome is primarily determined by the number of annotated "
+                             "features not the total sequence length. You may be able to avoid "
+                             "this error by reducing the number of features in your genome file."
+                             .format(sizeof_fmt(MAX_GENOME_SIZE)))
         return warnings

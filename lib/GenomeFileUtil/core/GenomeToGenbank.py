@@ -2,16 +2,21 @@
 GenomeAnnotation to GenBank file conversion.
 """
 
-# Stdlib
-from collections import defaultdict
 import time
+from collections import defaultdict
 
 from Bio import SeqIO, SeqFeature, Alphabet
 
-# Local
-from DataFileUtil.DataFileUtilClient import DataFileUtil
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
+from DataFileUtil.DataFileUtilClient import DataFileUtil
+
 STD_PREFIX = " " * 21
+CONTIG_ID_FIELD_LENGTH = 16
+
+
+def log(message, prefix_newline=False):
+    time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(time.time()))
+    print(('\n' if prefix_newline else '') + time_str + ': ' + message)
 
 
 class GenomeToGenbank(object):
@@ -40,9 +45,9 @@ class GenomeToGenbank(object):
             raise ValueError('Object is not a Genome, it is a:' + str(info[2]))
 
         # 4) build the genbank file and return it
-        print('not cached, building file...')
-        result = self.build_genbank_file(data,
-                                         "KBase_derived_" + info[1] + ".gbff")
+        log('not cached, building file...')
+        result = self.build_genbank_file(data, "KBase_derived_" + info[1] + ".gbff",
+                                         params['genome_ref'])
         if result is None:
             raise ValueError('Unable to generate file.  Something went wrong')
         result['from_cache'] = 0
@@ -64,7 +69,7 @@ class GenomeToGenbank(object):
             raise ValueError('Object is not a Genome, it is a:' + str(info[2]))
 
         # 4) if the genbank handle is there, get it and return
-        print('checking if genbank file is cached...')
+        log('checking if genbank file is cached...')
         result = self.get_genbank_handle(data)
         return result
 
@@ -74,7 +79,7 @@ class GenomeToGenbank(object):
         if data['genbank_handle_ref'] is None:
             return None
 
-        print('pulling cached genbank file from Shock: ' +
+        log('pulling cached genbank file from Shock: ' +
               str(data['genbank_handle_ref']))
         file = self.dfu.shock_to_file({
                             'handle_id': data['genbank_handle_ref'],
@@ -87,8 +92,8 @@ class GenomeToGenbank(object):
             }
         }
 
-    def build_genbank_file(self, genome_data, output_filename):
-        g = GenomeFile(self.cfg, genome_data)
+    def build_genbank_file(self, genome_data, output_filename, genome_ref):
+        g = GenomeFile(self.cfg, genome_data, genome_ref)
         file_path = self.cfg.sharedFolder + "/" + output_filename
         g.write_genbank_file(file_path)
 
@@ -100,11 +105,13 @@ class GenomeToGenbank(object):
 
 
 class GenomeFile:
-    def __init__(self, cfg, genome_object):
+    def __init__(self, cfg, genome_object, genome_ref):
         self.cfg = cfg
         self.genome_object = genome_object
+        self.genome_ref = genome_ref
         self.seq_records = []
         self.features_by_contig = defaultdict(list)
+        self.renamed_contigs = 0
         # make special dict for all mrna & cds, they will be added when their
         # parent gene is added
         self.child_dict = {}
@@ -135,17 +142,22 @@ class GenomeFile:
             assembly_ref = genome['assembly_ref']
         else:
             assembly_ref = genome['contigset_ref']
-        print('Assembly reference = ' + assembly_ref)
-        print('Downloading assembly')
+        log('Assembly reference = ' + assembly_ref)
+        log('Downloading assembly')
         dfu = DataFileUtil(self.cfg.callbackURL)
+        log('object_refs:' + self.genome_ref + ";" + assembly_ref)
         assembly_data = dfu.get_objects({
-            'object_refs': [assembly_ref]
+            'object_refs': [self.genome_ref + ";" + assembly_ref]
         })['data'][0]['data']
-        circular_contigs = set([x['contig_id'] for x in assembly_data['contigs'].values()
-                                if x.get('is_circ')])
+        if isinstance(assembly_data['contigs'], dict):  # is an assembly
+            circular_contigs = set([x['contig_id'] for x in list(assembly_data['contigs'].values())
+                                    if x.get('is_circ')])
+        else:  # is a contig set
+            circular_contigs = set([x['id'] for x in assembly_data['contigs']
+                                    if x.get('replicon_geometry') == 'circular'])
         au = AssemblyUtil(self.cfg.callbackURL)
         assembly_file_path = au.get_assembly_as_fasta(
-            {'ref': assembly_ref}
+            {'ref': self.genome_ref + ";" + assembly_ref}
         )['path']
         return assembly_file_path, circular_contigs
 
@@ -171,28 +183,38 @@ class GenomeFile:
         })
         if not self.seq_records:  # Only on the first contig
             raw_contig.annotations['references'] = self._format_publications()
-            print("Added {} references".format(
+            log("Added {} references".format(
                 len(raw_contig.annotations['references'])))
             if 'notes' in go:
                 raw_contig.annotations['comment'] = go['notes']
+
+        if len(raw_contig.name) > CONTIG_ID_FIELD_LENGTH:
+            raw_contig.annotations['comment'] = raw_contig.annotations.get('comment', "") + (
+                "Renamed contig from {} because the original name exceeded {} characters"
+                .format(raw_contig.name, CONTIG_ID_FIELD_LENGTH)
+            )
+            self.renamed_contigs += 1
+            raw_contig.name = "scaffold{:0>8}".format(self.renamed_contigs)
 
         if raw_contig.id in self.features_by_contig:
             # sort all features except for cdss and mrnas
             self.features_by_contig[raw_contig.id].sort(key=feature_sort)
             for feat in self.features_by_contig[raw_contig.id]:
-                raw_contig.features.append(self._format_feature(feat))
+                raw_contig.features.append(self._format_feature(feat, raw_contig.id))
                 # process child mrnas & cdss if present
                 raw_contig.features.extend([self._format_feature(
-                    self.child_dict[_id]) for _id in feat.get('mrnas', [])])
+                    self.child_dict[_id], raw_contig.id) for _id in feat.get('mrnas', [])])
                 raw_contig.features.extend([self._format_feature(
-                    self.child_dict[_id]) for _id in feat.get('cdss', [])])
+                    self.child_dict[_id], raw_contig.id) for _id in feat.get('cdss', [])])
+
+
         self.seq_records.append(raw_contig)
 
     def _format_publications(self):
         references = []
         for pub in self.genome_object.get('publications', []):
             if len(pub) != 7:
-                print('Skipping unparseable publication {}'.format(pub))
+                log('Skipping unparseable publication {}'.format(pub))
             ref = SeqFeature.Reference()
             if pub[0]:
                 ref.pubmed_id = str(pub[0])
@@ -202,8 +224,11 @@ class GenomeFile:
             references.append(ref)
         return references
 
-    def _format_feature(self, in_feature):
+    def _format_feature(self, in_feature, current_contig_id):
         def _trans_loc(loc):
+            # Don't write the contig ID in the loc line unless it's trans-spliced
+            if loc[0] == current_contig_id:
+                loc[0] = None
             if loc[2] == "-":
                 return SeqFeature.FeatureLocation(loc[1]-loc[3], loc[1], -1, loc[0])
             else:

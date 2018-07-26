@@ -1,20 +1,12 @@
-import unittest
-import time
 import os
-import shutil
-import json
-import sys
+import time
+import unittest
+from configparser import ConfigParser
 
-try:
-    from ConfigParser import ConfigParser  # py2
-except:
-    from configparser import ConfigParser  # py3
-
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
-from DataFileUtil.DataFileUtilClient import DataFileUtil
-from pprint import pprint
+from Workspace.WorkspaceClient import Workspace as workspaceService
 
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -54,8 +46,8 @@ class GenomeFileUtilTest(unittest.TestCase):
               'genome_name': ws_obj_name,
               'generate_ids_if_needed': 1
             })[0]
-#        print("HERE IS THE RESULT:")
-        data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'], 
+
+        data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'],
                                 token=cls.ctx['token'],
                                 service_ver='dev')
         cls.genome_orig = data_file_cli.get_objects({'object_refs': [result['genome_ref']]})['data'][0]['data']
@@ -88,7 +80,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         i = 0 #counter loop over feature
         self.assertTrue(len(genome_orig[feature_list_name]) == len(genome_new[feature_list_name]),
                     feature_list_name + " list is not of equal length in Original and New Genomes.")
-        print "\n\n" + feature_list_name + " TOTAL NUMBER:" + str(len(genome_orig[feature_list_name]))
+        print("\n\n" + feature_list_name + " TOTAL NUMBER:" + str(len(genome_orig[feature_list_name])))
         orig_dict = dict([(x['id'],x) for x in genome_orig[feature_list_name]])
         new_dict = dict([(x['id'],x) for x in genome_new[feature_list_name]])
 

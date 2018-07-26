@@ -1,19 +1,13 @@
-import unittest
-import time
 import os
-import shutil
+import time
+import unittest
+from configparser import ConfigParser
 
-try:
-    from ConfigParser import ConfigParser  # py2
-except:
-    from configparser import ConfigParser  # py3
-
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
-from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.core.GenomeUtils import warnings
-from pprint import pprint
+from Workspace.WorkspaceClient import Workspace as workspaceService
 
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -228,6 +222,38 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(po_ontology_event_index > -1,"PO Ontology event not found")   
         self.assertTrue(found_rna6CDS_GO)
         self.assertTrue(found_rna6CDS_PO)
+
+    def test_for_picking_up_product_name(self):
+        #tests for product_name alone as well as product alone.
+        genome = self.__class__.genome
+        found_gene = False
+        found_gene_product = False
+        found_gene_product_name = False
+        found_cds = False
+        found_cds_product_name = False
+        for feature in genome['features']:
+            if feature["id"] == 'gene2':
+                #print "Feature gene2 : " + str(feature)
+                found_gene = True
+                if "functions" in feature:
+                    for function in feature["functions"]:
+                        if function == "NAD-dependent sorbitol dehydrogenase":
+                            found_gene_product = True   
+                        if function == "Product Name NAD-dependent sorbitol dehydrogenase":
+                            found_gene_product_name = True                                                                                 
+        for feature in genome['cdss']:                                  
+            if feature["id"] == "rna2.CDS":
+                #print "Feature rna2.CDS : " + str(feature)
+                found_cds = True
+                if "functions" in feature:
+                    for function in feature["functions"]:
+                        if function == "CDS Product Name NAD-dependent sorbitol dehydrogenase":
+                            found_cds_product_name = True
+        self.assertTrue(found_gene)
+        self.assertTrue(found_gene_product)
+        self.assertTrue(found_gene_product_name)
+        self.assertTrue(found_cds)
+        self.assertTrue(found_cds_product_name)
 
     def test_off_contig(self):
         #test for feature off the end of the contig.
@@ -541,8 +567,8 @@ class GenomeFileUtilTest(unittest.TestCase):
             if feature['id'] == 'gene4ts':
                 #print "GENE4ts Feature: " + str(feature))
                 self.assertTrue(len(feature["location"]) == 2, "Gene is not 2 locations as it should be.")
-                self.assertTrue(feature['location'][0] == [u'NC_010127.1', 69724, u'-', 114])
-                self.assertTrue(feature['location'][1] == [u'NC_010127.1', 139856, u'+', 795]) 
+                self.assertTrue(feature['location'][0] == ['NC_010127.1', 69724, '-', 114])
+                self.assertTrue(feature['location'][1] == ['NC_010127.1', 139856, '+', 795]) 
                 if "flags" in feature:
                     if "trans_splicing" in feature["flags"]:
                         gene_trans_splicing_flag = True           

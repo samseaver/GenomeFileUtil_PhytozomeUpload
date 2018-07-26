@@ -426,18 +426,20 @@ module KBaseGenomes {
 
 
     @metadata ws gc_content as GC content
-        @metadata ws taxonomy as Taxonomy
-        @metadata ws md5 as MD5
-        @metadata ws dna_size as Size
-        @metadata ws genetic_code as Genetic code
-        @metadata ws domain as Domain
-        @metadata ws source_id as Source ID
-        @metadata ws source as Source
-        @metadata ws scientific_name as Name
-        @metadata ws length(features) as Number of Protein Encoding Genes
+    @metadata ws taxonomy as Taxonomy
+    @metadata ws md5 as MD5
+    @metadata ws dna_size as Size
+    @metadata ws genetic_code as Genetic code
+    @metadata ws domain as Domain
+    @metadata ws source_id as Source ID
+    @metadata ws source as Source
+    @metadata ws scientific_name as Name
+    @metadata ws length(features) as Number of Protein Encoding Genes
     @metadata ws length(cdss) as Number of CDS
-        @metadata ws assembly_ref as Assembly Object
+    @metadata ws assembly_ref as Assembly Object
     @metadata ws num_contigs as Number contigs
+    @metadata ws length(warnings) as Number of Genome Level Warnings
+    @metadata ws suspect as Suspect Genome
     */
     typedef structure {
       Genome_id id;
