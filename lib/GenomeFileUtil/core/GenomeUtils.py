@@ -241,7 +241,10 @@ def check_feature_ids_uniqueness(genome):
     for feature_list in feature_lists:
         for feature in genome[feature_list]:
             if feature["id"] in unique_feature_ids:
-                duplicate_feature_id_counts[feature["id"]] += 1
+                if feature["id"] in duplicate_feature_id_counts:
+                    duplicate_feature_id_counts[feature["id"]] += 1
+                else:
+                    duplicate_feature_id_counts[feature["id"]] = 2
             else:
                 unique_feature_ids.add(feature["id"])
     return duplicate_feature_id_counts
