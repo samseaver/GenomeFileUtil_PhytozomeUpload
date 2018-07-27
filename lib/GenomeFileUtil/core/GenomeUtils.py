@@ -229,3 +229,21 @@ def check_full_contig_length_or_multi_strand_feature(feature, is_transpliced, co
     if len(strand_set) > 1 and not is_transpliced:
         feature["warnings"] = feature.get('warnings', []) + [warnings["both_strand_coordinates"]]
     return feature 
+
+def check_feature_ids_uniqueness(genome):
+    """
+    Tests that all feature ids in a genome are unique across all 4 feature type lists
+    """
+    unique_feature_ids = set()
+    duplicate_feature_id_counts = dict()
+    feature_lists = ["features","cdss","mrnas","non_coding_features"]
+
+    for feature_list in feature_lists:
+        for feature in genome[feature_list]:
+            if feature["id"] in unique_feature_ids:
+                duplicate_feature_id_counts[feature["id"]] += 1
+            else:
+                unique_feature_ids.add(feature["id"])
+    return duplicate_feature_id_counts
+
+
