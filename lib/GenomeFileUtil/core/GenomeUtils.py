@@ -229,3 +229,134 @@ def check_full_contig_length_or_multi_strand_feature(feature, is_transpliced, co
     if len(strand_set) > 1 and not is_transpliced:
         feature["warnings"] = feature.get('warnings', []) + [warnings["both_strand_coordinates"]]
     return feature 
+
+def check_feature_ids_uniqueness(genome):
+    """
+    Tests that all feature ids in a genome are unique across all 4 feature type lists
+    Returns dict of Non Unique IDS and the counts associated with them. 
+    If all IDS are unique, it then returns an empty dict
+    """
+    unique_feature_ids = set()
+    duplicate_feature_id_counts = dict()
+    feature_lists = ["features","cdss","mrnas","non_coding_features"]
+
+    for feature_list in feature_lists:
+        for feature in genome[feature_list]:
+            if feature["id"] in unique_feature_ids:
+                if feature["id"] in duplicate_feature_id_counts:
+                    duplicate_feature_id_counts[feature["id"]] += 1
+                else:
+                    duplicate_feature_id_counts[feature["id"]] = 2
+            else:
+                unique_feature_ids.add(feature["id"])
+    if len(unique_feature_ids) == 0:
+        raise ValueError("Error no feature ids found in this genome")
+    return duplicate_feature_id_counts
+        
+def make_id_set(feature_list):
+    '''
+    Helper function to make id lookup sets for a feature list
+    '''
+    return set((x['id'] for x in feature_list))
+
+
+def confirm_feature_relationships(feature, feature_list_name, feature_id_sets_dict):
+    '''
+    Pass in a feature and the list that the feature came from, it then
+    verifies if all feature ids in the relationships are present
+    Note it does not check if a relationship field is present as some features will not have determined relationships.
+    returns dict of types as keys and ids that were not found. An empty dict means all declared relationships were found
+    '''
+    not_found_relationships = dict()
+    if len(feature_id_sets_dict) == 0:
+        raise ValueError('feature_id_sets_dict is empty')
+    if feature_list_name == "features":
+        # means protein encoding gene may have mRNA and chidren relationships, should have CDS relationships.
+        not_found_cdss = list()
+        for cds in feature['cdss']:
+            if cds not in feature_id_sets_dict['cdss']:
+                not_found_cdss.append(cds)
+        if len(not_found_cdss) > 0:
+            not_found_relationships['cdss'] = not_found_cdss
+        if "mrnas" in feature:
+            not_found_mrnas = list()
+            for mrna in feature['mrnas']:
+                if mrna not in feature_id_sets_dict['mrnas']:
+                    not_found_mrnas.append(mrna)
+            if len(not_found_mrnas) > 0:
+                not_found_relationships['mrnas'] = not_found_mrnas
+        if "children" in feature:
+            not_found_children = list()
+            for child in feature['children']:
+                if child not in feature_id_sets_dict['non_coding_features']:
+                    not_found_children.append(child)
+            if len(not_found_children) > 0:
+                not_found_relationships['children'] = not_found_children           
+    elif feature_list_name == "cdss":
+        # means will have parent_gene relationship, may have parent_mrna relationship.
+        if feature['parent_gene'] not in feature_id_sets_dict['features']:
+            not_found_relationships['parent_gene'] = [feature['parent_gene']]
+        if "parent_mrna" in feature:
+            if feature['parent_mrna'] not in feature_id_sets_dict['mrnas']:
+                not_found_relationships['mrnas'] = [feature['parent_mrna']]
+    elif feature_list_name == "mrnas":
+        # means will have parent_gene relationship, may have CDS relationship. 
+        if feature['parent_gene'] not in feature_id_sets_dict['features']:
+            not_found_relationships['parent_gene'] = [feature['parent_gene']]
+        if "cds" in feature:
+            if feature['cds'] not in feature_id_sets_dict['cdss']:
+                not_found_relationships['cds'] = [feature['cds']]                     
+    elif feature_list_name == "non_coding_features":
+        # NEED TO CHECK BOTH FEATURES AND NON_CODING_FEATURES FOR PARENT_GENE
+        # Children will only be NON_CODING_FEATURES
+        # Do parent could be in either feature or non_coding_features (Only 1 parent)
+        if "parent_gene" in feature:
+            if feature['parent_gene'] not in feature_id_sets_dict['features'] and \
+            feature['parent_gene'] not in feature_id_sets_dict['non_coding_features']:
+                not_found_relationships['parent_gene'] = [feature['parent_gene']]
+        if "children" in feature:
+            not_found_children = list()
+            for child in feature['children']:
+                if child not in feature_id_sets_dict['non_coding_features']:
+                    not_found_children.append(child)
+            if len(not_found_children) > 0:
+                not_found_relationships['children'] = not_found_children  
+    else:    
+        # Raise an error the searched for feature does not exist in any of the 4 lists.
+        raise ValueError('Feature List Name : ' + feature_list_name + ' was not one of the expected 4 types.')
+    return not_found_relationships
+
+def confirm_genomes_feature_relationships(genome):
+    '''
+    Confirms the relationships of all features in a genome
+    Note this is not a quick operation, should be used sparingly and not necessarily for every genome
+    Takes a genome and returns a dict with feature ids as the key and a dict of relationship type and missing features
+    NOTE THIS DOES NOT INSURE THAT RELATIONSHIPS ARE RECIPROCAL. JUST CHECKS THAT A FEATURE EXISTS FOR LISTED RELATIONSHIPS.
+    '''
+    features_with_relationships_not_found = dict()
+    feature_lists = ["features","cdss","mrnas","non_coding_features"]
+    # dict is the feature list and the key is the set of ids in that list.
+    feature_id_sets_dict = dict() 
+    for feature_list in feature_lists:
+        if feature_list in genome:
+            feature_id_sets_dict[feature_list] = make_id_set(genome[feature_list])
+        else:
+            feature_id_sets_dict[feature_list] = set()
+    for feature_list in feature_lists:
+        for feature in genome[feature_list]:
+            feature_relationship_dict = confirm_feature_relationships(feature, feature_list, feature_id_sets_dict)
+            if len(feature_relationship_dict) > 0 :
+                # print("FEATURE RELATIONSHIP RESULTS: " + str(feature_relationship_dict))
+                features_with_relationships_not_found[feature['id']] = feature_relationship_dict
+    return features_with_relationships_not_found
+
+
+    
+
+
+
+
+
+        
+
+
