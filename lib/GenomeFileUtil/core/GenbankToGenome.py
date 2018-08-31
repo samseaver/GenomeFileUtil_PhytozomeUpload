@@ -107,6 +107,20 @@ class GenbankToGenome:
         genome = self.parse_genbank(consolidated_file, params)
         if params.get('genetic_code'):
             genome["genetic_code"] = params['genetic_code']
+        ###
+        # DEBUGGING CODE INSTRUCTIONS TO BE KEPT FOR DETERMINING ISSUE WITH A PARTICULAR FILE
+        # THAT FAILS TYPESPEC CHECKING - THIS ALLOW YOU TO LOOK AT THE JSON BEFORE SAVED:
+        # Turn this on :
+        #  1) uncomment the TWO LINES for json printing lines below the ###
+        #  2) move skip/utility_test/problem_genome_test.py into the test dir 
+        #  3) change the file location in the test_problem_genome_for_json test
+        #  4) add your test file to the test/data dir
+        #  5) run kb-sdk test as normal
+        #  6) after test completes go and find the json file at test_local/workdir/tmp/ProblemGenome.json
+        ###
+        #with open(self.cfg.sharedFolder+'/ProblemGenome.json', 'w') as outfile:
+        #    json.dump(genome, outfile, indent=4)
+
         result = self.gi.save_one_genome({
             'workspace': params['workspace_name'],
             'name': params['genome_name'],
@@ -676,7 +690,7 @@ class GenbankToGenome:
                 ontology['PO'][ref] = [ontology_event_index]
                 self.ontologies_present['PO'][ref] = self.po_mapping.get(ref, '')
             else:
-                db_xref.append(tuple(ref.split(":")))
+                db_xref.append(tuple(ref.split(":", 1)))
         # TODO: Support other ontologies
         return dict(ontology), sorted(db_xref)
 
