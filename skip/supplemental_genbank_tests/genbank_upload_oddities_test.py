@@ -99,6 +99,26 @@ class GenomeFileUtilTest(unittest.TestCase):
                             colon_included = True
         self.assertTrue(colon_included, "The synonym TEST:COLON was not found.")
 
+    def test_for_db_xref_colon(self):
+        genome = self.__class__.genome
+        found_normal_colon = False
+        found_1extra_colon = False
+        found_2extra_colon = False
+        for feature in genome["cdss"]:
+            if feature['id'] == "ArthCp001_CDS_1":
+                print("Found ArthCp001_CDS_1")
+                for db_xref_tuple in feature["db_xrefs"]:
+                    if db_xref_tuple[0] == "MSI":
+                        if db_xref_tuple[1] == "123":
+                            found_normal_colon = True
+                        elif db_xref_tuple[1] == "MSI:123":
+                            found_1extra_colon = True
+                        elif db_xref_tuple[1] == "GB:MSI:123":
+                            found_2extra_colon = True                                                    
+        self.assertTrue(found_normal_colon, "The normal colon db_xref was not found.")
+        self.assertTrue(found_1extra_colon, "The 1extra colon db_xref was not found.")
+        self.assertTrue(found_2extra_colon, "The 2extra colon db_xref was not found.")
+
     def test_for_trans_splicing(self):
         genome = self.__class__.genome
         gene_flag_found = False
