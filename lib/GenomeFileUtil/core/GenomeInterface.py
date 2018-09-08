@@ -429,16 +429,33 @@ class GenomeInterface:
         if g['taxon_ref'] == "ReferenceTaxons/unknown_taxon":
             warnings.append('Unable to determine organism taxonomy')
 
-        print("Subobject Sizes:")
-        for x in ('cdss', 'mrnas', 'features', 'non_coding_features', 'ontologies_present'):
+        # MAX_GENOME_SIZE = 300000000 # UNCOMMENT TO TEST FAILURE MODE. Set to size needed
+        feature_lists = ('mrnas', 'features', 'non_coding_features','cdss')
+        master_key_sizes = dict()
+        need_to_remove_dna_sequence = _get_size(g) > MAX_GENOME_SIZE
+        for x in feature_lists:
             if x in g:
+                feature_type_dict_keys = dict()
+                for feature in g[x]:
+                    for feature_key in list(feature.keys()):
+                        if feature_key == "dna_sequence" and need_to_remove_dna_sequence:
+                            del(feature["dna_sequence"])
+                        else:
+                            if feature_key not in feature_type_dict_keys:
+                                feature_type_dict_keys[feature_key] = 0
+                            feature_type_dict_keys[feature_key] += sys.getsizeof(feature[feature_key])
+                for feature_key in feature_type_dict_keys:
+                    feature_type_dict_keys[feature_key] = sizeof_fmt(feature_type_dict_keys[feature_key])
+                master_key_sizes[x] = feature_type_dict_keys
+                need_to_remove_dna_sequence = _get_size(g) > MAX_GENOME_SIZE
                 print("{}: {}".format(x, sizeof_fmt(_get_size(g[x]))))
         total_size = _get_size(g)
         print("Total size {} ".format(sizeof_fmt(total_size)))
-        if total_size > MAX_GENOME_SIZE:
-            raise ValueError("This genome exceeds the maximum permitted size of {}. The size of "
-                             "the genome is primarily determined by the number of annotated "
-                             "features not the total sequence length. You may be able to avoid "
-                             "this error by reducing the number of features in your genome file."
-                             .format(sizeof_fmt(MAX_GENOME_SIZE)))
+        # print("Here is the breakdown of the sizes of feature lists elements : {}".format(str(master_key_sizes)))         
+        if total_size > MAX_GENOME_SIZE:            
+            print("Here is the breakdown of the sizes of feature lists elements : {}".format(str(master_key_sizes)))         
+            raise ValueError("This genome size of {} exceeds the maximum permitted size of {}.\nHere "
+                             "is the breakdown for feature lists and their respective sizes:\n{}"
+                             .format(sizeof_fmt(total_size),sizeof_fmt(MAX_GENOME_SIZE),
+                                     str(master_key_sizes)))
         return warnings
