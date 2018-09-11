@@ -604,7 +604,7 @@ class FastaGFFToGenome:
         if in_feature.get('ID') in self.feature_dict:
             existing = self.feature_dict[in_feature['ID']]
             existing['location'].append(self._location(in_feature))
-            existing['dna_sequence'] += str(feat_seq)
+            existing['dna_sequence'] = existing.get('dna_sequence', '') + str(feat_seq)
             existing['dna_sequence_length'] = len(existing['dna_sequence'])
             return
 
