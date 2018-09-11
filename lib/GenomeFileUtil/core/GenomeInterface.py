@@ -429,29 +429,33 @@ class GenomeInterface:
         if g['taxon_ref'] == "ReferenceTaxons/unknown_taxon":
             warnings.append('Unable to determine organism taxonomy')
 
-        # MAX_GENOME_SIZE = 300000000 # UNCOMMENT TO TEST FAILURE MODE. Set to size needed
+        #MAX_GENOME_SIZE = 1 #300000000 # UNCOMMENT TO TEST FAILURE MODE. Set to size needed
         feature_lists = ('mrnas', 'features', 'non_coding_features','cdss')
         master_key_sizes = dict()
-        need_to_remove_dna_sequence = _get_size(g) > MAX_GENOME_SIZE
+        # Change want full breakdown to True if want to see break down of sizes. 
+        # By making this a changebale flag it will run faster for standard uploads.
+        want_full_breakdown = False
         for x in feature_lists:
             if x in g:
-                feature_type_dict_keys = dict()
-                for feature in g[x]:
-                    for feature_key in list(feature.keys()):
-                        if feature_key == "dna_sequence" and need_to_remove_dna_sequence:
-                            del(feature["dna_sequence"])
-                        else:
-                            if feature_key not in feature_type_dict_keys:
-                                feature_type_dict_keys[feature_key] = 0
-                            feature_type_dict_keys[feature_key] += sys.getsizeof(feature[feature_key])
-                for feature_key in feature_type_dict_keys:
-                    feature_type_dict_keys[feature_key] = sizeof_fmt(feature_type_dict_keys[feature_key])
-                master_key_sizes[x] = feature_type_dict_keys
-                need_to_remove_dna_sequence = _get_size(g) > MAX_GENOME_SIZE
+                need_to_remove_dna_sequence = _get_size(g) > MAX_GENOME_SIZE                
+                if need_to_remove_dna_sequence or want_full_breakdown:
+                    feature_type_dict_keys = dict()
+                    for feature in g[x]:
+                        for feature_key in list(feature.keys()):
+                            if feature_key == "dna_sequence" and need_to_remove_dna_sequence:
+                                del(feature["dna_sequence"])
+                            else:
+                                if feature_key not in feature_type_dict_keys:
+                                    feature_type_dict_keys[feature_key] = 0
+                                feature_type_dict_keys[feature_key] += sys.getsizeof(feature[feature_key])
+                    for feature_key in feature_type_dict_keys:
+                        feature_type_dict_keys[feature_key] = sizeof_fmt(feature_type_dict_keys[feature_key])
+                    master_key_sizes[x] = feature_type_dict_keys                
                 print("{}: {}".format(x, sizeof_fmt(_get_size(g[x]))))
         total_size = _get_size(g)
         print("Total size {} ".format(sizeof_fmt(total_size)))
-        # print("Here is the breakdown of the sizes of feature lists elements : {}".format(str(master_key_sizes)))         
+        if want_full_breakdown:
+            print("Here is the breakdown of the sizes of feature lists elements : {}".format(str(master_key_sizes)))         
         if total_size > MAX_GENOME_SIZE:            
             print("Here is the breakdown of the sizes of feature lists elements : {}".format(str(master_key_sizes)))         
             raise ValueError("This genome size of {} exceeds the maximum permitted size of {}.\nHere "
