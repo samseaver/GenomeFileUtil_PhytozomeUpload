@@ -120,6 +120,7 @@ class GenbankToGenome:
         ###
         #with open(self.cfg.sharedFolder+'/ProblemGenome.json', 'w') as outfile:
         #    json.dump(genome, outfile, indent=4)
+        #    json.dump(genome, outfile)
 
         result = self.gi.save_one_genome({
             'workspace': params['workspace_name'],
