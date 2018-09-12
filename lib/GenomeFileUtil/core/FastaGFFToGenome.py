@@ -571,7 +571,7 @@ class FastaGFFToGenome:
                 ontology['PO'][ref] = [ontology_event_index]
                 self.ontologies_present['PO'][ref] = self.po_mapping.get(ref, '')
             else:
-                db_xrefs.append(tuple(ref.split(":")))
+                db_xrefs.append(tuple(ref.split(":", 1)))
         # TODO: Support other ontologies
         return dict(ontology), db_xrefs
 
