@@ -282,7 +282,7 @@ module KBaseGenomes {
         Initially Acceptable values are pseudo, ribosomal_slippage, and trans_splicing
         Md5 is the md5 of dna_sequence.
 
-        @optional parent_mrna functions ontology_terms note flags warnings
+        @optional parent_gene parent_mrna functions ontology_terms note flags warnings
         @optional inference_data dna_sequence aliases db_xrefs functional_descriptions
     */
     typedef structure {
@@ -315,7 +315,7 @@ module KBaseGenomes {
         Initially Acceptable values are pseudo, ribosomal_slippage, and trans_splicing
         Md5 is the md5 of dna_sequence.
 
-        @optional cds functions ontology_terms note flags warnings
+        @optional parent_gene cds functions ontology_terms note flags warnings
         @optional inference_data dna_sequence aliases db_xrefs functional_descriptions
     */
     typedef structure {
