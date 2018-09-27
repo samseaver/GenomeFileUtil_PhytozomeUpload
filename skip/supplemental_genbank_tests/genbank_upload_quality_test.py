@@ -47,14 +47,10 @@ class GenomeFileUtilTest(unittest.TestCase):
               'generate_ids_if_needed': 1,
               'source': "RefSeq Reference"
             })[0]
-#        print("HERE IS THE RESULT:")
-        data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'], 
+        data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'],
                                 token=cls.ctx['token'],
                                 service_ver='dev')
         cls.genome = data_file_cli.get_objects({'object_refs': [result['genome_ref']]})['data'][0]['data']
-#        print("GENE 1: ")
-#        pprint(cls.genome['features'][0])
-#        pprint(result)
 
 
 
@@ -63,9 +59,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         if hasattr(cls, 'wsName'):
             cls.wsClient.delete_workspace({'workspace': cls.wsName})
             print('Test workspace was deleted')
-
-#    def test_incorrect(self):
-#        self.assertTrue( 1 == 0, "1 ne 0")
 
     def test_refseq_ref_source_and_tiers(self):
         genome = self.__class__.genome
@@ -94,33 +87,13 @@ class GenomeFileUtilTest(unittest.TestCase):
 
     def test_empty_publications(self):
         genome = self.__class__.genome
-        if "publications" in genome:
-            for publication in genome["publications"]:
-                self.assertFalse((publication[0] == 0) and 
-                                 (publication[1] == '') and
-                                 (publication[2] == '') and
-                                 (publication[3] == '') and
-                                 (publication[4] == '') and
-                                 (publication[5] == '') and
-                                 (publication[6] == ''),
-                                 "Stored an Empty Publication")
+        self.assertNotIn([0, '', '', '', '', '', ''], genome.get('publications', []))
 
     def test_accurately_stored_publication(self):
         genome = self.__class__.genome
-        found_publication = False
-        if "publications" in genome:
-            for publication in genome["publications"]:
-#                print publication
-                if ((publication[0] == 0) and 
-                    (publication[1] == '') and
-                    (publication[2] == 'Escherichia coli K-12 MG1655 yqiK-rfaE intergenic region, genomic sequence correction') and
-                    (publication[3] == '') and
-                    (publication[4] == '') and
-                    (publication[5] == 'Perna,N.T.') and
-                    (publication[6] == 'Unpublished')):
-#                    print "FOUND THE PUBLICATION!!!!!!!!!!!!!!!!!"
-                    found_publication = True
-        self.assertTrue(found_publication,"Expected stored publication was not found.") 
+        self.assertIn([0, '', 'Escherichia coli K-12 MG1655 yqiK-rfaE intergenic region, genomic sequence correction', '', '', 'Perna,N.T.', 'Unpublished'],
+                      genome.get('publications', []))
+
 
     def test_for_gene_synonyms(self):
         genome = self.__class__.genome
@@ -215,19 +188,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(empty_warning_count == 0, str(empty_warning_count) + " features had empty warnings.")     
         self.assertTrue(features_with_warnings_count > 0, "No features had warnings.")
 
-#    def test_no_empty_mRNAs(self):
-#        genome = self.__class__.genome
-#        if "mrnas" in genome:
-#            self.assertTrue(len(genome["mrnas"]) > 0, "The mRNA list is empty and is still present.")
-
-#    def test_no_empty_genome_level_warnings(self):
-#        genome = self.__class__.genome
-#        if "warnings" in genome:
-#            if len(genome["warnings"]) > 0:
-#                for warning in genome["warnings"]:
-#                    self.assertTrue(genome["warnings"][0] != '', "The Genome level warnings list is empty and is still present.")
-#            self.assertTrue(len(genome["warnings"]) > 0, "The Genome level warnings is empty and is still present.")
-
     def test_non_coding_feature_ids(self):
         genome = self.__class__.genome
         underscore_start_count = 0
@@ -255,10 +215,8 @@ class GenomeFileUtilTest(unittest.TestCase):
 
     def test_flags_being_caught(self):
         genome = self.__class__.genome
-        found_synonyms = False
         for feature in genome["features"]:
             if feature['id'] == "b4659":
-#                print "Found b4659"
                 self.assertTrue("flags" in feature, "This is a pseudo gene and should have the flags list.")
                 found_pseudo = False
                 for flag in feature["flags"]:

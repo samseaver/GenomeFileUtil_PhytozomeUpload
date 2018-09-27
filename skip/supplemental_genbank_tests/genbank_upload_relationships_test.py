@@ -54,14 +54,11 @@ class GenomeFileUtilTest(unittest.TestCase):
                                 token=cls.ctx['token'],
                                 service_ver='dev')
         cls.genome = data_file_cli.get_objects({'object_refs': [result['genome_ref']]})['data'][0]['data']
-        json.dump(cls.genome,
-                  open(cls.cfg['scratch'] + "/relationship_test_genome.json",
-                       'w'))
-#        print("GENE 1: ")
-#        pprint(cls.genome['features'][0])
-#        pprint(result)
-
-
+        json.dump(cls.genome, open(cls.cfg['scratch'] + "/relationship_test_genome.json", 'w'))
+        cls.gene_ids = set((x['id'] for x in cls.genome['features']))
+        cls.nc_feat_ids = set((x['id'] for x in cls.genome['non_coding_features']))
+        cls.mrna_ids = set((x['id'] for x in cls.genome['mrnas']))
+        cls.cds_ids = set((x['id'] for x in cls.genome['cdss']))
 
     @classmethod
     def tearDownClass(cls):
@@ -476,10 +473,10 @@ class GenomeFileUtilTest(unittest.TestCase):
         genome = self.__class__.genome
         found_gene_in_features = False
         found_gene_in_non_coding = False
-        found_mRNA = False
-        found_CDS = False
-        genome_suspect = False
-        found_warning = False
+        found_mRNA_wrong_id = False
+        found_mRNA_right_id = False
+        found_CDS_wrong_id = False
+        found_CDS_right_id = False
         for feature in genome["features"]:
             if feature['id'] == "AT4G12617":
                 found_gene_in_features = True
@@ -488,23 +485,22 @@ class GenomeFileUtilTest(unittest.TestCase):
                 found_gene_in_non_coding = True
         for feature in genome["mrnas"]:
             if feature['id'] == "AT4G12617_mRNA_1":
-                found_mRNA = True
+                found_mRNA_wrong_id = True
+            if feature['id'] == "mRNA_1":
+                found_mRNA_right_id = True
+                self.assertIn('Unable to find parent gene for mRNA_1', feature.get('warnings', []))
         for feature in genome["cdss"]:
             if feature['id'] == "AT4G12617_CDS_1":
-                found_CDS = True
-        self.assertFalse(found_gene_in_features, "The gene AT4G12617 was found in features, it should have been excluded.")
-        self.assertFalse(found_gene_in_non_coding, "The gene AT4G12617 was found in non_coding, it should have been excluded.")
-        self.assertFalse(found_mRNA, "The mRNA AT4G12617_mRNA_1 was found, it should have been excluded.")
-        self.assertFalse(found_CDS, "The CDS AT4G12617_CDS_1 was found, it should have been excluded.")
-        if "suspect" in genome:
-            if genome["suspect"] == 1:
-                genome_suspect = True
-        self.assertTrue(genome_suspect, "The Genome should have been made suspect because the CDS is not within the gene.")
-        if "warnings" in genome:
-            for warning in genome["warnings"]:
-                if warning == warnings['gene_excluded'].format("AT4G12617"):
-                    found_warning = True
-        self.assertTrue(found_warning, "The Genome level warning for the failed coordinates matching.")
+                found_CDS_wrong_id = True
+            if feature['id'] == "CDS_1":
+                found_CDS_right_id = True
+                self.assertIn('Unable to find parent gene for CDS_1', feature.get('warnings', []))
+        self.assertFalse(found_gene_in_features, "The gene AT4G12617 was found in features but has no children.")
+        self.assertTrue(found_gene_in_non_coding, "The gene AT4G12617 was not found in non_coding")
+        self.assertFalse(found_mRNA_wrong_id, "The mRNA AT4G12617_mRNA_1 was found, it should not have this id.")
+        self.assertTrue(found_mRNA_right_id, "The mRNA mRNA_1 was not found")
+        self.assertFalse(found_CDS_wrong_id, "The CDS AT4G12617_CDS_1 was found, it should not have this id.")
+        self.assertTrue(found_CDS_right_id, "The mRNA CDS_1 was not found")
 
     def test_mRNA_not_inside_gene(self):
         genome = self.__class__.genome
@@ -512,16 +508,9 @@ class GenomeFileUtilTest(unittest.TestCase):
         found_gene_in_non_coding = False
         found_mRNA = False
         found_CDS = False
-        genome_suspect = False
-        found_gene_warning = False
-        found_warning = False
         for feature in genome["features"]:
             if feature['id'] == "AT4G12620":
                 found_gene_in_features = True
-                if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == warnings['child_mrna_failed']:
-                            found_gene_warning = True
         for feature in genome["non_coding_features"]:
             if feature['id'] == "AT4G12620":
                 found_gene_in_non_coding = True
@@ -533,18 +522,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                 found_CDS = True
         self.assertTrue(found_gene_in_features, "The gene AT4G12620 was not found in features")
         self.assertFalse(found_gene_in_non_coding, "The gene AT4G12620 was found in non_coding.")
-        self.assertFalse(found_mRNA, "The mRNA AT4G12620_mRNA_1 was found, it should have been excluded.")
+        self.assertFalse(found_mRNA, "The mRNA AT4G12620_mRNA_1 was found, it should not have this id.")
         self.assertTrue(found_CDS, "The CDS AT4G12620_CDS_1 was not found.")
-        self.assertTrue(found_gene_warning,"Gene warning for failing mRNA not found.")
-        if "suspect" in genome:
-            if genome["suspect"] == 1:
-                genome_suspect = True
-        self.assertTrue(genome_suspect, "The Genome should be suspect because the mRNA is not within the gene.")
-        if "warnings" in genome:
-            for warning in genome["warnings"]:
-                if warning == warnings['mrna_excluded'].format("AT4G12620"):
-                    found_warning = True
-        self.assertTrue(found_warning, "The Genome level warning for the failed coordinates matching.")
 
     def test_CDS_and_mRNA_not_inside_gene(self):
         genome = self.__class__.genome
@@ -552,8 +531,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         found_gene_in_non_coding = False
         found_mRNA = False
         found_CDS = False
-        genome_suspect = False
-        found_warning = False
         for feature in genome["features"]:
             if feature['id'] == "AT4G12485":
                 found_gene_in_features = True
@@ -566,19 +543,10 @@ class GenomeFileUtilTest(unittest.TestCase):
         for feature in genome["cdss"]:
             if feature['id'] == "AT4G12485_CDS_1":
                 found_CDS = True
-        self.assertFalse(found_gene_in_features, "The gene AT4G12485 was found in features, it should have been excluded.")
-        self.assertFalse(found_gene_in_non_coding, "The gene AT4G12485 was found in non_coding, it should have been excluded.")
-        self.assertFalse(found_mRNA, "The mRNA AT4G12485_mRNA_1 was found, it should have been excluded.")
-        self.assertFalse(found_CDS, "The CDS AT4G12485_CDS_1 was found, it should have been excluded.")
-        if "suspect" in genome:
-            if genome["suspect"] == 1:
-                genome_suspect = True
-        self.assertTrue(genome_suspect, "The Genome should be suspect because the CDS is not within the gene.")
-        if "warnings" in genome:
-            for warning in genome["warnings"]:
-                if warning == warnings['gene_excluded'].format("AT4G12485"):
-                    found_warning = True
-        self.assertTrue(found_warning, "The Genome level warning for the failed coordinates matching.")
+        self.assertFalse(found_gene_in_features, "The gene AT4G12485 was found in features, but has no CDSs")
+        self.assertTrue(found_gene_in_non_coding, "The gene AT4G12485 was not found in non_coding")
+        self.assertFalse(found_mRNA, "The mRNA AT4G12485_mRNA_1 is an invalid ID")
+        self.assertFalse(found_CDS, "The CDS AT4G12485_CDS_1 is an invalid ID")
 
     def test_CDS_not_inside_mRNA(self):
         #Thoughts on behavior welcome. 
@@ -628,7 +596,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                 if "warnings" in feature:
                     for warning in feature["warnings"]:
                         if warning == warnings['cds_mrna_cds'].format('AT4G12490_mRNA_1'):
-                            CDS_warning = True               
+                            CDS_warning = True
+
         self.assertTrue(found_gene_in_features, "The gene AT4G12490 was not found in features")
         self.assertFalse(found_gene_in_non_coding, "The gene AT4G12490 was found in non_coding, it should be in features.")
         self.assertTrue(found_mRNA, "The mRNA AT4G12490_mRNA_1 was not found.")
@@ -654,13 +623,10 @@ class GenomeFileUtilTest(unittest.TestCase):
         gene_has_CDS2 = False
         gene_has_mRNA1 = False
         gene_has_mRNA2 = False
-        found_gene_mRNA_warning = False
-        found_gene_CDS_warning = False
         found_mRNA1_parent = False
         found_CDS1_parent = False
         found_mRNA1_CDS1 = False
         found_CDS1_mRNA1 = False
-        found_genome_warning = False
         for feature in genome["features"]:
             if feature['id'] == "AT4G12580":
                 found_gene = True
@@ -669,12 +635,6 @@ class GenomeFileUtilTest(unittest.TestCase):
                         gene_has_CDS1 = True
                     if feature["cdss"][0] == "AT4G12580_CDS_2":
                         gene_has_CDS2 = True
-                if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == warnings['child_mrna_failed']:
-                            found_gene_mRNA_warning = True
-                        if warning == warnings['child_cds_failed']:
-                                found_gene_CDS_warning = True
                 if "mrnas" in feature:
                     if feature["mrnas"][0] == "AT4G12580_mRNA_1":
                         gene_has_mRNA1 = True   
@@ -700,25 +660,20 @@ class GenomeFileUtilTest(unittest.TestCase):
                         found_CDS1_mRNA1 = True
             if feature['id'] == "AT4G12580_CDS_2":
                 found_CDS2 = True
+
         self.assertTrue(found_gene, "The gene AT4G12580 was not found in features.")
         self.assertTrue(found_mRNA1, "The mRNA AT4G12580_mRNA_1 was not found.")
-        self.assertFalse(found_mRNA2, "The mRNA AT4G12580_mRNA_2 was found, it should have been excluded.")
+        self.assertFalse(found_mRNA2, "The mRNA AT4G12580_mRNA_2 was found, it is an invalid id")
         self.assertTrue(found_CDS1, "The CDS AT4G12580_CDS_1 was not found.")
-        self.assertFalse(found_CDS2, "The CDS AT4G12580_CDS_2 was found, it should have been excluded.")
+        self.assertFalse(found_CDS2, "The CDS AT4G12580_CDS_2 was found, it is an invalid id")
         self.assertTrue(gene_has_CDS1, "The gene did not have the good CDS1")
-        self.assertFalse(gene_has_CDS2, "The gene had CDS AT4G12580_CDS_2 was found, it should have been excluded.")
-        self.assertTrue(gene_has_mRNA1,"The gene did not have the good mRNA1.")
-        self.assertFalse(gene_has_mRNA2, "The gene had mRNA AT4G12580_mRNA_2 was found, it should have been excluded.")
-        self.assertTrue(found_gene_mRNA_warning,"The gene did not have the mRNA related warning.")
-        self.assertTrue(found_gene_CDS_warning,"The gene did not have the CDS related warning.")
-        self.assertTrue(found_mRNA1_parent,"The mRNA did not have the parent gene.")
-        self.assertTrue(found_CDS1_parent,"The CDS did not have the parent gene.")
-        self.assertTrue(found_mRNA1_CDS1,"The mRNA did not have the corresponding CDS.")
-        self.assertTrue(found_CDS1_mRNA1,"The CDS did not have the correspondig mRNA")
-
-        self.assertTrue(warnings['cds_excluded'].format('AT4G12580')
-                        in genome.get("warnings", []),
-                        "The Genome level warning for the failed coordinates matching.")
+        self.assertFalse(gene_has_CDS2, "The gene had CDS AT4G12580_CDS_2 as CDS, it is an invalid id")
+        self.assertTrue(gene_has_mRNA1, "The gene did not have the good mRNA1.")
+        self.assertFalse(gene_has_mRNA2, "The gene had mRNA AT4G12580_mRNA_2 as mRNA, it is an invalid id")
+        self.assertTrue(found_mRNA1_parent, "The mRNA did not have the parent gene.")
+        self.assertTrue(found_CDS1_parent, "The CDS did not have the parent gene.")
+        self.assertTrue(found_mRNA1_CDS1, "The mRNA did not have the corresponding CDS.")
+        self.assertTrue(found_CDS1_mRNA1, "The CDS did not have the correspondig mRNA")
 
     def test_CDS_not_sharing_mRNA_internal_boundaries(self):
         #CDS not sharing internal boundaries with mRNA.
@@ -765,6 +720,7 @@ class GenomeFileUtilTest(unittest.TestCase):
             if "warnings" in feature:
                 if warnings['cds_mrna_cds'].format('AT4G12560_mRNA_1') in feature["warnings"]:
                     found_CDS_warning = True
+
         self.assertTrue(found_gene, "The gene AT4G12560 was not found in features.")
         self.assertTrue(found_mRNA, "The mRNA AT4G12560_mRNA_1 was not found.")
         self.assertTrue(found_CDS, "The CDS AT4G12560_CDS_1 was not found.")
@@ -823,17 +779,32 @@ class GenomeFileUtilTest(unittest.TestCase):
             if "warnings" in feature:
                 if warnings['cds_mrna_cds'].format('AT4G12600_mRNA_1') in feature["warnings"]:
                     found_CDS_warning = True
+
         self.assertTrue(found_gene, "The gene AT4G12600 was not found in features.")
         self.assertTrue(found_mRNA, "The mRNA AT4G12600_mRNA_1 was not found.")
         self.assertTrue(found_CDS, "The CDS AT4G12600_CDS_1 was not found.")
-        self.assertTrue(gene_has_CDS,"The gene did not have the good CDS1")
-        self.assertTrue(gene_has_mRNA,"The gene did not have the good mRNA1.")
-        self.assertTrue(found_mRNA_warning,"No mRNA related warning.")
-        self.assertTrue(found_CDS_warning,"No CDS related warning.")
-        self.assertTrue(found_mRNA_parent,"The mRNA did not have the parent gene.")
-        self.assertTrue(found_CDS_parent,"The CDS did not have the parent gene.")
-        self.assertFalse(found_mRNA_CDS,"The mRNA should not have had a corresponding CDS.")
-        self.assertFalse(found_CDS_mRNA,"The CDS should not have had a corresponding mRNA.") 
+        self.assertTrue(gene_has_CDS, "The gene did not have the good CDS1")
+        self.assertTrue(gene_has_mRNA, "The gene did not have the good mRNA1.")
+        self.assertTrue(found_mRNA_warning, "No mRNA related warning.")
+        self.assertTrue(found_CDS_warning, "No CDS related warning.")
+        self.assertTrue(found_mRNA_parent, "The mRNA did not have the parent gene.")
+        self.assertTrue(found_CDS_parent, "The CDS did not have the parent gene.")
+        self.assertFalse(found_mRNA_CDS, "The mRNA should not have had a corresponding CDS.")
+        self.assertFalse(found_CDS_mRNA, "The CDS should not have had a corresponding mRNA.")
+
+    def test_id_assignment(self):
+        self.assertTrue(self.genome.get('suspect'), "The Genome should be marked suspect.")
+        self.assertIn('CDS_1', self.cds_ids)
+        self.assertIn('CDS_3', self.cds_ids)
+        self.assertNotIn('CDS_4', self.cds_ids)
+        self.assertIn('mRNA_1', self.mrna_ids)
+        self.assertIn('mRNA_4', self.mrna_ids)
+        self.assertIn('gene_1', self.gene_ids)
+        self.assertIn('gene_1_mRNA_1', self.mrna_ids)
+        self.assertIn('gene_1_CDS_1', self.cds_ids)
+        self.assertIn('gene_2', self.gene_ids)
+        self.assertIn('gene_2_mRNA_1', self.mrna_ids)
+        self.assertIn('gene_2_CDS_1', self.cds_ids)
                   
 
 '''
