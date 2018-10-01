@@ -294,15 +294,17 @@ def confirm_feature_relationships(feature, feature_list_name, feature_id_sets_di
                 not_found_relationships['children'] = not_found_children           
     elif feature_list_name == "cdss":
         # means will have parent_gene relationship, may have parent_mrna relationship.
-        if feature['parent_gene'] not in feature_id_sets_dict['features']:
-            not_found_relationships['parent_gene'] = [feature['parent_gene']]
+        if "parent_gene" in feature:
+            if feature['parent_gene'] not in feature_id_sets_dict['features']:
+                not_found_relationships['parent_gene'] = [feature['parent_gene']]
         if "parent_mrna" in feature:
             if feature['parent_mrna'] not in feature_id_sets_dict['mrnas']:
                 not_found_relationships['mrnas'] = [feature['parent_mrna']]
     elif feature_list_name == "mrnas":
-        # means will have parent_gene relationship, may have CDS relationship. 
-        if feature['parent_gene'] not in feature_id_sets_dict['features']:
-            not_found_relationships['parent_gene'] = [feature['parent_gene']]
+        # means will have parent_gene relationship, may have CDS relationship.
+        if "parent_gene" in feature:
+            if feature['parent_gene'] not in feature_id_sets_dict['features']:
+                not_found_relationships['parent_gene'] = [feature['parent_gene']]
         if "cds" in feature:
             if feature['cds'] not in feature_id_sets_dict['cdss']:
                 not_found_relationships['cds'] = [feature['cds']]                     
