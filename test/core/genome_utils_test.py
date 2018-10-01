@@ -3,8 +3,6 @@ from configparser import ConfigParser
 from os import environ
 import logging
 
-import mock
-
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil, SDKConfig
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
@@ -58,11 +56,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertEqual(self.genome_interface.retrieve_taxon("meh", "foo"),
                          ('Unconfirmed Organism: foo',
                           'ReferenceTaxons/unknown_taxon', 'Unknown', 11))
-
-    @mock.patch("GenomeFileUtil.core.GenomeInterface.MAX_GENOME_SIZE", 1)
-    def test_max_genome_size(self):
-        with self.assertRaisesRegex(ValueError, "genome exceeds the maximum permitted size"):
-            GenomeInterface.validate_genome({"taxon_ref": "", "domain": ""})
 
     def test_user(self):
         self.assertEqual(GenomeInterface.determine_tier('RefSeq user'),

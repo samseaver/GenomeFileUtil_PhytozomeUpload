@@ -458,7 +458,7 @@ class GenomeFileUtilTest(unittest.TestCase):
             for warning in genome["warnings"]:
                 if warning == warnings["genome_inc_CDS_length"].format("ArthCp004_CDS_1",240,88):
                     genome_translation_length_warning = True
-                if warning == warnings["genome_inc_translation"].format(2,25):
+                if warning == warnings["genome_inc_translation"].format(2, 26):
                     genome_translation_warning = True
         if "suspect" in genome:
             if genome["suspect"] == 1:

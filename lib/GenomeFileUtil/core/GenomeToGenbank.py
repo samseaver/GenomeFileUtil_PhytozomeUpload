@@ -112,24 +112,31 @@ class GenomeFile:
         self.seq_records = []
         self.features_by_contig = defaultdict(list)
         self.renamed_contigs = 0
-        # make special dict for all mrna & cds, they will be added when their
-        # parent gene is added
         self.child_dict = {}
-        for x in genome_object.get('mrnas', []):
-            x['type'] = 'mRNA'
-            self.child_dict[x['id']] = x
+        """There is two ways of printing, if a feature has a parent_gene, it 
+                will be printed breadth first when it's parent parent gene is printed.
+                if not, it needs to be added to the features_by_contig to be printed"""
+        # sort every feature in the feat_arrays into a dict by contig
+        for feature in genome_object['features'] + genome_object.get(
+                'non_coding_features', []):
+            # type is not present in new gene array
+            if 'type' not in feature:
+                feature['type'] = 'gene'
+            self.features_by_contig[feature['location'][0][0]].append(feature)
 
-        for x in genome_object.get('cdss', []):
-            x['type'] = 'CDS'
-            self.child_dict[x['id']] = x
+        for mrna in genome_object.get('mrnas', []):
+            mrna['type'] = 'mRNA'
+            if mrna.get('parent_gene'):
+                self.child_dict[mrna['id']] = mrna
+            else:
+                self.features_by_contig[mrna['location'][0][0]].append(mrna)
 
-        # sort other features into a dict by contig
-        for feat in genome_object['features']:
-            if 'type' not in feat:
-                feat['type'] = 'gene'
-            self.features_by_contig[feat['location'][0][0]].append(feat)
-        for feat in genome_object.get('non_coding_features', []):
-            self.features_by_contig[feat['location'][0][0]].append(feat)
+        for cds in genome_object.get('cdss', []):
+            cds['type'] = 'CDS'
+            if cds.get('parent_gene'):
+                self.child_dict[cds['id']] = cds
+            else:
+                self.features_by_contig[cds['location'][0][0]].append(cds)
 
         assembly_file_path, circ_contigs = self._get_assembly(genome_object)
         for contig in SeqIO.parse(open(assembly_file_path), 'fasta', Alphabet.generic_dna):
