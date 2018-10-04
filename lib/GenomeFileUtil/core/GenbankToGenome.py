@@ -770,7 +770,7 @@ class GenbankToGenome:
 
         gene_id = self._find_parent_gene(gene_id, out_feat)
         if gene_id:
-            out_feat['id'] = "_".join((gene_id, "mRNA", str(len(self.genes[gene_id]['cdss']) + 1)))
+            out_feat['id'] = "_".join((gene_id, "mRNA", str(len(self.genes[gene_id]['mrnas']) + 1)))
             self.genes[gene_id]['mrnas'].append(out_feat['id'])
             out_feat['parent_gene'] = gene_id
         else:
