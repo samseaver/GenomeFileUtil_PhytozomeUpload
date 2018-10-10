@@ -409,12 +409,9 @@ class GenomeInterface:
             warnings.append("For prokaryotes, CDS array should generally be the"
                             " same length as the Features array.")
 
-        if g['domain'] == "Eukaryota" and len(g.get('mrnas', [])) and \
-                        len(g.get('mrnas', [])) == len(g.get('cdss', [])):
+        if g['domain'] == "Eukaryota" and len(g.get('features', [])) == len(g.get('cdss', [])):
             warnings.append("For Eukaryotes, CDS array should not be the same "
                             "length as the Features array due to RNA splicing.")
-
-
 
         if "molecule_type" in g and g['molecule_type'] not in {"DNA", 'ds-DNA'}:
             if g.get('domain', '') not in {'Virus', 'Viroid'} and \
