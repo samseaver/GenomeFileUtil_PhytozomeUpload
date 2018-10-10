@@ -511,7 +511,8 @@ class GenbankToGenome:
             return loc
 
         def _warn(message):
-            out_feat['warnings'] = out_feat.get('warnings', []) + [message]
+            if message not in out_feat.get('warnings', []):
+                out_feat['warnings'] = out_feat.get('warnings', []) + [message]
 
         def _check_suspect_location(parent=None):
             if 'trans_splicing' in out_feat.get('flags', []):
@@ -617,12 +618,6 @@ class GenbankToGenome:
                 del g['type']
                 coding.append(g)
                 self.feature_counts["protein_encoding_gene"] += 1
-            # genes that have no valid CDS after location tests are excluded
-            elif warnings['child_cds_failed'] in g.get('warnings', []):
-                self.genome_warnings.append(warnings['gene_excluded'].format(
-                    g['id']))
-                self.genome_suspect = True
-                continue
             else:
                 del g['mrnas'], g['cdss']
                 self.noncoding.append(g)

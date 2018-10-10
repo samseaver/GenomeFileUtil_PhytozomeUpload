@@ -8,17 +8,6 @@ warnings = {
                     " fails location validation",
     "cds_mrna_mrna": "Potential child CDS relationship failed due to location "
                     "validation.",
-    "child_cds_failed": "The child CDS failed location validation. That CDS "
-                        "has been excluded.",
-    "child_mrna_failed": "The child mRNA failed location validation. That mRNA"
-                         " has been excluded.",
-    "genome_excluded": "SUSPECT: gene {} had some of its child features "
-                       "(CDS and/or mRNAs) excluded because of failed "
-                       "coordinates validation",
-    "gene_excluded": "SUSPECT: gene {} was excluded because the associated CDS "
-                     "failed coordinates validation",
-    "mrna_excluded": "SUSPECT: mRNA from {} was excluded because the associated "
-                     "mRNA failed coordinates validation",
     "no_spoof": "Some CDS features in the file do not have a parent gene. "
                 "Ensure the correct file source is selected, correct the source file "
                 "or select the 'generate_missing_genes' option.",
