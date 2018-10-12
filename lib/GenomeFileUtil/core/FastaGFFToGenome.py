@@ -561,7 +561,7 @@ class FastaGFFToGenome:
                 self.ontologies_present['CATH'][ref] = self.ont_mappings['CATH'].get(ref, '')
 
         search_keys = ['ontology_term', 'db_xref', 'dbxref', 'product_source', 'tigrfam', 'pfam',
-                       'cog', 'go', 'po']
+                       'cog', 'go', 'po', 'ko']
         ont_terms = []
         # flatten out into list of values
         for key in search_keys:
