@@ -1,5 +1,7 @@
-from itertools import zip_longest
+import json
 import logging
+import os
+import re
 
 warnings = {
     "cds_excluded": "SUSPECT: CDS from {} was excluded because the associated "
@@ -193,6 +195,19 @@ def propagate_cds_props_to_gene(cds, gene):
                     terms[source] = terms2[source]
 
 
+def load_ontology_mappings(path='data'):
+    mapping_dict = {}
+    for file in os.listdir(path):
+        m = re.match("(\w+)_ontology_mapping.json", file)
+        if m:
+            ont_dict = json.load(open(os.path.join(path, file)))
+            mapping_dict[m.group(1).upper()] = ont_dict
+    if not mapping_dict:
+        raise ValueError(f'No valid ontology mappings were found at {path}')
+    logging.info(f'Loaded {len(mapping_dict)} ontologies')
+    return mapping_dict
+
+
 def check_full_contig_length_or_multi_strand_feature(feature, is_transpliced, contig_length, skip_types):
     """
     Tests for full contig length features and if on both strands.
@@ -219,6 +234,7 @@ def check_full_contig_length_or_multi_strand_feature(feature, is_transpliced, co
         feature["warnings"] = feature.get('warnings', []) + [warnings["both_strand_coordinates"]]
     return feature 
 
+
 def check_feature_ids_uniqueness(genome):
     """
     Tests that all feature ids in a genome are unique across all 4 feature type lists
@@ -241,21 +257,22 @@ def check_feature_ids_uniqueness(genome):
     if len(unique_feature_ids) == 0:
         raise ValueError("Error no feature ids found in this genome")
     return duplicate_feature_id_counts
-        
+
+
 def make_id_set(feature_list):
-    '''
+    """
     Helper function to make id lookup sets for a feature list
-    '''
+    """
     return set((x['id'] for x in feature_list))
 
 
 def confirm_feature_relationships(feature, feature_list_name, feature_id_sets_dict):
-    '''
+    """
     Pass in a feature and the list that the feature came from, it then
     verifies if all feature ids in the relationships are present
     Note it does not check if a relationship field is present as some features will not have determined relationships.
     returns dict of types as keys and ids that were not found. An empty dict means all declared relationships were found
-    '''
+    """
     not_found_relationships = dict()
     if len(feature_id_sets_dict) == 0:
         raise ValueError('feature_id_sets_dict is empty')
@@ -317,13 +334,14 @@ def confirm_feature_relationships(feature, feature_list_name, feature_id_sets_di
         raise ValueError('Feature List Name : ' + feature_list_name + ' was not one of the expected 4 types.')
     return not_found_relationships
 
+
 def confirm_genomes_feature_relationships(genome):
-    '''
+    """
     Confirms the relationships of all features in a genome
     Note this is not a quick operation, should be used sparingly and not necessarily for every genome
     Takes a genome and returns a dict with feature ids as the key and a dict of relationship type and missing features
     NOTE THIS DOES NOT INSURE THAT RELATIONSHIPS ARE RECIPROCAL. JUST CHECKS THAT A FEATURE EXISTS FOR LISTED RELATIONSHIPS.
-    '''
+    """
     features_with_relationships_not_found = dict()
     feature_lists = ["features","cdss","mrnas","non_coding_features"]
     # dict is the feature list and the key is the set of ids in that list.
