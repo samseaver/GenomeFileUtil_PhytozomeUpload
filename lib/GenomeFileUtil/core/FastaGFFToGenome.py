@@ -92,9 +92,6 @@ class FastaGFFToGenome:
         if params.get('genetic_code'):
             genome["genetic_code"] = params['genetic_code']
 
-        with open(self.cfg.sharedFolder+'/ProblemGenome.json', 'w') as outfile:
-            json.dump(genome, outfile, indent=4)
-
         return genome, input_directory
 
     def import_file(self, params):
