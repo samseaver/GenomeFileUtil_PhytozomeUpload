@@ -92,6 +92,7 @@ class FastaGFFToGenome:
             core_genome_name=params['genome_name'],
             scientific_name=params['scientific_name'],
             source=params['source'],
+            source_id=params['source_id'],
             release=params['release'],
         )
         if params.get('genetic_code'):
@@ -131,7 +132,7 @@ class FastaGFFToGenome:
 
     def _gen_genome_json(self, input_gff_file=None, input_fasta_file=None,
                         workspace_name=None, core_genome_name=None,
-                        scientific_name="unknown_taxon", source=None,
+                        scientific_name="unknown_taxon", source=None, source_id=None,
                         release=None):
 
         # reading in GFF file
@@ -166,7 +167,7 @@ class FastaGFFToGenome:
 
         # generate genome info
         genome = self._gen_genome_info(core_genome_name, scientific_name,
-                                       assembly_ref, source, assembly_data,
+                                       assembly_ref, source, source_id, assembly_data,
                                        input_gff_file, molecule_type)
         genome['release'] = release
         if self.spoof_gene_count > 0:
@@ -811,7 +812,7 @@ class FastaGFFToGenome:
                         feature['id']))
 
     def _gen_genome_info(self, core_genome_name, scientific_name, assembly_ref,
-                         source, assembly, input_gff_file, molecule_type):
+                         source, source_id, assembly, input_gff_file, molecule_type):
         """
         _gen_genome_info: generate genome info
 
@@ -838,6 +839,7 @@ class FastaGFFToGenome:
                                                             genome['scientific_name'])
         genome['source'], genome['genome_tiers'] = self.gi.determine_tier(
             source)
+        genome['source_id'] = source_id
 
         # Phytozome gff files are not compatible with the RNASeq Pipeline
         # so it's better to build from the object than cache the file

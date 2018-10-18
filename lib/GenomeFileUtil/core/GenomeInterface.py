@@ -315,7 +315,7 @@ class GenomeInterface:
                 if 'aliases' in feat:
                     if not feat['aliases']:
                         del feat['aliases']
-                    elif not isinstance(feat['aliases'][0], list):
+                    elif not isinstance(feat['aliases'][0], (list, tuple)):
                         feat['aliases'] = [['gene_synonym', x] for x in feat['aliases']]
                 if 'type' in feat:
                     type_counts[feat['type']] += 1
