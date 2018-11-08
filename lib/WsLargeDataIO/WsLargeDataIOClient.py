@@ -26,7 +26,7 @@ class WsLargeDataIO(object):
             auth_svc='https://kbase.us/services/authorization/Sessions/Login'):
         if url is None:
             raise ValueError('A url is required')
-        self._service_ver = None
+        self._service_ver = 'dev'
         self._client = _BaseClient(
             url, timeout=timeout, user_id=user_id, password=password,
             token=token, ignore_authrc=ignore_authrc,

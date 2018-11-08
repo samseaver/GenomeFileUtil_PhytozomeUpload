@@ -9,6 +9,7 @@ from Bio import SeqIO, SeqFeature, Alphabet
 
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from DataFileUtil.DataFileUtilClient import DataFileUtil
+from GenomeFileUtil.core.GenomeInterface import GenomeInterface
 
 STD_PREFIX = " " * 21
 CONTIG_ID_FIELD_LENGTH = 16
@@ -24,6 +25,7 @@ class GenomeToGenbank(object):
     def __init__(self, sdk_config):
         self.cfg = sdk_config
         self.dfu = DataFileUtil(self.cfg.callbackURL)
+        self.gi = GenomeInterface(sdk_config)
 
     def validate_params(self, params):
         if 'genome_ref' not in params:
@@ -34,11 +36,7 @@ class GenomeToGenbank(object):
         self.validate_params(params)
 
         # 2) get genome info
-        genome_data = self.dfu.get_objects({
-            'object_refs': [params['genome_ref']]
-        })['data'][0]
-        info = genome_data['info']
-        data = genome_data['data']
+        data, info = self.gi.get_one_genome({'objects': [{"ref": params['genome_ref']}]})
 
         # 3) make sure the type is valid
         if info[2].split(".")[1].split('-')[0] != 'Genome':
@@ -58,11 +56,7 @@ class GenomeToGenbank(object):
         self.validate_params(params)
 
         # 2) get genome genbank handle reference
-        genome_data = self.dfu.get_objects({
-            'object_refs': [params['genome_ref']]
-        })['data'][0]
-        info = genome_data['info']
-        data = genome_data['data']
+        data, info = self.gi.get_one_genome({'objects': [{"ref": params['genome_ref']}]})
 
         # 3) make sure the type is valid
         if info[2].split(".")[1].split('-')[0] != 'Genome':

@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import re
 import sys
 import time
@@ -12,7 +13,7 @@ from AssemblySequenceAPI.AssemblySequenceAPIServiceClient import AssemblySequenc
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
 from KBaseSearchEngine.KBaseSearchEngineClient import KBaseSearchEngine
-from Workspace.WorkspaceClient import Workspace as Workspace
+from WsLargeDataIO.WsLargeDataIOClient import WsLargeDataIO
 
 MAX_GENOME_SIZE = 2**30
 
@@ -24,7 +25,6 @@ def log(message, prefix_newline=False):
 
 class GenomeInterface:
     def __init__(self, config):
-        self.ws_url = config.workspaceURL
         self.handle_url = config.handleURL
         self.shock_url = config.shockURL
         self.sw_url = config.srvWizURL
@@ -32,12 +32,12 @@ class GenomeInterface:
         self.auth_service_url = config.authServiceUrl
         self.callback_url = config.callbackURL
 
-        self.ws = Workspace(self.ws_url, token=self.token)
         self.auth_client = _KBaseAuth(self.auth_service_url)
         self.dfu = DataFileUtil(self.callback_url)
         self.kbse = KBaseSearchEngine(config.raw['search-url'])
         self.taxon_wsname = config.raw['taxon-workspace-name']
         self.scratch = config.raw['scratch']
+        self.ws_large_data = WsLargeDataIO(self.callback_url)
 
     @staticmethod
     def _validate_save_one_genome_params(params):
@@ -129,6 +129,15 @@ class GenomeInterface:
                         feature['dna_sequence'] = dna_sequences[feature['id']]
                         feature['dna_sequence_length'] = len(feature['dna_sequence'])
 
+    def get_one_genome(self, params):
+        """Fetch a genome using WSLargeDataIO and return it as a python dict"""
+        log('fetching genome object')
+
+        res = self.ws_large_data.get_objects(params)['data'][0]
+        data = json.load(open(res['data_json_file']))
+        return data, res['info']
+        #return self.dfu.get_objects(params)['data'][0]
+
     def save_one_genome(self, params):
         log('start saving genome object')
 
@@ -151,6 +160,10 @@ class GenomeInterface:
         self._check_dna_sequence_in_features(data)
         data['warnings'] = self.validate_genome(data)
 
+        # dump genome to scratch for upload
+        data_path = os.path.join(self.scratch, name + ".json")
+        json.dump(data, open(data_path, 'w'))
+
         if 'hidden' in params and str(params['hidden']).lower() in (
         'yes', 'true', 't', '1'):
             hidden = 1
@@ -162,14 +175,14 @@ class GenomeInterface:
         else:
             workspace_id = self.dfu.ws_name_to_id(workspace)
 
-        dfu_save_params = {'id': workspace_id,
-                           'objects': [{'type': 'KBaseGenomes.Genome',
-                                        'data': data,
-                                        'name': name,
-                                        'meta': meta,
-                                        'hidden': hidden}]}
+        save_params = {'id': workspace_id,
+                       'objects': [{'type': 'KBaseGenomes.Genome',
+                                    'data_json_file': data_path,
+                                    'name': name,
+                                    'meta': meta,
+                                    'hidden': hidden}]}
 
-        dfu_oi = self.dfu.save_objects(dfu_save_params)[0]
+        dfu_oi = self.ws_large_data.save_objects(save_params)[0]
 
         returnVal = {'info': dfu_oi, 'warnings': data['warnings']}
 
