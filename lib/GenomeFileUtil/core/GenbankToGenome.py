@@ -20,7 +20,7 @@ from Bio.SeqFeature import ExactPosition
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from DataFileUtil.DataFileUtilClient import DataFileUtil
 from .GenomeInterface import GenomeInterface
-from .GenomeUtils import is_parent, propagate_cds_props_to_gene, warnings, parse_inferences
+from .GenomeUtils import is_parent, propagate_cds_props_to_gene, warnings, parse_inferences, load_ontology_mappings
 from Workspace.WorkspaceClient import Workspace
 
 MAX_MISC_FEATURE_SIZE = 10000
@@ -58,10 +58,7 @@ class GenbankToGenome:
         self.defects = Counter()
         self.spoofed_genes = 0
         self.excluded_features = ('source', 'exon')
-        self.go_mapping = json.load(
-            open('/kb/module/data/go_ontology_mapping.json'))
-        self.po_mapping = json.load(
-            open('/kb/module/data/go_ontology_mapping.json'))
+        self.ont_mappings = load_ontology_mappings('/kb/module/data')
         self.code_table = 11
         self.default_params = {
             'source': 'Genbank',
@@ -644,54 +641,64 @@ class GenbankToGenome:
                                [part.start:part.end].reverse_complement()))
         return "".join(seq)
 
-    def _create_ontology_event(self,ontology_type):
+    def _create_ontology_event(self, ontology_type):
         """Creates the ontology_event if necessary
         Returns the index of the ontology event back."""
-        index_counter = 0
-        if ontology_type in ("GO","PO"):
-            ontology_ref = "KBaseOntology/gene_ontology"
-            if ontology_type == "PO":
+        if ontology_type not in self.ont_mappings:
+            raise ValueError("{} is not a supported ontology".format(ontology_type))
+
+        if "event_index" not in self.ont_mappings[ontology_type]:
+            self.ont_mappings[ontology_type]['event_index'] = len(self.ontology_events)
+            if ontology_type == "GO":
+                ontology_ref = "KBaseOntology/gene_ontology"
+            elif ontology_type == "PO":
                 ontology_ref = "KBaseOntology/plant_ontology"
-            if len(self.ontology_events) > 0 :
-                for ontology_event in self.ontology_events:
-                    if ontology_event["id"] == ontology_type:
-                        return index_counter
-                    index_counter += 1
+            else:
+                ontology_ref = f"KBaseOntology/{ontology_type.lower()}_ontology"
             self.ontology_events.append({
                 "method": "GenomeFileUtils Genbank uploader from annotations",
                 "method_version": self.version,
                 "timestamp": self.time_string,
                 "id": ontology_type,
                 "ontology_ref": ontology_ref
-                })
-            return index_counter
-        else:  #This is not a supported ontology. Do not make the ontology.
-            raise ValueError("{} is not a supported ontology".format(ontology_type))
+            })
+
+        return self.ont_mappings[ontology_type]['event_index']
 
     def _get_ontology_db_xrefs(self, feature):
         """Splits the ontology info from the other db_xrefs"""
         ontology = defaultdict(dict)
-        db_xref = []
+        db_xrefs = []
         for key in ("GO_process", "GO_function", "GO_component"):
             ontology_event_index = self._create_ontology_event("GO")
             for term in feature.qualifiers.get(key, []):
                 sp = term.split(" - ")
                 ontology['GO'][sp[0]] = [ontology_event_index]
-                self.ontologies_present['GO'][sp[0]] = self.go_mapping.get(
-                    sp[0], '')
+                self.ontologies_present['GO'][sp[0]] = self.ont_mappings['GO'].get(sp[0], '')
+
         for ref in feature.qualifiers.get('db_xref', []):
             if ref.startswith('GO:'):
-                ontology_event_index = self._create_ontology_event("GO")
-                ontology['GO'][ref] = [ontology_event_index]
-                self.ontologies_present['GO'][ref] = self.go_mapping.get(ref, '')
+                ontology['GO'][ref] = [self._create_ontology_event("GO")]
+                self.ontologies_present['GO'][ref] = self.ont_mappings['GO'].get(ref, '')
             elif ref.startswith('PO:'):
-                ontology_event_index = self._create_ontology_event("PO")
-                ontology['PO'][ref] = [ontology_event_index]
-                self.ontologies_present['PO'][ref] = self.po_mapping.get(ref, '')
+                ontology['PO'][ref] = [self._create_ontology_event("PO")]
+                self.ontologies_present['PO'][ref] = self.ont_mappings['PO'].get(ref, '')
+            elif ref.startswith('KO:'):
+                ontology['KO'][ref] = [self._create_ontology_event("KO")]
+                self.ontologies_present['KO'][ref] = self.ont_mappings['KO'].get(ref, '')
+            elif ref.startswith('COG'):
+                ontology['COG'][ref] = [self._create_ontology_event("COG")]
+                self.ontologies_present['COG'][ref] = self.ont_mappings['COG'].get(ref, '')
+            elif ref.startswith('PF'):
+                ontology['PFAM'][ref] = [self._create_ontology_event("PFAM")]
+                self.ontologies_present['PFAM'][ref] = self.ont_mappings['PFAM'].get(ref, '')
+            elif ref.startswith('TIGR'):
+                ontology['TIGRFAM'][ref] = [self._create_ontology_event("TIGRFAM")]
+                self.ontologies_present['TIGRFAM'][ref] = self.ont_mappings['TIGRFAM'].get(ref, '')
             else:
-                db_xref.append(tuple(ref.split(":", 1)))
-        # TODO: Support other ontologies
-        return dict(ontology), sorted(db_xref)
+                db_xrefs.append(tuple(ref.split(":", 1)))
+
+        return dict(ontology), sorted(db_xrefs)
 
     @staticmethod
     def _get_aliases_flags_functions(feat):

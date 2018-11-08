@@ -227,7 +227,7 @@ class GenomeToGFF:
         elif feature.get('function'):
             attrs.append(_one_attr('product', feature['function']))
         for ont in feature.get('ontology_terms', []):
-            attrs.extend([_one_attr('Ontology_terms', x)
+            attrs.extend([_one_attr(ont.lower(), x)
                           for x in feature['ontology_terms'][ont]])
 
         if 'inference_data' in feature:

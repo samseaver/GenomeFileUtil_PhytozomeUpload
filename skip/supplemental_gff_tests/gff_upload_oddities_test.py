@@ -147,8 +147,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         #For picking up notes, function, product, locus_tag
         #THIS TEST NEEDS MORE WORK Check on ontologies and other stuff
         genome = self.__class__.genome
-        found_rna6CDS_GO = False
-        found_rna6CDS_PO = False
         found_rna5CDS_GO = False
         found_rna5CDS_ONT_TERM = False
         found_rna5CDS_go_process = False
@@ -156,33 +154,35 @@ class GenomeFileUtilTest(unittest.TestCase):
         found_function_product = False
         found_functional_descriptors = False
         found_locus_tag = False
-        go_ontology_event_index = -1
-        po_ontology_event_index = -1
  #       print "ONTOLOGY EVENTS: " + str(genome["ontology_events"])
-        if "ontology_events" in genome:
-            index_counter = 0
-            for ontology_event in genome["ontology_events"]:
-                if ontology_event["id"] == "GO":
-                    go_ontology_event_index = index_counter
-                if ontology_event["id"] == "PO":
-                    po_ontology_event_index = index_counter  
-                index_counter += 1                         
+        ont_event_indexes = {event["id"]: i for i, event in
+                             enumerate(genome.get("ontology_events", []))}
+        self.assertCountEqual(["GO", "PO", "KO", "CATH", "PFAM", "COG", "TIGRFAM"],
+                              ont_event_indexes.keys())
+
         for feature in genome['cdss']:
             if feature["id"] == "rna6.CDS":
                 #Do rna6.CDS first.
                 #look for db_xrefs and ontologies.
-#                print "RNA6CDS: " + str(feature)
-                #currently this is not picking up the ontologies in either form.
-                if "ontology_terms" in feature:
-#                    print "GFF 6 ONTOLOGIES: " + str(feature["ontology_terms"])
-                    if "GO" in feature["ontology_terms"]:
-                        if feature["ontology_terms"]["GO"] == {"GO:0009523":[go_ontology_event_index]}:
-                            found_rna6CDS_GO = True                            
-#                        print "GFF 6 G ONTOLOGY: " + str(feature["ontology_terms"]["GO"])
-                    if "PO" in feature["ontology_terms"]:
-                        if feature["ontology_terms"]["PO"] == {"PO:0000005":[po_ontology_event_index]}:
-                            found_rna6CDS_PO = True  
-#                        print "GFF 6 P ONTOLOGY: " + str(feature["ontology_terms"]["PO"])                                        
+                self.assertEqual(feature["ontology_terms"].get("GO"),
+                                 {"GO:0009523": [ont_event_indexes.get("GO")]})
+                self.assertEqual(feature["ontology_terms"].get("PO"),
+                                 {"PO:0000005": [ont_event_indexes.get("PO")]})
+                self.assertEqual(feature["ontology_terms"].get("CATH"),
+                                 {"1.20.1600.10": [ont_event_indexes.get("CATH")],
+                                  "2.40.50.100": [ont_event_indexes.get("CATH")]})
+                self.assertEqual(feature["ontology_terms"].get("PFAM"),
+                                 {"PF13437": [ont_event_indexes.get("PFAM")],
+                                  "PF13533": [ont_event_indexes.get("PFAM")]})
+                self.assertEqual(feature["ontology_terms"].get("KO"),
+                                 {"KO:K12542": [ont_event_indexes.get("KO")]})
+                self.assertEqual(feature["ontology_terms"].get("TIGRFAM"),
+                                 {"TIGR01843": [ont_event_indexes.get("TIGRFAM")]})
+                self.assertEqual(feature["ontology_terms"].get("COG"),
+                                 {"COG0845": [ont_event_indexes.get("COG")]})
+
+                self.assertCountEqual(feature.get("db_xrefs"), [["GeneID", "16992101"],
+                                                                ["Genbank", "XP_005535020.1"]])
             if feature["id"] == "rna5.CDS":
                 #Do rna6.CDS first.
                 #look for db_xrefs and ontologies.
@@ -218,10 +218,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(found_rna5CDS_GO)
         self.assertTrue(found_rna5CDS_ONT_TERM)
         self.assertTrue(found_rna5CDS_go_process)
-        self.assertTrue(go_ontology_event_index > -1,"GO Ontology event not found") 
-        self.assertTrue(po_ontology_event_index > -1,"PO Ontology event not found")   
-        self.assertTrue(found_rna6CDS_GO)
-        self.assertTrue(found_rna6CDS_PO)
 
     def test_for_picking_up_product_name(self):
         #tests for product_name alone as well as product alone.

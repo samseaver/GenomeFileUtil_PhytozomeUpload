@@ -16,7 +16,7 @@ from DataFileUtil.DataFileUtilClient import DataFileUtil
 from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from . import GenomeUtils
 from .GenomeUtils import is_parent, warnings, check_full_contig_length_or_multi_strand_feature
-from .GenomeUtils import propagate_cds_props_to_gene
+from .GenomeUtils import propagate_cds_props_to_gene, load_ontology_mappings
 from .GenomeInterface import GenomeInterface
 
 # 3rd party imports
@@ -45,16 +45,11 @@ class FastaGFFToGenome:
         self.time_string = str(datetime.datetime.fromtimestamp(
             time.time()).strftime('%Y_%m_%d_%H_%M_%S'))
         yml_text = open('/kb/module/kbase.yml').read()
-        self.version = re.search("module-version:\n\W+(.+)\n", yml_text
-                                 ).group(1)
-        self.go_mapping = json.load(
-            open('/kb/module/data/go_ontology_mapping.json'))
-        self.po_mapping = json.load(
-            open('/kb/module/data/go_ontology_mapping.json'))
+        self.version = re.search("module-version:\n\W+(.+)\n", yml_text).group(1)
+        self.ont_mappings = load_ontology_mappings('/kb/module/data')
         self.code_table = 11
         self.skip_types = ('exon', 'five_prime_UTR', 'three_prime_UTR',
                            'start_codon', 'stop_codon', 'region', 'chromosome', 'scaffold')
-        self.aliases = ()
         self.spoof_gene_count = 0
         self.is_phytozome = False
         self.strict = True
@@ -96,6 +91,7 @@ class FastaGFFToGenome:
         )
         if params.get('genetic_code'):
             genome["genetic_code"] = params['genetic_code']
+
         return genome, input_directory
 
     def import_file(self, params):
@@ -519,42 +515,50 @@ class FastaGFFToGenome:
                 last_start = location[1]
         return None        
 
-    def _create_ontology_event(self,ontology_type):
+    def _create_ontology_event(self, ontology_type):
         """Creates the ontology_event if necessary
         Returns the index of the ontology event back."""
-        index_counter = 0
-        if ontology_type in ("GO","PO"):
-            ontology_ref = "KBaseOntology/gene_ontology"
-            if ontology_type == "PO":
+        if ontology_type not in self.ont_mappings:
+            raise ValueError("{} is not a supported ontology".format(ontology_type))
+
+        if "event_index" not in self.ont_mappings[ontology_type]:
+            self.ont_mappings[ontology_type]['event_index'] = len(self.ontology_events)
+            if ontology_type == "GO":
+                ontology_ref = "KBaseOntology/gene_ontology"
+            elif ontology_type == "PO":
                 ontology_ref = "KBaseOntology/plant_ontology"
-            if len(self.ontology_events) > 0 :
-                for ontology_event in self.ontology_events:
-                    if ontology_event["id"] == ontology_type:
-                        return index_counter
-                    index_counter += 1
+            else:
+                ontology_ref = f"KBaseOntology/{ontology_type.lower()}_ontology"
             self.ontology_events.append({
                 "method": "GenomeFileUtils Genbank uploader from annotations",
                 "method_version": self.version,
                 "timestamp": self.time_string,
                 "id": ontology_type,
                 "ontology_ref": ontology_ref
-                })  
-            return index_counter
-        else:  #This is not a supported ontology. Do not make the ontology.      
-            raise ValueError("{} is not a supported ontology".format(ontology_type))
+            })
+
+        return self.ont_mappings[ontology_type]['event_index']
 
     def _get_ontology_db_xrefs(self, feature):
         """Splits the ontology info from the other db_xrefs"""
         ontology = collections.defaultdict(dict)
         db_xrefs = []
+        # these are keys are formatted strangely and require special parsing
         for key in ("go_process", "go_function", "go_component"):
             ontology_event_index = self._create_ontology_event("GO")
             for term in feature.get(key, []):
                 sp = term.split(" - ")
                 ontology['GO'][sp[0]] = [ontology_event_index]
-                self.ontologies_present['GO'][sp[0]] = self.go_mapping.get(sp[0], '')
+                self.ontologies_present['GO'][sp[0]] = self.ont_mappings['GO'].get(sp[0], '')
 
-        search_keys = ['ontology_term', 'db_xref', 'dbxref']
+        # CATH terms are not distinct from EC numbers so myst be found by key
+        for term in feature.get('cath_funfam', []) + feature.get('cath', []):
+            for ref in term.split(','):
+                ontology['CATH'][ref] = [self._create_ontology_event("CATH")]
+                self.ontologies_present['CATH'][ref] = self.ont_mappings['CATH'].get(ref, '')
+
+        search_keys = ['ontology_term', 'db_xref', 'dbxref', 'product_source', 'tigrfam', 'pfam',
+                       'cog', 'go', 'po', 'ko']
         ont_terms = []
         # flatten out into list of values
         for key in search_keys:
@@ -563,16 +567,25 @@ class FastaGFFToGenome:
 
         for ref in ont_terms:
             if ref.startswith('GO:'):
-                ontology_event_index = self._create_ontology_event("GO")
-                ontology['GO'][ref] = [ontology_event_index]
-                self.ontologies_present['GO'][ref] = self.go_mapping.get(ref, '')
+                ontology['GO'][ref] = [self._create_ontology_event("GO")]
+                self.ontologies_present['GO'][ref] = self.ont_mappings['GO'].get(ref, '')
             elif ref.startswith('PO:'):
-                ontology_event_index = self._create_ontology_event("PO")
-                ontology['PO'][ref] = [ontology_event_index]
-                self.ontologies_present['PO'][ref] = self.po_mapping.get(ref, '')
+                ontology['PO'][ref] = [self._create_ontology_event("PO")]
+                self.ontologies_present['PO'][ref] = self.ont_mappings['PO'].get(ref, '')
+            elif ref.startswith('KO:'):
+                ontology['KO'][ref] = [self._create_ontology_event("KO")]
+                self.ontologies_present['KO'][ref] = self.ont_mappings['KO'].get(ref, '')
+            elif ref.startswith('COG'):
+                ontology['COG'][ref] = [self._create_ontology_event("COG")]
+                self.ontologies_present['COG'][ref] = self.ont_mappings['COG'].get(ref, '')
+            elif ref.startswith('PF'):
+                ontology['PFAM'][ref] = [self._create_ontology_event("PFAM")]
+                self.ontologies_present['PFAM'][ref] = self.ont_mappings['PFAM'].get(ref, '')
+            elif ref.startswith('TIGR'):
+                ontology['TIGRFAM'][ref] = [self._create_ontology_event("TIGRFAM")]
+                self.ontologies_present['TIGRFAM'][ref] = self.ont_mappings['TIGRFAM'].get(ref, '')
             else:
                 db_xrefs.append(tuple(ref.split(":", 1)))
-        # TODO: Support other ontologies
         return dict(ontology), db_xrefs
 
     def _transform_feature(self, contig, in_feature):
