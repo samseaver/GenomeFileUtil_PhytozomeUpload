@@ -11,6 +11,7 @@ from GenomeFileUtil.core.GenomeToGFF import GenomeToGFF
 from GenomeFileUtil.core.GenomeToGenbank import GenomeToGenbank
 from GenomeFileUtil.core.FastaGFFToGenome import FastaGFFToGenome
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
+from GenomeFileUtil.core.GenomeFeaturesProteinToFasta import GenomeFeaturesProteinToFasta
 
 from Workspace.WorkspaceClient import Workspace
 from DataFileUtil.DataFileUtilClient import DataFileUtil
@@ -47,9 +48,9 @@ class GenomeFileUtil:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "0.8.6"
-    GIT_URL = "https://github.com/kbaseapps/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "02c587de19839c8962d43b81e299bd9f712604bf"
+    VERSION = "0.8.9"
+    GIT_URL = "https://github.com/kbaseapps/GenomeFileUtil"
+    GIT_COMMIT_HASH = "7e1e3ee1deb07df465393a84e96250e30d851343"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -329,6 +330,46 @@ class GenomeFileUtil:
         # return the results
         return [output]
 
+    def export_genome_features_protein_to_fasta(self, ctx, params):
+        """
+        :param params: instance of type "ExportParams" (input and output
+           structure functions for standard downloaders) -> structure:
+           parameter "input_ref" of String
+        :returns: instance of type "ExportOutput" -> structure: parameter
+           "shock_id" of String
+        """
+        # ctx is the context object
+        # return variables are: output
+        #BEGIN export_genome_features_protein_to_fasta
+        print('export_genome_features_protein_to_fasta -- paramaters = ')
+
+        # validate parameters
+        if 'input_ref' not in params:
+            raise ValueError('Cannot run export_genome_features_protein_to_fasta - no "input_ref" field defined.')
+
+        # get WS metadata to get ws_name and obj_name
+        ws = Workspace(url=self.cfg.workspaceURL)
+        info = ws.get_object_info_new({'objects': [{'ref': params['input_ref']}],
+                                       'includeMetadata': 0, 'ignoreErrors': 0})[0]
+
+        genome_to_protein_fasta_params = {
+            'genome_ref': params['input_ref']
+        }
+
+        # export to file (building from KBase Genome Object)
+        result = self.genome_to_genbank(ctx, genome_to_genbank_params)[0]['genbank_file']
+
+
+
+        #END export_genome_features_protein_to_fasta
+
+        # At some point might do deeper type checking...
+        if not isinstance(output, dict):
+            raise ValueError('Method export_genome_features_protein_to_fasta return value ' +
+                             'output is not type dict as required.')
+        # return the results
+        return [output]
+
     def fasta_gff_to_genome(self, ctx, params):
         """
         :param params: instance of type "FastaGFFToGenomeParams" (genome_name
@@ -460,40 +501,41 @@ class GenomeFileUtil:
            source as Source @metadata ws scientific_name as Name @metadata ws
            length(features) as Number of Protein Encoding Genes @metadata ws
            length(cdss) as Number of CDS @metadata ws assembly_ref as
-           Assembly Object @metadata ws num_contigs as Number contigs) ->
-           structure: parameter "id" of type "Genome_id" (KBase genome ID @id
-           kb), parameter "scientific_name" of String, parameter "domain" of
-           String, parameter "warnings" of list of String, parameter
-           "genome_tiers" of list of String, parameter "feature_counts" of
-           mapping from String to Long, parameter "genetic_code" of Long,
-           parameter "dna_size" of Long, parameter "num_contigs" of Long,
-           parameter "molecule_type" of String, parameter "contig_lengths" of
-           list of Long, parameter "contig_ids" of list of String, parameter
-           "source" of String, parameter "source_id" of type "source_id"
-           (Reference to a source_id @id external), parameter "md5" of
-           String, parameter "taxonomy" of String, parameter "gc_content" of
-           Double, parameter "publications" of list of type "publication"
-           (Structure for a publication (float pubmedid string source (ex.
-           Pubmed) string title string web address string  publication year
-           string authors string journal)) -> tuple of size 7: parameter
-           "pubmedid" of Double, parameter "source" of String, parameter
-           "title" of String, parameter "url" of String, parameter "year" of
-           String, parameter "authors" of String, parameter "journal" of
-           String, parameter "ontology_events" of list of type
-           "Ontology_event" (@optional ontology_ref method_version eco) ->
-           structure: parameter "id" of String, parameter "ontology_ref" of
-           type "Ontology_ref" (Reference to a ontology object @id ws
-           KBaseOntology.OntologyDictionary), parameter "method" of String,
-           parameter "method_version" of String, parameter "timestamp" of
-           String, parameter "eco" of String, parameter "ontologies_present"
-           of mapping from String to mapping from String to String, parameter
-           "features" of list of type "Feature" (Structure for a single CDS
-           encoding ???gene??? of a genome ONLY PUT GENES THAT HAVE A
-           CORRESPONDING CDS IN THIS ARRAY NOTE: Sequence is optional.
-           Ideally we can keep it in here, but Recognize due to space
-           constraints another solution may be needed. We may want to add
-           additional fields for other CDM functions (e.g., atomic regulons,
-           coexpressed fids, co_occurring fids,...)
+           Assembly Object @metadata ws num_contigs as Number contigs
+           @metadata ws length(warnings) as Number of Genome Level Warnings
+           @metadata ws suspect as Suspect Genome) -> structure: parameter
+           "id" of type "Genome_id" (KBase genome ID @id kb), parameter
+           "scientific_name" of String, parameter "domain" of String,
+           parameter "warnings" of list of String, parameter "genome_tiers"
+           of list of String, parameter "feature_counts" of mapping from
+           String to Long, parameter "genetic_code" of Long, parameter
+           "dna_size" of Long, parameter "num_contigs" of Long, parameter
+           "molecule_type" of String, parameter "contig_lengths" of list of
+           Long, parameter "contig_ids" of list of String, parameter "source"
+           of String, parameter "source_id" of type "source_id" (Reference to
+           a source_id @id external), parameter "md5" of String, parameter
+           "taxonomy" of String, parameter "gc_content" of Double, parameter
+           "publications" of list of type "publication" (Structure for a
+           publication (float pubmedid string source (ex. Pubmed) string
+           title string web address string  publication year string authors
+           string journal)) -> tuple of size 7: parameter "pubmedid" of
+           Double, parameter "source" of String, parameter "title" of String,
+           parameter "url" of String, parameter "year" of String, parameter
+           "authors" of String, parameter "journal" of String, parameter
+           "ontology_events" of list of type "Ontology_event" (@optional
+           ontology_ref method_version eco) -> structure: parameter "id" of
+           String, parameter "ontology_ref" of type "Ontology_ref" (Reference
+           to a ontology object @id ws KBaseOntology.OntologyDictionary),
+           parameter "method" of String, parameter "method_version" of
+           String, parameter "timestamp" of String, parameter "eco" of
+           String, parameter "ontologies_present" of mapping from String to
+           mapping from String to String, parameter "features" of list of
+           type "Feature" (Structure for a single CDS encoding “gene” of a
+           genome ONLY PUT GENES THAT HAVE A CORRESPONDING CDS IN THIS ARRAY
+           NOTE: Sequence is optional. Ideally we can keep it in here, but
+           Recognize due to space constraints another solution may be needed.
+           We may want to add additional fields for other CDM functions
+           (e.g., atomic regulons, coexpressed fids, co_occurring fids,...)
            protein_translation_length and protein_translation are for longest
            coded protein (representative protein for splice variants) NOTE:
            New Aliases field definitely breaks compatibility. As Does
@@ -556,8 +598,8 @@ class GenomeFileUtil:
            GenBank format. This will be a controlled vocabulary. Initially
            Acceptable values are pseudo, ribosomal_slippage, and
            trans_splicing Md5 is the md5 of dna_sequence. @optional
-           parent_mrna functions ontology_terms note flags warnings @optional
-           inference_data dna_sequence aliases db_xrefs
+           parent_gene parent_mrna functions ontology_terms note flags
+           warnings @optional inference_data dna_sequence aliases db_xrefs
            functional_descriptions) -> structure: parameter "id" of type
            "cds_id" (KBase CDS ID @id external), parameter "location" of list
            of tuple of size 4: type "Contig_id" (ContigSet contig ID @id
@@ -583,9 +625,9 @@ class GenomeFileUtil:
            of type "mRNA" (Structure for a single feature mRNA flags are flag
            fields in GenBank format. This will be a controlled vocabulary.
            Initially Acceptable values are pseudo, ribosomal_slippage, and
-           trans_splicing Md5 is the md5 of dna_sequence. @optional cds
-           functions ontology_terms note flags warnings @optional
-           inference_data dna_sequence aliases db_xrefs
+           trans_splicing Md5 is the md5 of dna_sequence. @optional
+           parent_gene cds functions ontology_terms note flags warnings
+           @optional inference_data dna_sequence aliases db_xrefs
            functional_descriptions) -> structure: parameter "id" of type
            "mrna_id" (KBase mRNA ID @id external), parameter "location" of
            list of tuple of size 4: type "Contig_id" (ContigSet contig ID @id

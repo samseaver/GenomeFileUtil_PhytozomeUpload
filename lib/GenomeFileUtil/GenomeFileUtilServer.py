@@ -11,7 +11,7 @@ from jsonrpcbase import JSONRPCService, InvalidParamsError, KeywordError,\
     JSONRPCError, InvalidRequestError
 from jsonrpcbase import ServerError as JSONServerError
 from os import environ
-from configparser import ConfigParser
+from ConfigParser import ConfigParser
 from biokbase import log
 import requests as _requests
 import random as _random
@@ -109,7 +109,7 @@ class JSONRPCServiceCustom(JSONRPCService):
             # Exception was raised inside the method.
             newerr = JSONServerError()
             newerr.trace = traceback.format_exc()
-            if isinstance(e.message, str):
+            if isinstance(e.message, basestring):
                 newerr.data = e.message
             else:
                 # Some exceptions embed other exceptions as the message
@@ -175,7 +175,7 @@ class JSONRPCServiceCustom(JSONRPCService):
 
     def _handle_request(self, ctx, request):
         """Handles given request and returns its response."""
-        if 'types' in self.method_data[request['method']]:  # noqa @IgnorePep8
+        if self.method_data[request['method']].has_key('types'):  # noqa @IgnorePep8
             self._validate_params_types(request['method'], request['params'])
 
         result = self._call_method(ctx, request)
@@ -353,6 +353,10 @@ class Application(object):
                              name='GenomeFileUtil.export_genome_as_gff',
                              types=[dict])
         self.method_authentication['GenomeFileUtil.export_genome_as_gff'] = 'required'  # noqa
+        self.rpc_service.add(impl_GenomeFileUtil.export_genome_features_protein_to_fasta,
+                             name='GenomeFileUtil.export_genome_features_protein_to_fasta',
+                             types=[dict])
+        self.method_authentication['GenomeFileUtil.export_genome_features_protein_to_fasta'] = 'required'  # noqa
         self.rpc_service.add(impl_GenomeFileUtil.fasta_gff_to_genome,
                              name='GenomeFileUtil.fasta_gff_to_genome',
                              types=[dict])
@@ -432,7 +436,7 @@ class Application(object):
                                 ctx['user_id'] = user
                                 ctx['authenticated'] = 1
                                 ctx['token'] = token
-                            except Exception as e:
+                            except Exception, e:
                                 if auth_req == 'required':
                                     err = JSONServerError()
                                     err.data = \
@@ -533,7 +537,7 @@ try:
 # a wsgi container that has enabled gevent, such as
 # uwsgi with the --gevent option
     if config is not None and config.get('gevent_monkeypatch_all', False):
-        print("Monkeypatching std libraries for async")
+        print "Monkeypatching std libraries for async"
         from gevent import monkey
         monkey.patch_all()
     uwsgi.applications = {'': application}
@@ -557,7 +561,7 @@ def start_server(host='localhost', port=0, newprocess=False):
         raise RuntimeError('server is already running')
     httpd = make_server(host, port, application)
     port = httpd.server_address[1]
-    print("Listening on port %s" % port)
+    print "Listening on port %s" % port
     if newprocess:
         _proc = Process(target=httpd.serve_forever)
         _proc.daemon = True
@@ -636,7 +640,7 @@ if __name__ == "__main__":
         opts, args = getopt(sys.argv[1:], "", ["port=", "host="])
     except GetoptError as err:
         # print help information and exit:
-        print(str(err))  # will print something like "option -a not recognized"
+        print str(err)  # will print something like "option -a not recognized"
         sys.exit(2)
     port = 9999
     host = 'localhost'
@@ -645,7 +649,7 @@ if __name__ == "__main__":
             port = int(a)
         elif o == '--host':
             host = a
-            print("Host set to %s" % host)
+            print "Host set to %s" % host
         else:
             assert False, "unhandled option"
 

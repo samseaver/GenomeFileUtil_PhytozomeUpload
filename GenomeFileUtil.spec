@@ -116,6 +116,9 @@ module GenomeFileUtil {
     funcdef export_genome_as_gff(ExportParams params)
                 returns (ExportOutput output) authentication required;
 
+    funcdef export_genome_features_protein_to_fasta(ExportParams params)
+                returns (ExportOutput output) authentication required;
+
     /* 
     genome_name - becomes the name of the object
     workspace_name - the name of the workspace it gets saved to.
