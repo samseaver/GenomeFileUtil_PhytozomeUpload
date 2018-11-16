@@ -8,6 +8,11 @@ This is the basic readme for this module. Include any usage or deployment instru
 
 ##Release Notes
 
+### 0.8.10 (11/2018)
+Use WSLargeDataIO for saving and pulling genomes
+Expand and refactor import of ontology ids
+Fix a few genome warnings
+
 ### 0.8.9 (06/04/2018)
 Correct genbank download of old genomes with contig sets and long contig IDs
 Make reference path though genome for assembly access to prevent permissions issues
