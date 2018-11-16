@@ -106,7 +106,7 @@ class FastaGFFToGenome:
             'workspace': params['workspace_name'],
             'name': params['genome_name'],
             'data': genome,
-            "meta": params['metadata'],
+            "meta": params.get('metadata', {}),
         })
         report_string = 'A genome with {} contigs and the following feature ' \
                         'types was imported: {}'\
@@ -232,23 +232,18 @@ class FastaGFFToGenome:
     def _set_parsed_params(self, params):
         log('Setting params')
 
-        # default params
         default_params = {
             'taxon_wsname': self.cfg.raw['taxon-workspace-name'],
             'scientific_name': 'unknown_taxon',
             'taxon_reference': None,
             'source': 'User',
             'release': None,
-            'metadata': {}
+            'metadata': {},
+            'source_id': 'unknown',
         }
-
-        for field in default_params:
-            if field not in params:
-                params[field] = default_params[field]
-
-        log(json.dumps(params, indent=1))
-
-        return params
+        default_params.update(params)
+        log(json.dumps(default_params, indent=1))
+        return default_params
 
     def _stage_input(self, params, input_directory):
         """
