@@ -78,7 +78,7 @@ module GenomeFileUtil {
     /* from_cache is 1 if the file already exists and was just returned, 0 if
     the file was generated during this call. */
     typedef structure {
-        File gff_file;
+        string file_path;
         boolean from_cache;
     } GenomeToGFFResult;
 
@@ -90,10 +90,14 @@ module GenomeFileUtil {
         list <string> ref_path_to_genome;
     } GenomeToGenbankParams;
 
+    typedef structure {
+        string file_path;
+    } GBFile;
+
     /* from_cache is 1 if the file already exists and was just returned, 0 if
     the file was generated during this call. */
     typedef structure {
-        File genbank_file;
+        GBFile genbank_file;
         boolean from_cache;
     } GenomeToGenbankResult;
 
@@ -114,6 +118,9 @@ module GenomeFileUtil {
                 returns (ExportOutput output) authentication required;
 
     funcdef export_genome_as_gff(ExportParams params)
+                returns (ExportOutput output) authentication required;
+
+    funcdef export_genome_features_protein_to_fasta(ExportParams params)
                 returns (ExportOutput output) authentication required;
 
     /* 

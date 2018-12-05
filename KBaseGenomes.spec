@@ -692,9 +692,18 @@ module KBaseGenomes {
 	} GenomeDomainData;
 
 	/*
-    	OrthologFamily object: this object holds all data for a single ortholog family in a metagenome
+        OrthologFamily object: this object holds all data for a single ortholog family in a metagenome
 
-    	@optional type function md5 protein_translation
+        @optional type function md5 protein_translation
+
+        params:
+          id: group identifier
+          type: ....
+          function: function as described in KBaseGenomes.Genome
+          md5: md5 encoded string of protein_translation
+          protein_translation : protein translation string
+          orthologs:
+            list[ (gene identifier (ID in gff file), numerical order in gff file OR gene order in BLAST , genome workspace reference) ]
     */
 	typedef structure {
     	string id;
