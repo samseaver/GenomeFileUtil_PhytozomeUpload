@@ -7,8 +7,8 @@ from collections import defaultdict
 
 from Bio import SeqIO, SeqFeature, Alphabet
 
-from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
-from DataFileUtil.DataFileUtilClient import DataFileUtil
+from installed_clients.AssemblyUtilClient import AssemblyUtil
+from installed_clients.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
 
 STD_PREFIX = " " * 21

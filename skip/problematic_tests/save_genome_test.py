@@ -14,14 +14,14 @@ from os import environ
 
 import requests  # noqa: F401
 
-from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
-from DataFileUtil.DataFileUtilClient import DataFileUtil
+from installed_clients.AssemblyUtilClient import AssemblyUtil
+from installed_clients.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import SDKConfig
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from installed_clients.WorkspaceClient import Workspace as workspaceService
 
 
 class SaveGenomeTest(unittest.TestCase):

@@ -7,7 +7,7 @@ import urllib.parse
 import urllib.request
 from collections import defaultdict
 
-from DataFileUtil.DataFileUtilClient import DataFileUtil
+from installed_clients.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
 from GenomeFileUtil.core.GenomeUtils import get_start, get_end
 

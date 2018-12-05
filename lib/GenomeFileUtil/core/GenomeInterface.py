@@ -9,11 +9,11 @@ from collections import defaultdict
 import requests
 
 from AbstractHandle.AbstractHandleClient import AbstractHandle as HandleService
-from AssemblySequenceAPI.AssemblySequenceAPIServiceClient import AssemblySequenceAPI
-from DataFileUtil.DataFileUtilClient import DataFileUtil
+from installed_clients.AssemblySequenceAPIServiceClient import AssemblySequenceAPI
+from installed_clients.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
-from KBaseSearchEngine.KBaseSearchEngineClient import KBaseSearchEngine
-from WsLargeDataIO.WsLargeDataIOClient import WsLargeDataIO
+from installed_clients.KBaseSearchEngineClient import KBaseSearchEngine
+from installed_clients.WSLargeDataIOClient import WsLargeDataIO
 
 MAX_GENOME_SIZE = 2**30
 

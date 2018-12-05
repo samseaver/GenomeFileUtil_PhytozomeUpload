@@ -14,9 +14,9 @@ from GenomeFileUtil.core.FastaGFFToGenome import FastaGFFToGenome
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
 from GenomeFileUtil.core.GenomeFeaturesToFasta import GenomeFeaturesToFasta
 
-from Workspace.WorkspaceClient import Workspace
-from DataFileUtil.DataFileUtilClient import DataFileUtil
-from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
+from installed_clients.WorkspaceClient import Workspace
+from installed_clients.DataFileUtilClient import DataFileUtil
+from installed_clients.AssemblyUtilClient import AssemblyUtil
 
 # Used to store and pass around configuration URLs more easily
 class SDKConfig:
@@ -49,9 +49,9 @@ class GenomeFileUtil:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "0.8.9"
+    VERSION = "0.8.10"
     GIT_URL = "https://github.com/kbaseapps/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "4a8b0e79ec1763613a5161dcabb28702655fc28e"
+    GIT_COMMIT_HASH = "674619122f6c1ac8ed84b29835031b287af6b199"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -130,11 +130,9 @@ class GenomeFileUtil:
            for true. @range (0, 1)), parameter "target_dir" of String
         :returns: instance of type "GenomeToGFFResult" (from_cache is 1 if
            the file already exists and was just returned, 0 if the file was
-           generated during this call.) -> structure: parameter "gff_file" of
-           type "File" -> structure: parameter "path" of String, parameter
-           "shock_id" of String, parameter "ftp_url" of String, parameter
-           "from_cache" of type "boolean" (A boolean - 0 for false, 1 for
-           true. @range (0, 1))
+           generated during this call.) -> structure: parameter "file_path"
+           of String, parameter "from_cache" of type "boolean" (A boolean - 0
+           for false, 1 for true. @range (0, 1))
         """
         # ctx is the context object
         # return variables are: result
@@ -164,10 +162,9 @@ class GenomeFileUtil:
         :returns: instance of type "GenomeToGenbankResult" (from_cache is 1
            if the file already exists and was just returned, 0 if the file
            was generated during this call.) -> structure: parameter
-           "genbank_file" of type "File" -> structure: parameter "path" of
-           String, parameter "shock_id" of String, parameter "ftp_url" of
-           String, parameter "from_cache" of type "boolean" (A boolean - 0
-           for false, 1 for true. @range (0, 1))
+           "genbank_file" of type "GBFile" -> structure: parameter
+           "file_path" of String, parameter "from_cache" of type "boolean" (A
+           boolean - 0 for false, 1 for true. @range (0, 1))
         """
         # ctx is the context object
         # return variables are: result
@@ -396,6 +393,46 @@ class GenomeFileUtil:
         # At some point might do deeper type checking...
         if not isinstance(output, dict):
             raise ValueError('Method export_genome_as_gff return value ' +
+                             'output is not type dict as required.')
+        # return the results
+        return [output]
+
+    def export_genome_features_protein_to_fasta(self, ctx, params):
+        """
+        :param params: instance of type "ExportParams" (input and output
+           structure functions for standard downloaders) -> structure:
+           parameter "input_ref" of String
+        :returns: instance of type "ExportOutput" -> structure: parameter
+           "shock_id" of String
+        """
+        # ctx is the context object
+        # return variables are: output
+        #BEGIN export_genome_features_protein_to_fasta
+        print('export_genome_features_protein_to_fasta -- paramaters = ')
+
+        # validate parameters
+        if 'input_ref' not in params:
+            raise ValueError('Cannot run export_genome_features_protein_to_fasta - no "input_ref" field defined.')
+
+        # get WS metadata to get ws_name and obj_name
+        ws = Workspace(url=self.cfg.workspaceURL)
+        info = ws.get_object_info_new({'objects': [{'ref': params['input_ref']}],
+                                       'includeMetadata': 0, 'ignoreErrors': 0})[0]
+
+        genome_to_protein_fasta_params = {
+            'genome_ref': params['input_ref']
+        }
+
+        # export to file (building from KBase Genome Object)
+        result = self.genome_to_genbank(ctx, genome_to_protein_fasta_params)[0]['genbank_file']
+
+
+
+        #END export_genome_features_protein_to_fasta
+
+        # At some point might do deeper type checking...
+        if not isinstance(output, dict):
+            raise ValueError('Method export_genome_features_protein_to_fasta return value ' +
                              'output is not type dict as required.')
         # return the results
         return [output]

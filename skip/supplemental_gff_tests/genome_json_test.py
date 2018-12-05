@@ -7,13 +7,13 @@ import unittest
 from configparser import ConfigParser
 from os import environ
 
-from DataFileUtil.DataFileUtilClient import DataFileUtil
+from installed_clients.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import SDKConfig
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
 from GenomeFileUtil.core.FastaGFFToGenome import FastaGFFToGenome
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from installed_clients.WorkspaceClient import Workspace as workspaceService
 
 
 class FastaGFFToGenomeUploadTest(unittest.TestCase):

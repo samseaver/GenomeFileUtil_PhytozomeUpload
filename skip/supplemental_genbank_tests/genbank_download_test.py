@@ -11,11 +11,11 @@ try:
 except:
     from configparser import ConfigParser  # py3
 
-from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
+from installed_clients.AssemblyUtilClient import AssemblyUtil
 from GenomeAnnotationAPI.GenomeAnnotationAPIClient import GenomeAnnotationAPI
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from installed_clients.WorkspaceClient import Workspace as workspaceService
 
 
 class GenomeFileUtilTest(unittest.TestCase):

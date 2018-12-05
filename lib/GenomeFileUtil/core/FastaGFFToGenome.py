@@ -12,12 +12,12 @@ import copy
 import urllib.parse as parse
 
 # KBase imports
-from DataFileUtil.DataFileUtilClient import DataFileUtil
-from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
-from . import GenomeUtils
-from .GenomeUtils import is_parent, warnings, check_full_contig_length_or_multi_strand_feature
-from .GenomeUtils import propagate_cds_props_to_gene, load_ontology_mappings
-from .GenomeInterface import GenomeInterface
+from installed_clients.DataFileUtilClient import DataFileUtil
+from installed_clients.AssemblyUtilClient import AssemblyUtil
+from GenomeFileUtil.core import GenomeUtils
+from GenomeFileUtil.core.GenomeUtils import is_parent, warnings, check_full_contig_length_or_multi_strand_feature
+from GenomeFileUtil.core.GenomeUtils import propagate_cds_props_to_gene, load_ontology_mappings
+from GenomeFileUtil.core.GenomeInterface import GenomeInterface
 
 # 3rd party imports
 from Bio.Data import CodonTable
