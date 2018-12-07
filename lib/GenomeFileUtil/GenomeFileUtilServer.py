@@ -1,22 +1,28 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from wsgiref.simple_server import make_server
-import sys
-import json
-import traceback
 import datetime
-from multiprocessing import Process
+import json
+import os
+import random as _random
+import sys
+import traceback
 from getopt import getopt, GetoptError
-from jsonrpcbase import JSONRPCService, InvalidParamsError, KeywordError,\
+from multiprocessing import Process
+from os import environ
+from wsgiref.simple_server import make_server
+
+import requests as _requests
+from jsonrpcbase import JSONRPCService, InvalidParamsError, KeywordError, \
     JSONRPCError, InvalidRequestError
 from jsonrpcbase import ServerError as JSONServerError
-from os import environ
-from configparser import ConfigParser
+
 from biokbase import log
-import requests as _requests
-import random as _random
-import os
 from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
+
+try:
+    from ConfigParser import ConfigParser
+except ImportError:
+    from configparser import ConfigParser
 
 DEPLOY = 'KB_DEPLOYMENT_CONFIG'
 SERVICE = 'KB_SERVICE_NAME'
@@ -109,11 +115,10 @@ class JSONRPCServiceCustom(JSONRPCService):
             # Exception was raised inside the method.
             newerr = JSONServerError()
             newerr.trace = traceback.format_exc()
-            if isinstance(e.message, str):
-                newerr.data = e.message
+            if len(e.args) == 1:
+                newerr.data = repr(e.args[0])
             else:
-                # Some exceptions embed other exceptions as the message
-                newerr.data = repr(e.message)
+                newerr.data = repr(e.args)
             raise newerr
         return result
 
@@ -175,7 +180,7 @@ class JSONRPCServiceCustom(JSONRPCService):
 
     def _handle_request(self, ctx, request):
         """Handles given request and returns its response."""
-        if 'types' in self.method_data[request['method']]:  # noqa @IgnorePep8
+        if 'types' in self.method_data[request['method']]:
             self._validate_params_types(request['method'], request['params'])
 
         result = self._call_method(ctx, request)
@@ -345,6 +350,14 @@ class Application(object):
                              name='GenomeFileUtil.genome_to_genbank',
                              types=[dict])
         self.method_authentication['GenomeFileUtil.genome_to_genbank'] = 'required'  # noqa
+        self.rpc_service.add(impl_GenomeFileUtil.genome_features_to_fasta,
+                             name='GenomeFileUtil.genome_features_to_fasta',
+                             types=[dict])
+        self.method_authentication['GenomeFileUtil.genome_features_to_fasta'] = 'required'  # noqa
+        self.rpc_service.add(impl_GenomeFileUtil.genome_proteins_to_fasta,
+                             name='GenomeFileUtil.genome_proteins_to_fasta',
+                             types=[dict])
+        self.method_authentication['GenomeFileUtil.genome_proteins_to_fasta'] = 'required'  # noqa
         self.rpc_service.add(impl_GenomeFileUtil.export_genome_as_genbank,
                              name='GenomeFileUtil.export_genome_as_genbank',
                              types=[dict])
@@ -463,11 +476,11 @@ class Application(object):
                     rpc_result = self.process_error(err, ctx, req,
                                                     traceback.format_exc())
 
-        # print 'Request method was %s\n' % environ['REQUEST_METHOD']
-        # print 'Environment dictionary is:\n%s\n' % pprint.pformat(environ)
-        # print 'Request body was: %s' % request_body
-        # print 'Result from the method call is:\n%s\n' % \
-        #    pprint.pformat(rpc_result)
+        # print('Request method was %s\n' % environ['REQUEST_METHOD'])
+        # print('Environment dictionary is:\n%s\n' % pprint.pformat(environ))
+        # print('Request body was: %s' % request_body)
+        # print('Result from the method call is:\n%s\n' % \
+        #    pprint.pformat(rpc_result))
 
         if rpc_result:
             response_body = rpc_result
@@ -481,7 +494,7 @@ class Application(object):
             ('content-type', 'application/json'),
             ('content-length', str(len(response_body)))]
         start_response(status, response_headers)
-        return [response_body]
+        return [response_body.encode('utf8')]
 
     def process_error(self, error, context, request, trace=None):
         if trace:
@@ -650,7 +663,7 @@ if __name__ == "__main__":
             assert False, "unhandled option"
 
     start_server(host=host, port=port)
-#    print "Listening on port %s" % port
+#    print("Listening on port %s" % port)
 #    httpd = make_server( host, port, application)
 #
 #    httpd.serve_forever()

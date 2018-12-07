@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #BEGIN_HEADER
 
+import logging
 import os
 import shutil
 import json
@@ -11,6 +12,7 @@ from GenomeFileUtil.core.GenomeToGFF import GenomeToGFF
 from GenomeFileUtil.core.GenomeToGenbank import GenomeToGenbank
 from GenomeFileUtil.core.FastaGFFToGenome import FastaGFFToGenome
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
+from GenomeFileUtil.core.GenomeFeaturesToFasta import GenomeFeaturesToFasta
 
 from Workspace.WorkspaceClient import Workspace
 from DataFileUtil.DataFileUtilClient import DataFileUtil
@@ -47,9 +49,9 @@ class GenomeFileUtil:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "0.8.6"
+    VERSION = "0.8.9"
     GIT_URL = "https://github.com/kbaseapps/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "02c587de19839c8962d43b81e299bd9f712604bf"
+    GIT_COMMIT_HASH = "4a8b0e79ec1763613a5161dcabb28702655fc28e"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -59,6 +61,8 @@ class GenomeFileUtil:
     def __init__(self, config):
         #BEGIN_CONSTRUCTOR
         self.cfg = SDKConfig(config)
+        logging.basicConfig(format='%(created)s %(levelname)s: %(message)s',
+                            level=logging.INFO)
         #END_CONSTRUCTOR
         pass
 
@@ -181,6 +185,73 @@ class GenomeFileUtil:
         # At some point might do deeper type checking...
         if not isinstance(result, dict):
             raise ValueError('Method genome_to_genbank return value ' +
+                             'result is not type dict as required.')
+        # return the results
+        return [result]
+
+    def genome_features_to_fasta(self, ctx, params):
+        """
+        :param params: instance of type "GenomeFeaturesToFastaParams"
+           (Produce a FASTA file with the nucleotide sequences of features in
+           a genome. string genome_ref: reference to a genome object
+           list<string> feature_lists: Optional, which features lists
+           (features, mrnas, cdss, non_coding_features) to provide sequences.
+           Defaults to "features". list<string> filter_ids: Optional, if
+           provided only return sequences for matching features. boolean
+           include_functions: Optional, add function to header line. Defaults
+           to True. boolean include_aliases: Optional, add aliases to header
+           line. Defaults to True.) -> structure: parameter "genome_ref" of
+           String, parameter "feature_lists" of list of String, parameter
+           "filter_ids" of list of String, parameter "include_functions" of
+           type "boolean" (A boolean - 0 for false, 1 for true. @range (0,
+           1)), parameter "include_aliases" of type "boolean" (A boolean - 0
+           for false, 1 for true. @range (0, 1))
+        :returns: instance of type "FASTAResult" -> structure: parameter
+           "file_path" of String
+        """
+        # ctx is the context object
+        # return variables are: result
+        #BEGIN genome_features_to_fasta
+        logging.info(f"Running genome_features_to_fasta with the following params: {params}")
+        exporter = GenomeFeaturesToFasta(self.cfg)
+        result = exporter.export(ctx, params, protein=False)
+        #END genome_features_to_fasta
+
+        # At some point might do deeper type checking...
+        if not isinstance(result, dict):
+            raise ValueError('Method genome_features_to_fasta return value ' +
+                             'result is not type dict as required.')
+        # return the results
+        return [result]
+
+    def genome_proteins_to_fasta(self, ctx, params):
+        """
+        :param params: instance of type "GenomeProteinToFastaParams" (Produce
+           a FASTA file with the protein sequences of CDSs in a genome.
+           string genome_ref: reference to a genome object list<string>
+           filter_ids: Optional, if provided only return sequences for
+           matching features. boolean include_functions: Optional, add
+           function to header line. Defaults to True. boolean
+           include_aliases: Optional, add aliases to header line. Defaults to
+           True.) -> structure: parameter "genome_ref" of String, parameter
+           "filter_ids" of list of String, parameter "include_functions" of
+           type "boolean" (A boolean - 0 for false, 1 for true. @range (0,
+           1)), parameter "include_aliases" of type "boolean" (A boolean - 0
+           for false, 1 for true. @range (0, 1))
+        :returns: instance of type "FASTAResult" -> structure: parameter
+           "file_path" of String
+        """
+        # ctx is the context object
+        # return variables are: result
+        #BEGIN genome_proteins_to_fasta
+        logging.info(f"Running genome_proteins_to_fasta with the following params: {params}")
+        exporter = GenomeFeaturesToFasta(self.cfg)
+        result = exporter.export(ctx, params, protein=True)
+        #END genome_proteins_to_fasta
+
+        # At some point might do deeper type checking...
+        if not isinstance(result, dict):
+            raise ValueError('Method genome_proteins_to_fasta return value ' +
                              'result is not type dict as required.')
         # return the results
         return [result]
@@ -460,46 +531,47 @@ class GenomeFileUtil:
            source as Source @metadata ws scientific_name as Name @metadata ws
            length(features) as Number of Protein Encoding Genes @metadata ws
            length(cdss) as Number of CDS @metadata ws assembly_ref as
-           Assembly Object @metadata ws num_contigs as Number contigs) ->
-           structure: parameter "id" of type "Genome_id" (KBase genome ID @id
-           kb), parameter "scientific_name" of String, parameter "domain" of
-           String, parameter "warnings" of list of String, parameter
-           "genome_tiers" of list of String, parameter "feature_counts" of
-           mapping from String to Long, parameter "genetic_code" of Long,
-           parameter "dna_size" of Long, parameter "num_contigs" of Long,
-           parameter "molecule_type" of String, parameter "contig_lengths" of
-           list of Long, parameter "contig_ids" of list of String, parameter
-           "source" of String, parameter "source_id" of type "source_id"
-           (Reference to a source_id @id external), parameter "md5" of
-           String, parameter "taxonomy" of String, parameter "gc_content" of
-           Double, parameter "publications" of list of type "publication"
-           (Structure for a publication (float pubmedid string source (ex.
-           Pubmed) string title string web address string  publication year
-           string authors string journal)) -> tuple of size 7: parameter
-           "pubmedid" of Double, parameter "source" of String, parameter
-           "title" of String, parameter "url" of String, parameter "year" of
-           String, parameter "authors" of String, parameter "journal" of
-           String, parameter "ontology_events" of list of type
-           "Ontology_event" (@optional ontology_ref method_version eco) ->
-           structure: parameter "id" of String, parameter "ontology_ref" of
-           type "Ontology_ref" (Reference to a ontology object @id ws
-           KBaseOntology.OntologyDictionary), parameter "method" of String,
-           parameter "method_version" of String, parameter "timestamp" of
-           String, parameter "eco" of String, parameter "ontologies_present"
-           of mapping from String to mapping from String to String, parameter
-           "features" of list of type "Feature" (Structure for a single CDS
-           encoding ???gene??? of a genome ONLY PUT GENES THAT HAVE A
-           CORRESPONDING CDS IN THIS ARRAY NOTE: Sequence is optional.
-           Ideally we can keep it in here, but Recognize due to space
-           constraints another solution may be needed. We may want to add
-           additional fields for other CDM functions (e.g., atomic regulons,
-           coexpressed fids, co_occurring fids,...)
-           protein_translation_length and protein_translation are for longest
-           coded protein (representative protein for splice variants) NOTE:
-           New Aliases field definitely breaks compatibility. As Does
-           Function. flags are flag fields in GenBank format. This will be a
-           controlled vocabulary. Initially Acceptable values are pseudo,
-           ribosomal_slippage, and trans_splicing Md5 is the md5 of
+           Assembly Object @metadata ws num_contigs as Number contigs
+           @metadata ws length(warnings) as Number of Genome Level Warnings
+           @metadata ws suspect as Suspect Genome) -> structure: parameter
+           "id" of type "Genome_id" (KBase genome ID @id kb), parameter
+           "scientific_name" of String, parameter "domain" of String,
+           parameter "warnings" of list of String, parameter "genome_tiers"
+           of list of String, parameter "feature_counts" of mapping from
+           String to Long, parameter "genetic_code" of Long, parameter
+           "dna_size" of Long, parameter "num_contigs" of Long, parameter
+           "molecule_type" of String, parameter "contig_lengths" of list of
+           Long, parameter "contig_ids" of list of String, parameter "source"
+           of String, parameter "source_id" of type "source_id" (Reference to
+           a source_id @id external), parameter "md5" of String, parameter
+           "taxonomy" of String, parameter "gc_content" of Double, parameter
+           "publications" of list of type "publication" (Structure for a
+           publication (float pubmedid string source (ex. Pubmed) string
+           title string web address string  publication year string authors
+           string journal)) -> tuple of size 7: parameter "pubmedid" of
+           Double, parameter "source" of String, parameter "title" of String,
+           parameter "url" of String, parameter "year" of String, parameter
+           "authors" of String, parameter "journal" of String, parameter
+           "ontology_events" of list of type "Ontology_event" (@optional
+           ontology_ref method_version eco) -> structure: parameter "id" of
+           String, parameter "ontology_ref" of type "Ontology_ref" (Reference
+           to a ontology object @id ws KBaseOntology.OntologyDictionary),
+           parameter "method" of String, parameter "method_version" of
+           String, parameter "timestamp" of String, parameter "eco" of
+           String, parameter "ontologies_present" of mapping from String to
+           mapping from String to String, parameter "features" of list of
+           type "Feature" (Structure for a single CDS encoding ???gene??? of
+           a genome ONLY PUT GENES THAT HAVE A CORRESPONDING CDS IN THIS
+           ARRAY NOTE: Sequence is optional. Ideally we can keep it in here,
+           but Recognize due to space constraints another solution may be
+           needed. We may want to add additional fields for other CDM
+           functions (e.g., atomic regulons, coexpressed fids, co_occurring
+           fids,...) protein_translation_length and protein_translation are
+           for longest coded protein (representative protein for splice
+           variants) NOTE: New Aliases field definitely breaks compatibility.
+           As Does Function. flags are flag fields in GenBank format. This
+           will be a controlled vocabulary. Initially Acceptable values are
+           pseudo, ribosomal_slippage, and trans_splicing Md5 is the md5 of
            dna_sequence. @optional functions ontology_terms note
            protein_translation mrnas flags warnings @optional inference_data
            dna_sequence aliases db_xrefs children functional_descriptions) ->
@@ -556,8 +628,8 @@ class GenomeFileUtil:
            GenBank format. This will be a controlled vocabulary. Initially
            Acceptable values are pseudo, ribosomal_slippage, and
            trans_splicing Md5 is the md5 of dna_sequence. @optional
-           parent_mrna functions ontology_terms note flags warnings @optional
-           inference_data dna_sequence aliases db_xrefs
+           parent_gene parent_mrna functions ontology_terms note flags
+           warnings @optional inference_data dna_sequence aliases db_xrefs
            functional_descriptions) -> structure: parameter "id" of type
            "cds_id" (KBase CDS ID @id external), parameter "location" of list
            of tuple of size 4: type "Contig_id" (ContigSet contig ID @id
@@ -583,9 +655,9 @@ class GenomeFileUtil:
            of type "mRNA" (Structure for a single feature mRNA flags are flag
            fields in GenBank format. This will be a controlled vocabulary.
            Initially Acceptable values are pseudo, ribosomal_slippage, and
-           trans_splicing Md5 is the md5 of dna_sequence. @optional cds
-           functions ontology_terms note flags warnings @optional
-           inference_data dna_sequence aliases db_xrefs
+           trans_splicing Md5 is the md5 of dna_sequence. @optional
+           parent_gene cds functions ontology_terms note flags warnings
+           @optional inference_data dna_sequence aliases db_xrefs
            functional_descriptions) -> structure: parameter "id" of type
            "mrna_id" (KBase mRNA ID @id external), parameter "location" of
            list of tuple of size 4: type "Contig_id" (ContigSet contig ID @id
