@@ -101,6 +101,50 @@ module GenomeFileUtil {
                 returns (GenomeToGenbankResult result) authentication required;
 
 
+    typedef structure {
+        string file_path;
+    } FASTAResult;
+
+    /*
+        Produce a FASTA file with the nucleotide sequences of features in a genome.
+
+        string genome_ref: reference to a genome object
+        list<string> feature_lists: Optional, which features lists (features, mrnas, cdss, non_coding_features) to provide sequences. Defaults to "features".
+        list<string> filter_ids: Optional, if provided only return sequences for matching features.
+        boolean include_functions: Optional, add function to header line. Defaults to True.
+        boolean include_aliases: Optional, add aliases to header line. Defaults to True.
+    */
+    typedef structure {
+        string genome_ref;
+        list<string> feature_lists;
+        list<string> filter_ids;
+        boolean include_functions;
+        boolean include_aliases;
+    } GenomeFeaturesToFastaParams;
+
+    funcdef genome_features_to_fasta(GenomeFeaturesToFastaParams params)
+                returns (FASTAResult result) authentication required;
+
+    /*
+        Produce a FASTA file with the protein sequences of CDSs in a genome.
+
+        string genome_ref: reference to a genome object
+        list<string> filter_ids: Optional, if provided only return sequences for matching features.
+        boolean include_functions: Optional, add function to header line. Defaults to True.
+        boolean include_aliases: Optional, add aliases to header line. Defaults to True.
+    */
+
+    typedef structure {
+        string genome_ref;
+        list<string> filter_ids;
+        boolean include_functions;
+        boolean include_aliases;
+    } GenomeProteinToFastaParams;
+
+    funcdef genome_proteins_to_fasta(GenomeProteinToFastaParams params)
+                returns (FASTAResult result) authentication required;
+
+
     /*  input and output structure functions for standard downloaders */
     typedef structure {
         string input_ref;
@@ -114,9 +158,6 @@ module GenomeFileUtil {
                 returns (ExportOutput output) authentication required;
 
     funcdef export_genome_as_gff(ExportParams params)
-                returns (ExportOutput output) authentication required;
-
-    funcdef export_genome_features_protein_to_fasta(ExportParams params)
                 returns (ExportOutput output) authentication required;
 
     /* 

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #BEGIN_HEADER
 
+import logging
 import os
 import shutil
 import json
@@ -11,7 +12,7 @@ from GenomeFileUtil.core.GenomeToGFF import GenomeToGFF
 from GenomeFileUtil.core.GenomeToGenbank import GenomeToGenbank
 from GenomeFileUtil.core.FastaGFFToGenome import FastaGFFToGenome
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
-from GenomeFileUtil.core.GenomeFeaturesProteinToFasta import GenomeFeaturesProteinToFasta
+from GenomeFileUtil.core.GenomeFeaturesToFasta import GenomeFeaturesToFasta
 
 from Workspace.WorkspaceClient import Workspace
 from DataFileUtil.DataFileUtilClient import DataFileUtil
@@ -49,8 +50,8 @@ class GenomeFileUtil:
     # the latter method is running.
     ######################################### noqa
     VERSION = "0.8.9"
-    GIT_URL = "https://github.com/kbaseapps/GenomeFileUtil"
-    GIT_COMMIT_HASH = "7e1e3ee1deb07df465393a84e96250e30d851343"
+    GIT_URL = "https://github.com/kbaseapps/GenomeFileUtil.git"
+    GIT_COMMIT_HASH = "4a8b0e79ec1763613a5161dcabb28702655fc28e"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -60,6 +61,8 @@ class GenomeFileUtil:
     def __init__(self, config):
         #BEGIN_CONSTRUCTOR
         self.cfg = SDKConfig(config)
+        logging.basicConfig(format='%(created)s %(levelname)s: %(message)s',
+                            level=logging.INFO)
         #END_CONSTRUCTOR
         pass
 
@@ -182,6 +185,73 @@ class GenomeFileUtil:
         # At some point might do deeper type checking...
         if not isinstance(result, dict):
             raise ValueError('Method genome_to_genbank return value ' +
+                             'result is not type dict as required.')
+        # return the results
+        return [result]
+
+    def genome_features_to_fasta(self, ctx, params):
+        """
+        :param params: instance of type "GenomeFeaturesToFastaParams"
+           (Produce a FASTA file with the nucleotide sequences of features in
+           a genome. string genome_ref: reference to a genome object
+           list<string> feature_lists: Optional, which features lists
+           (features, mrnas, cdss, non_coding_features) to provide sequences.
+           Defaults to "features". list<string> filter_ids: Optional, if
+           provided only return sequences for matching features. boolean
+           include_functions: Optional, add function to header line. Defaults
+           to True. boolean include_aliases: Optional, add aliases to header
+           line. Defaults to True.) -> structure: parameter "genome_ref" of
+           String, parameter "feature_lists" of list of String, parameter
+           "filter_ids" of list of String, parameter "include_functions" of
+           type "boolean" (A boolean - 0 for false, 1 for true. @range (0,
+           1)), parameter "include_aliases" of type "boolean" (A boolean - 0
+           for false, 1 for true. @range (0, 1))
+        :returns: instance of type "FASTAResult" -> structure: parameter
+           "file_path" of String
+        """
+        # ctx is the context object
+        # return variables are: result
+        #BEGIN genome_features_to_fasta
+        logging.info(f"Running genome_features_to_fasta with the following params: {params}")
+        exporter = GenomeFeaturesToFasta(self.cfg)
+        result = exporter.export(ctx, params, protein=False)
+        #END genome_features_to_fasta
+
+        # At some point might do deeper type checking...
+        if not isinstance(result, dict):
+            raise ValueError('Method genome_features_to_fasta return value ' +
+                             'result is not type dict as required.')
+        # return the results
+        return [result]
+
+    def genome_proteins_to_fasta(self, ctx, params):
+        """
+        :param params: instance of type "GenomeProteinToFastaParams" (Produce
+           a FASTA file with the protein sequences of CDSs in a genome.
+           string genome_ref: reference to a genome object list<string>
+           filter_ids: Optional, if provided only return sequences for
+           matching features. boolean include_functions: Optional, add
+           function to header line. Defaults to True. boolean
+           include_aliases: Optional, add aliases to header line. Defaults to
+           True.) -> structure: parameter "genome_ref" of String, parameter
+           "filter_ids" of list of String, parameter "include_functions" of
+           type "boolean" (A boolean - 0 for false, 1 for true. @range (0,
+           1)), parameter "include_aliases" of type "boolean" (A boolean - 0
+           for false, 1 for true. @range (0, 1))
+        :returns: instance of type "FASTAResult" -> structure: parameter
+           "file_path" of String
+        """
+        # ctx is the context object
+        # return variables are: result
+        #BEGIN genome_proteins_to_fasta
+        logging.info(f"Running genome_proteins_to_fasta with the following params: {params}")
+        exporter = GenomeFeaturesToFasta(self.cfg)
+        result = exporter.export(ctx, params, protein=True)
+        #END genome_proteins_to_fasta
+
+        # At some point might do deeper type checking...
+        if not isinstance(result, dict):
+            raise ValueError('Method genome_proteins_to_fasta return value ' +
                              'result is not type dict as required.')
         # return the results
         return [result]
@@ -326,46 +396,6 @@ class GenomeFileUtil:
         # At some point might do deeper type checking...
         if not isinstance(output, dict):
             raise ValueError('Method export_genome_as_gff return value ' +
-                             'output is not type dict as required.')
-        # return the results
-        return [output]
-
-    def export_genome_features_protein_to_fasta(self, ctx, params):
-        """
-        :param params: instance of type "ExportParams" (input and output
-           structure functions for standard downloaders) -> structure:
-           parameter "input_ref" of String
-        :returns: instance of type "ExportOutput" -> structure: parameter
-           "shock_id" of String
-        """
-        # ctx is the context object
-        # return variables are: output
-        #BEGIN export_genome_features_protein_to_fasta
-        print('export_genome_features_protein_to_fasta -- paramaters = ')
-
-        # validate parameters
-        if 'input_ref' not in params:
-            raise ValueError('Cannot run export_genome_features_protein_to_fasta - no "input_ref" field defined.')
-
-        # get WS metadata to get ws_name and obj_name
-        ws = Workspace(url=self.cfg.workspaceURL)
-        info = ws.get_object_info_new({'objects': [{'ref': params['input_ref']}],
-                                       'includeMetadata': 0, 'ignoreErrors': 0})[0]
-
-        genome_to_protein_fasta_params = {
-            'genome_ref': params['input_ref']
-        }
-
-        # export to file (building from KBase Genome Object)
-        result = self.genome_to_genbank(ctx, genome_to_genbank_params)[0]['genbank_file']
-
-
-
-        #END export_genome_features_protein_to_fasta
-
-        # At some point might do deeper type checking...
-        if not isinstance(output, dict):
-            raise ValueError('Method export_genome_features_protein_to_fasta return value ' +
                              'output is not type dict as required.')
         # return the results
         return [output]
@@ -530,18 +560,18 @@ class GenomeFileUtil:
            String, parameter "timestamp" of String, parameter "eco" of
            String, parameter "ontologies_present" of mapping from String to
            mapping from String to String, parameter "features" of list of
-           type "Feature" (Structure for a single CDS encoding “gene” of a
-           genome ONLY PUT GENES THAT HAVE A CORRESPONDING CDS IN THIS ARRAY
-           NOTE: Sequence is optional. Ideally we can keep it in here, but
-           Recognize due to space constraints another solution may be needed.
-           We may want to add additional fields for other CDM functions
-           (e.g., atomic regulons, coexpressed fids, co_occurring fids,...)
-           protein_translation_length and protein_translation are for longest
-           coded protein (representative protein for splice variants) NOTE:
-           New Aliases field definitely breaks compatibility. As Does
-           Function. flags are flag fields in GenBank format. This will be a
-           controlled vocabulary. Initially Acceptable values are pseudo,
-           ribosomal_slippage, and trans_splicing Md5 is the md5 of
+           type "Feature" (Structure for a single CDS encoding ???gene??? of
+           a genome ONLY PUT GENES THAT HAVE A CORRESPONDING CDS IN THIS
+           ARRAY NOTE: Sequence is optional. Ideally we can keep it in here,
+           but Recognize due to space constraints another solution may be
+           needed. We may want to add additional fields for other CDM
+           functions (e.g., atomic regulons, coexpressed fids, co_occurring
+           fids,...) protein_translation_length and protein_translation are
+           for longest coded protein (representative protein for splice
+           variants) NOTE: New Aliases field definitely breaks compatibility.
+           As Does Function. flags are flag fields in GenBank format. This
+           will be a controlled vocabulary. Initially Acceptable values are
+           pseudo, ribosomal_slippage, and trans_splicing Md5 is the md5 of
            dna_sequence. @optional functions ontology_terms note
            protein_translation mrnas flags warnings @optional inference_data
            dna_sequence aliases db_xrefs children functional_descriptions) ->

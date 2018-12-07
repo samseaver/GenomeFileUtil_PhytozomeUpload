@@ -214,6 +214,40 @@ public class GenomeFileUtilClient {
     }
 
     /**
+     * <p>Original spec-file function name: genome_features_to_fasta</p>
+     * <pre>
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.genomefileutil.GenomeFeaturesToFastaParams GenomeFeaturesToFastaParams}
+     * @return   parameter "result" of type {@link us.kbase.genomefileutil.FASTAResult FASTAResult}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public FASTAResult genomeFeaturesToFasta(GenomeFeaturesToFastaParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<FASTAResult>> retType = new TypeReference<List<FASTAResult>>() {};
+        List<FASTAResult> res = caller.jsonrpcCall("GenomeFileUtil.genome_features_to_fasta", args, retType, true, true, jsonRpcContext, this.serviceVersion);
+        return res.get(0);
+    }
+
+    /**
+     * <p>Original spec-file function name: genome_proteins_to_fasta</p>
+     * <pre>
+     * </pre>
+     * @param   params   instance of type {@link us.kbase.genomefileutil.GenomeProteinToFastaParams GenomeProteinToFastaParams}
+     * @return   parameter "result" of type {@link us.kbase.genomefileutil.FASTAResult FASTAResult}
+     * @throws IOException if an IO exception occurs
+     * @throws JsonClientException if a JSON RPC exception occurs
+     */
+    public FASTAResult genomeProteinsToFasta(GenomeProteinToFastaParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+        List<Object> args = new ArrayList<Object>();
+        args.add(params);
+        TypeReference<List<FASTAResult>> retType = new TypeReference<List<FASTAResult>>() {};
+        List<FASTAResult> res = caller.jsonrpcCall("GenomeFileUtil.genome_proteins_to_fasta", args, retType, true, true, jsonRpcContext, this.serviceVersion);
+        return res.get(0);
+    }
+
+    /**
      * <p>Original spec-file function name: export_genome_as_genbank</p>
      * <pre>
      * </pre>
@@ -244,23 +278,6 @@ public class GenomeFileUtilClient {
         args.add(params);
         TypeReference<List<ExportOutput>> retType = new TypeReference<List<ExportOutput>>() {};
         List<ExportOutput> res = caller.jsonrpcCall("GenomeFileUtil.export_genome_as_gff", args, retType, true, true, jsonRpcContext, this.serviceVersion);
-        return res.get(0);
-    }
-
-    /**
-     * <p>Original spec-file function name: export_genome_features_protein_to_fasta</p>
-     * <pre>
-     * </pre>
-     * @param   params   instance of type {@link us.kbase.genomefileutil.ExportParams ExportParams}
-     * @return   parameter "output" of type {@link us.kbase.genomefileutil.ExportOutput ExportOutput}
-     * @throws IOException if an IO exception occurs
-     * @throws JsonClientException if a JSON RPC exception occurs
-     */
-    public ExportOutput exportGenomeFeaturesProteinToFasta(ExportParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
-        List<Object> args = new ArrayList<Object>();
-        args.add(params);
-        TypeReference<List<ExportOutput>> retType = new TypeReference<List<ExportOutput>>() {};
-        List<ExportOutput> res = caller.jsonrpcCall("GenomeFileUtil.export_genome_features_protein_to_fasta", args, retType, true, true, jsonRpcContext, this.serviceVersion);
         return res.get(0);
     }
 

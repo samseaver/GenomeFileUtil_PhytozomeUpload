@@ -17,7 +17,7 @@ import us.kbase.common.service.Tuple4;
 /**
  * <p>Original spec-file type: Feature</p>
  * <pre>
- * Structure for a single CDS encoding “gene” of a genome
+ * Structure for a single CDS encoding ???gene??? of a genome
  * ONLY PUT GENES THAT HAVE A CORRESPONDING CDS IN THIS ARRAY
  *     NOTE: Sequence is optional. Ideally we can keep it in here, but
  * Recognize due to space constraints another solution may be needed.
