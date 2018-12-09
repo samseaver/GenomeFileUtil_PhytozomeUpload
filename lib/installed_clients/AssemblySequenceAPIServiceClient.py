@@ -12,7 +12,7 @@ from __future__ import print_function
 try:
     # baseclient and this client are in a package
     from .baseclient import BaseClient as _BaseClient  # @UnusedImport
-except:
+except ImportError:
     # no they aren't
     from baseclient import BaseClient as _BaseClient  # @Reimport
 
@@ -50,9 +50,8 @@ class AssemblySequenceAPI(object):
         :returns: instance of type "GetDNASequencesOutput" -> structure:
            parameter "dna_sequences" of mapping from String to String
         """
-        return self._client.call_method(
-            'AssemblySequenceAPI.get_dna_sequences',
-            [params], self._service_ver, context)
+        return self._client.call_method('AssemblySequenceAPI.get_dna_sequences',
+                                        [params], self._service_ver, context)
 
     def status(self, context=None):
         return self._client.call_method('AssemblySequenceAPI.status',

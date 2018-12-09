@@ -12,7 +12,7 @@ from __future__ import print_function
 try:
     # baseclient and this client are in a package
     from .baseclient import BaseClient as _BaseClient  # @UnusedImport
-except:
+except ImportError:
     # no they aren't
     from baseclient import BaseClient as _BaseClient  # @Reimport
 
@@ -38,9 +38,8 @@ class Workspace(object):
         Returns the version of the workspace service.
         :returns: instance of String
         """
-        return self._client.call_method(
-            'Workspace.ver',
-            [], self._service_ver, context)
+        return self._client.call_method('Workspace.ver',
+                                        [], self._service_ver, context)
 
     def create_workspace(self, params, context=None):
         """
@@ -104,9 +103,8 @@ class Workspace(object):
            object. Arbitrary key-value pairs provided by the user.) ->
            mapping from String to String
         """
-        return self._client.call_method(
-            'Workspace.create_workspace',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.create_workspace',
+                                        [params], self._service_ver, context)
 
     def alter_workspace_metadata(self, params, context=None):
         """
@@ -119,12 +117,10 @@ class Workspace(object):
            overwritten. list<string> remove - these keys will be removed from
            the workspace metadata key/value pairs.) -> structure: parameter
            "wsi" of type "WorkspaceIdentity" (A workspace identifier. Select
-           a workspace by one, and only one, of the numerical id or name,
-           where the name can also be a KBase ID including the numerical id,
-           e.g. kb|ws.35. ws_id id - the numerical ID of the workspace.
-           ws_name workspace - name of the workspace or the workspace ID in
-           KBase format, e.g. kb|ws.78.) -> structure: parameter "workspace"
-           of type "ws_name" (A string used as a name for a workspace. Any
+           a workspace by one, and only one, of the numerical id or name.
+           ws_id id - the numerical ID of the workspace. ws_name workspace -
+           the name of the workspace.) -> structure: parameter "workspace" of
+           type "ws_name" (A string used as a name for a workspace. Any
            string consisting of alphanumeric characters and "_", ".", or "-"
            that is not an integer is acceptable. The name may optionally be
            prefixed with the workspace owner's user name and a colon, e.g.
@@ -134,9 +130,8 @@ class Workspace(object):
            Arbitrary key-value pairs provided by the user.) -> mapping from
            String to String, parameter "remove" of list of String
         """
-        return self._client.call_method(
-            'Workspace.alter_workspace_metadata',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.alter_workspace_metadata',
+                                        [params], self._service_ver, context)
 
     def clone_workspace(self, params, context=None):
         """
@@ -158,11 +153,9 @@ class Workspace(object):
            reference strings, workspace names or IDs, and versions are
            ignored.) -> structure: parameter "wsi" of type
            "WorkspaceIdentity" (A workspace identifier. Select a workspace by
-           one, and only one, of the numerical id or name, where the name can
-           also be a KBase ID including the numerical id, e.g. kb|ws.35.
-           ws_id id - the numerical ID of the workspace. ws_name workspace -
-           name of the workspace or the workspace ID in KBase format, e.g.
-           kb|ws.78.) -> structure: parameter "workspace" of type "ws_name"
+           one, and only one, of the numerical id or name. ws_id id - the
+           numerical ID of the workspace. ws_name workspace - the name of the
+           workspace.) -> structure: parameter "workspace" of type "ws_name"
            (A string used as a name for a workspace. Any string consisting of
            alphanumeric characters and "_", ".", or "-" that is not an
            integer is acceptable. The name may optionally be prefixed with
@@ -182,14 +175,12 @@ class Workspace(object):
            provided by the user.) -> mapping from String to String, parameter
            "exclude" of list of type "ObjectIdentity" (An object identifier.
            Select an object by either: One, and only one, of the numerical id
-           or name of the workspace, where the name can also be a KBase ID
-           including the numerical id, e.g. kb|ws.35. ws_id wsid - the
-           numerical ID of the workspace. ws_name workspace - name of the
-           workspace or the workspace ID in KBase format, e.g. kb|ws.78. AND
-           One, and only one, of the numerical id or name of the object.
-           obj_id objid- the numerical ID of the object. obj_name name - name
-           of the object. OPTIONALLY obj_ver ver - the version of the object.
-           OR an object reference string: obj_ref ref - an object reference
+           or name of the workspace. ws_id wsid - the numerical ID of the
+           workspace. ws_name workspace - the name of the workspace. AND One,
+           and only one, of the numerical id or name of the object. obj_id
+           objid- the numerical ID of the object. obj_name name - name of the
+           object. OPTIONALLY obj_ver ver - the version of the object. OR an
+           object reference string: obj_ref ref - an object reference
            string.) -> structure: parameter "workspace" of type "ws_name" (A
            string used as a name for a workspace. Any string consisting of
            alphanumeric characters and "_", ".", or "-" that is not an
@@ -204,18 +195,14 @@ class Workspace(object):
            parameter "ver" of type "obj_ver" (An object version. The version
            of the object, starting at 1.), parameter "ref" of type "obj_ref"
            (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.)
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.)
         :returns: instance of type "workspace_info" (Information about a
            workspace. ws_id id - the numerical ID of the workspace. ws_name
            workspace - name of the workspace. username owner - name of the
@@ -255,26 +242,23 @@ class Workspace(object):
            object. Arbitrary key-value pairs provided by the user.) ->
            mapping from String to String
         """
-        return self._client.call_method(
-            'Workspace.clone_workspace',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.clone_workspace',
+                                        [params], self._service_ver, context)
 
     def lock_workspace(self, wsi, context=None):
         """
         Lock a workspace, preventing further changes.
-            WARNING: Locking a workspace is permanent. A workspace, once locked,
-            cannot be unlocked.
-            
-            The only changes allowed for a locked workspace are changing user
-            based permissions or making a private workspace globally readable,
-            thus permanently publishing the workspace. A locked, globally readable
-            workspace cannot be made private.
+                WARNING: Locking a workspace is permanent. A workspace, once locked,
+                cannot be unlocked.
+                
+                The only changes allowed for a locked workspace are changing user
+                based permissions or making a private workspace globally readable,
+                thus permanently publishing the workspace. A locked, globally readable
+                workspace cannot be made private.
         :param wsi: instance of type "WorkspaceIdentity" (A workspace
            identifier. Select a workspace by one, and only one, of the
-           numerical id or name, where the name can also be a KBase ID
-           including the numerical id, e.g. kb|ws.35. ws_id id - the
-           numerical ID of the workspace. ws_name workspace - name of the
-           workspace or the workspace ID in KBase format, e.g. kb|ws.78.) ->
+           numerical id or name. ws_id id - the numerical ID of the
+           workspace. ws_name workspace - the name of the workspace.) ->
            structure: parameter "workspace" of type "ws_name" (A string used
            as a name for a workspace. Any string consisting of alphanumeric
            characters and "_", ".", or "-" that is not an integer is
@@ -321,31 +305,29 @@ class Workspace(object):
            object. Arbitrary key-value pairs provided by the user.) ->
            mapping from String to String
         """
-        return self._client.call_method(
-            'Workspace.lock_workspace',
-            [wsi], self._service_ver, context)
+        return self._client.call_method('Workspace.lock_workspace',
+                                        [wsi], self._service_ver, context)
 
     def get_workspacemeta(self, params, context=None):
         """
         Retrieves the metadata associated with the specified workspace.
         Provided for backwards compatibility. 
         @deprecated Workspace.get_workspace_info
-        :param params: instance of type "get_workspacemeta_params" (Input
-           parameters for the "get_workspacemeta" function. Provided for
-           backwards compatibility. One, and only one of: ws_name workspace -
-           name of the workspace or the workspace ID in KBase format, e.g.
-           kb|ws.78. ws_id id - the numerical ID of the workspace. Optional
-           arguments: string auth - the authentication token of the KBase
-           account accessing the workspace. Overrides the client provided
-           authorization credentials if they exist. @deprecated
-           Workspace.WorkspaceIdentity) -> structure: parameter "workspace"
-           of type "ws_name" (A string used as a name for a workspace. Any
-           string consisting of alphanumeric characters and "_", ".", or "-"
-           that is not an integer is acceptable. The name may optionally be
-           prefixed with the workspace owner's user name and a colon, e.g.
-           kbasetest:my_workspace.), parameter "id" of type "ws_id" (The
-           unique, permanent numerical ID of a workspace.), parameter "auth"
-           of String
+        :param params: instance of type "get_workspacemeta_params"
+           (DEPRECATED Input parameters for the "get_workspacemeta" function.
+           Provided for backwards compatibility. One, and only one of:
+           ws_name workspace - name of the workspace. ws_id id - the
+           numerical ID of the workspace. Optional arguments: string auth -
+           the authentication token of the KBase account accessing the
+           workspace. Overrides the client provided authorization credentials
+           if they exist. @deprecated Workspace.WorkspaceIdentity) ->
+           structure: parameter "workspace" of type "ws_name" (A string used
+           as a name for a workspace. Any string consisting of alphanumeric
+           characters and "_", ".", or "-" that is not an integer is
+           acceptable. The name may optionally be prefixed with the workspace
+           owner's user name and a colon, e.g. kbasetest:my_workspace.),
+           parameter "id" of type "ws_id" (The unique, permanent numerical ID
+           of a workspace.), parameter "auth" of String
         :returns: instance of type "workspace_metadata" (Meta data associated
            with a workspace. Provided for backwards compatibility. To be
            replaced by workspace_info. ws_name id - name of the workspace
@@ -378,19 +360,16 @@ class Workspace(object):
            read. 'n' - no permissions.), parameter "num_id" of type "ws_id"
            (The unique, permanent numerical ID of a workspace.)
         """
-        return self._client.call_method(
-            'Workspace.get_workspacemeta',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.get_workspacemeta',
+                                        [params], self._service_ver, context)
 
     def get_workspace_info(self, wsi, context=None):
         """
         Get information associated with a workspace.
         :param wsi: instance of type "WorkspaceIdentity" (A workspace
            identifier. Select a workspace by one, and only one, of the
-           numerical id or name, where the name can also be a KBase ID
-           including the numerical id, e.g. kb|ws.35. ws_id id - the
-           numerical ID of the workspace. ws_name workspace - name of the
-           workspace or the workspace ID in KBase format, e.g. kb|ws.78.) ->
+           numerical id or name. ws_id id - the numerical ID of the
+           workspace. ws_name workspace - the name of the workspace.) ->
            structure: parameter "workspace" of type "ws_name" (A string used
            as a name for a workspace. Any string consisting of alphanumeric
            characters and "_", ".", or "-" that is not an integer is
@@ -437,19 +416,16 @@ class Workspace(object):
            object. Arbitrary key-value pairs provided by the user.) ->
            mapping from String to String
         """
-        return self._client.call_method(
-            'Workspace.get_workspace_info',
-            [wsi], self._service_ver, context)
+        return self._client.call_method('Workspace.get_workspace_info',
+                                        [wsi], self._service_ver, context)
 
     def get_workspace_description(self, wsi, context=None):
         """
         Get a workspace's description.
         :param wsi: instance of type "WorkspaceIdentity" (A workspace
            identifier. Select a workspace by one, and only one, of the
-           numerical id or name, where the name can also be a KBase ID
-           including the numerical id, e.g. kb|ws.35. ws_id id - the
-           numerical ID of the workspace. ws_name workspace - name of the
-           workspace or the workspace ID in KBase format, e.g. kb|ws.78.) ->
+           numerical id or name. ws_id id - the numerical ID of the
+           workspace. ws_name workspace - the name of the workspace.) ->
            structure: parameter "workspace" of type "ws_name" (A string used
            as a name for a workspace. Any string consisting of alphanumeric
            characters and "_", ".", or "-" that is not an integer is
@@ -459,9 +435,8 @@ class Workspace(object):
            of a workspace.)
         :returns: instance of String
         """
-        return self._client.call_method(
-            'Workspace.get_workspace_description',
-            [wsi], self._service_ver, context)
+        return self._client.call_method('Workspace.get_workspace_description',
+                                        [wsi], self._service_ver, context)
 
     def set_permissions(self, params, context=None):
         """
@@ -469,12 +444,11 @@ class Workspace(object):
         :param params: instance of type "SetPermissionsParams" (Input
            parameters for the "set_permissions" function. One, and only one,
            of the following is required: ws_id id - the numerical ID of the
-           workspace. ws_name workspace - name of the workspace or the
-           workspace ID in KBase format, e.g. kb|ws.78. Required arguments:
-           permission new_permission - the permission to assign to the users.
-           list<username> users - the users whose permissions will be
-           altered.) -> structure: parameter "workspace" of type "ws_name" (A
-           string used as a name for a workspace. Any string consisting of
+           workspace. ws_name workspace - the name of the workspace. Required
+           arguments: permission new_permission - the permission to assign to
+           the users. list<username> users - the users whose permissions will
+           be altered.) -> structure: parameter "workspace" of type "ws_name"
+           (A string used as a name for a workspace. Any string consisting of
            alphanumeric characters and "_", ".", or "-" that is not an
            integer is acceptable. The name may optionally be prefixed with
            the workspace owner's user name and a colon, e.g.
@@ -486,9 +460,8 @@ class Workspace(object):
            permissions.), parameter "users" of list of type "username" (Login
            name of a KBase user account.)
         """
-        return self._client.call_method(
-            'Workspace.set_permissions',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.set_permissions',
+                                        [params], self._service_ver, context)
 
     def set_global_permission(self, params, context=None):
         """
@@ -496,26 +469,24 @@ class Workspace(object):
         :param params: instance of type "SetGlobalPermissionsParams" (Input
            parameters for the "set_global_permission" function. One, and only
            one, of the following is required: ws_id id - the numerical ID of
-           the workspace. ws_name workspace - name of the workspace or the
-           workspace ID in KBase format, e.g. kb|ws.78. Required arguments:
-           permission new_permission - the permission to assign to all users,
-           either 'n' or 'r'. 'r' means that all users will be able to read
-           the workspace; otherwise users must have specific permission to
-           access the workspace.) -> structure: parameter "workspace" of type
-           "ws_name" (A string used as a name for a workspace. Any string
-           consisting of alphanumeric characters and "_", ".", or "-" that is
-           not an integer is acceptable. The name may optionally be prefixed
-           with the workspace owner's user name and a colon, e.g.
-           kbasetest:my_workspace.), parameter "id" of type "ws_id" (The
-           unique, permanent numerical ID of a workspace.), parameter
-           "new_permission" of type "permission" (Represents the permissions
-           a user or users have to a workspace: 'a' - administrator. All
-           operations allowed. 'w' - read/write. 'r' - read. 'n' - no
-           permissions.)
+           the workspace. ws_name workspace - the name of the workspace.
+           Required arguments: permission new_permission - the permission to
+           assign to all users, either 'n' or 'r'. 'r' means that all users
+           will be able to read the workspace; otherwise users must have
+           specific permission to access the workspace.) -> structure:
+           parameter "workspace" of type "ws_name" (A string used as a name
+           for a workspace. Any string consisting of alphanumeric characters
+           and "_", ".", or "-" that is not an integer is acceptable. The
+           name may optionally be prefixed with the workspace owner's user
+           name and a colon, e.g. kbasetest:my_workspace.), parameter "id" of
+           type "ws_id" (The unique, permanent numerical ID of a workspace.),
+           parameter "new_permission" of type "permission" (Represents the
+           permissions a user or users have to a workspace: 'a' -
+           administrator. All operations allowed. 'w' - read/write. 'r' -
+           read. 'n' - no permissions.)
         """
-        return self._client.call_method(
-            'Workspace.set_global_permission',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.set_global_permission',
+                                        [params], self._service_ver, context)
 
     def set_workspace_description(self, params, context=None):
         """
@@ -523,23 +494,21 @@ class Workspace(object):
         :param params: instance of type "SetWorkspaceDescriptionParams"
            (Input parameters for the "set_workspace_description" function.
            One, and only one, of the following is required: ws_id id - the
-           numerical ID of the workspace. ws_name workspace - name of the
-           workspace or the workspace ID in KBase format, e.g. kb|ws.78.
-           Optional arguments: string description - A free-text description
-           of the workspace, 1000 characters max. Longer strings will be
-           mercilessly and brutally truncated. If omitted, the description is
-           set to null.) -> structure: parameter "workspace" of type
-           "ws_name" (A string used as a name for a workspace. Any string
-           consisting of alphanumeric characters and "_", ".", or "-" that is
-           not an integer is acceptable. The name may optionally be prefixed
-           with the workspace owner's user name and a colon, e.g.
+           numerical ID of the workspace. ws_name workspace - the name of the
+           workspace. Optional arguments: string description - A free-text
+           description of the workspace, 1000 characters max. Longer strings
+           will be mercilessly and brutally truncated. If omitted, the
+           description is set to null.) -> structure: parameter "workspace"
+           of type "ws_name" (A string used as a name for a workspace. Any
+           string consisting of alphanumeric characters and "_", ".", or "-"
+           that is not an integer is acceptable. The name may optionally be
+           prefixed with the workspace owner's user name and a colon, e.g.
            kbasetest:my_workspace.), parameter "id" of type "ws_id" (The
            unique, permanent numerical ID of a workspace.), parameter
            "description" of String
         """
-        return self._client.call_method(
-            'Workspace.set_workspace_description',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.set_workspace_description',
+                                        [params], self._service_ver, context)
 
     def get_permissions_mass(self, mass, context=None):
         """
@@ -549,11 +518,9 @@ class Workspace(object):
            the workspaces for which to return the permissions, maximum 1000.)
            -> structure: parameter "workspaces" of list of type
            "WorkspaceIdentity" (A workspace identifier. Select a workspace by
-           one, and only one, of the numerical id or name, where the name can
-           also be a KBase ID including the numerical id, e.g. kb|ws.35.
-           ws_id id - the numerical ID of the workspace. ws_name workspace -
-           name of the workspace or the workspace ID in KBase format, e.g.
-           kb|ws.78.) -> structure: parameter "workspace" of type "ws_name"
+           one, and only one, of the numerical id or name. ws_id id - the
+           numerical ID of the workspace. ws_name workspace - the name of the
+           workspace.) -> structure: parameter "workspace" of type "ws_name"
            (A string used as a name for a workspace. Any string consisting of
            alphanumeric characters and "_", ".", or "-" that is not an
            integer is acceptable. The name may optionally be prefixed with
@@ -568,9 +535,8 @@ class Workspace(object):
            workspace: 'a' - administrator. All operations allowed. 'w' -
            read/write. 'r' - read. 'n' - no permissions.)
         """
-        return self._client.call_method(
-            'Workspace.get_permissions_mass',
-            [mass], self._service_ver, context)
+        return self._client.call_method('Workspace.get_permissions_mass',
+                                        [mass], self._service_ver, context)
 
     def get_permissions(self, wsi, context=None):
         """
@@ -578,10 +544,8 @@ class Workspace(object):
         @deprecated get_permissions_mass
         :param wsi: instance of type "WorkspaceIdentity" (A workspace
            identifier. Select a workspace by one, and only one, of the
-           numerical id or name, where the name can also be a KBase ID
-           including the numerical id, e.g. kb|ws.35. ws_id id - the
-           numerical ID of the workspace. ws_name workspace - name of the
-           workspace or the workspace ID in KBase format, e.g. kb|ws.78.) ->
+           numerical id or name. ws_id id - the numerical ID of the
+           workspace. ws_name workspace - the name of the workspace.) ->
            structure: parameter "workspace" of type "ws_name" (A string used
            as a name for a workspace. Any string consisting of alphanumeric
            characters and "_", ".", or "-" that is not an integer is
@@ -595,9 +559,8 @@ class Workspace(object):
            administrator. All operations allowed. 'w' - read/write. 'r' -
            read. 'n' - no permissions.)
         """
-        return self._client.call_method(
-            'Workspace.get_permissions',
-            [wsi], self._service_ver, context)
+        return self._client.call_method('Workspace.get_permissions',
+                                        [wsi], self._service_ver, context)
 
     def save_object(self, params, context=None):
         """
@@ -691,9 +654,8 @@ class Workspace(object):
            String, parameter "objid" of type "obj_id" (The unique, permanent
            numerical ID of an object.)
         """
-        return self._client.call_method(
-            'Workspace.save_object',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.save_object',
+                                        [params], self._service_ver, context)
 
     def save_objects(self, params, context=None):
         """
@@ -702,33 +664,30 @@ class Workspace(object):
         :param params: instance of type "SaveObjectsParams" (Input parameters
            for the "save_objects" function. One, and only one, of the
            following is required: ws_id id - the numerical ID of the
-           workspace. ws_name workspace - name of the workspace or the
-           workspace ID in KBase format, e.g. kb|ws.78. Required arguments:
-           list<ObjectSaveData> objects - the objects to save.) -> structure:
-           parameter "workspace" of type "ws_name" (A string used as a name
-           for a workspace. Any string consisting of alphanumeric characters
-           and "_", ".", or "-" that is not an integer is acceptable. The
-           name may optionally be prefixed with the workspace owner's user
-           name and a colon, e.g. kbasetest:my_workspace.), parameter "id" of
-           type "ws_id" (The unique, permanent numerical ID of a workspace.),
-           parameter "objects" of list of type "ObjectSaveData" (An object
-           and associated data required for saving. Required arguments:
-           type_string type - the type of the object. Omit the version
-           information to use the latest version. UnspecifiedObject data -
-           the object data. Optional arguments: One of an object name or id.
-           If no name or id is provided the name will be set to 'auto' with
-           the object id appended as a string, possibly with -\d+ appended if
-           that object id already exists as a name. obj_name name - the name
-           of the object. obj_id objid - the id of the object to save over.
-           usermeta meta - arbitrary user-supplied metadata for the object,
-           not to exceed 16kb; if the object type specifies automatic
-           metadata extraction with the 'meta ws' annotation, and your
-           metadata name conflicts, then your metadata will be silently
-           overwritten. list<ProvenanceAction> provenance - provenance data
-           for the object. boolean hidden - true if this object should not be
-           listed when listing workspace objects.) -> structure: parameter
-           "type" of type "type_string" (A type string. Specifies the type
-           and its version in a single string in the format
+           workspace. ws_name workspace - the name of the workspace. Required
+           arguments: list<ObjectSaveData> objects - the objects to save.) ->
+           structure: parameter "workspace" of type "ws_name" (A string used
+           as a name for a workspace. Any string consisting of alphanumeric
+           characters and "_", ".", or "-" that is not an integer is
+           acceptable. The name may optionally be prefixed with the workspace
+           owner's user name and a colon, e.g. kbasetest:my_workspace.),
+           parameter "id" of type "ws_id" (The unique, permanent numerical ID
+           of a workspace.), parameter "objects" of list of type
+           "ObjectSaveData" (An object and associated data required for
+           saving. Required arguments: type_string type - the type of the
+           object. Omit the version information to use the latest version.
+           UnspecifiedObject data - the object data. One, and only one, of:
+           obj_name name - the name of the object. obj_id objid - the id of
+           the object to save over. Optional arguments: usermeta meta -
+           arbitrary user-supplied metadata for the object, not to exceed
+           16kb; if the object type specifies automatic metadata extraction
+           with the 'meta ws' annotation, and your metadata name conflicts,
+           then your metadata will be silently overwritten.
+           list<ProvenanceAction> provenance - provenance data for the
+           object. boolean hidden - true if this object should not be listed
+           when listing workspace objects.) -> structure: parameter "type" of
+           type "type_string" (A type string. Specifies the type and its
+           version in a single string in the format
            [module].[typename]-[major].[minor]: module - a string. The module
            name of the typespec containing the type. typename - a string. The
            name of the type as assigned by the typedef statement. major - an
@@ -773,22 +732,23 @@ class Workspace(object):
            the command line provided to the script that performed this
            action. If workspace objects were provided in the command line,
            also put the object reference in the input_ws_object list.
-           list<obj_ref> input_ws_objects - the workspace objects that were
-           used as input to this action; typically these will also be present
-           as parts of the method_params or the script_command_line
-           arguments. list<obj_ref> resolved_ws_objects - the workspace
-           objects ids from input_ws_objects resolved to permanent workspace
-           object references by the workspace service. list<string>
-           intermediate_incoming - if the previous action produced output
-           that 1) was not stored in a referrable way, and 2) is used as
-           input for this action, provide it with an arbitrary and unique ID
-           here, in the order of the input arguments to this action. These
-           IDs can be used in the method_params argument. list<string>
-           intermediate_outgoing - if this action produced output that 1) was
-           not stored in a referrable way, and 2) is used as input for the
-           next action, provide it with an arbitrary and unique ID here, in
-           the order of the output values from this action. These IDs can be
-           used in the intermediate_incoming argument in the next action.
+           list<ref_string> input_ws_objects - the workspace objects that
+           were used as input to this action; typically these will also be
+           present as parts of the method_params or the script_command_line
+           arguments. A reference path into the object graph may be supplied.
+           list<obj_ref> resolved_ws_objects - the workspace objects ids from
+           input_ws_objects resolved to permanent workspace object references
+           by the workspace service. list<string> intermediate_incoming - if
+           the previous action produced output that 1) was not stored in a
+           referrable way, and 2) is used as input for this action, provide
+           it with an arbitrary and unique ID here, in the order of the input
+           arguments to this action. These IDs can be used in the
+           method_params argument. list<string> intermediate_outgoing - if
+           this action produced output that 1) was not stored in a referrable
+           way, and 2) is used as input for the next action, provide it with
+           an arbitrary and unique ID here, in the order of the output values
+           from this action. These IDs can be used in the
+           intermediate_incoming argument in the next action.
            list<ExternalDataUnit> external_data - data external to the
            workspace that was either imported to the workspace or used to
            create a workspace object. list<SubAction> subactions - the
@@ -806,37 +766,30 @@ class Workspace(object):
            of String, parameter "method" of String, parameter "method_params"
            of list of unspecified object, parameter "script" of String,
            parameter "script_ver" of String, parameter "script_command_line"
-           of String, parameter "input_ws_objects" of list of type "obj_ref"
-           (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           of String, parameter "input_ws_objects" of list of type
+           "ref_string" (A chain of objects with references to one another as
+           a string. A single string that is semantically identical to
+           ref_chain above. Represents a path from one workspace object to
+           another through an arbitrarily number of intermediate objects
+           where each object has a dependency or provenance reference to the
+           next object. Each entry is an obj_ref as defined earlier. Entries
+           are separated by semicolons. Whitespace is ignored. Examples:
+           3/5/6; kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
+           parameter "resolved_ws_objects" of list of type "obj_ref" (A
+           string that uniquely identifies an object in the workspace
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "resolved_ws_objects" of list of
-           type "obj_ref" (A string that uniquely identifies an object in the
-           workspace service. There are two ways to uniquely identify an
-           object in one string: "[ws_name or id]/[obj_name or id]/[obj_ver]"
-           - for example, "MyFirstWorkspace/MyFirstObject/3" would identify
-           the third version of an object called MyFirstObject in the
-           workspace called MyFirstWorkspace. 42/Panic/1 would identify the
-           first version of the object name Panic in workspace with id 42.
-           Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "intermediate_incoming" of list of
-           String, parameter "intermediate_outgoing" of list of String,
-           parameter "external_data" of list of type "ExternalDataUnit" (An
-           external data unit. A piece of data from a source outside the
-           Workspace. On input, only one of the resource_release_date or
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.), parameter
+           "intermediate_incoming" of list of String, parameter
+           "intermediate_outgoing" of list of String, parameter
+           "external_data" of list of type "ExternalDataUnit" (An external
+           data unit. A piece of data from a source outside the Workspace. On
+           input, only one of the resource_release_date or
            resource_release_epoch may be supplied. Both are supplied on
            output. string resource_name - the name of the resource, for
            example JGI. string resource_url - the url of the resource, for
@@ -927,9 +880,8 @@ class Workspace(object):
            metadata about an object. Arbitrary key-value pairs provided by
            the user.) -> mapping from String to String
         """
-        return self._client.call_method(
-            'Workspace.save_objects',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.save_objects',
+                                        [params], self._service_ver, context)
 
     def get_object(self, params, context=None):
         """
@@ -1010,9 +962,8 @@ class Workspace(object):
            String, parameter "objid" of type "obj_id" (The unique, permanent
            numerical ID of an object.)
         """
-        return self._client.call_method(
-            'Workspace.get_object',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.get_object',
+                                        [params], self._service_ver, context)
 
     def get_object_provenance(self, object_ids, context=None):
         """
@@ -1021,11 +972,9 @@ class Workspace(object):
         @deprecated Workspace.get_objects2
         :param object_ids: instance of list of type "ObjectIdentity" (An
            object identifier. Select an object by either: One, and only one,
-           of the numerical id or name of the workspace, where the name can
-           also be a KBase ID including the numerical id, e.g. kb|ws.35.
-           ws_id wsid - the numerical ID of the workspace. ws_name workspace
-           - name of the workspace or the workspace ID in KBase format, e.g.
-           kb|ws.78. AND One, and only one, of the numerical id or name of
+           of the numerical id or name of the workspace. ws_id wsid - the
+           numerical ID of the workspace. ws_name workspace - the name of the
+           workspace. AND One, and only one, of the numerical id or name of
            the object. obj_id objid- the numerical ID of the object. obj_name
            name - name of the object. OPTIONALLY obj_ver ver - the version of
            the object. OR an object reference string: obj_ref ref - an object
@@ -1043,18 +992,14 @@ class Workspace(object):
            parameter "ver" of type "obj_ver" (An object version. The version
            of the object, starting at 1.), parameter "ref" of type "obj_ref"
            (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.)
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.)
         :returns: instance of list of type "ObjectProvenanceInfo" (DEPRECATED
            The provenance and supplemental info for an object. object_info
            info - information about the object. list<ProvenanceAction>
@@ -1144,12 +1089,13 @@ class Workspace(object):
            script_command_line - the command line provided to the script that
            performed this action. If workspace objects were provided in the
            command line, also put the object reference in the input_ws_object
-           list. list<obj_ref> input_ws_objects - the workspace objects that
-           were used as input to this action; typically these will also be
-           present as parts of the method_params or the script_command_line
-           arguments. list<obj_ref> resolved_ws_objects - the workspace
-           objects ids from input_ws_objects resolved to permanent workspace
-           object references by the workspace service. list<string>
+           list. list<ref_string> input_ws_objects - the workspace objects
+           that were used as input to this action; typically these will also
+           be present as parts of the method_params or the
+           script_command_line arguments. A reference path into the object
+           graph may be supplied. list<obj_ref> resolved_ws_objects - the
+           workspace objects ids from input_ws_objects resolved to permanent
+           workspace object references by the workspace service. list<string>
            intermediate_incoming - if the previous action produced output
            that 1) was not stored in a referrable way, and 2) is used as
            input for this action, provide it with an arbitrary and unique ID
@@ -1177,37 +1123,30 @@ class Workspace(object):
            of String, parameter "method" of String, parameter "method_params"
            of list of unspecified object, parameter "script" of String,
            parameter "script_ver" of String, parameter "script_command_line"
-           of String, parameter "input_ws_objects" of list of type "obj_ref"
-           (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           of String, parameter "input_ws_objects" of list of type
+           "ref_string" (A chain of objects with references to one another as
+           a string. A single string that is semantically identical to
+           ref_chain above. Represents a path from one workspace object to
+           another through an arbitrarily number of intermediate objects
+           where each object has a dependency or provenance reference to the
+           next object. Each entry is an obj_ref as defined earlier. Entries
+           are separated by semicolons. Whitespace is ignored. Examples:
+           3/5/6; kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
+           parameter "resolved_ws_objects" of list of type "obj_ref" (A
+           string that uniquely identifies an object in the workspace
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "resolved_ws_objects" of list of
-           type "obj_ref" (A string that uniquely identifies an object in the
-           workspace service. There are two ways to uniquely identify an
-           object in one string: "[ws_name or id]/[obj_name or id]/[obj_ver]"
-           - for example, "MyFirstWorkspace/MyFirstObject/3" would identify
-           the third version of an object called MyFirstObject in the
-           workspace called MyFirstWorkspace. 42/Panic/1 would identify the
-           first version of the object name Panic in workspace with id 42.
-           Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "intermediate_incoming" of list of
-           String, parameter "intermediate_outgoing" of list of String,
-           parameter "external_data" of list of type "ExternalDataUnit" (An
-           external data unit. A piece of data from a source outside the
-           Workspace. On input, only one of the resource_release_date or
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.), parameter
+           "intermediate_incoming" of list of String, parameter
+           "intermediate_outgoing" of list of String, parameter
+           "external_data" of list of type "ExternalDataUnit" (An external
+           data unit. A piece of data from a source outside the Workspace. On
+           input, only one of the resource_release_date or
            resource_release_epoch may be supplied. Both are supplied on
            output. string resource_name - the name of the resource, for
            example JGI. string resource_url - the url of the resource, for
@@ -1262,41 +1201,33 @@ class Workspace(object):
            time)), parameter "epoch" of type "epoch" (A Unix epoch (the time
            since 00:00:00 1/1/1970 UTC) in milliseconds.), parameter "refs"
            of list of type "obj_ref" (A string that uniquely identifies an
-           object in the workspace service. There are two ways to uniquely
-           identify an object in one string: "[ws_name or id]/[obj_name or
-           id]/[obj_ver]" - for example, "MyFirstWorkspace/MyFirstObject/3"
-           would identify the third version of an object called MyFirstObject
-           in the workspace called MyFirstWorkspace. 42/Panic/1 would
-           identify the first version of the object name Panic in workspace
-           with id 42. Towel/1/6 would identify the 6th version of the object
-           with id 1 in the Towel workspace.
-           "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for example,
-           "kb|ws.23.obj.567.ver.2" would identify the second version of an
-           object with id 567 in a workspace with id 23. In all cases, if the
-           version number is omitted, the latest version of the object is
-           assumed.), parameter "copied" of type "obj_ref" (A string that
-           uniquely identifies an object in the workspace service. There are
-           two ways to uniquely identify an object in one string: "[ws_name
-           or id]/[obj_name or id]/[obj_ver]" - for example,
-           "MyFirstWorkspace/MyFirstObject/3" would identify the third
-           version of an object called MyFirstObject in the workspace called
+           object in the workspace service. The format is [ws_name or
+           id]/[obj_name or id]/[obj_ver]. For example,
+           MyFirstWorkspace/MyFirstObject/3 would identify the third version
+           of an object called MyFirstObject in the workspace called
            MyFirstWorkspace. 42/Panic/1 would identify the first version of
            the object name Panic in workspace with id 42. Towel/1/6 would
            identify the 6th version of the object with id 1 in the Towel
-           workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for
-           example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "copy_source_inaccessible" of type
-           "boolean" (A boolean. 0 = false, other = true.), parameter
-           "extracted_ids" of mapping from type "id_type" (An id type (e.g.
-           from a typespec @id annotation: @id [idtype])) to list of type
-           "extracted_id" (An id extracted from an object.), parameter
-           "handle_error" of String, parameter "handle_stacktrace" of String
+           workspace.If the version number is omitted, the latest version of
+           the object is assumed.), parameter "copied" of type "obj_ref" (A
+           string that uniquely identifies an object in the workspace
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
+           third version of an object called MyFirstObject in the workspace
+           called MyFirstWorkspace. 42/Panic/1 would identify the first
+           version of the object name Panic in workspace with id 42.
+           Towel/1/6 would identify the 6th version of the object with id 1
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.), parameter
+           "copy_source_inaccessible" of type "boolean" (A boolean. 0 =
+           false, other = true.), parameter "extracted_ids" of mapping from
+           type "id_type" (An id type (e.g. from a typespec @id annotation:
+           @id [idtype])) to list of type "extracted_id" (An id extracted
+           from an object.), parameter "handle_error" of String, parameter
+           "handle_stacktrace" of String
         """
-        return self._client.call_method(
-            'Workspace.get_object_provenance',
-            [object_ids], self._service_ver, context)
+        return self._client.call_method('Workspace.get_object_provenance',
+                                        [object_ids], self._service_ver, context)
 
     def get_objects(self, object_ids, context=None):
         """
@@ -1305,11 +1236,9 @@ class Workspace(object):
         @deprecated Workspace.get_objects2
         :param object_ids: instance of list of type "ObjectIdentity" (An
            object identifier. Select an object by either: One, and only one,
-           of the numerical id or name of the workspace, where the name can
-           also be a KBase ID including the numerical id, e.g. kb|ws.35.
-           ws_id wsid - the numerical ID of the workspace. ws_name workspace
-           - name of the workspace or the workspace ID in KBase format, e.g.
-           kb|ws.78. AND One, and only one, of the numerical id or name of
+           of the numerical id or name of the workspace. ws_id wsid - the
+           numerical ID of the workspace. ws_name workspace - the name of the
+           workspace. AND One, and only one, of the numerical id or name of
            the object. obj_id objid- the numerical ID of the object. obj_name
            name - name of the object. OPTIONALLY obj_ver ver - the version of
            the object. OR an object reference string: obj_ref ref - an object
@@ -1327,29 +1256,27 @@ class Workspace(object):
            parameter "ver" of type "obj_ver" (An object version. The version
            of the object, starting at 1.), parameter "ref" of type "obj_ref"
            (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.)
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.)
         :returns: instance of list of type "ObjectData" (The data and
            supplemental info for an object. UnspecifiedObject data - the
            object's data or subset data. object_info info - information about
-           the object. list<ProvenanceAction> provenance - the object's
+           the object. list<obj_ref> path - the path to the object through
+           the object reference graph. All the references in the path are
+           absolute. list<ProvenanceAction> provenance - the object's
            provenance. username creator - the user that first saved the
            object to the workspace. ws_id orig_wsid - the id of the workspace
            in which this object was originally saved. Missing for objects
            saved prior to version 0.4.1. timestamp created - the date the
            object was first saved to the workspace. epoch epoch - the date
-           the object was first saved to the workspace. list<obj_ref> - the
-           references contained within the object. obj_ref copied - the
+           the object was first saved to the workspace. list<obj_ref> refs -
+           the references contained within the object. obj_ref copied - the
            reference of the source object if this object is a copy and the
            copy source exists and is accessible. null otherwise. boolean
            copy_source_inaccessible - true if the object was copied from
@@ -1402,97 +1329,101 @@ class Workspace(object):
            kbasetest:my_workspace.), parameter "chsum" of String, parameter
            "size" of Long, parameter "meta" of type "usermeta" (User provided
            metadata about an object. Arbitrary key-value pairs provided by
-           the user.) -> mapping from String to String, parameter
-           "provenance" of list of type "ProvenanceAction" (A provenance
-           action. A provenance action (PA) is an action taken while
-           transforming one data object to another. There may be several PAs
-           taken in series. A PA is typically running a script, running an
-           api command, etc. All of the following fields are optional, but
-           more information provided equates to better data provenance.
-           resolved_ws_objects should never be set by the user; it is set by
-           the workspace service when returning data. On input, only one of
-           the time or epoch may be supplied. Both are supplied on output.
-           The maximum size of the entire provenance object, including all
-           actions, is 1MB. timestamp time - the time the action was started
-           epoch epoch - the time the action was started. string caller - the
-           name or id of the invoker of this provenance action. In most
-           cases, this will be the same for all PAs. string service - the
-           name of the service that performed this action. string service_ver
-           - the version of the service that performed this action. string
-           method - the method of the service that performed this action.
-           list<UnspecifiedObject> method_params - the parameters of the
-           method that performed this action. If an object in the parameters
-           is a workspace object, also put the object reference in the
-           input_ws_object list. string script - the name of the script that
-           performed this action. string script_ver - the version of the
-           script that performed this action. string script_command_line -
-           the command line provided to the script that performed this
-           action. If workspace objects were provided in the command line,
-           also put the object reference in the input_ws_object list.
-           list<obj_ref> input_ws_objects - the workspace objects that were
-           used as input to this action; typically these will also be present
-           as parts of the method_params or the script_command_line
-           arguments. list<obj_ref> resolved_ws_objects - the workspace
-           objects ids from input_ws_objects resolved to permanent workspace
-           object references by the workspace service. list<string>
-           intermediate_incoming - if the previous action produced output
-           that 1) was not stored in a referrable way, and 2) is used as
-           input for this action, provide it with an arbitrary and unique ID
-           here, in the order of the input arguments to this action. These
-           IDs can be used in the method_params argument. list<string>
-           intermediate_outgoing - if this action produced output that 1) was
-           not stored in a referrable way, and 2) is used as input for the
-           next action, provide it with an arbitrary and unique ID here, in
-           the order of the output values from this action. These IDs can be
-           used in the intermediate_incoming argument in the next action.
-           list<ExternalDataUnit> external_data - data external to the
-           workspace that was either imported to the workspace or used to
-           create a workspace object. list<SubAction> subactions - the
-           subactions taken as a part of this action. mapping<string, string>
-           custom - user definable custom provenance fields and their values.
-           string description - a free text description of this action.) ->
-           structure: parameter "time" of type "timestamp" (A time in the
-           format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z
-           (representing the UTC timezone) or the difference in time to UTC
-           in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time)
-           2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC
-           time)), parameter "epoch" of type "epoch" (A Unix epoch (the time
-           since 00:00:00 1/1/1970 UTC) in milliseconds.), parameter "caller"
-           of String, parameter "service" of String, parameter "service_ver"
-           of String, parameter "method" of String, parameter "method_params"
-           of list of unspecified object, parameter "script" of String,
-           parameter "script_ver" of String, parameter "script_command_line"
-           of String, parameter "input_ws_objects" of list of type "obj_ref"
-           (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           the user.) -> mapping from String to String, parameter "path" of
+           list of type "obj_ref" (A string that uniquely identifies an
+           object in the workspace service. The format is [ws_name or
+           id]/[obj_name or id]/[obj_ver]. For example,
+           MyFirstWorkspace/MyFirstObject/3 would identify the third version
+           of an object called MyFirstObject in the workspace called
+           MyFirstWorkspace. 42/Panic/1 would identify the first version of
+           the object name Panic in workspace with id 42. Towel/1/6 would
+           identify the 6th version of the object with id 1 in the Towel
+           workspace.If the version number is omitted, the latest version of
+           the object is assumed.), parameter "provenance" of list of type
+           "ProvenanceAction" (A provenance action. A provenance action (PA)
+           is an action taken while transforming one data object to another.
+           There may be several PAs taken in series. A PA is typically
+           running a script, running an api command, etc. All of the
+           following fields are optional, but more information provided
+           equates to better data provenance. resolved_ws_objects should
+           never be set by the user; it is set by the workspace service when
+           returning data. On input, only one of the time or epoch may be
+           supplied. Both are supplied on output. The maximum size of the
+           entire provenance object, including all actions, is 1MB. timestamp
+           time - the time the action was started epoch epoch - the time the
+           action was started. string caller - the name or id of the invoker
+           of this provenance action. In most cases, this will be the same
+           for all PAs. string service - the name of the service that
+           performed this action. string service_ver - the version of the
+           service that performed this action. string method - the method of
+           the service that performed this action. list<UnspecifiedObject>
+           method_params - the parameters of the method that performed this
+           action. If an object in the parameters is a workspace object, also
+           put the object reference in the input_ws_object list. string
+           script - the name of the script that performed this action. string
+           script_ver - the version of the script that performed this action.
+           string script_command_line - the command line provided to the
+           script that performed this action. If workspace objects were
+           provided in the command line, also put the object reference in the
+           input_ws_object list. list<ref_string> input_ws_objects - the
+           workspace objects that were used as input to this action;
+           typically these will also be present as parts of the method_params
+           or the script_command_line arguments. A reference path into the
+           object graph may be supplied. list<obj_ref> resolved_ws_objects -
+           the workspace objects ids from input_ws_objects resolved to
+           permanent workspace object references by the workspace service.
+           list<string> intermediate_incoming - if the previous action
+           produced output that 1) was not stored in a referrable way, and 2)
+           is used as input for this action, provide it with an arbitrary and
+           unique ID here, in the order of the input arguments to this
+           action. These IDs can be used in the method_params argument.
+           list<string> intermediate_outgoing - if this action produced
+           output that 1) was not stored in a referrable way, and 2) is used
+           as input for the next action, provide it with an arbitrary and
+           unique ID here, in the order of the output values from this
+           action. These IDs can be used in the intermediate_incoming
+           argument in the next action. list<ExternalDataUnit> external_data
+           - data external to the workspace that was either imported to the
+           workspace or used to create a workspace object. list<SubAction>
+           subactions - the subactions taken as a part of this action.
+           mapping<string, string> custom - user definable custom provenance
+           fields and their values. string description - a free text
+           description of this action.) -> structure: parameter "time" of
+           type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where
+           Z is either the character Z (representing the UTC timezone) or the
+           difference in time to UTC in the format +/-HHMM, eg:
+           2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC
+           time) 2013-04-03T08:56:32Z (UTC time)), parameter "epoch" of type
+           "epoch" (A Unix epoch (the time since 00:00:00 1/1/1970 UTC) in
+           milliseconds.), parameter "caller" of String, parameter "service"
+           of String, parameter "service_ver" of String, parameter "method"
+           of String, parameter "method_params" of list of unspecified
+           object, parameter "script" of String, parameter "script_ver" of
+           String, parameter "script_command_line" of String, parameter
+           "input_ws_objects" of list of type "ref_string" (A chain of
+           objects with references to one another as a string. A single
+           string that is semantically identical to ref_chain above.
+           Represents a path from one workspace object to another through an
+           arbitrarily number of intermediate objects where each object has a
+           dependency or provenance reference to the next object. Each entry
+           is an obj_ref as defined earlier. Entries are separated by
+           semicolons. Whitespace is ignored. Examples: 3/5/6;
+           kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
+           parameter "resolved_ws_objects" of list of type "obj_ref" (A
+           string that uniquely identifies an object in the workspace
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "resolved_ws_objects" of list of
-           type "obj_ref" (A string that uniquely identifies an object in the
-           workspace service. There are two ways to uniquely identify an
-           object in one string: "[ws_name or id]/[obj_name or id]/[obj_ver]"
-           - for example, "MyFirstWorkspace/MyFirstObject/3" would identify
-           the third version of an object called MyFirstObject in the
-           workspace called MyFirstWorkspace. 42/Panic/1 would identify the
-           first version of the object name Panic in workspace with id 42.
-           Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "intermediate_incoming" of list of
-           String, parameter "intermediate_outgoing" of list of String,
-           parameter "external_data" of list of type "ExternalDataUnit" (An
-           external data unit. A piece of data from a source outside the
-           Workspace. On input, only one of the resource_release_date or
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.), parameter
+           "intermediate_incoming" of list of String, parameter
+           "intermediate_outgoing" of list of String, parameter
+           "external_data" of list of type "ExternalDataUnit" (An external
+           data unit. A piece of data from a source outside the Workspace. On
+           input, only one of the resource_release_date or
            resource_release_epoch may be supplied. Both are supplied on
            output. string resource_name - the name of the resource, for
            example JGI. string resource_url - the url of the resource, for
@@ -1547,41 +1478,33 @@ class Workspace(object):
            time)), parameter "epoch" of type "epoch" (A Unix epoch (the time
            since 00:00:00 1/1/1970 UTC) in milliseconds.), parameter "refs"
            of list of type "obj_ref" (A string that uniquely identifies an
-           object in the workspace service. There are two ways to uniquely
-           identify an object in one string: "[ws_name or id]/[obj_name or
-           id]/[obj_ver]" - for example, "MyFirstWorkspace/MyFirstObject/3"
-           would identify the third version of an object called MyFirstObject
-           in the workspace called MyFirstWorkspace. 42/Panic/1 would
-           identify the first version of the object name Panic in workspace
-           with id 42. Towel/1/6 would identify the 6th version of the object
-           with id 1 in the Towel workspace.
-           "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for example,
-           "kb|ws.23.obj.567.ver.2" would identify the second version of an
-           object with id 567 in a workspace with id 23. In all cases, if the
-           version number is omitted, the latest version of the object is
-           assumed.), parameter "copied" of type "obj_ref" (A string that
-           uniquely identifies an object in the workspace service. There are
-           two ways to uniquely identify an object in one string: "[ws_name
-           or id]/[obj_name or id]/[obj_ver]" - for example,
-           "MyFirstWorkspace/MyFirstObject/3" would identify the third
-           version of an object called MyFirstObject in the workspace called
+           object in the workspace service. The format is [ws_name or
+           id]/[obj_name or id]/[obj_ver]. For example,
+           MyFirstWorkspace/MyFirstObject/3 would identify the third version
+           of an object called MyFirstObject in the workspace called
            MyFirstWorkspace. 42/Panic/1 would identify the first version of
            the object name Panic in workspace with id 42. Towel/1/6 would
            identify the 6th version of the object with id 1 in the Towel
-           workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for
-           example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "copy_source_inaccessible" of type
-           "boolean" (A boolean. 0 = false, other = true.), parameter
-           "extracted_ids" of mapping from type "id_type" (An id type (e.g.
-           from a typespec @id annotation: @id [idtype])) to list of type
-           "extracted_id" (An id extracted from an object.), parameter
-           "handle_error" of String, parameter "handle_stacktrace" of String
+           workspace.If the version number is omitted, the latest version of
+           the object is assumed.), parameter "copied" of type "obj_ref" (A
+           string that uniquely identifies an object in the workspace
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
+           third version of an object called MyFirstObject in the workspace
+           called MyFirstWorkspace. 42/Panic/1 would identify the first
+           version of the object name Panic in workspace with id 42.
+           Towel/1/6 would identify the 6th version of the object with id 1
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.), parameter
+           "copy_source_inaccessible" of type "boolean" (A boolean. 0 =
+           false, other = true.), parameter "extracted_ids" of mapping from
+           type "id_type" (An id type (e.g. from a typespec @id annotation:
+           @id [idtype])) to list of type "extracted_id" (An id extracted
+           from an object.), parameter "handle_error" of String, parameter
+           "handle_stacktrace" of String
         """
-        return self._client.call_method(
-            'Workspace.get_objects',
-            [object_ids], self._service_ver, context)
+        return self._client.call_method('Workspace.get_objects',
+                                        [object_ids], self._service_ver, context)
 
     def get_objects2(self, params, context=None):
         """
@@ -1597,38 +1520,63 @@ class Workspace(object):
            references, and object_info for this object without the object
            data. Default false.) -> structure: parameter "objects" of list of
            type "ObjectSpecification" (An Object Specification (OS). Inherits
-           from ObjectIdentity. Specifies which object, and which parts of
-           that object, to retrieve from the Workspace Service. The fields
-           wsid, workspace, objid, name, ver, and ref are identical to the
-           ObjectIdentity fields. REFERENCE FOLLOWING: Reference following
-           guarantees that a user that has access to an object can always see
-           a) objects that are referenced inside the object and b) objects
-           that are referenced in the object's provenance. This ensures that
-           the user has visibility into the entire provenance of the object
-           and the object's object dependencies (e.g. references). The user
-           must have at least read access to the object specified in this SO,
-           but need not have access to any further objects in the reference
-           chain, and those objects may be deleted. Optional reference
-           following fields: ref_chain obj_path - a path to the desired
-           object from the object specified in this OS. In other words, the
-           object specified in this OS is assumed to be accessible to the
-           user, and the objects in the object path represent a chain of
-           references to the desired object at the end of the object path. If
-           the references are all valid, the desired object will be returned.
-           - OR - list<obj_ref> obj_ref_path - shorthand for the obj_path.
-           Only one of obj_path or obj_ref_path may be specified. OBJECT
-           SUBSETS: When selecting a subset of an array in an object, the
-           returned array is compressed to the size of the subset, but the
-           ordering of the array is maintained. For example, if the array
-           stored at the 'feature' key of a Genome object has 4000 entries,
-           and the object paths provided are: /feature/7 /feature/3015
-           /feature/700 The returned feature array will be of length three
-           and the entries will consist, in order, of the 7th, 700th, and
-           3015th entries of the original array. Optional object subset
-           fields: list<object_path> included - the portions of the object to
-           include in the object subset. boolean strict_maps - if true, throw
-           an exception if the subset specification traverses a non-existant
-           map key (default false) boolean strict_arrays - if true, throw an
+           from ObjectIdentity (OI). Specifies which object, and which parts
+           of that object, to retrieve from the Workspace Service. The fields
+           wsid, workspace, objid, name, and ver are identical to the OI
+           fields. The ref field's behavior is extended from OI. It maintains
+           its previous behavior, but now also can act as a reference string.
+           See reference following below for more information. REFERENCE
+           FOLLOWING: Reference following guarantees that a user that has
+           access to an object can always see a) objects that are referenced
+           inside the object and b) objects that are referenced in the
+           object's provenance. This ensures that the user has visibility
+           into the entire provenance of the object and the object's object
+           dependencies (e.g. references). The user must have at least read
+           access to the object specified in this SO, but need not have
+           access to any further objects in the reference chain, and those
+           objects may be deleted. Optional reference following fields: Note
+           that only one of the following fields may be specified. ref_chain
+           obj_path - a path to the desired object from the object specified
+           in this OS. In other words, the object specified in this OS is
+           assumed to be accessible to the user, and the objects in the
+           object path represent a chain of references to the desired object
+           at the end of the object path. If the references are all valid,
+           the desired object will be returned. - OR - list<obj_ref>
+           obj_ref_path - shorthand for the obj_path. - OR - ref_chain
+           to_obj_path - identical to obj_path, except that the path is TO
+           the object specified in this OS, rather than from the object. In
+           other words the object specified by wsid/objid/ref etc. is the end
+           of the path, and to_obj_path is the rest of the path. The user
+           must have access to the first object in the to_obj_path. - OR -
+           list<obj_ref> to_obj_ref_path - shorthand for the to_obj_path. -
+           OR - ref_string ref - A string representing a reference path from
+           one object to another. Unlike the previous reference following
+           options, the ref_string represents the ENTIRE path from the source
+           object to the target object. As with the OI object, the ref field
+           may contain a single reference. - OR - boolean find_refence_path -
+           This is the last, slowest, and most expensive resort for getting a
+           referenced object - do not use this method unless the path to the
+           object is unavailable by any other means. Setting the
+           find_refence_path parameter to true means that the workspace
+           service will search through the object reference graph from the
+           object specified in this OS to find an object that 1) the user can
+           access, and 2) has an unbroken reference path to the target
+           object. If the search succeeds, the object will be returned as
+           normal. Note that the search will automatically fail after a
+           certain (but much larger than necessary for the vast majority of
+           cases) number of objects are traversed. OBJECT SUBSETS: When
+           selecting a subset of an array in an object, the returned array is
+           compressed to the size of the subset, but the ordering of the
+           array is maintained. For example, if the array stored at the
+           'feature' key of a Genome object has 4000 entries, and the object
+           paths provided are: /feature/7 /feature/3015 /feature/700 The
+           returned feature array will be of length three and the entries
+           will consist, in order, of the 7th, 700th, and 3015th entries of
+           the original array. Optional object subset fields:
+           list<object_path> included - the portions of the object to include
+           in the object subset. boolean strict_maps - if true, throw an
+           exception if the subset specification traverses a non-existent map
+           key (default false) boolean strict_arrays - if true, throw an
            exception if the subset specification exceeds the size of an array
            (default true)) -> structure: parameter "workspace" of type
            "ws_name" (A string used as a name for a workspace. Any string
@@ -1642,31 +1590,68 @@ class Workspace(object):
            |._- that is not an integer is acceptable.), parameter "objid" of
            type "obj_id" (The unique, permanent numerical ID of an object.),
            parameter "ver" of type "obj_ver" (An object version. The version
+           of the object, starting at 1.), parameter "ref" of type
+           "ref_string" (A chain of objects with references to one another as
+           a string. A single string that is semantically identical to
+           ref_chain above. Represents a path from one workspace object to
+           another through an arbitrarily number of intermediate objects
+           where each object has a dependency or provenance reference to the
+           next object. Each entry is an obj_ref as defined earlier. Entries
+           are separated by semicolons. Whitespace is ignored. Examples:
+           3/5/6; kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
+           parameter "obj_path" of type "ref_chain" (A chain of objects with
+           references to one another. An object reference chain consists of a
+           list of objects where the nth object possesses a reference, either
+           in the object itself or in the object provenance, to the n+1th
+           object.) -> list of type "ObjectIdentity" (An object identifier.
+           Select an object by either: One, and only one, of the numerical id
+           or name of the workspace. ws_id wsid - the numerical ID of the
+           workspace. ws_name workspace - the name of the workspace. AND One,
+           and only one, of the numerical id or name of the object. obj_id
+           objid- the numerical ID of the object. obj_name name - name of the
+           object. OPTIONALLY obj_ver ver - the version of the object. OR an
+           object reference string: obj_ref ref - an object reference
+           string.) -> structure: parameter "workspace" of type "ws_name" (A
+           string used as a name for a workspace. Any string consisting of
+           alphanumeric characters and "_", ".", or "-" that is not an
+           integer is acceptable. The name may optionally be prefixed with
+           the workspace owner's user name and a colon, e.g.
+           kbasetest:my_workspace.), parameter "wsid" of type "ws_id" (The
+           unique, permanent numerical ID of a workspace.), parameter "name"
+           of type "obj_name" (A string used as a name for an object. Any
+           string consisting of alphanumeric characters and the characters
+           |._- that is not an integer is acceptable.), parameter "objid" of
+           type "obj_id" (The unique, permanent numerical ID of an object.),
+           parameter "ver" of type "obj_ver" (An object version. The version
            of the object, starting at 1.), parameter "ref" of type "obj_ref"
            (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "obj_path" of type "ref_chain" (A
-           chain of objects with references to one another. An object
-           reference chain consists of a list of objects where the nth object
-           possesses a reference, either in the object itself or in the
-           object provenance, to the n+1th object.) -> list of type
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.), parameter
+           "obj_ref_path" of list of type "obj_ref" (A string that uniquely
+           identifies an object in the workspace service. The format is
+           [ws_name or id]/[obj_name or id]/[obj_ver]. For example,
+           MyFirstWorkspace/MyFirstObject/3 would identify the third version
+           of an object called MyFirstObject in the workspace called
+           MyFirstWorkspace. 42/Panic/1 would identify the first version of
+           the object name Panic in workspace with id 42. Towel/1/6 would
+           identify the 6th version of the object with id 1 in the Towel
+           workspace.If the version number is omitted, the latest version of
+           the object is assumed.), parameter "to_obj_path" of type
+           "ref_chain" (A chain of objects with references to one another. An
+           object reference chain consists of a list of objects where the nth
+           object possesses a reference, either in the object itself or in
+           the object provenance, to the n+1th object.) -> list of type
            "ObjectIdentity" (An object identifier. Select an object by
            either: One, and only one, of the numerical id or name of the
-           workspace, where the name can also be a KBase ID including the
-           numerical id, e.g. kb|ws.35. ws_id wsid - the numerical ID of the
-           workspace. ws_name workspace - name of the workspace or the
-           workspace ID in KBase format, e.g. kb|ws.78. AND One, and only
-           one, of the numerical id or name of the object. obj_id objid- the
+           workspace. ws_id wsid - the numerical ID of the workspace. ws_name
+           workspace - the name of the workspace. AND One, and only one, of
+           the numerical id or name of the object. obj_id objid- the
            numerical ID of the object. obj_name name - name of the object.
            OPTIONALLY obj_ver ver - the version of the object. OR an object
            reference string: obj_ref ref - an object reference string.) ->
@@ -1683,62 +1668,58 @@ class Workspace(object):
            unique, permanent numerical ID of an object.), parameter "ver" of
            type "obj_ver" (An object version. The version of the object,
            starting at 1.), parameter "ref" of type "obj_ref" (A string that
-           uniquely identifies an object in the workspace service. There are
-           two ways to uniquely identify an object in one string: "[ws_name
-           or id]/[obj_name or id]/[obj_ver]" - for example,
-           "MyFirstWorkspace/MyFirstObject/3" would identify the third
-           version of an object called MyFirstObject in the workspace called
+           uniquely identifies an object in the workspace service. The format
+           is [ws_name or id]/[obj_name or id]/[obj_ver]. For example,
+           MyFirstWorkspace/MyFirstObject/3 would identify the third version
+           of an object called MyFirstObject in the workspace called
            MyFirstWorkspace. 42/Panic/1 would identify the first version of
            the object name Panic in workspace with id 42. Towel/1/6 would
            identify the 6th version of the object with id 1 in the Towel
-           workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for
-           example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "obj_ref_path" of list of type
-           "obj_ref" (A string that uniquely identifies an object in the
-           workspace service. There are two ways to uniquely identify an
-           object in one string: "[ws_name or id]/[obj_name or id]/[obj_ver]"
-           - for example, "MyFirstWorkspace/MyFirstObject/3" would identify
-           the third version of an object called MyFirstObject in the
-           workspace called MyFirstWorkspace. 42/Panic/1 would identify the
-           first version of the object name Panic in workspace with id 42.
-           Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "included" of list of type
-           "object_path" (A path into an object. Identify a sub portion of an
-           object by providing the path, delimited by a slash (/), to that
-           portion of the object. Thus the path may not have slashes in the
-           structure or mapping keys. Examples: /foo/bar/3 - specifies the
-           bar key of the foo mapping and the 3rd entry of the array if bar
-           maps to an array or the value mapped to the string "3" if bar maps
-           to a map. /foo/bar/[*]/baz - specifies the baz field of all the
-           objects in the list mapped by the bar key in the map foo.
-           /foo/asterisk/baz - specifies the baz field of all the objects in
-           the values of the foo mapping. Swap 'asterisk' for * in the path.
-           In case you need to use '/' or '~' in path items use JSON Pointer
-           notation defined here: http://tools.ietf.org/html/rfc6901),
-           parameter "strict_maps" of type "boolean" (A boolean. 0 = false,
-           other = true.), parameter "strict_arrays" of type "boolean" (A
-           boolean. 0 = false, other = true.), parameter "ignoreErrors" of
-           type "boolean" (A boolean. 0 = false, other = true.), parameter
-           "no_data" of type "boolean" (A boolean. 0 = false, other = true.)
+           workspace.If the version number is omitted, the latest version of
+           the object is assumed.), parameter "to_obj_ref_path" of list of
+           type "obj_ref" (A string that uniquely identifies an object in the
+           workspace service. The format is [ws_name or id]/[obj_name or
+           id]/[obj_ver]. For example, MyFirstWorkspace/MyFirstObject/3 would
+           identify the third version of an object called MyFirstObject in
+           the workspace called MyFirstWorkspace. 42/Panic/1 would identify
+           the first version of the object name Panic in workspace with id
+           42. Towel/1/6 would identify the 6th version of the object with id
+           1 in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.), parameter
+           "find_reference_path" of type "boolean" (A boolean. 0 = false,
+           other = true.), parameter "included" of list of type "object_path"
+           (A path into an object. Identify a sub portion of an object by
+           providing the path, delimited by a slash (/), to that portion of
+           the object. Thus the path may not have slashes in the structure or
+           mapping keys. Examples: /foo/bar/3 - specifies the bar key of the
+           foo mapping and the 3rd entry of the array if bar maps to an array
+           or the value mapped to the string "3" if bar maps to a map.
+           /foo/bar/[*]/baz - specifies the baz field of all the objects in
+           the list mapped by the bar key in the map foo. /foo/asterisk/baz -
+           specifies the baz field of all the objects in the values of the
+           foo mapping. Swap 'asterisk' for * in the path. In case you need
+           to use '/' or '~' in path items use JSON Pointer notation defined
+           here: http://tools.ietf.org/html/rfc6901), parameter "strict_maps"
+           of type "boolean" (A boolean. 0 = false, other = true.), parameter
+           "strict_arrays" of type "boolean" (A boolean. 0 = false, other =
+           true.), parameter "ignoreErrors" of type "boolean" (A boolean. 0 =
+           false, other = true.), parameter "no_data" of type "boolean" (A
+           boolean. 0 = false, other = true.)
         :returns: instance of type "GetObjects2Results" (Results from the
            get_objects2 function. list<ObjectData> data - the returned
            objects.) -> structure: parameter "data" of list of type
            "ObjectData" (The data and supplemental info for an object.
            UnspecifiedObject data - the object's data or subset data.
-           object_info info - information about the object.
+           object_info info - information about the object. list<obj_ref>
+           path - the path to the object through the object reference graph.
+           All the references in the path are absolute.
            list<ProvenanceAction> provenance - the object's provenance.
            username creator - the user that first saved the object to the
            workspace. ws_id orig_wsid - the id of the workspace in which this
            object was originally saved. Missing for objects saved prior to
            version 0.4.1. timestamp created - the date the object was first
            saved to the workspace. epoch epoch - the date the object was
-           first saved to the workspace. list<obj_ref> - the references
+           first saved to the workspace. list<obj_ref> refs - the references
            contained within the object. obj_ref copied - the reference of the
            source object if this object is a copy and the copy source exists
            and is accessible. null otherwise. boolean
@@ -1792,97 +1773,101 @@ class Workspace(object):
            kbasetest:my_workspace.), parameter "chsum" of String, parameter
            "size" of Long, parameter "meta" of type "usermeta" (User provided
            metadata about an object. Arbitrary key-value pairs provided by
-           the user.) -> mapping from String to String, parameter
-           "provenance" of list of type "ProvenanceAction" (A provenance
-           action. A provenance action (PA) is an action taken while
-           transforming one data object to another. There may be several PAs
-           taken in series. A PA is typically running a script, running an
-           api command, etc. All of the following fields are optional, but
-           more information provided equates to better data provenance.
-           resolved_ws_objects should never be set by the user; it is set by
-           the workspace service when returning data. On input, only one of
-           the time or epoch may be supplied. Both are supplied on output.
-           The maximum size of the entire provenance object, including all
-           actions, is 1MB. timestamp time - the time the action was started
-           epoch epoch - the time the action was started. string caller - the
-           name or id of the invoker of this provenance action. In most
-           cases, this will be the same for all PAs. string service - the
-           name of the service that performed this action. string service_ver
-           - the version of the service that performed this action. string
-           method - the method of the service that performed this action.
-           list<UnspecifiedObject> method_params - the parameters of the
-           method that performed this action. If an object in the parameters
-           is a workspace object, also put the object reference in the
-           input_ws_object list. string script - the name of the script that
-           performed this action. string script_ver - the version of the
-           script that performed this action. string script_command_line -
-           the command line provided to the script that performed this
-           action. If workspace objects were provided in the command line,
-           also put the object reference in the input_ws_object list.
-           list<obj_ref> input_ws_objects - the workspace objects that were
-           used as input to this action; typically these will also be present
-           as parts of the method_params or the script_command_line
-           arguments. list<obj_ref> resolved_ws_objects - the workspace
-           objects ids from input_ws_objects resolved to permanent workspace
-           object references by the workspace service. list<string>
-           intermediate_incoming - if the previous action produced output
-           that 1) was not stored in a referrable way, and 2) is used as
-           input for this action, provide it with an arbitrary and unique ID
-           here, in the order of the input arguments to this action. These
-           IDs can be used in the method_params argument. list<string>
-           intermediate_outgoing - if this action produced output that 1) was
-           not stored in a referrable way, and 2) is used as input for the
-           next action, provide it with an arbitrary and unique ID here, in
-           the order of the output values from this action. These IDs can be
-           used in the intermediate_incoming argument in the next action.
-           list<ExternalDataUnit> external_data - data external to the
-           workspace that was either imported to the workspace or used to
-           create a workspace object. list<SubAction> subactions - the
-           subactions taken as a part of this action. mapping<string, string>
-           custom - user definable custom provenance fields and their values.
-           string description - a free text description of this action.) ->
-           structure: parameter "time" of type "timestamp" (A time in the
-           format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z
-           (representing the UTC timezone) or the difference in time to UTC
-           in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time)
-           2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC
-           time)), parameter "epoch" of type "epoch" (A Unix epoch (the time
-           since 00:00:00 1/1/1970 UTC) in milliseconds.), parameter "caller"
-           of String, parameter "service" of String, parameter "service_ver"
-           of String, parameter "method" of String, parameter "method_params"
-           of list of unspecified object, parameter "script" of String,
-           parameter "script_ver" of String, parameter "script_command_line"
-           of String, parameter "input_ws_objects" of list of type "obj_ref"
-           (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           the user.) -> mapping from String to String, parameter "path" of
+           list of type "obj_ref" (A string that uniquely identifies an
+           object in the workspace service. The format is [ws_name or
+           id]/[obj_name or id]/[obj_ver]. For example,
+           MyFirstWorkspace/MyFirstObject/3 would identify the third version
+           of an object called MyFirstObject in the workspace called
+           MyFirstWorkspace. 42/Panic/1 would identify the first version of
+           the object name Panic in workspace with id 42. Towel/1/6 would
+           identify the 6th version of the object with id 1 in the Towel
+           workspace.If the version number is omitted, the latest version of
+           the object is assumed.), parameter "provenance" of list of type
+           "ProvenanceAction" (A provenance action. A provenance action (PA)
+           is an action taken while transforming one data object to another.
+           There may be several PAs taken in series. A PA is typically
+           running a script, running an api command, etc. All of the
+           following fields are optional, but more information provided
+           equates to better data provenance. resolved_ws_objects should
+           never be set by the user; it is set by the workspace service when
+           returning data. On input, only one of the time or epoch may be
+           supplied. Both are supplied on output. The maximum size of the
+           entire provenance object, including all actions, is 1MB. timestamp
+           time - the time the action was started epoch epoch - the time the
+           action was started. string caller - the name or id of the invoker
+           of this provenance action. In most cases, this will be the same
+           for all PAs. string service - the name of the service that
+           performed this action. string service_ver - the version of the
+           service that performed this action. string method - the method of
+           the service that performed this action. list<UnspecifiedObject>
+           method_params - the parameters of the method that performed this
+           action. If an object in the parameters is a workspace object, also
+           put the object reference in the input_ws_object list. string
+           script - the name of the script that performed this action. string
+           script_ver - the version of the script that performed this action.
+           string script_command_line - the command line provided to the
+           script that performed this action. If workspace objects were
+           provided in the command line, also put the object reference in the
+           input_ws_object list. list<ref_string> input_ws_objects - the
+           workspace objects that were used as input to this action;
+           typically these will also be present as parts of the method_params
+           or the script_command_line arguments. A reference path into the
+           object graph may be supplied. list<obj_ref> resolved_ws_objects -
+           the workspace objects ids from input_ws_objects resolved to
+           permanent workspace object references by the workspace service.
+           list<string> intermediate_incoming - if the previous action
+           produced output that 1) was not stored in a referrable way, and 2)
+           is used as input for this action, provide it with an arbitrary and
+           unique ID here, in the order of the input arguments to this
+           action. These IDs can be used in the method_params argument.
+           list<string> intermediate_outgoing - if this action produced
+           output that 1) was not stored in a referrable way, and 2) is used
+           as input for the next action, provide it with an arbitrary and
+           unique ID here, in the order of the output values from this
+           action. These IDs can be used in the intermediate_incoming
+           argument in the next action. list<ExternalDataUnit> external_data
+           - data external to the workspace that was either imported to the
+           workspace or used to create a workspace object. list<SubAction>
+           subactions - the subactions taken as a part of this action.
+           mapping<string, string> custom - user definable custom provenance
+           fields and their values. string description - a free text
+           description of this action.) -> structure: parameter "time" of
+           type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where
+           Z is either the character Z (representing the UTC timezone) or the
+           difference in time to UTC in the format +/-HHMM, eg:
+           2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC
+           time) 2013-04-03T08:56:32Z (UTC time)), parameter "epoch" of type
+           "epoch" (A Unix epoch (the time since 00:00:00 1/1/1970 UTC) in
+           milliseconds.), parameter "caller" of String, parameter "service"
+           of String, parameter "service_ver" of String, parameter "method"
+           of String, parameter "method_params" of list of unspecified
+           object, parameter "script" of String, parameter "script_ver" of
+           String, parameter "script_command_line" of String, parameter
+           "input_ws_objects" of list of type "ref_string" (A chain of
+           objects with references to one another as a string. A single
+           string that is semantically identical to ref_chain above.
+           Represents a path from one workspace object to another through an
+           arbitrarily number of intermediate objects where each object has a
+           dependency or provenance reference to the next object. Each entry
+           is an obj_ref as defined earlier. Entries are separated by
+           semicolons. Whitespace is ignored. Examples: 3/5/6;
+           kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
+           parameter "resolved_ws_objects" of list of type "obj_ref" (A
+           string that uniquely identifies an object in the workspace
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "resolved_ws_objects" of list of
-           type "obj_ref" (A string that uniquely identifies an object in the
-           workspace service. There are two ways to uniquely identify an
-           object in one string: "[ws_name or id]/[obj_name or id]/[obj_ver]"
-           - for example, "MyFirstWorkspace/MyFirstObject/3" would identify
-           the third version of an object called MyFirstObject in the
-           workspace called MyFirstWorkspace. 42/Panic/1 would identify the
-           first version of the object name Panic in workspace with id 42.
-           Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "intermediate_incoming" of list of
-           String, parameter "intermediate_outgoing" of list of String,
-           parameter "external_data" of list of type "ExternalDataUnit" (An
-           external data unit. A piece of data from a source outside the
-           Workspace. On input, only one of the resource_release_date or
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.), parameter
+           "intermediate_incoming" of list of String, parameter
+           "intermediate_outgoing" of list of String, parameter
+           "external_data" of list of type "ExternalDataUnit" (An external
+           data unit. A piece of data from a source outside the Workspace. On
+           input, only one of the resource_release_date or
            resource_release_epoch may be supplied. Both are supplied on
            output. string resource_name - the name of the resource, for
            example JGI. string resource_url - the url of the resource, for
@@ -1937,41 +1922,33 @@ class Workspace(object):
            time)), parameter "epoch" of type "epoch" (A Unix epoch (the time
            since 00:00:00 1/1/1970 UTC) in milliseconds.), parameter "refs"
            of list of type "obj_ref" (A string that uniquely identifies an
-           object in the workspace service. There are two ways to uniquely
-           identify an object in one string: "[ws_name or id]/[obj_name or
-           id]/[obj_ver]" - for example, "MyFirstWorkspace/MyFirstObject/3"
-           would identify the third version of an object called MyFirstObject
-           in the workspace called MyFirstWorkspace. 42/Panic/1 would
-           identify the first version of the object name Panic in workspace
-           with id 42. Towel/1/6 would identify the 6th version of the object
-           with id 1 in the Towel workspace.
-           "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for example,
-           "kb|ws.23.obj.567.ver.2" would identify the second version of an
-           object with id 567 in a workspace with id 23. In all cases, if the
-           version number is omitted, the latest version of the object is
-           assumed.), parameter "copied" of type "obj_ref" (A string that
-           uniquely identifies an object in the workspace service. There are
-           two ways to uniquely identify an object in one string: "[ws_name
-           or id]/[obj_name or id]/[obj_ver]" - for example,
-           "MyFirstWorkspace/MyFirstObject/3" would identify the third
-           version of an object called MyFirstObject in the workspace called
+           object in the workspace service. The format is [ws_name or
+           id]/[obj_name or id]/[obj_ver]. For example,
+           MyFirstWorkspace/MyFirstObject/3 would identify the third version
+           of an object called MyFirstObject in the workspace called
            MyFirstWorkspace. 42/Panic/1 would identify the first version of
            the object name Panic in workspace with id 42. Towel/1/6 would
            identify the 6th version of the object with id 1 in the Towel
-           workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for
-           example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "copy_source_inaccessible" of type
-           "boolean" (A boolean. 0 = false, other = true.), parameter
-           "extracted_ids" of mapping from type "id_type" (An id type (e.g.
-           from a typespec @id annotation: @id [idtype])) to list of type
-           "extracted_id" (An id extracted from an object.), parameter
-           "handle_error" of String, parameter "handle_stacktrace" of String
+           workspace.If the version number is omitted, the latest version of
+           the object is assumed.), parameter "copied" of type "obj_ref" (A
+           string that uniquely identifies an object in the workspace
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
+           third version of an object called MyFirstObject in the workspace
+           called MyFirstWorkspace. 42/Panic/1 would identify the first
+           version of the object name Panic in workspace with id 42.
+           Towel/1/6 would identify the 6th version of the object with id 1
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.), parameter
+           "copy_source_inaccessible" of type "boolean" (A boolean. 0 =
+           false, other = true.), parameter "extracted_ids" of mapping from
+           type "id_type" (An id type (e.g. from a typespec @id annotation:
+           @id [idtype])) to list of type "extracted_id" (An id extracted
+           from an object.), parameter "handle_error" of String, parameter
+           "handle_stacktrace" of String
         """
-        return self._client.call_method(
-            'Workspace.get_objects2',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.get_objects2',
+                                        [params], self._service_ver, context)
 
     def get_object_subset(self, sub_object_ids, context=None):
         """
@@ -1982,9 +1959,9 @@ class Workspace(object):
         the array is maintained. For example, if the array stored at the
         'feature' key of a Genome object has 4000 entries, and the object paths
         provided are:
-            /feature/7
-            /feature/3015
-            /feature/700
+                /feature/7
+                /feature/3015
+                /feature/700
         The returned feature array will be of length three and the entries will
         consist, in order, of the 7th, 700th, and 3015th entries of the
         original array.
@@ -1992,11 +1969,9 @@ class Workspace(object):
         :param sub_object_ids: instance of list of type "SubObjectIdentity"
            (DEPRECATED An object subset identifier. Select a subset of an
            object by: EITHER One, and only one, of the numerical id or name
-           of the workspace, where the name can also be a KBase ID including
-           the numerical id, e.g. kb|ws.35. ws_id wsid - the numerical ID of
-           the workspace. ws_name workspace - name of the workspace or the
-           workspace ID in KBase format, e.g. kb|ws.78. AND One, and only
-           one, of the numerical id or name of the object. obj_id objid- the
+           of the workspace. ws_id wsid - the numerical ID of the workspace.
+           ws_name workspace - name of the workspace. AND One, and only one,
+           of the numerical id or name of the object. obj_id objid- the
            numerical ID of the object. obj_name name - name of the object.
            OPTIONALLY obj_ver ver - the version of the object. OR an object
            reference string: obj_ref ref - an object reference string. AND a
@@ -2020,44 +1995,43 @@ class Workspace(object):
            parameter "ver" of type "obj_ver" (An object version. The version
            of the object, starting at 1.), parameter "ref" of type "obj_ref"
            (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "included" of list of type
-           "object_path" (A path into an object. Identify a sub portion of an
-           object by providing the path, delimited by a slash (/), to that
-           portion of the object. Thus the path may not have slashes in the
-           structure or mapping keys. Examples: /foo/bar/3 - specifies the
-           bar key of the foo mapping and the 3rd entry of the array if bar
-           maps to an array or the value mapped to the string "3" if bar maps
-           to a map. /foo/bar/[*]/baz - specifies the baz field of all the
-           objects in the list mapped by the bar key in the map foo.
-           /foo/asterisk/baz - specifies the baz field of all the objects in
-           the values of the foo mapping. Swap 'asterisk' for * in the path.
-           In case you need to use '/' or '~' in path items use JSON Pointer
-           notation defined here: http://tools.ietf.org/html/rfc6901),
-           parameter "strict_maps" of type "boolean" (A boolean. 0 = false,
-           other = true.), parameter "strict_arrays" of type "boolean" (A
-           boolean. 0 = false, other = true.)
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.), parameter "included" of
+           list of type "object_path" (A path into an object. Identify a sub
+           portion of an object by providing the path, delimited by a slash
+           (/), to that portion of the object. Thus the path may not have
+           slashes in the structure or mapping keys. Examples: /foo/bar/3 -
+           specifies the bar key of the foo mapping and the 3rd entry of the
+           array if bar maps to an array or the value mapped to the string
+           "3" if bar maps to a map. /foo/bar/[*]/baz - specifies the baz
+           field of all the objects in the list mapped by the bar key in the
+           map foo. /foo/asterisk/baz - specifies the baz field of all the
+           objects in the values of the foo mapping. Swap 'asterisk' for * in
+           the path. In case you need to use '/' or '~' in path items use
+           JSON Pointer notation defined here:
+           http://tools.ietf.org/html/rfc6901), parameter "strict_maps" of
+           type "boolean" (A boolean. 0 = false, other = true.), parameter
+           "strict_arrays" of type "boolean" (A boolean. 0 = false, other =
+           true.)
         :returns: instance of list of type "ObjectData" (The data and
            supplemental info for an object. UnspecifiedObject data - the
            object's data or subset data. object_info info - information about
-           the object. list<ProvenanceAction> provenance - the object's
+           the object. list<obj_ref> path - the path to the object through
+           the object reference graph. All the references in the path are
+           absolute. list<ProvenanceAction> provenance - the object's
            provenance. username creator - the user that first saved the
            object to the workspace. ws_id orig_wsid - the id of the workspace
            in which this object was originally saved. Missing for objects
            saved prior to version 0.4.1. timestamp created - the date the
            object was first saved to the workspace. epoch epoch - the date
-           the object was first saved to the workspace. list<obj_ref> - the
-           references contained within the object. obj_ref copied - the
+           the object was first saved to the workspace. list<obj_ref> refs -
+           the references contained within the object. obj_ref copied - the
            reference of the source object if this object is a copy and the
            copy source exists and is accessible. null otherwise. boolean
            copy_source_inaccessible - true if the object was copied from
@@ -2110,97 +2084,101 @@ class Workspace(object):
            kbasetest:my_workspace.), parameter "chsum" of String, parameter
            "size" of Long, parameter "meta" of type "usermeta" (User provided
            metadata about an object. Arbitrary key-value pairs provided by
-           the user.) -> mapping from String to String, parameter
-           "provenance" of list of type "ProvenanceAction" (A provenance
-           action. A provenance action (PA) is an action taken while
-           transforming one data object to another. There may be several PAs
-           taken in series. A PA is typically running a script, running an
-           api command, etc. All of the following fields are optional, but
-           more information provided equates to better data provenance.
-           resolved_ws_objects should never be set by the user; it is set by
-           the workspace service when returning data. On input, only one of
-           the time or epoch may be supplied. Both are supplied on output.
-           The maximum size of the entire provenance object, including all
-           actions, is 1MB. timestamp time - the time the action was started
-           epoch epoch - the time the action was started. string caller - the
-           name or id of the invoker of this provenance action. In most
-           cases, this will be the same for all PAs. string service - the
-           name of the service that performed this action. string service_ver
-           - the version of the service that performed this action. string
-           method - the method of the service that performed this action.
-           list<UnspecifiedObject> method_params - the parameters of the
-           method that performed this action. If an object in the parameters
-           is a workspace object, also put the object reference in the
-           input_ws_object list. string script - the name of the script that
-           performed this action. string script_ver - the version of the
-           script that performed this action. string script_command_line -
-           the command line provided to the script that performed this
-           action. If workspace objects were provided in the command line,
-           also put the object reference in the input_ws_object list.
-           list<obj_ref> input_ws_objects - the workspace objects that were
-           used as input to this action; typically these will also be present
-           as parts of the method_params or the script_command_line
-           arguments. list<obj_ref> resolved_ws_objects - the workspace
-           objects ids from input_ws_objects resolved to permanent workspace
-           object references by the workspace service. list<string>
-           intermediate_incoming - if the previous action produced output
-           that 1) was not stored in a referrable way, and 2) is used as
-           input for this action, provide it with an arbitrary and unique ID
-           here, in the order of the input arguments to this action. These
-           IDs can be used in the method_params argument. list<string>
-           intermediate_outgoing - if this action produced output that 1) was
-           not stored in a referrable way, and 2) is used as input for the
-           next action, provide it with an arbitrary and unique ID here, in
-           the order of the output values from this action. These IDs can be
-           used in the intermediate_incoming argument in the next action.
-           list<ExternalDataUnit> external_data - data external to the
-           workspace that was either imported to the workspace or used to
-           create a workspace object. list<SubAction> subactions - the
-           subactions taken as a part of this action. mapping<string, string>
-           custom - user definable custom provenance fields and their values.
-           string description - a free text description of this action.) ->
-           structure: parameter "time" of type "timestamp" (A time in the
-           format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z
-           (representing the UTC timezone) or the difference in time to UTC
-           in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time)
-           2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC
-           time)), parameter "epoch" of type "epoch" (A Unix epoch (the time
-           since 00:00:00 1/1/1970 UTC) in milliseconds.), parameter "caller"
-           of String, parameter "service" of String, parameter "service_ver"
-           of String, parameter "method" of String, parameter "method_params"
-           of list of unspecified object, parameter "script" of String,
-           parameter "script_ver" of String, parameter "script_command_line"
-           of String, parameter "input_ws_objects" of list of type "obj_ref"
-           (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           the user.) -> mapping from String to String, parameter "path" of
+           list of type "obj_ref" (A string that uniquely identifies an
+           object in the workspace service. The format is [ws_name or
+           id]/[obj_name or id]/[obj_ver]. For example,
+           MyFirstWorkspace/MyFirstObject/3 would identify the third version
+           of an object called MyFirstObject in the workspace called
+           MyFirstWorkspace. 42/Panic/1 would identify the first version of
+           the object name Panic in workspace with id 42. Towel/1/6 would
+           identify the 6th version of the object with id 1 in the Towel
+           workspace.If the version number is omitted, the latest version of
+           the object is assumed.), parameter "provenance" of list of type
+           "ProvenanceAction" (A provenance action. A provenance action (PA)
+           is an action taken while transforming one data object to another.
+           There may be several PAs taken in series. A PA is typically
+           running a script, running an api command, etc. All of the
+           following fields are optional, but more information provided
+           equates to better data provenance. resolved_ws_objects should
+           never be set by the user; it is set by the workspace service when
+           returning data. On input, only one of the time or epoch may be
+           supplied. Both are supplied on output. The maximum size of the
+           entire provenance object, including all actions, is 1MB. timestamp
+           time - the time the action was started epoch epoch - the time the
+           action was started. string caller - the name or id of the invoker
+           of this provenance action. In most cases, this will be the same
+           for all PAs. string service - the name of the service that
+           performed this action. string service_ver - the version of the
+           service that performed this action. string method - the method of
+           the service that performed this action. list<UnspecifiedObject>
+           method_params - the parameters of the method that performed this
+           action. If an object in the parameters is a workspace object, also
+           put the object reference in the input_ws_object list. string
+           script - the name of the script that performed this action. string
+           script_ver - the version of the script that performed this action.
+           string script_command_line - the command line provided to the
+           script that performed this action. If workspace objects were
+           provided in the command line, also put the object reference in the
+           input_ws_object list. list<ref_string> input_ws_objects - the
+           workspace objects that were used as input to this action;
+           typically these will also be present as parts of the method_params
+           or the script_command_line arguments. A reference path into the
+           object graph may be supplied. list<obj_ref> resolved_ws_objects -
+           the workspace objects ids from input_ws_objects resolved to
+           permanent workspace object references by the workspace service.
+           list<string> intermediate_incoming - if the previous action
+           produced output that 1) was not stored in a referrable way, and 2)
+           is used as input for this action, provide it with an arbitrary and
+           unique ID here, in the order of the input arguments to this
+           action. These IDs can be used in the method_params argument.
+           list<string> intermediate_outgoing - if this action produced
+           output that 1) was not stored in a referrable way, and 2) is used
+           as input for the next action, provide it with an arbitrary and
+           unique ID here, in the order of the output values from this
+           action. These IDs can be used in the intermediate_incoming
+           argument in the next action. list<ExternalDataUnit> external_data
+           - data external to the workspace that was either imported to the
+           workspace or used to create a workspace object. list<SubAction>
+           subactions - the subactions taken as a part of this action.
+           mapping<string, string> custom - user definable custom provenance
+           fields and their values. string description - a free text
+           description of this action.) -> structure: parameter "time" of
+           type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where
+           Z is either the character Z (representing the UTC timezone) or the
+           difference in time to UTC in the format +/-HHMM, eg:
+           2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC
+           time) 2013-04-03T08:56:32Z (UTC time)), parameter "epoch" of type
+           "epoch" (A Unix epoch (the time since 00:00:00 1/1/1970 UTC) in
+           milliseconds.), parameter "caller" of String, parameter "service"
+           of String, parameter "service_ver" of String, parameter "method"
+           of String, parameter "method_params" of list of unspecified
+           object, parameter "script" of String, parameter "script_ver" of
+           String, parameter "script_command_line" of String, parameter
+           "input_ws_objects" of list of type "ref_string" (A chain of
+           objects with references to one another as a string. A single
+           string that is semantically identical to ref_chain above.
+           Represents a path from one workspace object to another through an
+           arbitrarily number of intermediate objects where each object has a
+           dependency or provenance reference to the next object. Each entry
+           is an obj_ref as defined earlier. Entries are separated by
+           semicolons. Whitespace is ignored. Examples: 3/5/6;
+           kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
+           parameter "resolved_ws_objects" of list of type "obj_ref" (A
+           string that uniquely identifies an object in the workspace
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "resolved_ws_objects" of list of
-           type "obj_ref" (A string that uniquely identifies an object in the
-           workspace service. There are two ways to uniquely identify an
-           object in one string: "[ws_name or id]/[obj_name or id]/[obj_ver]"
-           - for example, "MyFirstWorkspace/MyFirstObject/3" would identify
-           the third version of an object called MyFirstObject in the
-           workspace called MyFirstWorkspace. 42/Panic/1 would identify the
-           first version of the object name Panic in workspace with id 42.
-           Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "intermediate_incoming" of list of
-           String, parameter "intermediate_outgoing" of list of String,
-           parameter "external_data" of list of type "ExternalDataUnit" (An
-           external data unit. A piece of data from a source outside the
-           Workspace. On input, only one of the resource_release_date or
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.), parameter
+           "intermediate_incoming" of list of String, parameter
+           "intermediate_outgoing" of list of String, parameter
+           "external_data" of list of type "ExternalDataUnit" (An external
+           data unit. A piece of data from a source outside the Workspace. On
+           input, only one of the resource_release_date or
            resource_release_epoch may be supplied. Both are supplied on
            output. string resource_name - the name of the resource, for
            example JGI. string resource_url - the url of the resource, for
@@ -2255,41 +2233,33 @@ class Workspace(object):
            time)), parameter "epoch" of type "epoch" (A Unix epoch (the time
            since 00:00:00 1/1/1970 UTC) in milliseconds.), parameter "refs"
            of list of type "obj_ref" (A string that uniquely identifies an
-           object in the workspace service. There are two ways to uniquely
-           identify an object in one string: "[ws_name or id]/[obj_name or
-           id]/[obj_ver]" - for example, "MyFirstWorkspace/MyFirstObject/3"
-           would identify the third version of an object called MyFirstObject
-           in the workspace called MyFirstWorkspace. 42/Panic/1 would
-           identify the first version of the object name Panic in workspace
-           with id 42. Towel/1/6 would identify the 6th version of the object
-           with id 1 in the Towel workspace.
-           "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for example,
-           "kb|ws.23.obj.567.ver.2" would identify the second version of an
-           object with id 567 in a workspace with id 23. In all cases, if the
-           version number is omitted, the latest version of the object is
-           assumed.), parameter "copied" of type "obj_ref" (A string that
-           uniquely identifies an object in the workspace service. There are
-           two ways to uniquely identify an object in one string: "[ws_name
-           or id]/[obj_name or id]/[obj_ver]" - for example,
-           "MyFirstWorkspace/MyFirstObject/3" would identify the third
-           version of an object called MyFirstObject in the workspace called
+           object in the workspace service. The format is [ws_name or
+           id]/[obj_name or id]/[obj_ver]. For example,
+           MyFirstWorkspace/MyFirstObject/3 would identify the third version
+           of an object called MyFirstObject in the workspace called
            MyFirstWorkspace. 42/Panic/1 would identify the first version of
            the object name Panic in workspace with id 42. Towel/1/6 would
            identify the 6th version of the object with id 1 in the Towel
-           workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for
-           example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "copy_source_inaccessible" of type
-           "boolean" (A boolean. 0 = false, other = true.), parameter
-           "extracted_ids" of mapping from type "id_type" (An id type (e.g.
-           from a typespec @id annotation: @id [idtype])) to list of type
-           "extracted_id" (An id extracted from an object.), parameter
-           "handle_error" of String, parameter "handle_stacktrace" of String
+           workspace.If the version number is omitted, the latest version of
+           the object is assumed.), parameter "copied" of type "obj_ref" (A
+           string that uniquely identifies an object in the workspace
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
+           third version of an object called MyFirstObject in the workspace
+           called MyFirstWorkspace. 42/Panic/1 would identify the first
+           version of the object name Panic in workspace with id 42.
+           Towel/1/6 would identify the 6th version of the object with id 1
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.), parameter
+           "copy_source_inaccessible" of type "boolean" (A boolean. 0 =
+           false, other = true.), parameter "extracted_ids" of mapping from
+           type "id_type" (An id type (e.g. from a typespec @id annotation:
+           @id [idtype])) to list of type "extracted_id" (An id extracted
+           from an object.), parameter "handle_error" of String, parameter
+           "handle_stacktrace" of String
         """
-        return self._client.call_method(
-            'Workspace.get_object_subset',
-            [sub_object_ids], self._service_ver, context)
+        return self._client.call_method('Workspace.get_object_subset',
+                                        [sub_object_ids], self._service_ver, context)
 
     def get_object_history(self, object, context=None):
         """
@@ -2297,19 +2267,17 @@ class Workspace(object):
         ignored.
         :param object: instance of type "ObjectIdentity" (An object
            identifier. Select an object by either: One, and only one, of the
-           numerical id or name of the workspace, where the name can also be
-           a KBase ID including the numerical id, e.g. kb|ws.35. ws_id wsid -
-           the numerical ID of the workspace. ws_name workspace - name of the
-           workspace or the workspace ID in KBase format, e.g. kb|ws.78. AND
-           One, and only one, of the numerical id or name of the object.
-           obj_id objid- the numerical ID of the object. obj_name name - name
-           of the object. OPTIONALLY obj_ver ver - the version of the object.
-           OR an object reference string: obj_ref ref - an object reference
-           string.) -> structure: parameter "workspace" of type "ws_name" (A
-           string used as a name for a workspace. Any string consisting of
-           alphanumeric characters and "_", ".", or "-" that is not an
-           integer is acceptable. The name may optionally be prefixed with
-           the workspace owner's user name and a colon, e.g.
+           numerical id or name of the workspace. ws_id wsid - the numerical
+           ID of the workspace. ws_name workspace - the name of the
+           workspace. AND One, and only one, of the numerical id or name of
+           the object. obj_id objid- the numerical ID of the object. obj_name
+           name - name of the object. OPTIONALLY obj_ver ver - the version of
+           the object. OR an object reference string: obj_ref ref - an object
+           reference string.) -> structure: parameter "workspace" of type
+           "ws_name" (A string used as a name for a workspace. Any string
+           consisting of alphanumeric characters and "_", ".", or "-" that is
+           not an integer is acceptable. The name may optionally be prefixed
+           with the workspace owner's user name and a colon, e.g.
            kbasetest:my_workspace.), parameter "wsid" of type "ws_id" (The
            unique, permanent numerical ID of a workspace.), parameter "name"
            of type "obj_name" (A string used as a name for an object. Any
@@ -2319,18 +2287,14 @@ class Workspace(object):
            parameter "ver" of type "obj_ver" (An object version. The version
            of the object, starting at 1.), parameter "ref" of type "obj_ref"
            (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.)
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.)
         :returns: instance of list of type "object_info" (Information about
            an object, including user provided metadata. obj_id objid - the
            numerical id of the object. obj_name name - the name of the
@@ -2376,9 +2340,8 @@ class Workspace(object):
            metadata about an object. Arbitrary key-value pairs provided by
            the user.) -> mapping from String to String
         """
-        return self._client.call_method(
-            'Workspace.get_object_history',
-            [object], self._service_ver, context)
+        return self._client.call_method('Workspace.get_object_history',
+                                        [object], self._service_ver, context)
 
     def list_referencing_objects(self, object_ids, context=None):
         """
@@ -2386,11 +2349,9 @@ class Workspace(object):
         in the deleted state are not returned.
         :param object_ids: instance of list of type "ObjectIdentity" (An
            object identifier. Select an object by either: One, and only one,
-           of the numerical id or name of the workspace, where the name can
-           also be a KBase ID including the numerical id, e.g. kb|ws.35.
-           ws_id wsid - the numerical ID of the workspace. ws_name workspace
-           - name of the workspace or the workspace ID in KBase format, e.g.
-           kb|ws.78. AND One, and only one, of the numerical id or name of
+           of the numerical id or name of the workspace. ws_id wsid - the
+           numerical ID of the workspace. ws_name workspace - the name of the
+           workspace. AND One, and only one, of the numerical id or name of
            the object. obj_id objid- the numerical ID of the object. obj_name
            name - name of the object. OPTIONALLY obj_ver ver - the version of
            the object. OR an object reference string: obj_ref ref - an object
@@ -2408,18 +2369,14 @@ class Workspace(object):
            parameter "ver" of type "obj_ver" (An object version. The version
            of the object, starting at 1.), parameter "ref" of type "obj_ref"
            (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.)
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.)
         :returns: instance of list of list of type "object_info" (Information
            about an object, including user provided metadata. obj_id objid -
            the numerical id of the object. obj_name name - the name of the
@@ -2465,9 +2422,8 @@ class Workspace(object):
            metadata about an object. Arbitrary key-value pairs provided by
            the user.) -> mapping from String to String
         """
-        return self._client.call_method(
-            'Workspace.list_referencing_objects',
-            [object_ids], self._service_ver, context)
+        return self._client.call_method('Workspace.list_referencing_objects',
+                                        [object_ids], self._service_ver, context)
 
     def list_referencing_object_counts(self, object_ids, context=None):
         """
@@ -2479,11 +2435,9 @@ class Workspace(object):
         @deprecated
         :param object_ids: instance of list of type "ObjectIdentity" (An
            object identifier. Select an object by either: One, and only one,
-           of the numerical id or name of the workspace, where the name can
-           also be a KBase ID including the numerical id, e.g. kb|ws.35.
-           ws_id wsid - the numerical ID of the workspace. ws_name workspace
-           - name of the workspace or the workspace ID in KBase format, e.g.
-           kb|ws.78. AND One, and only one, of the numerical id or name of
+           of the numerical id or name of the workspace. ws_id wsid - the
+           numerical ID of the workspace. ws_name workspace - the name of the
+           workspace. AND One, and only one, of the numerical id or name of
            the object. obj_id objid- the numerical ID of the object. obj_name
            name - name of the object. OPTIONALLY obj_ver ver - the version of
            the object. OR an object reference string: obj_ref ref - an object
@@ -2501,61 +2455,54 @@ class Workspace(object):
            parameter "ver" of type "obj_ver" (An object version. The version
            of the object, starting at 1.), parameter "ref" of type "obj_ref"
            (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.)
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.)
         :returns: instance of list of Long
         """
-        return self._client.call_method(
-            'Workspace.list_referencing_object_counts',
-            [object_ids], self._service_ver, context)
+        return self._client.call_method('Workspace.list_referencing_object_counts',
+                                        [object_ids], self._service_ver, context)
 
     def get_referenced_objects(self, ref_chains, context=None):
         """
         DEPRECATED
-            Get objects by references from other objects.
-            NOTE: In the vast majority of cases, this method is not necessary and
-            get_objects should be used instead. 
-            
-            get_referenced_objects guarantees that a user that has access to an
-            object can always see a) objects that are referenced inside the object
-            and b) objects that are referenced in the object's provenance. This
-            ensures that the user has visibility into the entire provenance of the
-            object and the object's object dependencies (e.g. references).
-            
-            The user must have at least read access to the first object in each
-            reference chain, but need not have access to any further objects in
-            the chain, and those objects may be deleted.
-            
-            @deprecated Workspace.get_objects2
+                Get objects by references from other objects.
+                NOTE: In the vast majority of cases, this method is not necessary and
+                get_objects should be used instead. 
+                
+                get_referenced_objects guarantees that a user that has access to an
+                object can always see a) objects that are referenced inside the object
+                and b) objects that are referenced in the object's provenance. This
+                ensures that the user has visibility into the entire provenance of the
+                object and the object's object dependencies (e.g. references).
+                
+                The user must have at least read access to the first object in each
+                reference chain, but need not have access to any further objects in
+                the chain, and those objects may be deleted.
+                
+                @deprecated Workspace.get_objects2
         :param ref_chains: instance of list of type "ref_chain" (A chain of
            objects with references to one another. An object reference chain
            consists of a list of objects where the nth object possesses a
            reference, either in the object itself or in the object
            provenance, to the n+1th object.) -> list of type "ObjectIdentity"
            (An object identifier. Select an object by either: One, and only
-           one, of the numerical id or name of the workspace, where the name
-           can also be a KBase ID including the numerical id, e.g. kb|ws.35.
-           ws_id wsid - the numerical ID of the workspace. ws_name workspace
-           - name of the workspace or the workspace ID in KBase format, e.g.
-           kb|ws.78. AND One, and only one, of the numerical id or name of
-           the object. obj_id objid- the numerical ID of the object. obj_name
-           name - name of the object. OPTIONALLY obj_ver ver - the version of
-           the object. OR an object reference string: obj_ref ref - an object
-           reference string.) -> structure: parameter "workspace" of type
-           "ws_name" (A string used as a name for a workspace. Any string
-           consisting of alphanumeric characters and "_", ".", or "-" that is
-           not an integer is acceptable. The name may optionally be prefixed
-           with the workspace owner's user name and a colon, e.g.
+           one, of the numerical id or name of the workspace. ws_id wsid -
+           the numerical ID of the workspace. ws_name workspace - the name of
+           the workspace. AND One, and only one, of the numerical id or name
+           of the object. obj_id objid- the numerical ID of the object.
+           obj_name name - name of the object. OPTIONALLY obj_ver ver - the
+           version of the object. OR an object reference string: obj_ref ref
+           - an object reference string.) -> structure: parameter "workspace"
+           of type "ws_name" (A string used as a name for a workspace. Any
+           string consisting of alphanumeric characters and "_", ".", or "-"
+           that is not an integer is acceptable. The name may optionally be
+           prefixed with the workspace owner's user name and a colon, e.g.
            kbasetest:my_workspace.), parameter "wsid" of type "ws_id" (The
            unique, permanent numerical ID of a workspace.), parameter "name"
            of type "obj_name" (A string used as a name for an object. Any
@@ -2565,29 +2512,27 @@ class Workspace(object):
            parameter "ver" of type "obj_ver" (An object version. The version
            of the object, starting at 1.), parameter "ref" of type "obj_ref"
            (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.)
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.)
         :returns: instance of list of type "ObjectData" (The data and
            supplemental info for an object. UnspecifiedObject data - the
            object's data or subset data. object_info info - information about
-           the object. list<ProvenanceAction> provenance - the object's
+           the object. list<obj_ref> path - the path to the object through
+           the object reference graph. All the references in the path are
+           absolute. list<ProvenanceAction> provenance - the object's
            provenance. username creator - the user that first saved the
            object to the workspace. ws_id orig_wsid - the id of the workspace
            in which this object was originally saved. Missing for objects
            saved prior to version 0.4.1. timestamp created - the date the
            object was first saved to the workspace. epoch epoch - the date
-           the object was first saved to the workspace. list<obj_ref> - the
-           references contained within the object. obj_ref copied - the
+           the object was first saved to the workspace. list<obj_ref> refs -
+           the references contained within the object. obj_ref copied - the
            reference of the source object if this object is a copy and the
            copy source exists and is accessible. null otherwise. boolean
            copy_source_inaccessible - true if the object was copied from
@@ -2640,97 +2585,101 @@ class Workspace(object):
            kbasetest:my_workspace.), parameter "chsum" of String, parameter
            "size" of Long, parameter "meta" of type "usermeta" (User provided
            metadata about an object. Arbitrary key-value pairs provided by
-           the user.) -> mapping from String to String, parameter
-           "provenance" of list of type "ProvenanceAction" (A provenance
-           action. A provenance action (PA) is an action taken while
-           transforming one data object to another. There may be several PAs
-           taken in series. A PA is typically running a script, running an
-           api command, etc. All of the following fields are optional, but
-           more information provided equates to better data provenance.
-           resolved_ws_objects should never be set by the user; it is set by
-           the workspace service when returning data. On input, only one of
-           the time or epoch may be supplied. Both are supplied on output.
-           The maximum size of the entire provenance object, including all
-           actions, is 1MB. timestamp time - the time the action was started
-           epoch epoch - the time the action was started. string caller - the
-           name or id of the invoker of this provenance action. In most
-           cases, this will be the same for all PAs. string service - the
-           name of the service that performed this action. string service_ver
-           - the version of the service that performed this action. string
-           method - the method of the service that performed this action.
-           list<UnspecifiedObject> method_params - the parameters of the
-           method that performed this action. If an object in the parameters
-           is a workspace object, also put the object reference in the
-           input_ws_object list. string script - the name of the script that
-           performed this action. string script_ver - the version of the
-           script that performed this action. string script_command_line -
-           the command line provided to the script that performed this
-           action. If workspace objects were provided in the command line,
-           also put the object reference in the input_ws_object list.
-           list<obj_ref> input_ws_objects - the workspace objects that were
-           used as input to this action; typically these will also be present
-           as parts of the method_params or the script_command_line
-           arguments. list<obj_ref> resolved_ws_objects - the workspace
-           objects ids from input_ws_objects resolved to permanent workspace
-           object references by the workspace service. list<string>
-           intermediate_incoming - if the previous action produced output
-           that 1) was not stored in a referrable way, and 2) is used as
-           input for this action, provide it with an arbitrary and unique ID
-           here, in the order of the input arguments to this action. These
-           IDs can be used in the method_params argument. list<string>
-           intermediate_outgoing - if this action produced output that 1) was
-           not stored in a referrable way, and 2) is used as input for the
-           next action, provide it with an arbitrary and unique ID here, in
-           the order of the output values from this action. These IDs can be
-           used in the intermediate_incoming argument in the next action.
-           list<ExternalDataUnit> external_data - data external to the
-           workspace that was either imported to the workspace or used to
-           create a workspace object. list<SubAction> subactions - the
-           subactions taken as a part of this action. mapping<string, string>
-           custom - user definable custom provenance fields and their values.
-           string description - a free text description of this action.) ->
-           structure: parameter "time" of type "timestamp" (A time in the
-           format YYYY-MM-DDThh:mm:ssZ, where Z is either the character Z
-           (representing the UTC timezone) or the difference in time to UTC
-           in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500 (EST time)
-           2013-04-03T08:56:32+0000 (UTC time) 2013-04-03T08:56:32Z (UTC
-           time)), parameter "epoch" of type "epoch" (A Unix epoch (the time
-           since 00:00:00 1/1/1970 UTC) in milliseconds.), parameter "caller"
-           of String, parameter "service" of String, parameter "service_ver"
-           of String, parameter "method" of String, parameter "method_params"
-           of list of unspecified object, parameter "script" of String,
-           parameter "script_ver" of String, parameter "script_command_line"
-           of String, parameter "input_ws_objects" of list of type "obj_ref"
-           (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           the user.) -> mapping from String to String, parameter "path" of
+           list of type "obj_ref" (A string that uniquely identifies an
+           object in the workspace service. The format is [ws_name or
+           id]/[obj_name or id]/[obj_ver]. For example,
+           MyFirstWorkspace/MyFirstObject/3 would identify the third version
+           of an object called MyFirstObject in the workspace called
+           MyFirstWorkspace. 42/Panic/1 would identify the first version of
+           the object name Panic in workspace with id 42. Towel/1/6 would
+           identify the 6th version of the object with id 1 in the Towel
+           workspace.If the version number is omitted, the latest version of
+           the object is assumed.), parameter "provenance" of list of type
+           "ProvenanceAction" (A provenance action. A provenance action (PA)
+           is an action taken while transforming one data object to another.
+           There may be several PAs taken in series. A PA is typically
+           running a script, running an api command, etc. All of the
+           following fields are optional, but more information provided
+           equates to better data provenance. resolved_ws_objects should
+           never be set by the user; it is set by the workspace service when
+           returning data. On input, only one of the time or epoch may be
+           supplied. Both are supplied on output. The maximum size of the
+           entire provenance object, including all actions, is 1MB. timestamp
+           time - the time the action was started epoch epoch - the time the
+           action was started. string caller - the name or id of the invoker
+           of this provenance action. In most cases, this will be the same
+           for all PAs. string service - the name of the service that
+           performed this action. string service_ver - the version of the
+           service that performed this action. string method - the method of
+           the service that performed this action. list<UnspecifiedObject>
+           method_params - the parameters of the method that performed this
+           action. If an object in the parameters is a workspace object, also
+           put the object reference in the input_ws_object list. string
+           script - the name of the script that performed this action. string
+           script_ver - the version of the script that performed this action.
+           string script_command_line - the command line provided to the
+           script that performed this action. If workspace objects were
+           provided in the command line, also put the object reference in the
+           input_ws_object list. list<ref_string> input_ws_objects - the
+           workspace objects that were used as input to this action;
+           typically these will also be present as parts of the method_params
+           or the script_command_line arguments. A reference path into the
+           object graph may be supplied. list<obj_ref> resolved_ws_objects -
+           the workspace objects ids from input_ws_objects resolved to
+           permanent workspace object references by the workspace service.
+           list<string> intermediate_incoming - if the previous action
+           produced output that 1) was not stored in a referrable way, and 2)
+           is used as input for this action, provide it with an arbitrary and
+           unique ID here, in the order of the input arguments to this
+           action. These IDs can be used in the method_params argument.
+           list<string> intermediate_outgoing - if this action produced
+           output that 1) was not stored in a referrable way, and 2) is used
+           as input for the next action, provide it with an arbitrary and
+           unique ID here, in the order of the output values from this
+           action. These IDs can be used in the intermediate_incoming
+           argument in the next action. list<ExternalDataUnit> external_data
+           - data external to the workspace that was either imported to the
+           workspace or used to create a workspace object. list<SubAction>
+           subactions - the subactions taken as a part of this action.
+           mapping<string, string> custom - user definable custom provenance
+           fields and their values. string description - a free text
+           description of this action.) -> structure: parameter "time" of
+           type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ, where
+           Z is either the character Z (representing the UTC timezone) or the
+           difference in time to UTC in the format +/-HHMM, eg:
+           2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC
+           time) 2013-04-03T08:56:32Z (UTC time)), parameter "epoch" of type
+           "epoch" (A Unix epoch (the time since 00:00:00 1/1/1970 UTC) in
+           milliseconds.), parameter "caller" of String, parameter "service"
+           of String, parameter "service_ver" of String, parameter "method"
+           of String, parameter "method_params" of list of unspecified
+           object, parameter "script" of String, parameter "script_ver" of
+           String, parameter "script_command_line" of String, parameter
+           "input_ws_objects" of list of type "ref_string" (A chain of
+           objects with references to one another as a string. A single
+           string that is semantically identical to ref_chain above.
+           Represents a path from one workspace object to another through an
+           arbitrarily number of intermediate objects where each object has a
+           dependency or provenance reference to the next object. Each entry
+           is an obj_ref as defined earlier. Entries are separated by
+           semicolons. Whitespace is ignored. Examples: 3/5/6;
+           kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
+           parameter "resolved_ws_objects" of list of type "obj_ref" (A
+           string that uniquely identifies an object in the workspace
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "resolved_ws_objects" of list of
-           type "obj_ref" (A string that uniquely identifies an object in the
-           workspace service. There are two ways to uniquely identify an
-           object in one string: "[ws_name or id]/[obj_name or id]/[obj_ver]"
-           - for example, "MyFirstWorkspace/MyFirstObject/3" would identify
-           the third version of an object called MyFirstObject in the
-           workspace called MyFirstWorkspace. 42/Panic/1 would identify the
-           first version of the object name Panic in workspace with id 42.
-           Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "intermediate_incoming" of list of
-           String, parameter "intermediate_outgoing" of list of String,
-           parameter "external_data" of list of type "ExternalDataUnit" (An
-           external data unit. A piece of data from a source outside the
-           Workspace. On input, only one of the resource_release_date or
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.), parameter
+           "intermediate_incoming" of list of String, parameter
+           "intermediate_outgoing" of list of String, parameter
+           "external_data" of list of type "ExternalDataUnit" (An external
+           data unit. A piece of data from a source outside the Workspace. On
+           input, only one of the resource_release_date or
            resource_release_epoch may be supplied. Both are supplied on
            output. string resource_name - the name of the resource, for
            example JGI. string resource_url - the url of the resource, for
@@ -2785,41 +2734,33 @@ class Workspace(object):
            time)), parameter "epoch" of type "epoch" (A Unix epoch (the time
            since 00:00:00 1/1/1970 UTC) in milliseconds.), parameter "refs"
            of list of type "obj_ref" (A string that uniquely identifies an
-           object in the workspace service. There are two ways to uniquely
-           identify an object in one string: "[ws_name or id]/[obj_name or
-           id]/[obj_ver]" - for example, "MyFirstWorkspace/MyFirstObject/3"
-           would identify the third version of an object called MyFirstObject
-           in the workspace called MyFirstWorkspace. 42/Panic/1 would
-           identify the first version of the object name Panic in workspace
-           with id 42. Towel/1/6 would identify the 6th version of the object
-           with id 1 in the Towel workspace.
-           "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for example,
-           "kb|ws.23.obj.567.ver.2" would identify the second version of an
-           object with id 567 in a workspace with id 23. In all cases, if the
-           version number is omitted, the latest version of the object is
-           assumed.), parameter "copied" of type "obj_ref" (A string that
-           uniquely identifies an object in the workspace service. There are
-           two ways to uniquely identify an object in one string: "[ws_name
-           or id]/[obj_name or id]/[obj_ver]" - for example,
-           "MyFirstWorkspace/MyFirstObject/3" would identify the third
-           version of an object called MyFirstObject in the workspace called
+           object in the workspace service. The format is [ws_name or
+           id]/[obj_name or id]/[obj_ver]. For example,
+           MyFirstWorkspace/MyFirstObject/3 would identify the third version
+           of an object called MyFirstObject in the workspace called
            MyFirstWorkspace. 42/Panic/1 would identify the first version of
            the object name Panic in workspace with id 42. Towel/1/6 would
            identify the 6th version of the object with id 1 in the Towel
-           workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for
-           example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "copy_source_inaccessible" of type
-           "boolean" (A boolean. 0 = false, other = true.), parameter
-           "extracted_ids" of mapping from type "id_type" (An id type (e.g.
-           from a typespec @id annotation: @id [idtype])) to list of type
-           "extracted_id" (An id extracted from an object.), parameter
-           "handle_error" of String, parameter "handle_stacktrace" of String
+           workspace.If the version number is omitted, the latest version of
+           the object is assumed.), parameter "copied" of type "obj_ref" (A
+           string that uniquely identifies an object in the workspace
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
+           third version of an object called MyFirstObject in the workspace
+           called MyFirstWorkspace. 42/Panic/1 would identify the first
+           version of the object name Panic in workspace with id 42.
+           Towel/1/6 would identify the 6th version of the object with id 1
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.), parameter
+           "copy_source_inaccessible" of type "boolean" (A boolean. 0 =
+           false, other = true.), parameter "extracted_ids" of mapping from
+           type "id_type" (An id type (e.g. from a typespec @id annotation:
+           @id [idtype])) to list of type "extracted_id" (An id extracted
+           from an object.), parameter "handle_error" of String, parameter
+           "handle_stacktrace" of String
         """
-        return self._client.call_method(
-            'Workspace.get_referenced_objects',
-            [ref_chains], self._service_ver, context)
+        return self._client.call_method('Workspace.get_referenced_objects',
+                                        [ref_chains], self._service_ver, context)
 
     def list_workspaces(self, params, context=None):
         """
@@ -2869,9 +2810,8 @@ class Workspace(object):
            read. 'n' - no permissions.), parameter "num_id" of type "ws_id"
            (The unique, permanent numerical ID of a workspace.)
         """
-        return self._client.call_method(
-            'Workspace.list_workspaces',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.list_workspaces',
+                                        [params], self._service_ver, context)
 
     def list_workspace_info(self, params, context=None):
         """
@@ -2958,9 +2898,37 @@ class Workspace(object):
            object. Arbitrary key-value pairs provided by the user.) ->
            mapping from String to String
         """
-        return self._client.call_method(
-            'Workspace.list_workspace_info',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.list_workspace_info',
+                                        [params], self._service_ver, context)
+
+    def list_workspace_ids(self, params, context=None):
+        """
+        List workspace IDs to which the user has access.
+        This function returns a subset of the information in the
+        list_workspace_info method and should be substantially faster.
+        :param params: instance of type "ListWorkspaceIDsParams" (Input
+           parameters for the "list_workspace_ids" function. Optional
+           parameters: permission perm - filter workspaces by minimum
+           permission level. 'None' and 'readable' are ignored. boolean
+           onlyGlobal - if onlyGlobal is true only include world readable
+           workspaces. Defaults to false. If true, excludeGlobal is ignored.
+           boolean excludeGlobal - if excludeGlobal is true exclude world
+           readable workspaces. Defaults to true.) -> structure: parameter
+           "perm" of type "permission" (Represents the permissions a user or
+           users have to a workspace: 'a' - administrator. All operations
+           allowed. 'w' - read/write. 'r' - read. 'n' - no permissions.),
+           parameter "excludeGlobal" of type "boolean" (A boolean. 0 = false,
+           other = true.), parameter "onlyGlobal" of type "boolean" (A
+           boolean. 0 = false, other = true.)
+        :returns: instance of type "ListWorkspaceIDsResults" (Results of the
+           "list_workspace_ids" function. list<int> workspaces - the
+           workspaces to which the user has explicit access. list<int> pub -
+           the workspaces to which the user has access because they're
+           globally readable.) -> structure: parameter "workspaces" of list
+           of Long, parameter "pub" of list of Long
+        """
+        return self._client.call_method('Workspace.list_workspace_ids',
+                                        [params], self._service_ver, context)
 
     def list_workspace_objects(self, params, context=None):
         """
@@ -3048,9 +3016,8 @@ class Workspace(object):
            String, parameter "objid" of type "obj_id" (The unique, permanent
            numerical ID of an object.)
         """
-        return self._client.call_method(
-            'Workspace.list_workspace_objects',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.list_workspace_objects',
+                                        [params], self._service_ver, context)
 
     def list_objects(self, params, context=None):
         """
@@ -3060,34 +3027,34 @@ class Workspace(object):
            must be provided. It is strongly recommended that the list is
            restricted to the workspaces of interest, or the results may be
            very large: list<ws_id> ids - the numerical IDs of the workspaces
-           of interest. list<ws_name> workspaces - names of the workspaces of
-           interest or the workspace IDs in KBase format, e.g. kb|ws.78.
-           type_string type - type of the objects to be listed.  Here,
-           omitting version information will find any objects that match the
-           provided type - e.g. Foo.Bar-0 will match Foo.Bar-0.X where X is
-           any existing version. Only one of each timestamp/epoch pair may be
-           supplied. Optional arguments: permission perm - filter objects by
-           minimum permission level. 'None' and 'readable' are ignored.
-           list<username> savedby - filter objects by the user that saved or
-           copied the object. usermeta meta - filter objects by the user
-           supplied metadata. NOTE: only one key/value pair is supported at
-           this time. A full map is provided as input for the possibility for
-           expansion in the future. timestamp after - only return objects
-           that were created after this date. timestamp before - only return
-           objects that were created before this date. epoch after_epoch -
-           only return objects that were created after this date. epoch
-           before_epoch - only return objects that were created before this
-           date. obj_id minObjectID - only return objects with an object id
-           greater or equal to this value. obj_id maxObjectID - only return
-           objects with an object id less than or equal to this value.
-           boolean showDeleted - show deleted objects in workspaces to which
-           the user has write access. boolean showOnlyDeleted - only show
+           of interest. list<ws_name> workspaces - the names of the
+           workspaces of interest. type_string type - type of the objects to
+           be listed.  Here, omitting version information will find any
+           objects that match the provided type - e.g. Foo.Bar-0 will match
+           Foo.Bar-0.X where X is any existing version. Only one of each
+           timestamp/epoch pair may be supplied. Optional arguments:
+           permission perm - filter objects by minimum permission level.
+           'None' and 'readable' are ignored. list<username> savedby - filter
+           objects by the user that saved or copied the object. usermeta meta
+           - filter objects by the user supplied metadata. NOTE: only one
+           key/value pair is supported at this time. A full map is provided
+           as input for the possibility for expansion in the future.
+           timestamp after - only return objects that were created after this
+           date. timestamp before - only return objects that were created
+           before this date. epoch after_epoch - only return objects that
+           were created after this date. epoch before_epoch - only return
+           objects that were created before this date. obj_id minObjectID -
+           only return objects with an object id greater or equal to this
+           value. obj_id maxObjectID - only return objects with an object id
+           less than or equal to this value. boolean showDeleted - show
            deleted objects in workspaces to which the user has write access.
-           boolean showHidden - show hidden objects. boolean showAllVersions
-           - show all versions of each object that match the filters rather
-           than only the most recent version. boolean includeMetadata -
-           include the user provided metadata in the returned object_info. If
-           false (0 or null), the default, the metadata will be null. boolean
+           boolean showOnlyDeleted - only show deleted objects in workspaces
+           to which the user has write access. boolean showHidden - show
+           hidden objects. boolean showAllVersions - show all versions of
+           each object that match the filters rather than only the most
+           recent version. boolean includeMetadata - include the user
+           provided metadata in the returned object_info. If false (0 or
+           null), the default, the metadata will be null. boolean
            excludeGlobal - exclude objects in global workspaces. This
            parameter only has an effect when filtering by types alone. int
            limit - limit the output to X objects. Default and maximum value
@@ -3188,16 +3155,15 @@ class Workspace(object):
            metadata about an object. Arbitrary key-value pairs provided by
            the user.) -> mapping from String to String
         """
-        return self._client.call_method(
-            'Workspace.list_objects',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.list_objects',
+                                        [params], self._service_ver, context)
 
     def get_objectmeta(self, params, context=None):
         """
         Retrieves the metadata for a specified object from the specified
         workspace. Provides access to metadata for all versions of the object
         via the instance parameter. Provided for backwards compatibility.
-        @deprecated Workspace.get_object_info
+        @deprecated Workspace.get_object_info3
         :param params: instance of type "get_objectmeta_params" (Input
            parameters for the "get_objectmeta" function. Required arguments:
            ws_name workspace - name of the workspace containing the object
@@ -3267,9 +3233,8 @@ class Workspace(object):
            String, parameter "objid" of type "obj_id" (The unique, permanent
            numerical ID of an object.)
         """
-        return self._client.call_method(
-            'Workspace.get_objectmeta',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.get_objectmeta',
+                                        [params], self._service_ver, context)
 
     def get_object_info(self, object_ids, includeMetadata, context=None):
         """
@@ -3278,14 +3243,12 @@ class Workspace(object):
         Otherwise the metadata in the object_info will be null.
         This method will be replaced by the behavior of get_object_info_new
         in the future.
-        @deprecated Workspace.get_object_info_new
+        @deprecated Workspace.get_object_info3
         :param object_ids: instance of list of type "ObjectIdentity" (An
            object identifier. Select an object by either: One, and only one,
-           of the numerical id or name of the workspace, where the name can
-           also be a KBase ID including the numerical id, e.g. kb|ws.35.
-           ws_id wsid - the numerical ID of the workspace. ws_name workspace
-           - name of the workspace or the workspace ID in KBase format, e.g.
-           kb|ws.78. AND One, and only one, of the numerical id or name of
+           of the numerical id or name of the workspace. ws_id wsid - the
+           numerical ID of the workspace. ws_name workspace - the name of the
+           workspace. AND One, and only one, of the numerical id or name of
            the object. obj_id objid- the numerical ID of the object. obj_name
            name - name of the object. OPTIONALLY obj_ver ver - the version of
            the object. OR an object reference string: obj_ref ref - an object
@@ -3303,18 +3266,14 @@ class Workspace(object):
            parameter "ver" of type "obj_ver" (An object version. The version
            of the object, starting at 1.), parameter "ref" of type "obj_ref"
            (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.)
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.)
         :param includeMetadata: instance of type "boolean" (A boolean. 0 =
            false, other = true.)
         :returns: instance of list of type "object_info" (Information about
@@ -3362,13 +3321,13 @@ class Workspace(object):
            metadata about an object. Arbitrary key-value pairs provided by
            the user.) -> mapping from String to String
         """
-        return self._client.call_method(
-            'Workspace.get_object_info',
-            [object_ids, includeMetadata], self._service_ver, context)
+        return self._client.call_method('Workspace.get_object_info',
+                                        [object_ids, includeMetadata], self._service_ver, context)
 
     def get_object_info_new(self, params, context=None):
         """
         Get information about objects from the workspace.
+        @deprecated Workspace.get_object_info3
         :param params: instance of type "GetObjectInfoNewParams" (Input
            parameters for the "get_object_info_new" function. Required
            arguments: list<ObjectSpecification> objects - the objects for
@@ -3377,79 +3336,141 @@ class Workspace(object):
            includeMetadata - include the object metadata in the returned
            information. Default false. boolean ignoreErrors - Don't throw an
            exception if an object cannot be accessed; return null for that
-           object's information instead. Default false.) -> structure:
-           parameter "objects" of list of type "ObjectSpecification" (An
-           Object Specification (OS). Inherits from ObjectIdentity. Specifies
-           which object, and which parts of that object, to retrieve from the
-           Workspace Service. The fields wsid, workspace, objid, name, ver,
-           and ref are identical to the ObjectIdentity fields. REFERENCE
-           FOLLOWING: Reference following guarantees that a user that has
-           access to an object can always see a) objects that are referenced
-           inside the object and b) objects that are referenced in the
-           object's provenance. This ensures that the user has visibility
-           into the entire provenance of the object and the object's object
-           dependencies (e.g. references). The user must have at least read
-           access to the object specified in this SO, but need not have
-           access to any further objects in the reference chain, and those
-           objects may be deleted. Optional reference following fields:
+           object's information instead. Default false. @deprecated
+           Workspace.GetObjectInfo3Params) -> structure: parameter "objects"
+           of list of type "ObjectSpecification" (An Object Specification
+           (OS). Inherits from ObjectIdentity (OI). Specifies which object,
+           and which parts of that object, to retrieve from the Workspace
+           Service. The fields wsid, workspace, objid, name, and ver are
+           identical to the OI fields. The ref field's behavior is extended
+           from OI. It maintains its previous behavior, but now also can act
+           as a reference string. See reference following below for more
+           information. REFERENCE FOLLOWING: Reference following guarantees
+           that a user that has access to an object can always see a) objects
+           that are referenced inside the object and b) objects that are
+           referenced in the object's provenance. This ensures that the user
+           has visibility into the entire provenance of the object and the
+           object's object dependencies (e.g. references). The user must have
+           at least read access to the object specified in this SO, but need
+           not have access to any further objects in the reference chain, and
+           those objects may be deleted. Optional reference following fields:
+           Note that only one of the following fields may be specified.
            ref_chain obj_path - a path to the desired object from the object
            specified in this OS. In other words, the object specified in this
            OS is assumed to be accessible to the user, and the objects in the
            object path represent a chain of references to the desired object
            at the end of the object path. If the references are all valid,
            the desired object will be returned. - OR - list<obj_ref>
-           obj_ref_path - shorthand for the obj_path. Only one of obj_path or
-           obj_ref_path may be specified. OBJECT SUBSETS: When selecting a
-           subset of an array in an object, the returned array is compressed
-           to the size of the subset, but the ordering of the array is
-           maintained. For example, if the array stored at the 'feature' key
-           of a Genome object has 4000 entries, and the object paths provided
-           are: /feature/7 /feature/3015 /feature/700 The returned feature
-           array will be of length three and the entries will consist, in
-           order, of the 7th, 700th, and 3015th entries of the original
-           array. Optional object subset fields: list<object_path> included -
-           the portions of the object to include in the object subset.
-           boolean strict_maps - if true, throw an exception if the subset
-           specification traverses a non-existant map key (default false)
-           boolean strict_arrays - if true, throw an exception if the subset
-           specification exceeds the size of an array (default true)) ->
-           structure: parameter "workspace" of type "ws_name" (A string used
-           as a name for a workspace. Any string consisting of alphanumeric
-           characters and "_", ".", or "-" that is not an integer is
-           acceptable. The name may optionally be prefixed with the workspace
-           owner's user name and a colon, e.g. kbasetest:my_workspace.),
-           parameter "wsid" of type "ws_id" (The unique, permanent numerical
-           ID of a workspace.), parameter "name" of type "obj_name" (A string
-           used as a name for an object. Any string consisting of
-           alphanumeric characters and the characters |._- that is not an
-           integer is acceptable.), parameter "objid" of type "obj_id" (The
-           unique, permanent numerical ID of an object.), parameter "ver" of
-           type "obj_ver" (An object version. The version of the object,
-           starting at 1.), parameter "ref" of type "obj_ref" (A string that
-           uniquely identifies an object in the workspace service. There are
-           two ways to uniquely identify an object in one string: "[ws_name
-           or id]/[obj_name or id]/[obj_ver]" - for example,
-           "MyFirstWorkspace/MyFirstObject/3" would identify the third
-           version of an object called MyFirstObject in the workspace called
+           obj_ref_path - shorthand for the obj_path. - OR - ref_chain
+           to_obj_path - identical to obj_path, except that the path is TO
+           the object specified in this OS, rather than from the object. In
+           other words the object specified by wsid/objid/ref etc. is the end
+           of the path, and to_obj_path is the rest of the path. The user
+           must have access to the first object in the to_obj_path. - OR -
+           list<obj_ref> to_obj_ref_path - shorthand for the to_obj_path. -
+           OR - ref_string ref - A string representing a reference path from
+           one object to another. Unlike the previous reference following
+           options, the ref_string represents the ENTIRE path from the source
+           object to the target object. As with the OI object, the ref field
+           may contain a single reference. - OR - boolean find_refence_path -
+           This is the last, slowest, and most expensive resort for getting a
+           referenced object - do not use this method unless the path to the
+           object is unavailable by any other means. Setting the
+           find_refence_path parameter to true means that the workspace
+           service will search through the object reference graph from the
+           object specified in this OS to find an object that 1) the user can
+           access, and 2) has an unbroken reference path to the target
+           object. If the search succeeds, the object will be returned as
+           normal. Note that the search will automatically fail after a
+           certain (but much larger than necessary for the vast majority of
+           cases) number of objects are traversed. OBJECT SUBSETS: When
+           selecting a subset of an array in an object, the returned array is
+           compressed to the size of the subset, but the ordering of the
+           array is maintained. For example, if the array stored at the
+           'feature' key of a Genome object has 4000 entries, and the object
+           paths provided are: /feature/7 /feature/3015 /feature/700 The
+           returned feature array will be of length three and the entries
+           will consist, in order, of the 7th, 700th, and 3015th entries of
+           the original array. Optional object subset fields:
+           list<object_path> included - the portions of the object to include
+           in the object subset. boolean strict_maps - if true, throw an
+           exception if the subset specification traverses a non-existent map
+           key (default false) boolean strict_arrays - if true, throw an
+           exception if the subset specification exceeds the size of an array
+           (default true)) -> structure: parameter "workspace" of type
+           "ws_name" (A string used as a name for a workspace. Any string
+           consisting of alphanumeric characters and "_", ".", or "-" that is
+           not an integer is acceptable. The name may optionally be prefixed
+           with the workspace owner's user name and a colon, e.g.
+           kbasetest:my_workspace.), parameter "wsid" of type "ws_id" (The
+           unique, permanent numerical ID of a workspace.), parameter "name"
+           of type "obj_name" (A string used as a name for an object. Any
+           string consisting of alphanumeric characters and the characters
+           |._- that is not an integer is acceptable.), parameter "objid" of
+           type "obj_id" (The unique, permanent numerical ID of an object.),
+           parameter "ver" of type "obj_ver" (An object version. The version
+           of the object, starting at 1.), parameter "ref" of type
+           "ref_string" (A chain of objects with references to one another as
+           a string. A single string that is semantically identical to
+           ref_chain above. Represents a path from one workspace object to
+           another through an arbitrarily number of intermediate objects
+           where each object has a dependency or provenance reference to the
+           next object. Each entry is an obj_ref as defined earlier. Entries
+           are separated by semicolons. Whitespace is ignored. Examples:
+           3/5/6; kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
+           parameter "obj_path" of type "ref_chain" (A chain of objects with
+           references to one another. An object reference chain consists of a
+           list of objects where the nth object possesses a reference, either
+           in the object itself or in the object provenance, to the n+1th
+           object.) -> list of type "ObjectIdentity" (An object identifier.
+           Select an object by either: One, and only one, of the numerical id
+           or name of the workspace. ws_id wsid - the numerical ID of the
+           workspace. ws_name workspace - the name of the workspace. AND One,
+           and only one, of the numerical id or name of the object. obj_id
+           objid- the numerical ID of the object. obj_name name - name of the
+           object. OPTIONALLY obj_ver ver - the version of the object. OR an
+           object reference string: obj_ref ref - an object reference
+           string.) -> structure: parameter "workspace" of type "ws_name" (A
+           string used as a name for a workspace. Any string consisting of
+           alphanumeric characters and "_", ".", or "-" that is not an
+           integer is acceptable. The name may optionally be prefixed with
+           the workspace owner's user name and a colon, e.g.
+           kbasetest:my_workspace.), parameter "wsid" of type "ws_id" (The
+           unique, permanent numerical ID of a workspace.), parameter "name"
+           of type "obj_name" (A string used as a name for an object. Any
+           string consisting of alphanumeric characters and the characters
+           |._- that is not an integer is acceptable.), parameter "objid" of
+           type "obj_id" (The unique, permanent numerical ID of an object.),
+           parameter "ver" of type "obj_ver" (An object version. The version
+           of the object, starting at 1.), parameter "ref" of type "obj_ref"
+           (A string that uniquely identifies an object in the workspace
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
+           third version of an object called MyFirstObject in the workspace
+           called MyFirstWorkspace. 42/Panic/1 would identify the first
+           version of the object name Panic in workspace with id 42.
+           Towel/1/6 would identify the 6th version of the object with id 1
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.), parameter
+           "obj_ref_path" of list of type "obj_ref" (A string that uniquely
+           identifies an object in the workspace service. The format is
+           [ws_name or id]/[obj_name or id]/[obj_ver]. For example,
+           MyFirstWorkspace/MyFirstObject/3 would identify the third version
+           of an object called MyFirstObject in the workspace called
            MyFirstWorkspace. 42/Panic/1 would identify the first version of
            the object name Panic in workspace with id 42. Towel/1/6 would
            identify the 6th version of the object with id 1 in the Towel
-           workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for
-           example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "obj_path" of type "ref_chain" (A
-           chain of objects with references to one another. An object
-           reference chain consists of a list of objects where the nth object
-           possesses a reference, either in the object itself or in the
-           object provenance, to the n+1th object.) -> list of type
+           workspace.If the version number is omitted, the latest version of
+           the object is assumed.), parameter "to_obj_path" of type
+           "ref_chain" (A chain of objects with references to one another. An
+           object reference chain consists of a list of objects where the nth
+           object possesses a reference, either in the object itself or in
+           the object provenance, to the n+1th object.) -> list of type
            "ObjectIdentity" (An object identifier. Select an object by
            either: One, and only one, of the numerical id or name of the
-           workspace, where the name can also be a KBase ID including the
-           numerical id, e.g. kb|ws.35. ws_id wsid - the numerical ID of the
-           workspace. ws_name workspace - name of the workspace or the
-           workspace ID in KBase format, e.g. kb|ws.78. AND One, and only
-           one, of the numerical id or name of the object. obj_id objid- the
+           workspace. ws_id wsid - the numerical ID of the workspace. ws_name
+           workspace - the name of the workspace. AND One, and only one, of
+           the numerical id or name of the object. obj_id objid- the
            numerical ID of the object. obj_name name - name of the object.
            OPTIONALLY obj_ver ver - the version of the object. OR an object
            reference string: obj_ref ref - an object reference string.) ->
@@ -3466,50 +3487,43 @@ class Workspace(object):
            unique, permanent numerical ID of an object.), parameter "ver" of
            type "obj_ver" (An object version. The version of the object,
            starting at 1.), parameter "ref" of type "obj_ref" (A string that
-           uniquely identifies an object in the workspace service. There are
-           two ways to uniquely identify an object in one string: "[ws_name
-           or id]/[obj_name or id]/[obj_ver]" - for example,
-           "MyFirstWorkspace/MyFirstObject/3" would identify the third
-           version of an object called MyFirstObject in the workspace called
+           uniquely identifies an object in the workspace service. The format
+           is [ws_name or id]/[obj_name or id]/[obj_ver]. For example,
+           MyFirstWorkspace/MyFirstObject/3 would identify the third version
+           of an object called MyFirstObject in the workspace called
            MyFirstWorkspace. 42/Panic/1 would identify the first version of
            the object name Panic in workspace with id 42. Towel/1/6 would
            identify the 6th version of the object with id 1 in the Towel
-           workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for
-           example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "obj_ref_path" of list of type
-           "obj_ref" (A string that uniquely identifies an object in the
-           workspace service. There are two ways to uniquely identify an
-           object in one string: "[ws_name or id]/[obj_name or id]/[obj_ver]"
-           - for example, "MyFirstWorkspace/MyFirstObject/3" would identify
-           the third version of an object called MyFirstObject in the
-           workspace called MyFirstWorkspace. 42/Panic/1 would identify the
-           first version of the object name Panic in workspace with id 42.
-           Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "included" of list of type
-           "object_path" (A path into an object. Identify a sub portion of an
-           object by providing the path, delimited by a slash (/), to that
-           portion of the object. Thus the path may not have slashes in the
-           structure or mapping keys. Examples: /foo/bar/3 - specifies the
-           bar key of the foo mapping and the 3rd entry of the array if bar
-           maps to an array or the value mapped to the string "3" if bar maps
-           to a map. /foo/bar/[*]/baz - specifies the baz field of all the
-           objects in the list mapped by the bar key in the map foo.
-           /foo/asterisk/baz - specifies the baz field of all the objects in
-           the values of the foo mapping. Swap 'asterisk' for * in the path.
-           In case you need to use '/' or '~' in path items use JSON Pointer
-           notation defined here: http://tools.ietf.org/html/rfc6901),
-           parameter "strict_maps" of type "boolean" (A boolean. 0 = false,
-           other = true.), parameter "strict_arrays" of type "boolean" (A
-           boolean. 0 = false, other = true.), parameter "includeMetadata" of
-           type "boolean" (A boolean. 0 = false, other = true.), parameter
-           "ignoreErrors" of type "boolean" (A boolean. 0 = false, other =
-           true.)
+           workspace.If the version number is omitted, the latest version of
+           the object is assumed.), parameter "to_obj_ref_path" of list of
+           type "obj_ref" (A string that uniquely identifies an object in the
+           workspace service. The format is [ws_name or id]/[obj_name or
+           id]/[obj_ver]. For example, MyFirstWorkspace/MyFirstObject/3 would
+           identify the third version of an object called MyFirstObject in
+           the workspace called MyFirstWorkspace. 42/Panic/1 would identify
+           the first version of the object name Panic in workspace with id
+           42. Towel/1/6 would identify the 6th version of the object with id
+           1 in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.), parameter
+           "find_reference_path" of type "boolean" (A boolean. 0 = false,
+           other = true.), parameter "included" of list of type "object_path"
+           (A path into an object. Identify a sub portion of an object by
+           providing the path, delimited by a slash (/), to that portion of
+           the object. Thus the path may not have slashes in the structure or
+           mapping keys. Examples: /foo/bar/3 - specifies the bar key of the
+           foo mapping and the 3rd entry of the array if bar maps to an array
+           or the value mapped to the string "3" if bar maps to a map.
+           /foo/bar/[*]/baz - specifies the baz field of all the objects in
+           the list mapped by the bar key in the map foo. /foo/asterisk/baz -
+           specifies the baz field of all the objects in the values of the
+           foo mapping. Swap 'asterisk' for * in the path. In case you need
+           to use '/' or '~' in path items use JSON Pointer notation defined
+           here: http://tools.ietf.org/html/rfc6901), parameter "strict_maps"
+           of type "boolean" (A boolean. 0 = false, other = true.), parameter
+           "strict_arrays" of type "boolean" (A boolean. 0 = false, other =
+           true.), parameter "includeMetadata" of type "boolean" (A boolean.
+           0 = false, other = true.), parameter "ignoreErrors" of type
+           "boolean" (A boolean. 0 = false, other = true.)
         :returns: instance of list of type "object_info" (Information about
            an object, including user provided metadata. obj_id objid - the
            numerical id of the object. obj_name name - the name of the
@@ -3555,9 +3569,269 @@ class Workspace(object):
            metadata about an object. Arbitrary key-value pairs provided by
            the user.) -> mapping from String to String
         """
-        return self._client.call_method(
-            'Workspace.get_object_info_new',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.get_object_info_new',
+                                        [params], self._service_ver, context)
+
+    def get_object_info3(self, params, context=None):
+        """
+        :param params: instance of type "GetObjectInfo3Params" (Input
+           parameters for the "get_object_info3" function. Required
+           arguments: list<ObjectSpecification> objects - the objects for
+           which the information should be fetched. Subsetting related
+           parameters are ignored. Optional arguments: boolean
+           includeMetadata - include the object metadata in the returned
+           information. Default false. boolean ignoreErrors - Don't throw an
+           exception if an object cannot be accessed; return null for that
+           object's information and path instead. Default false.) ->
+           structure: parameter "objects" of list of type
+           "ObjectSpecification" (An Object Specification (OS). Inherits from
+           ObjectIdentity (OI). Specifies which object, and which parts of
+           that object, to retrieve from the Workspace Service. The fields
+           wsid, workspace, objid, name, and ver are identical to the OI
+           fields. The ref field's behavior is extended from OI. It maintains
+           its previous behavior, but now also can act as a reference string.
+           See reference following below for more information. REFERENCE
+           FOLLOWING: Reference following guarantees that a user that has
+           access to an object can always see a) objects that are referenced
+           inside the object and b) objects that are referenced in the
+           object's provenance. This ensures that the user has visibility
+           into the entire provenance of the object and the object's object
+           dependencies (e.g. references). The user must have at least read
+           access to the object specified in this SO, but need not have
+           access to any further objects in the reference chain, and those
+           objects may be deleted. Optional reference following fields: Note
+           that only one of the following fields may be specified. ref_chain
+           obj_path - a path to the desired object from the object specified
+           in this OS. In other words, the object specified in this OS is
+           assumed to be accessible to the user, and the objects in the
+           object path represent a chain of references to the desired object
+           at the end of the object path. If the references are all valid,
+           the desired object will be returned. - OR - list<obj_ref>
+           obj_ref_path - shorthand for the obj_path. - OR - ref_chain
+           to_obj_path - identical to obj_path, except that the path is TO
+           the object specified in this OS, rather than from the object. In
+           other words the object specified by wsid/objid/ref etc. is the end
+           of the path, and to_obj_path is the rest of the path. The user
+           must have access to the first object in the to_obj_path. - OR -
+           list<obj_ref> to_obj_ref_path - shorthand for the to_obj_path. -
+           OR - ref_string ref - A string representing a reference path from
+           one object to another. Unlike the previous reference following
+           options, the ref_string represents the ENTIRE path from the source
+           object to the target object. As with the OI object, the ref field
+           may contain a single reference. - OR - boolean find_refence_path -
+           This is the last, slowest, and most expensive resort for getting a
+           referenced object - do not use this method unless the path to the
+           object is unavailable by any other means. Setting the
+           find_refence_path parameter to true means that the workspace
+           service will search through the object reference graph from the
+           object specified in this OS to find an object that 1) the user can
+           access, and 2) has an unbroken reference path to the target
+           object. If the search succeeds, the object will be returned as
+           normal. Note that the search will automatically fail after a
+           certain (but much larger than necessary for the vast majority of
+           cases) number of objects are traversed. OBJECT SUBSETS: When
+           selecting a subset of an array in an object, the returned array is
+           compressed to the size of the subset, but the ordering of the
+           array is maintained. For example, if the array stored at the
+           'feature' key of a Genome object has 4000 entries, and the object
+           paths provided are: /feature/7 /feature/3015 /feature/700 The
+           returned feature array will be of length three and the entries
+           will consist, in order, of the 7th, 700th, and 3015th entries of
+           the original array. Optional object subset fields:
+           list<object_path> included - the portions of the object to include
+           in the object subset. boolean strict_maps - if true, throw an
+           exception if the subset specification traverses a non-existent map
+           key (default false) boolean strict_arrays - if true, throw an
+           exception if the subset specification exceeds the size of an array
+           (default true)) -> structure: parameter "workspace" of type
+           "ws_name" (A string used as a name for a workspace. Any string
+           consisting of alphanumeric characters and "_", ".", or "-" that is
+           not an integer is acceptable. The name may optionally be prefixed
+           with the workspace owner's user name and a colon, e.g.
+           kbasetest:my_workspace.), parameter "wsid" of type "ws_id" (The
+           unique, permanent numerical ID of a workspace.), parameter "name"
+           of type "obj_name" (A string used as a name for an object. Any
+           string consisting of alphanumeric characters and the characters
+           |._- that is not an integer is acceptable.), parameter "objid" of
+           type "obj_id" (The unique, permanent numerical ID of an object.),
+           parameter "ver" of type "obj_ver" (An object version. The version
+           of the object, starting at 1.), parameter "ref" of type
+           "ref_string" (A chain of objects with references to one another as
+           a string. A single string that is semantically identical to
+           ref_chain above. Represents a path from one workspace object to
+           another through an arbitrarily number of intermediate objects
+           where each object has a dependency or provenance reference to the
+           next object. Each entry is an obj_ref as defined earlier. Entries
+           are separated by semicolons. Whitespace is ignored. Examples:
+           3/5/6; kbaseuser:myworkspace/myobject; 5/myobject/2 aworkspace/6),
+           parameter "obj_path" of type "ref_chain" (A chain of objects with
+           references to one another. An object reference chain consists of a
+           list of objects where the nth object possesses a reference, either
+           in the object itself or in the object provenance, to the n+1th
+           object.) -> list of type "ObjectIdentity" (An object identifier.
+           Select an object by either: One, and only one, of the numerical id
+           or name of the workspace. ws_id wsid - the numerical ID of the
+           workspace. ws_name workspace - the name of the workspace. AND One,
+           and only one, of the numerical id or name of the object. obj_id
+           objid- the numerical ID of the object. obj_name name - name of the
+           object. OPTIONALLY obj_ver ver - the version of the object. OR an
+           object reference string: obj_ref ref - an object reference
+           string.) -> structure: parameter "workspace" of type "ws_name" (A
+           string used as a name for a workspace. Any string consisting of
+           alphanumeric characters and "_", ".", or "-" that is not an
+           integer is acceptable. The name may optionally be prefixed with
+           the workspace owner's user name and a colon, e.g.
+           kbasetest:my_workspace.), parameter "wsid" of type "ws_id" (The
+           unique, permanent numerical ID of a workspace.), parameter "name"
+           of type "obj_name" (A string used as a name for an object. Any
+           string consisting of alphanumeric characters and the characters
+           |._- that is not an integer is acceptable.), parameter "objid" of
+           type "obj_id" (The unique, permanent numerical ID of an object.),
+           parameter "ver" of type "obj_ver" (An object version. The version
+           of the object, starting at 1.), parameter "ref" of type "obj_ref"
+           (A string that uniquely identifies an object in the workspace
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
+           third version of an object called MyFirstObject in the workspace
+           called MyFirstWorkspace. 42/Panic/1 would identify the first
+           version of the object name Panic in workspace with id 42.
+           Towel/1/6 would identify the 6th version of the object with id 1
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.), parameter
+           "obj_ref_path" of list of type "obj_ref" (A string that uniquely
+           identifies an object in the workspace service. The format is
+           [ws_name or id]/[obj_name or id]/[obj_ver]. For example,
+           MyFirstWorkspace/MyFirstObject/3 would identify the third version
+           of an object called MyFirstObject in the workspace called
+           MyFirstWorkspace. 42/Panic/1 would identify the first version of
+           the object name Panic in workspace with id 42. Towel/1/6 would
+           identify the 6th version of the object with id 1 in the Towel
+           workspace.If the version number is omitted, the latest version of
+           the object is assumed.), parameter "to_obj_path" of type
+           "ref_chain" (A chain of objects with references to one another. An
+           object reference chain consists of a list of objects where the nth
+           object possesses a reference, either in the object itself or in
+           the object provenance, to the n+1th object.) -> list of type
+           "ObjectIdentity" (An object identifier. Select an object by
+           either: One, and only one, of the numerical id or name of the
+           workspace. ws_id wsid - the numerical ID of the workspace. ws_name
+           workspace - the name of the workspace. AND One, and only one, of
+           the numerical id or name of the object. obj_id objid- the
+           numerical ID of the object. obj_name name - name of the object.
+           OPTIONALLY obj_ver ver - the version of the object. OR an object
+           reference string: obj_ref ref - an object reference string.) ->
+           structure: parameter "workspace" of type "ws_name" (A string used
+           as a name for a workspace. Any string consisting of alphanumeric
+           characters and "_", ".", or "-" that is not an integer is
+           acceptable. The name may optionally be prefixed with the workspace
+           owner's user name and a colon, e.g. kbasetest:my_workspace.),
+           parameter "wsid" of type "ws_id" (The unique, permanent numerical
+           ID of a workspace.), parameter "name" of type "obj_name" (A string
+           used as a name for an object. Any string consisting of
+           alphanumeric characters and the characters |._- that is not an
+           integer is acceptable.), parameter "objid" of type "obj_id" (The
+           unique, permanent numerical ID of an object.), parameter "ver" of
+           type "obj_ver" (An object version. The version of the object,
+           starting at 1.), parameter "ref" of type "obj_ref" (A string that
+           uniquely identifies an object in the workspace service. The format
+           is [ws_name or id]/[obj_name or id]/[obj_ver]. For example,
+           MyFirstWorkspace/MyFirstObject/3 would identify the third version
+           of an object called MyFirstObject in the workspace called
+           MyFirstWorkspace. 42/Panic/1 would identify the first version of
+           the object name Panic in workspace with id 42. Towel/1/6 would
+           identify the 6th version of the object with id 1 in the Towel
+           workspace.If the version number is omitted, the latest version of
+           the object is assumed.), parameter "to_obj_ref_path" of list of
+           type "obj_ref" (A string that uniquely identifies an object in the
+           workspace service. The format is [ws_name or id]/[obj_name or
+           id]/[obj_ver]. For example, MyFirstWorkspace/MyFirstObject/3 would
+           identify the third version of an object called MyFirstObject in
+           the workspace called MyFirstWorkspace. 42/Panic/1 would identify
+           the first version of the object name Panic in workspace with id
+           42. Towel/1/6 would identify the 6th version of the object with id
+           1 in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.), parameter
+           "find_reference_path" of type "boolean" (A boolean. 0 = false,
+           other = true.), parameter "included" of list of type "object_path"
+           (A path into an object. Identify a sub portion of an object by
+           providing the path, delimited by a slash (/), to that portion of
+           the object. Thus the path may not have slashes in the structure or
+           mapping keys. Examples: /foo/bar/3 - specifies the bar key of the
+           foo mapping and the 3rd entry of the array if bar maps to an array
+           or the value mapped to the string "3" if bar maps to a map.
+           /foo/bar/[*]/baz - specifies the baz field of all the objects in
+           the list mapped by the bar key in the map foo. /foo/asterisk/baz -
+           specifies the baz field of all the objects in the values of the
+           foo mapping. Swap 'asterisk' for * in the path. In case you need
+           to use '/' or '~' in path items use JSON Pointer notation defined
+           here: http://tools.ietf.org/html/rfc6901), parameter "strict_maps"
+           of type "boolean" (A boolean. 0 = false, other = true.), parameter
+           "strict_arrays" of type "boolean" (A boolean. 0 = false, other =
+           true.), parameter "includeMetadata" of type "boolean" (A boolean.
+           0 = false, other = true.), parameter "ignoreErrors" of type
+           "boolean" (A boolean. 0 = false, other = true.)
+        :returns: instance of type "GetObjectInfo3Results" (Output from the
+           get_object_info3 function. list<object_info> infos - the
+           object_info data for each object. list<list<obj_ref> paths - the
+           path to the object through the object reference graph for each
+           object. All the references in the path are absolute.) ->
+           structure: parameter "infos" of list of type "object_info"
+           (Information about an object, including user provided metadata.
+           obj_id objid - the numerical id of the object. obj_name name - the
+           name of the object. type_string type - the type of the object.
+           timestamp save_date - the save date of the object. obj_ver ver -
+           the version of the object. username saved_by - the user that saved
+           or copied the object. ws_id wsid - the workspace containing the
+           object. ws_name workspace - the workspace containing the object.
+           string chsum - the md5 checksum of the object. int size - the size
+           of the object in bytes. usermeta meta - arbitrary user-supplied
+           metadata about the object.) -> tuple of size 11: parameter "objid"
+           of type "obj_id" (The unique, permanent numerical ID of an
+           object.), parameter "name" of type "obj_name" (A string used as a
+           name for an object. Any string consisting of alphanumeric
+           characters and the characters |._- that is not an integer is
+           acceptable.), parameter "type" of type "type_string" (A type
+           string. Specifies the type and its version in a single string in
+           the format [module].[typename]-[major].[minor]: module - a string.
+           The module name of the typespec containing the type. typename - a
+           string. The name of the type as assigned by the typedef statement.
+           major - an integer. The major version of the type. A change in the
+           major version implies the type has changed in a non-backwards
+           compatible way. minor - an integer. The minor version of the type.
+           A change in the minor version implies that the type has changed in
+           a way that is backwards compatible with previous type definitions.
+           In many cases, the major and minor versions are optional, and if
+           not provided the most recent version will be used. Example:
+           MyModule.MyType-3.1), parameter "save_date" of type "timestamp" (A
+           time in the format YYYY-MM-DDThh:mm:ssZ, where Z is either the
+           character Z (representing the UTC timezone) or the difference in
+           time to UTC in the format +/-HHMM, eg: 2012-12-17T23:24:06-0500
+           (EST time) 2013-04-03T08:56:32+0000 (UTC time)
+           2013-04-03T08:56:32Z (UTC time)), parameter "version" of Long,
+           parameter "saved_by" of type "username" (Login name of a KBase
+           user account.), parameter "wsid" of type "ws_id" (The unique,
+           permanent numerical ID of a workspace.), parameter "workspace" of
+           type "ws_name" (A string used as a name for a workspace. Any
+           string consisting of alphanumeric characters and "_", ".", or "-"
+           that is not an integer is acceptable. The name may optionally be
+           prefixed with the workspace owner's user name and a colon, e.g.
+           kbasetest:my_workspace.), parameter "chsum" of String, parameter
+           "size" of Long, parameter "meta" of type "usermeta" (User provided
+           metadata about an object. Arbitrary key-value pairs provided by
+           the user.) -> mapping from String to String, parameter "paths" of
+           list of list of type "obj_ref" (A string that uniquely identifies
+           an object in the workspace service. The format is [ws_name or
+           id]/[obj_name or id]/[obj_ver]. For example,
+           MyFirstWorkspace/MyFirstObject/3 would identify the third version
+           of an object called MyFirstObject in the workspace called
+           MyFirstWorkspace. 42/Panic/1 would identify the first version of
+           the object name Panic in workspace with id 42. Towel/1/6 would
+           identify the 6th version of the object with id 1 in the Towel
+           workspace.If the version number is omitted, the latest version of
+           the object is assumed.)
+        """
+        return self._client.call_method('Workspace.get_object_info3',
+                                        [params], self._service_ver, context)
 
     def rename_workspace(self, params, context=None):
         """
@@ -3568,10 +3842,8 @@ class Workspace(object):
            ws_name new_name - the new name for the workspace.) -> structure:
            parameter "wsi" of type "WorkspaceIdentity" (A workspace
            identifier. Select a workspace by one, and only one, of the
-           numerical id or name, where the name can also be a KBase ID
-           including the numerical id, e.g. kb|ws.35. ws_id id - the
-           numerical ID of the workspace. ws_name workspace - name of the
-           workspace or the workspace ID in KBase format, e.g. kb|ws.78.) ->
+           numerical id or name. ws_id id - the numerical ID of the
+           workspace. ws_name workspace - the name of the workspace.) ->
            structure: parameter "workspace" of type "ws_name" (A string used
            as a name for a workspace. Any string consisting of alphanumeric
            characters and "_", ".", or "-" that is not an integer is
@@ -3623,9 +3895,8 @@ class Workspace(object):
            object. Arbitrary key-value pairs provided by the user.) ->
            mapping from String to String
         """
-        return self._client.call_method(
-            'Workspace.rename_workspace',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.rename_workspace',
+                                        [params], self._service_ver, context)
 
     def rename_object(self, params, context=None):
         """
@@ -3636,11 +3907,9 @@ class Workspace(object):
            new name for the object.) -> structure: parameter "obj" of type
            "ObjectIdentity" (An object identifier. Select an object by
            either: One, and only one, of the numerical id or name of the
-           workspace, where the name can also be a KBase ID including the
-           numerical id, e.g. kb|ws.35. ws_id wsid - the numerical ID of the
-           workspace. ws_name workspace - name of the workspace or the
-           workspace ID in KBase format, e.g. kb|ws.78. AND One, and only
-           one, of the numerical id or name of the object. obj_id objid- the
+           workspace. ws_id wsid - the numerical ID of the workspace. ws_name
+           workspace - the name of the workspace. AND One, and only one, of
+           the numerical id or name of the object. obj_id objid- the
            numerical ID of the object. obj_name name - name of the object.
            OPTIONALLY obj_ver ver - the version of the object. OR an object
            reference string: obj_ref ref - an object reference string.) ->
@@ -3657,20 +3926,16 @@ class Workspace(object):
            unique, permanent numerical ID of an object.), parameter "ver" of
            type "obj_ver" (An object version. The version of the object,
            starting at 1.), parameter "ref" of type "obj_ref" (A string that
-           uniquely identifies an object in the workspace service. There are
-           two ways to uniquely identify an object in one string: "[ws_name
-           or id]/[obj_name or id]/[obj_ver]" - for example,
-           "MyFirstWorkspace/MyFirstObject/3" would identify the third
-           version of an object called MyFirstObject in the workspace called
+           uniquely identifies an object in the workspace service. The format
+           is [ws_name or id]/[obj_name or id]/[obj_ver]. For example,
+           MyFirstWorkspace/MyFirstObject/3 would identify the third version
+           of an object called MyFirstObject in the workspace called
            MyFirstWorkspace. 42/Panic/1 would identify the first version of
            the object name Panic in workspace with id 42. Towel/1/6 would
            identify the 6th version of the object with id 1 in the Towel
-           workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]" - for
-           example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "new_name" of type "obj_name" (A
-           string used as a name for an object. Any string consisting of
+           workspace.If the version number is omitted, the latest version of
+           the object is assumed.), parameter "new_name" of type "obj_name"
+           (A string used as a name for an object. Any string consisting of
            alphanumeric characters and the characters |._- that is not an
            integer is acceptable.)
         :returns: instance of type "object_info" (Information about an
@@ -3718,9 +3983,8 @@ class Workspace(object):
            metadata about an object. Arbitrary key-value pairs provided by
            the user.) -> mapping from String to String
         """
-        return self._client.call_method(
-            'Workspace.rename_object',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.rename_object',
+                                        [params], self._service_ver, context)
 
     def copy_object(self, params, context=None):
         """
@@ -3735,46 +3999,9 @@ class Workspace(object):
            object to copy. ObjectIdentity to - where to copy the object.) ->
            structure: parameter "from" of type "ObjectIdentity" (An object
            identifier. Select an object by either: One, and only one, of the
-           numerical id or name of the workspace, where the name can also be
-           a KBase ID including the numerical id, e.g. kb|ws.35. ws_id wsid -
-           the numerical ID of the workspace. ws_name workspace - name of the
-           workspace or the workspace ID in KBase format, e.g. kb|ws.78. AND
-           One, and only one, of the numerical id or name of the object.
-           obj_id objid- the numerical ID of the object. obj_name name - name
-           of the object. OPTIONALLY obj_ver ver - the version of the object.
-           OR an object reference string: obj_ref ref - an object reference
-           string.) -> structure: parameter "workspace" of type "ws_name" (A
-           string used as a name for a workspace. Any string consisting of
-           alphanumeric characters and "_", ".", or "-" that is not an
-           integer is acceptable. The name may optionally be prefixed with
-           the workspace owner's user name and a colon, e.g.
-           kbasetest:my_workspace.), parameter "wsid" of type "ws_id" (The
-           unique, permanent numerical ID of a workspace.), parameter "name"
-           of type "obj_name" (A string used as a name for an object. Any
-           string consisting of alphanumeric characters and the characters
-           |._- that is not an integer is acceptable.), parameter "objid" of
-           type "obj_id" (The unique, permanent numerical ID of an object.),
-           parameter "ver" of type "obj_ver" (An object version. The version
-           of the object, starting at 1.), parameter "ref" of type "obj_ref"
-           (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
-           third version of an object called MyFirstObject in the workspace
-           called MyFirstWorkspace. 42/Panic/1 would identify the first
-           version of the object name Panic in workspace with id 42.
-           Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.), parameter "to" of type "ObjectIdentity" (An
-           object identifier. Select an object by either: One, and only one,
-           of the numerical id or name of the workspace, where the name can
-           also be a KBase ID including the numerical id, e.g. kb|ws.35.
-           ws_id wsid - the numerical ID of the workspace. ws_name workspace
-           - name of the workspace or the workspace ID in KBase format, e.g.
-           kb|ws.78. AND One, and only one, of the numerical id or name of
+           numerical id or name of the workspace. ws_id wsid - the numerical
+           ID of the workspace. ws_name workspace - the name of the
+           workspace. AND One, and only one, of the numerical id or name of
            the object. obj_id objid- the numerical ID of the object. obj_name
            name - name of the object. OPTIONALLY obj_ver ver - the version of
            the object. OR an object reference string: obj_ref ref - an object
@@ -3792,18 +4019,44 @@ class Workspace(object):
            parameter "ver" of type "obj_ver" (An object version. The version
            of the object, starting at 1.), parameter "ref" of type "obj_ref"
            (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.)
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.), parameter "to" of type
+           "ObjectIdentity" (An object identifier. Select an object by
+           either: One, and only one, of the numerical id or name of the
+           workspace. ws_id wsid - the numerical ID of the workspace. ws_name
+           workspace - the name of the workspace. AND One, and only one, of
+           the numerical id or name of the object. obj_id objid- the
+           numerical ID of the object. obj_name name - name of the object.
+           OPTIONALLY obj_ver ver - the version of the object. OR an object
+           reference string: obj_ref ref - an object reference string.) ->
+           structure: parameter "workspace" of type "ws_name" (A string used
+           as a name for a workspace. Any string consisting of alphanumeric
+           characters and "_", ".", or "-" that is not an integer is
+           acceptable. The name may optionally be prefixed with the workspace
+           owner's user name and a colon, e.g. kbasetest:my_workspace.),
+           parameter "wsid" of type "ws_id" (The unique, permanent numerical
+           ID of a workspace.), parameter "name" of type "obj_name" (A string
+           used as a name for an object. Any string consisting of
+           alphanumeric characters and the characters |._- that is not an
+           integer is acceptable.), parameter "objid" of type "obj_id" (The
+           unique, permanent numerical ID of an object.), parameter "ver" of
+           type "obj_ver" (An object version. The version of the object,
+           starting at 1.), parameter "ref" of type "obj_ref" (A string that
+           uniquely identifies an object in the workspace service. The format
+           is [ws_name or id]/[obj_name or id]/[obj_ver]. For example,
+           MyFirstWorkspace/MyFirstObject/3 would identify the third version
+           of an object called MyFirstObject in the workspace called
+           MyFirstWorkspace. 42/Panic/1 would identify the first version of
+           the object name Panic in workspace with id 42. Towel/1/6 would
+           identify the 6th version of the object with id 1 in the Towel
+           workspace.If the version number is omitted, the latest version of
+           the object is assumed.)
         :returns: instance of type "object_info" (Information about an
            object, including user provided metadata. obj_id objid - the
            numerical id of the object. obj_name name - the name of the
@@ -3849,30 +4102,27 @@ class Workspace(object):
            metadata about an object. Arbitrary key-value pairs provided by
            the user.) -> mapping from String to String
         """
-        return self._client.call_method(
-            'Workspace.copy_object',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.copy_object',
+                                        [params], self._service_ver, context)
 
     def revert_object(self, object, context=None):
         """
         Revert an object.
-            The object specified in the ObjectIdentity is reverted to the version
-            specified in the ObjectIdentity.
+                The object specified in the ObjectIdentity is reverted to the version
+                specified in the ObjectIdentity.
         :param object: instance of type "ObjectIdentity" (An object
            identifier. Select an object by either: One, and only one, of the
-           numerical id or name of the workspace, where the name can also be
-           a KBase ID including the numerical id, e.g. kb|ws.35. ws_id wsid -
-           the numerical ID of the workspace. ws_name workspace - name of the
-           workspace or the workspace ID in KBase format, e.g. kb|ws.78. AND
-           One, and only one, of the numerical id or name of the object.
-           obj_id objid- the numerical ID of the object. obj_name name - name
-           of the object. OPTIONALLY obj_ver ver - the version of the object.
-           OR an object reference string: obj_ref ref - an object reference
-           string.) -> structure: parameter "workspace" of type "ws_name" (A
-           string used as a name for a workspace. Any string consisting of
-           alphanumeric characters and "_", ".", or "-" that is not an
-           integer is acceptable. The name may optionally be prefixed with
-           the workspace owner's user name and a colon, e.g.
+           numerical id or name of the workspace. ws_id wsid - the numerical
+           ID of the workspace. ws_name workspace - the name of the
+           workspace. AND One, and only one, of the numerical id or name of
+           the object. obj_id objid- the numerical ID of the object. obj_name
+           name - name of the object. OPTIONALLY obj_ver ver - the version of
+           the object. OR an object reference string: obj_ref ref - an object
+           reference string.) -> structure: parameter "workspace" of type
+           "ws_name" (A string used as a name for a workspace. Any string
+           consisting of alphanumeric characters and "_", ".", or "-" that is
+           not an integer is acceptable. The name may optionally be prefixed
+           with the workspace owner's user name and a colon, e.g.
            kbasetest:my_workspace.), parameter "wsid" of type "ws_id" (The
            unique, permanent numerical ID of a workspace.), parameter "name"
            of type "obj_name" (A string used as a name for an object. Any
@@ -3882,18 +4132,14 @@ class Workspace(object):
            parameter "ver" of type "obj_ver" (An object version. The version
            of the object, starting at 1.), parameter "ref" of type "obj_ref"
            (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.)
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.)
         :returns: instance of type "object_info" (Information about an
            object, including user provided metadata. obj_id objid - the
            numerical id of the object. obj_name name - the name of the
@@ -3939,9 +4185,8 @@ class Workspace(object):
            metadata about an object. Arbitrary key-value pairs provided by
            the user.) -> mapping from String to String
         """
-        return self._client.call_method(
-            'Workspace.revert_object',
-            [object], self._service_ver, context)
+        return self._client.call_method('Workspace.revert_object',
+                                        [object], self._service_ver, context)
 
     def get_names_by_prefix(self, params, context=None):
         """
@@ -3957,10 +4202,8 @@ class Workspace(object):
            hidden objects in the results. Default false.) -> structure:
            parameter "workspaces" of list of type "WorkspaceIdentity" (A
            workspace identifier. Select a workspace by one, and only one, of
-           the numerical id or name, where the name can also be a KBase ID
-           including the numerical id, e.g. kb|ws.35. ws_id id - the
-           numerical ID of the workspace. ws_name workspace - name of the
-           workspace or the workspace ID in KBase format, e.g. kb|ws.78.) ->
+           the numerical id or name. ws_id id - the numerical ID of the
+           workspace. ws_name workspace - the name of the workspace.) ->
            structure: parameter "workspace" of type "ws_name" (A string used
            as a name for a workspace. Any string consisting of alphanumeric
            characters and "_", ".", or "-" that is not an integer is
@@ -3978,9 +4221,8 @@ class Workspace(object):
            string consisting of alphanumeric characters and the characters
            |._- that is not an integer is acceptable.)
         """
-        return self._client.call_method(
-            'Workspace.get_names_by_prefix',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.get_names_by_prefix',
+                                        [params], self._service_ver, context)
 
     def hide_objects(self, object_ids, context=None):
         """
@@ -3989,11 +4231,9 @@ class Workspace(object):
         appear in the list_objects method.
         :param object_ids: instance of list of type "ObjectIdentity" (An
            object identifier. Select an object by either: One, and only one,
-           of the numerical id or name of the workspace, where the name can
-           also be a KBase ID including the numerical id, e.g. kb|ws.35.
-           ws_id wsid - the numerical ID of the workspace. ws_name workspace
-           - name of the workspace or the workspace ID in KBase format, e.g.
-           kb|ws.78. AND One, and only one, of the numerical id or name of
+           of the numerical id or name of the workspace. ws_id wsid - the
+           numerical ID of the workspace. ws_name workspace - the name of the
+           workspace. AND One, and only one, of the numerical id or name of
            the object. obj_id objid- the numerical ID of the object. obj_name
            name - name of the object. OPTIONALLY obj_ver ver - the version of
            the object. OR an object reference string: obj_ref ref - an object
@@ -4011,22 +4251,17 @@ class Workspace(object):
            parameter "ver" of type "obj_ver" (An object version. The version
            of the object, starting at 1.), parameter "ref" of type "obj_ref"
            (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.)
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.)
         """
-        return self._client.call_method(
-            'Workspace.hide_objects',
-            [object_ids], self._service_ver, context)
+        return self._client.call_method('Workspace.hide_objects',
+                                        [object_ids], self._service_ver, context)
 
     def unhide_objects(self, object_ids, context=None):
         """
@@ -4034,11 +4269,9 @@ class Workspace(object):
         of the version specified in the ObjectIdentity.
         :param object_ids: instance of list of type "ObjectIdentity" (An
            object identifier. Select an object by either: One, and only one,
-           of the numerical id or name of the workspace, where the name can
-           also be a KBase ID including the numerical id, e.g. kb|ws.35.
-           ws_id wsid - the numerical ID of the workspace. ws_name workspace
-           - name of the workspace or the workspace ID in KBase format, e.g.
-           kb|ws.78. AND One, and only one, of the numerical id or name of
+           of the numerical id or name of the workspace. ws_id wsid - the
+           numerical ID of the workspace. ws_name workspace - the name of the
+           workspace. AND One, and only one, of the numerical id or name of
            the object. obj_id objid- the numerical ID of the object. obj_name
            name - name of the object. OPTIONALLY obj_ver ver - the version of
            the object. OR an object reference string: obj_ref ref - an object
@@ -4056,22 +4289,17 @@ class Workspace(object):
            parameter "ver" of type "obj_ver" (An object version. The version
            of the object, starting at 1.), parameter "ref" of type "obj_ref"
            (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.)
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.)
         """
-        return self._client.call_method(
-            'Workspace.unhide_objects',
-            [object_ids], self._service_ver, context)
+        return self._client.call_method('Workspace.unhide_objects',
+                                        [object_ids], self._service_ver, context)
 
     def delete_objects(self, object_ids, context=None):
         """
@@ -4079,11 +4307,9 @@ class Workspace(object):
         the version specified in the ObjectIdentity.
         :param object_ids: instance of list of type "ObjectIdentity" (An
            object identifier. Select an object by either: One, and only one,
-           of the numerical id or name of the workspace, where the name can
-           also be a KBase ID including the numerical id, e.g. kb|ws.35.
-           ws_id wsid - the numerical ID of the workspace. ws_name workspace
-           - name of the workspace or the workspace ID in KBase format, e.g.
-           kb|ws.78. AND One, and only one, of the numerical id or name of
+           of the numerical id or name of the workspace. ws_id wsid - the
+           numerical ID of the workspace. ws_name workspace - the name of the
+           workspace. AND One, and only one, of the numerical id or name of
            the object. obj_id objid- the numerical ID of the object. obj_name
            name - name of the object. OPTIONALLY obj_ver ver - the version of
            the object. OR an object reference string: obj_ref ref - an object
@@ -4101,22 +4327,17 @@ class Workspace(object):
            parameter "ver" of type "obj_ver" (An object version. The version
            of the object, starting at 1.), parameter "ref" of type "obj_ref"
            (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.)
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.)
         """
-        return self._client.call_method(
-            'Workspace.delete_objects',
-            [object_ids], self._service_ver, context)
+        return self._client.call_method('Workspace.delete_objects',
+                                        [object_ids], self._service_ver, context)
 
     def undelete_objects(self, object_ids, context=None):
         """
@@ -4125,11 +4346,9 @@ class Workspace(object):
         deleted, no error is thrown.
         :param object_ids: instance of list of type "ObjectIdentity" (An
            object identifier. Select an object by either: One, and only one,
-           of the numerical id or name of the workspace, where the name can
-           also be a KBase ID including the numerical id, e.g. kb|ws.35.
-           ws_id wsid - the numerical ID of the workspace. ws_name workspace
-           - name of the workspace or the workspace ID in KBase format, e.g.
-           kb|ws.78. AND One, and only one, of the numerical id or name of
+           of the numerical id or name of the workspace. ws_id wsid - the
+           numerical ID of the workspace. ws_name workspace - the name of the
+           workspace. AND One, and only one, of the numerical id or name of
            the object. obj_id objid- the numerical ID of the object. obj_name
            name - name of the object. OPTIONALLY obj_ver ver - the version of
            the object. OR an object reference string: obj_ref ref - an object
@@ -4147,32 +4366,25 @@ class Workspace(object):
            parameter "ver" of type "obj_ver" (An object version. The version
            of the object, starting at 1.), parameter "ref" of type "obj_ref"
            (A string that uniquely identifies an object in the workspace
-           service. There are two ways to uniquely identify an object in one
-           string: "[ws_name or id]/[obj_name or id]/[obj_ver]" - for
-           example, "MyFirstWorkspace/MyFirstObject/3" would identify the
+           service. The format is [ws_name or id]/[obj_name or id]/[obj_ver].
+           For example, MyFirstWorkspace/MyFirstObject/3 would identify the
            third version of an object called MyFirstObject in the workspace
            called MyFirstWorkspace. 42/Panic/1 would identify the first
            version of the object name Panic in workspace with id 42.
            Towel/1/6 would identify the 6th version of the object with id 1
-           in the Towel workspace. "kb|ws.[ws_id].obj.[obj_id].ver.[obj_ver]"
-           - for example, "kb|ws.23.obj.567.ver.2" would identify the second
-           version of an object with id 567 in a workspace with id 23. In all
-           cases, if the version number is omitted, the latest version of the
-           object is assumed.)
+           in the Towel workspace.If the version number is omitted, the
+           latest version of the object is assumed.)
         """
-        return self._client.call_method(
-            'Workspace.undelete_objects',
-            [object_ids], self._service_ver, context)
+        return self._client.call_method('Workspace.undelete_objects',
+                                        [object_ids], self._service_ver, context)
 
     def delete_workspace(self, wsi, context=None):
         """
         Delete a workspace. All objects contained in the workspace are deleted.
         :param wsi: instance of type "WorkspaceIdentity" (A workspace
            identifier. Select a workspace by one, and only one, of the
-           numerical id or name, where the name can also be a KBase ID
-           including the numerical id, e.g. kb|ws.35. ws_id id - the
-           numerical ID of the workspace. ws_name workspace - name of the
-           workspace or the workspace ID in KBase format, e.g. kb|ws.78.) ->
+           numerical id or name. ws_id id - the numerical ID of the
+           workspace. ws_name workspace - the name of the workspace.) ->
            structure: parameter "workspace" of type "ws_name" (A string used
            as a name for a workspace. Any string consisting of alphanumeric
            characters and "_", ".", or "-" that is not an integer is
@@ -4181,32 +4393,8 @@ class Workspace(object):
            parameter "id" of type "ws_id" (The unique, permanent numerical ID
            of a workspace.)
         """
-        return self._client.call_method(
-            'Workspace.delete_workspace',
-            [wsi], self._service_ver, context)
-
-    def undelete_workspace(self, wsi, context=None):
-        """
-        Undelete a workspace. All objects contained in the workspace are
-        undeleted, regardless of their state at the time the workspace was
-        deleted.
-        :param wsi: instance of type "WorkspaceIdentity" (A workspace
-           identifier. Select a workspace by one, and only one, of the
-           numerical id or name, where the name can also be a KBase ID
-           including the numerical id, e.g. kb|ws.35. ws_id id - the
-           numerical ID of the workspace. ws_name workspace - name of the
-           workspace or the workspace ID in KBase format, e.g. kb|ws.78.) ->
-           structure: parameter "workspace" of type "ws_name" (A string used
-           as a name for a workspace. Any string consisting of alphanumeric
-           characters and "_", ".", or "-" that is not an integer is
-           acceptable. The name may optionally be prefixed with the workspace
-           owner's user name and a colon, e.g. kbasetest:my_workspace.),
-           parameter "id" of type "ws_id" (The unique, permanent numerical ID
-           of a workspace.)
-        """
-        return self._client.call_method(
-            'Workspace.undelete_workspace',
-            [wsi], self._service_ver, context)
+        return self._client.call_method('Workspace.delete_workspace',
+                                        [wsi], self._service_ver, context)
 
     def request_module_ownership(self, mod, context=None):
         """
@@ -4215,9 +4403,8 @@ class Workspace(object):
         :param mod: instance of type "modulename" (A module name defined in a
            KIDL typespec.)
         """
-        return self._client.call_method(
-            'Workspace.request_module_ownership',
-            [mod], self._service_ver, context)
+        return self._client.call_method('Workspace.request_module_ownership',
+                                        [mod], self._service_ver, context)
 
     def register_typespec(self, params, context=None):
         """
@@ -4274,9 +4461,8 @@ class Workspace(object):
            MyModule.MyType-3.1) to type "jsonschema" (The JSON Schema (v4)
            representation of a type definition.)
         """
-        return self._client.call_method(
-            'Workspace.register_typespec',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.register_typespec',
+                                        [params], self._service_ver, context)
 
     def register_typespec_copy(self, params, context=None):
         """
@@ -4297,9 +4483,8 @@ class Workspace(object):
         :returns: instance of type "spec_version" (The version of a typespec
            file.)
         """
-        return self._client.call_method(
-            'Workspace.register_typespec_copy',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.register_typespec_copy',
+                                        [params], self._service_ver, context)
 
     def release_module(self, mod, context=None):
         """
@@ -4307,14 +4492,14 @@ class Workspace(object):
         Releases the most recent version of a module. Releasing a module does
         two things to the module's types:
         1) If a type's major version is 0, it is changed to 1. A major
-            version of 0 implies that the type is in development and may have
-            backwards incompatible changes from minor version to minor version.
-            Once a type is released, backwards incompatible changes always
-            cause a major version increment.
+                version of 0 implies that the type is in development and may have
+                backwards incompatible changes from minor version to minor version.
+                Once a type is released, backwards incompatible changes always
+                cause a major version increment.
         2) This version of the type becomes the default version, and if a 
-            specific version is not supplied in a function call, this version
-            will be used. This means that newer, unreleased versions of the
-            type may be skipped.
+                specific version is not supplied in a function call, this version
+                will be used. This means that newer, unreleased versions of the
+                type may be skipped.
         :param mod: instance of type "modulename" (A module name defined in a
            KIDL typespec.)
         :returns: instance of list of type "type_string" (A type string.
@@ -4331,9 +4516,8 @@ class Workspace(object):
            not provided the most recent version will be used. Example:
            MyModule.MyType-3.1)
         """
-        return self._client.call_method(
-            'Workspace.release_module',
-            [mod], self._service_ver, context)
+        return self._client.call_method('Workspace.release_module',
+                                        [mod], self._service_ver, context)
 
     def list_modules(self, params, context=None):
         """
@@ -4345,9 +4529,8 @@ class Workspace(object):
         :returns: instance of list of type "modulename" (A module name
            defined in a KIDL typespec.)
         """
-        return self._client.call_method(
-            'Workspace.list_modules',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.list_modules',
+                                        [params], self._service_ver, context)
 
     def list_module_versions(self, params, context=None):
         """
@@ -4381,9 +4564,8 @@ class Workspace(object):
            version of a typespec file.), parameter "released_vers" of list of
            type "spec_version" (The version of a typespec file.)
         """
-        return self._client.call_method(
-            'Workspace.list_module_versions',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.list_module_versions',
+                                        [params], self._service_ver, context)
 
     def get_module_info(self, params, context=None):
         """
@@ -4446,9 +4628,8 @@ class Workspace(object):
            parameter "is_released" of type "boolean" (A boolean. 0 = false,
            other = true.)
         """
-        return self._client.call_method(
-            'Workspace.get_module_info',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.get_module_info',
+                                        [params], self._service_ver, context)
 
     def get_jsonschema(self, type, context=None):
         """
@@ -4469,9 +4650,8 @@ class Workspace(object):
         :returns: instance of type "jsonschema" (The JSON Schema (v4)
            representation of a type definition.)
         """
-        return self._client.call_method(
-            'Workspace.get_jsonschema',
-            [type], self._service_ver, context)
+        return self._client.call_method('Workspace.get_jsonschema',
+                                        [type], self._service_ver, context)
 
     def translate_from_MD5_types(self, md5_types, context=None):
         """
@@ -4515,9 +4695,8 @@ class Workspace(object):
            not provided the most recent version will be used. Example:
            MyModule.MyType-3.1)
         """
-        return self._client.call_method(
-            'Workspace.translate_from_MD5_types',
-            [md5_types], self._service_ver, context)
+        return self._client.call_method('Workspace.translate_from_MD5_types',
+                                        [md5_types], self._service_ver, context)
 
     def translate_to_MD5_types(self, sem_types, context=None):
         """
@@ -4561,9 +4740,8 @@ class Workspace(object):
            not provided the most recent version will be used. Example:
            MyModule.MyType-3.1)
         """
-        return self._client.call_method(
-            'Workspace.translate_to_MD5_types',
-            [sem_types], self._service_ver, context)
+        return self._client.call_method('Workspace.translate_to_MD5_types',
+                                        [sem_types], self._service_ver, context)
 
     def get_type_info(self, type, context=None):
         """
@@ -4682,9 +4860,8 @@ class Workspace(object):
            provided the most recent version will be used. Example:
            MyModule.MyType-3.1)
         """
-        return self._client.call_method(
-            'Workspace.get_type_info',
-            [type], self._service_ver, context)
+        return self._client.call_method('Workspace.get_type_info',
+                                        [type], self._service_ver, context)
 
     def get_all_type_info(self, mod, context=None):
         """
@@ -4792,9 +4969,8 @@ class Workspace(object):
            provided the most recent version will be used. Example:
            MyModule.MyType-3.1)
         """
-        return self._client.call_method(
-            'Workspace.get_all_type_info',
-            [mod], self._service_ver, context)
+        return self._client.call_method('Workspace.get_all_type_info',
+                                        [mod], self._service_ver, context)
 
     def get_func_info(self, func, context=None):
         """
@@ -4885,9 +5061,8 @@ class Workspace(object):
            not provided the most recent version will be used. Example:
            MyModule.MyType-3.1)
         """
-        return self._client.call_method(
-            'Workspace.get_func_info',
-            [func], self._service_ver, context)
+        return self._client.call_method('Workspace.get_func_info',
+                                        [func], self._service_ver, context)
 
     def get_all_func_info(self, mod, context=None):
         """
@@ -4967,9 +5142,8 @@ class Workspace(object):
            not provided the most recent version will be used. Example:
            MyModule.MyType-3.1)
         """
-        return self._client.call_method(
-            'Workspace.get_all_func_info',
-            [mod], self._service_ver, context)
+        return self._client.call_method('Workspace.get_all_func_info',
+                                        [mod], self._service_ver, context)
 
     def grant_module_ownership(self, params, context=None):
         """
@@ -4986,9 +5160,8 @@ class Workspace(object):
            user account.), parameter "with_grant_option" of type "boolean" (A
            boolean. 0 = false, other = true.)
         """
-        return self._client.call_method(
-            'Workspace.grant_module_ownership',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.grant_module_ownership',
+                                        [params], self._service_ver, context)
 
     def remove_module_ownership(self, params, context=None):
         """
@@ -5002,9 +5175,8 @@ class Workspace(object):
            defined in a KIDL typespec.), parameter "old_owner" of type
            "username" (Login name of a KBase user account.)
         """
-        return self._client.call_method(
-            'Workspace.remove_module_ownership',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.remove_module_ownership',
+                                        [params], self._service_ver, context)
 
     def list_all_types(self, params, context=None):
         """
@@ -5028,9 +5200,8 @@ class Workspace(object):
            version implies that the type has changed in a way that is
            backwards compatible with previous type definitions.)
         """
-        return self._client.call_method(
-            'Workspace.list_all_types',
-            [params], self._service_ver, context)
+        return self._client.call_method('Workspace.list_all_types',
+                                        [params], self._service_ver, context)
 
     def administer(self, command, context=None):
         """
@@ -5038,9 +5209,8 @@ class Workspace(object):
         :param command: instance of unspecified object
         :returns: instance of unspecified object
         """
-        return self._client.call_method(
-            'Workspace.administer',
-            [command], self._service_ver, context)
+        return self._client.call_method('Workspace.administer',
+                                        [command], self._service_ver, context)
 
     def status(self, context=None):
         return self._client.call_method('Workspace.status',

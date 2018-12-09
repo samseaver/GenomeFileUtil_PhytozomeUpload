@@ -5,10 +5,10 @@ import json
 import shutil
 from configparser import ConfigParser
 
-from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from installed_clients.AssemblyUtilClient import AssemblyUtil
+from installed_clients.WorkspaceClient import Workspace as workspaceService
 
 
 class UtilTest(unittest.TestCase):

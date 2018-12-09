@@ -1,14 +1,12 @@
 """
 Genome CDS Protein Sequence to Fasta file conversion.
 """
-import textwrap
-import os
-import time
 import logging
-from collections import defaultdict
+import os
+import textwrap
 
-from DataFileUtil.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
+from installed_clients.DataFileUtilClient import DataFileUtil
 
 
 class GenomeFeaturesToFasta(object):

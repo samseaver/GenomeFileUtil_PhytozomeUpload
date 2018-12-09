@@ -8,10 +8,10 @@ from collections import defaultdict
 
 import requests
 
-from AbstractHandle.AbstractHandleClient import AbstractHandle as HandleService
+from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
+from installed_clients.AbstractHandleClient import AbstractHandle as HandleService
 from installed_clients.AssemblySequenceAPIServiceClient import AssemblySequenceAPI
 from installed_clients.DataFileUtilClient import DataFileUtil
-from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
 from installed_clients.KBaseSearchEngineClient import KBaseSearchEngine
 from installed_clients.WSLargeDataIOClient import WsLargeDataIO
 
