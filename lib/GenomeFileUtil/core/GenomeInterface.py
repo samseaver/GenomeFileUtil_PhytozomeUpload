@@ -389,7 +389,7 @@ class GenomeInterface:
         type_counts['mRNA'] = len(genome.get('mrnas', []))
         type_counts['CDS'] = len(genome.get('cdss', []))
         type_counts['protein_encoding_gene'] = len(genome['features'])
-        type_counts['non-protein_encoding_gene'] = len(
+        type_counts['non_coding_features'] = len(
             genome.get('non_coding_features', []))
         genome['feature_counts'] = type_counts
 
