@@ -7,7 +7,7 @@ from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil, SDKConfig
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
 from GenomeFileUtil.core import GenomeUtils
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from installed_clients.WorkspaceClient import Workspace as workspaceService
 
 
 class GenomeFileUtilTest(unittest.TestCase):

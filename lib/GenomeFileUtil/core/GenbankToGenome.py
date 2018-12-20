@@ -17,11 +17,12 @@ from Bio import Seq
 from Bio.Data.CodonTable import TranslationError
 from Bio.SeqFeature import ExactPosition
 
-from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
-from DataFileUtil.DataFileUtilClient import DataFileUtil
-from .GenomeInterface import GenomeInterface
-from .GenomeUtils import is_parent, propagate_cds_props_to_gene, warnings, parse_inferences, load_ontology_mappings
-from Workspace.WorkspaceClient import Workspace
+from installed_clients.AssemblyUtilClient import AssemblyUtil
+from installed_clients.DataFileUtilClient import DataFileUtil
+from GenomeFileUtil.core.GenomeInterface import GenomeInterface
+from GenomeFileUtil.core.GenomeUtils import is_parent, propagate_cds_props_to_gene, warnings
+from GenomeFileUtil.core.GenomeUtils import parse_inferences, load_ontology_mappings
+from installed_clients.WorkspaceClient import Workspace
 
 MAX_MISC_FEATURE_SIZE = 10000
 MAX_PARENT_LOOKUPS = 5

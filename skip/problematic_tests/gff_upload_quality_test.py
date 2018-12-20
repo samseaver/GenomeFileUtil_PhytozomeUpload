@@ -3,10 +3,10 @@ import time
 import unittest
 from configparser import ConfigParser
 
-from DataFileUtil.DataFileUtilClient import DataFileUtil
+from installed_clients.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from installed_clients.WorkspaceClient import Workspace as workspaceService
 
 
 class GenomeFileUtilTest(unittest.TestCase):
@@ -52,7 +52,7 @@ class GenomeFileUtilTest(unittest.TestCase):
               'generate_ids_if_needed': 1
             })[0]
 #        print("HERE IS THE RESULT:")
-        data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'], 
+        data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'],
                                 token=cls.ctx['token'],
                                 service_ver='dev')
         cls.genome = data_file_cli.get_objects({'object_refs': [result['genome_ref']]})['data'][0]['data']
@@ -76,14 +76,14 @@ class GenomeFileUtilTest(unittest.TestCase):
         if 'warnings' in genome:
             for genome_warning in genome['warnings']:
                 print("WARNING")
-                print((str(genome_warning))) 
+                print((str(genome_warning)))
                 self.assertNotIn("Genome molecule_type Unknown is not expected for domain Bacteria.", genome_warning)
 
     def test_empty_publications(self):
         genome = self.__class__.genome
         if "publications" in genome:
             for publication in genome["publications"]:
-                self.assertFalse((publication[0] == '0') and 
+                self.assertFalse((publication[0] == '0') and
                                  (publication[1] == '') and
                                  (publication[2] == '') and
                                  (publication[3] == '') and
@@ -109,7 +109,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         found_synonyms = False
         for feature in genome["features"]:
             if feature['id'] == "b0618":
-                self.assertTrue(feature["location"][0][1] == 651856, 
+                self.assertTrue(feature["location"][0][1] == 651856,
                                 "The negative strand location start is off; " +
                                 "It is " + str(feature["location"][0][1]) +
                                 " when it should be 651856.")
@@ -139,12 +139,12 @@ class GenomeFileUtilTest(unittest.TestCase):
         print("FOUND FUNCTION COUNT: " + str(found_function_count))
         print("FEATURES WITH FUNCTIONS COUNT: " + str(features_with_functions_count))
         print("FEATURES WITHOUT FUNCTIONS COUNT: " + str(features_without_functions_count))
-        self.assertTrue(empty_function_count == 0, str(empty_function_count) + " features had empty functions.")     
-        self.assertTrue(found_function_count > 0, "No features had functions.")    
+        self.assertTrue(empty_function_count == 0, str(empty_function_count) + " features had empty functions.")
+        self.assertTrue(found_function_count > 0, "No features had functions.")
 
 
     def test_getting_all_go_ontologies(self):
-        genome = self.__class__.genome    
+        genome = self.__class__.genome
         all_ontologies_accounted_for = True
         check_all_go_ontologies = {
                                     "GO:0005737":0,
@@ -162,7 +162,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                         check_all_go_ontologies[ontology] = 1
         for ontology in check_all_go_ontologies:
             if check_all_go_ontologies[ontology] == 0:
-                all_ontologies_accounted_for = False            
+                all_ontologies_accounted_for = False
         self.assertTrue(all_ontologies_accounted_for, "Not all expected ontologies were accounted for : " + str(check_all_go_ontologies))
 
     def test_for_empty_feature_warnings(self):
@@ -190,7 +190,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         print("FOUND FEATURE WARNING COUNT: " + str(found_warning_count))
         print("FEATURES WITH WARNINGS COUNT: " + str(features_with_warnings_count))
         print("FEATURES WITHOUT WARNINGS COUNT: " + str(features_without_warnings_count))
-        self.assertTrue(empty_warning_count == 0, str(empty_warning_count) + " features had empty warnings.")     
+        self.assertTrue(empty_warning_count == 0, str(empty_warning_count) + " features had empty warnings.")
         self.assertTrue(found_warning_count > 0, "No features had warnings.")
 
 #    def test_no_empty_mRNAs(self):
@@ -213,7 +213,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         for feature in genome["non_coding_features"]:
             overall_count += 1
             if feature["id"].startswith("_"):
-                underscore_start_count += 1 
+                underscore_start_count += 1
         print("Starts with underscore count : " + str(underscore_start_count))
         print("Overall noncoding count : " + str(overall_count))
         self.assertTrue(underscore_start_count == 0, "Non coding features are starting with an underscore.")

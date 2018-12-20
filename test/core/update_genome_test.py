@@ -6,12 +6,12 @@ import unittest
 from configparser import ConfigParser
 from os import environ
 
-from AssemblyUtil.AssemblyUtilClient import AssemblyUtil
+from installed_clients.AssemblyUtilClient import AssemblyUtil
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import SDKConfig
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from installed_clients.WorkspaceClient import Workspace as workspaceService
 
 
 class GenomeFileUtilTest(unittest.TestCase):

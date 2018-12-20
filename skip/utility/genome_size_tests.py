@@ -5,11 +5,11 @@ import unittest
 import mock
 from configparser import ConfigParser
 
-from DataFileUtil.DataFileUtilClient import DataFileUtil
+from installed_clients.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
-from Workspace.WorkspaceClient import Workspace as workspaceService
+from installed_clients.WorkspaceClient import Workspace as workspaceService
 
 class GenomeFileUtilTest(unittest.TestCase):
     @classmethod
