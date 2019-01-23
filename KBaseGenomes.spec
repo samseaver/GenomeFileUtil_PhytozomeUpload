@@ -420,7 +420,7 @@ module KBaseGenomes {
 
 
     @optional warnings contig_lengths contig_ids source_id taxonomy publications
-    @optional ontology_events ontologies_present non_coding_features mrnas
+    @optional ontology_events ontologies_present non_coding_features mrnas genome_type
     @optional genbank_handle_ref gff_handle_ref external_source_origination_date
     @optional release original_source_file_name notes quality_scores suspect assembly_ref
 
@@ -434,6 +434,7 @@ module KBaseGenomes {
     @metadata ws source_id as Source ID
     @metadata ws source as Source
     @metadata ws scientific_name as Name
+    @metadata ws genome_type as Genome Type
     @metadata ws length(features) as Number of Protein Encoding Genes
     @metadata ws length(cdss) as Number of CDS
     @metadata ws assembly_ref as Assembly Object
@@ -476,6 +477,7 @@ module KBaseGenomes {
       string notes;
       list<GenomeQualityScore> quality_scores;
       Bool suspect;
+      string genome_type;
     } Genome;
 
     /*

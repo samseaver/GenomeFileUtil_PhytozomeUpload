@@ -57,6 +57,17 @@ class GenomeFileUtilTest(unittest.TestCase):
             'file': {'path': assembly_file_path}
         })
 
+        rhodobacter_contigs = json.load(open('data/rhodobacter_contigs.json'))
+        save_info = {
+            'workspace': cls.wsName,
+            'objects': [{
+                'type': 'KBaseGenomes.ContigSet',
+                'data': rhodobacter_contigs,
+                'name': 'rhodobacter_contigs'
+            }]
+        }
+        cls.contigset_ref = cls.ws.save_objects(save_info)
+
     @classmethod
     def tearDownClass(cls):
         if hasattr(cls, 'wsName'):
@@ -81,15 +92,15 @@ class GenomeFileUtilTest(unittest.TestCase):
     def getContext(self):
         return self.__class__.ctx
 
-    def test_upgrade_genome(self):
+    def test_upgrade_genome_contigs(self):
         old_rhodobacter = json.load(open('data/rhodobacter.json'))
-        old_rhodobacter['assembly_ref'] = self.assembly_ref
+        old_rhodobacter['contigset_ref'] = self.contigset_ref
         new_rhodobacter = self.genome_interface._update_genome(old_rhodobacter)
         json.dump(new_rhodobacter, open(self.cfg['scratch']+'/new_genome', 'w'))
         save_info = {
             'workspace': self.getWsName(),
             'objects': [{
-                'type': 'NewTempGenomes.Genome',
+                'type': 'KBaseGenomes.Genome',
                 'data': new_rhodobacter,
                 'name': 'rhodobacter'
             }]
@@ -104,7 +115,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         save_info = {
             'workspace': self.getWsName(),
             'objects': [{
-                'type': 'NewTempGenomes.Genome',
+                'type': 'KBaseGenomes.Genome',
                 'data': new_rhodobacter,
                 'name': 'rhodobacter_rast'
             }]
@@ -119,7 +130,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         save_info = {
             'workspace': self.getWsName(),
             'objects': [{
-                'type': 'NewTempGenomes.Genome',
+                'type': 'KBaseGenomes.Genome',
                 'data': new_rhodobacter,
                 'name': 'rhodobacter_prokka'
             }]
@@ -135,7 +146,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         save_info = {
             'workspace': self.getWsName(),
             'objects': [{
-                'type': 'NewTempGenomes.Genome',
+                'type': 'KBaseGenomes.Genome',
                 'data': new_community,
                 'name': 'community_model'
             }]
@@ -151,7 +162,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         save_info = {
             'workspace': self.getWsName(),
             'objects': [{
-                'type': 'NewTempGenomes.Genome',
+                'type': 'KBaseGenomes.Genome',
                 'data': new_mixed,
                 'name': 'mixed_model'
             }]

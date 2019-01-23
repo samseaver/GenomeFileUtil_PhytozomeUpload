@@ -310,6 +310,10 @@ class GenomeInterface:
                 genome["dna_size"] = assembly_data['dna_size']
                 genome["md5"] = assembly_data['md5']
                 genome["num_contigs"] = assembly_data['num_contigs']
+
+                if assembly_data.get('type'):
+                    genome['genome_type'] = assembly_data['type']
+
             elif 'contigset_ref' in genome:
                 contig_data = self.dfu.get_objects(
                     {'object_refs': [genome['contigset_ref']],

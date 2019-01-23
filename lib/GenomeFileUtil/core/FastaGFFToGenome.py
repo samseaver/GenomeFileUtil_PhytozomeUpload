@@ -93,6 +93,9 @@ class FastaGFFToGenome:
         if params.get('genetic_code'):
             genome["genetic_code"] = params['genetic_code']
 
+        if params.get('genome_type'):
+            genome['genome_type'] = params['genome_type']
+
         return genome, input_directory
 
     def import_file(self, params):
@@ -166,6 +169,7 @@ class FastaGFFToGenome:
                                        assembly_ref, source, source_id, assembly_data,
                                        input_gff_file, molecule_type)
         genome['release'] = release
+
         if self.spoof_gene_count > 0:
             genome['warnings'] = genome.get('warnings', []) + \
                                     [warnings['spoofed_genome'].format(self.spoof_gene_count)]
