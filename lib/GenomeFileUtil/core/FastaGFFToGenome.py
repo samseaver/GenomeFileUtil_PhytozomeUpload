@@ -81,6 +81,7 @@ class FastaGFFToGenome:
 
         # 4) do the upload
         genome = self._gen_genome_json(
+            params,
             input_fasta_file=file_paths["fasta_file"],
             input_gff_file=file_paths["gff_file"],
             workspace_name=params['workspace_name'],
@@ -90,11 +91,6 @@ class FastaGFFToGenome:
             source_id=params['source_id'],
             release=params['release'],
         )
-        if params.get('genetic_code'):
-            genome["genetic_code"] = params['genetic_code']
-
-        if params.get('genome_type'):
-            genome['genome_type'] = params['genome_type']
 
         return genome, input_directory
 
@@ -129,7 +125,7 @@ class FastaGFFToGenome:
 
         return details
 
-    def _gen_genome_json(self, input_gff_file=None, input_fasta_file=None,
+    def _gen_genome_json(self, params, input_gff_file=None, input_fasta_file=None,
                         workspace_name=None, core_genome_name=None,
                         scientific_name="unknown_taxon", source=None, source_id=None,
                         release=None):
@@ -159,7 +155,9 @@ class FastaGFFToGenome:
         assembly_ref = self.au.save_assembly_from_fasta(
             {'file': {'path': input_fasta_file},
              'workspace_name': workspace_name,
-             'assembly_name': core_genome_name + ".assembly"})
+             'assembly_name': core_genome_name + ".assembly",
+             'type': params.get('genome_type', 'isolate'),
+             })
         assembly_data = self.dfu.get_objects(
             {'object_refs': [assembly_ref],
              'ignore_errors': 0})['data'][0]['data']
@@ -169,6 +167,11 @@ class FastaGFFToGenome:
                                        assembly_ref, source, source_id, assembly_data,
                                        input_gff_file, molecule_type)
         genome['release'] = release
+        if params.get('genetic_code'):
+            genome["genetic_code"] = params['genetic_code']
+
+        if params.get('genome_type'):
+            genome['genome_type'] = params['genome_type']
 
         if self.spoof_gene_count > 0:
             genome['warnings'] = genome.get('warnings', []) + \

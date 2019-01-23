@@ -388,6 +388,7 @@ class GenbankToGenome:
             {'file': {'path': fasta_file},
              'workspace_name': params['workspace_name'],
              'assembly_name': assembly_id,
+             'type': params.get('genome_type', 'isolate'),
              'contig_info': extra_info})
         self.log("Assembly saved to {}".format(assembly_ref))
         return assembly_ref
