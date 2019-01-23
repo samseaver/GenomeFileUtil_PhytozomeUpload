@@ -253,6 +253,9 @@ class GenbankToGenome:
         genome['source'], genome['genome_tiers'] = \
             self.gi.determine_tier(params['source'])
 
+        if params.get('genome_type'):
+            genome['genome_type'] = params['genome_type']
+
         dates = []
         # Parse data from genbank file
         contigs = Bio.SeqIO.parse(file_path, "genbank")
