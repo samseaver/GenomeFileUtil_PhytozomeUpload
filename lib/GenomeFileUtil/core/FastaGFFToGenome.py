@@ -27,12 +27,18 @@ from Bio.Seq import Seq
 
 codon_table = CodonTable.ambiguous_generic_by_name["Standard"]
 strand_table = str.maketrans("1?.", "+++")
+snake_re = re.compile('((?<=[a-z0-9])[A-Z]|(?!^)[A-Z](?=[a-z]))')
 MAX_MISC_FEATURE_SIZE = 10000
 
 
 def log(message, prefix_newline=False):
     """Logging function, provides a hook to suppress or redirect log messages."""
     print(('\n' if prefix_newline else '') + '{0:.2f}'.format(time.time()) + ': ' + str(message))
+
+
+def make_snake_case(string):
+    """Simple function to convert CamelCase to snake_case"""
+    return snake_re.sub(r'_\1', string).lower()
 
 
 class FastaGFFToGenome:
@@ -342,15 +348,17 @@ class FastaGFFToGenome:
 
                     #Use of 1 to limit split as '=' character can also be made available later
                     #Sometimes lack of "=", assume spaces instead
-                    if("=" in attribute):
+                    if "=" in attribute:
                         key, value = attribute.split("=", 1)
-                        ftr['attributes'][key.lower()].append(parse.unquote(value.strip('"')))
-                    elif(" " in attribute):
+
+                    elif " " in attribute:
                         key, value = attribute.split(" ", 1)
-                        ftr['attributes'][key.lower()].append(parse.unquote(value.strip('"')))
+
                     else:
-                        pass
-                        #log("Warning: attribute "+attribute+" cannot be separated into key,value pair")
+                        # Can not parse attribute
+                        continue
+
+                    ftr['attributes'][make_snake_case(key)].append(parse.unquote(value.strip('"')))
 
                 ftr['attributes']['raw'] = attributes
                 if "id" in ftr['attributes']:
