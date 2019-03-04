@@ -1,8 +1,6 @@
-
 import copy
 import datetime
 import hashlib
-import json
 import os
 import re
 import shutil
@@ -58,7 +56,7 @@ class GenbankToGenome:
         self.genome_suspect = False
         self.defects = Counter()
         self.spoofed_genes = 0
-        self.excluded_features = ('source', 'exon')
+        self.excluded_features = ('source', 'exon', 'fasta_record')
         self.ont_mappings = load_ontology_mappings('/kb/module/data')
         self.code_table = 11
         self.default_params = {
@@ -262,8 +260,10 @@ class GenbankToGenome:
         for record in contigs:
             r_annot = record.annotations
             self.log("parsing contig: " + record.id)
-            if 'date' in r_annot:
-                dates.append(time.strptime(r_annot['date'], "%d-%b-%Y"))
+            try:
+                dates.append(time.strptime(r_annot.get('date'), "%d-%b-%Y"))
+            except ValueError:
+                pass
             genome['contig_ids'].append(record.id)
             genome['contig_lengths'].append(len(record))
             genome["publications"] |= self._get_pubs(r_annot)
