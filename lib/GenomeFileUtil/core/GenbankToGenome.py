@@ -262,7 +262,7 @@ class GenbankToGenome:
             self.log("parsing contig: " + record.id)
             try:
                 dates.append(time.strptime(r_annot.get('date'), "%d-%b-%Y"))
-            except ValueError:
+            except (TypeError, ValueError):
                 pass
             genome['contig_ids'].append(record.id)
             genome['contig_lengths'].append(len(record))
