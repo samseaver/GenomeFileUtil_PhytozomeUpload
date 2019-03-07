@@ -296,9 +296,20 @@ class GenomeInterface:
         if 'molecule_type' not in genome:
             genome['molecule_type'] = 'Unknown'
         if 'taxon_ref' not in genome:
-            genome['taxonomy'], genome['taxon_ref'], genome['domain'], \
-            genome['genetic_code'] = self.retrieve_taxon(
+            genome['taxonomy'], genome['taxon_ref'], domain, genetic_code = self.retrieve_taxon(
                 self.taxon_wsname, genome['scientific_name'])
+
+            if 'genetic_code' in genome and genome['genetic_code'] != genetic_code:
+                genome['warnings'] = genome.get('warnings', []) + [
+                    "The genetic_code of this genome differs from that of its assigned taxon"]
+            else:
+                genome['genetic_code'] = genetic_code
+
+            if 'domain' in genome and genome['domain'] != domain:
+                genome['warnings'] = genome.get('warnings', []) + [
+                    "The domain of this genome differs from that of its assigned taxon"]
+            else:
+                genome['domain'] = domain
 
         if any([x not in genome for x in ('dna_size', 'md5', 'gc_content',
                                           'num_contigs')]):
