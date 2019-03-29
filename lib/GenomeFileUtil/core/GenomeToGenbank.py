@@ -2,6 +2,7 @@
 GenomeAnnotation to GenBank file conversion.
 """
 
+import logging
 import time
 from collections import defaultdict
 
@@ -13,11 +14,6 @@ from GenomeFileUtil.core.GenomeInterface import GenomeInterface
 
 STD_PREFIX = " " * 21
 CONTIG_ID_FIELD_LENGTH = 16
-
-
-def log(message, prefix_newline=False):
-    time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(time.time()))
-    print(('\n' if prefix_newline else '') + time_str + ': ' + message)
 
 
 class GenomeToGenbank(object):
@@ -43,7 +39,7 @@ class GenomeToGenbank(object):
             raise ValueError('Object is not a Genome, it is a:' + str(info[2]))
 
         # 4) build the genbank file and return it
-        log('not cached, building file...')
+        logging.info('not cached, building file...')
         result = self.build_genbank_file(data, "KBase_derived_" + info[1] + ".gbff",
                                          params['genome_ref'])
         if result is None:
@@ -63,7 +59,7 @@ class GenomeToGenbank(object):
             raise ValueError('Object is not a Genome, it is a:' + str(info[2]))
 
         # 4) if the genbank handle is there, get it and return
-        log('checking if genbank file is cached...')
+        logging.info('checking if genbank file is cached...')
         result = self.get_genbank_handle(data)
         return result
 
@@ -73,8 +69,7 @@ class GenomeToGenbank(object):
         if data['genbank_handle_ref'] is None:
             return None
 
-        log('pulling cached genbank file from Shock: ' +
-              str(data['genbank_handle_ref']))
+        logging.info(f"pulling cached genbank file from Shock: {data['genbank_handle_ref']}")
         file = self.dfu.shock_to_file({
                             'handle_id': data['genbank_handle_ref'],
                             'file_path': self.cfg.sharedFolder,
@@ -143,12 +138,12 @@ class GenomeFile:
             assembly_ref = genome['assembly_ref']
         else:
             assembly_ref = genome['contigset_ref']
-        log('Assembly reference = ' + assembly_ref)
-        log('Downloading assembly')
+        logging.info('Assembly reference = ' + assembly_ref)
+        logging.info('Downloading assembly')
         dfu = DataFileUtil(self.cfg.callbackURL)
-        log('object_refs:' + self.genome_ref + ";" + assembly_ref)
+        logging.info(f'object_refs:{self.genome_ref};{assembly_ref}')
         assembly_data = dfu.get_objects({
-            'object_refs': [self.genome_ref + ";" + assembly_ref]
+            'object_refs': [f'{self.genome_ref};{assembly_ref}']
         })['data'][0]['data']
         if isinstance(assembly_data['contigs'], dict):  # is an assembly
             circular_contigs = set([x['contig_id'] for x in list(assembly_data['contigs'].values())
@@ -158,7 +153,7 @@ class GenomeFile:
                                     if x.get('replicon_geometry') == 'circular'])
         au = AssemblyUtil(self.cfg.callbackURL)
         assembly_file_path = au.get_assembly_as_fasta(
-            {'ref': self.genome_ref + ";" + assembly_ref}
+            {'ref': f'{self.genome_ref};{assembly_ref}'}
         )['path']
         return assembly_file_path, circular_contigs
 
@@ -184,18 +179,18 @@ class GenomeFile:
         })
         if not self.seq_records:  # Only on the first contig
             raw_contig.annotations['references'] = self._format_publications()
-            log("Added {} references".format(
+            logging.info("Added {} references".format(
                 len(raw_contig.annotations['references'])))
             if 'notes' in go:
                 raw_contig.annotations['comment'] = go['notes']
 
         if len(raw_contig.name) > CONTIG_ID_FIELD_LENGTH:
             raw_contig.annotations['comment'] = raw_contig.annotations.get('comment', "") + (
-                "Renamed contig from {} because the original name exceeded {} characters"
-                .format(raw_contig.name, CONTIG_ID_FIELD_LENGTH)
+                f"Renamed contig from {raw_contig.name} because the original name exceeded "
+                f"{CONTIG_ID_FIELD_LENGTH} characters"
             )
             self.renamed_contigs += 1
-            raw_contig.name = "scaffold{:0>8}".format(self.renamed_contigs)
+            raw_contig.name = f"scaffold{self.renamed_contigs:0>8}"
 
         if raw_contig.id in self.features_by_contig:
             # sort all features except for cdss and mrnas
@@ -215,7 +210,7 @@ class GenomeFile:
         references = []
         for pub in self.genome_object.get('publications', []):
             if len(pub) != 7:
-                log('Skipping unparseable publication {}'.format(pub))
+                logging.warning(f'Skipping unparseable publication {pub}')
             ref = SeqFeature.Reference()
             if pub[0]:
                 ref.pubmed_id = str(pub[0])
