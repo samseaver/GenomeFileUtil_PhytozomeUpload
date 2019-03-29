@@ -72,12 +72,13 @@ class GenomeFeaturesToFasta(object):
     def _build_fasta_file(self, features, output_filename, seq_key, params):
         file_path = os.path.join(self.cfg.sharedFolder, output_filename)
         logging.info(f"Saving FASTA to {file_path}")
+        missing_seq = 0
         with open(file_path, "w") as out_file:
             for feat in features:
                 if params['filter_ids'] and feat['id'] not in params['filter_ids']:
                     continue
                 if not feat.get(seq_key):
-                    logging.warning(f"{feat['id']} is missing a {seq_key} attribute")
+                    missing_seq += 1
                     continue
 
                 header_line = self._build_header(feat,
@@ -86,6 +87,9 @@ class GenomeFeaturesToFasta(object):
                 out_file.write(header_line+"\n")
                 out_file.write(textwrap.fill(feat.get(seq_key))+"\n")
 
+        if missing_seq:
+            logging.warning(
+                f"{missing_seq} items were missing a {seq_key} attribute and were skipped")
         return file_path
 
     @staticmethod
