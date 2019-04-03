@@ -119,7 +119,7 @@ class GenomeToGFF:
 
         for cds in genome_data.get('cdss', []):
             cds['type'] = 'CDS'
-            if cds.get('parent_gene'):
+            if cds.get('parent_gene') or cds.get('parent_mrna'):
                 self.child_dict[cds['id']] = cds
             else:
                 features_by_contig[cds['location'][0][0]].append(cds)

@@ -54,6 +54,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'workspace_name': cls.wsName,
                 'genome_name': "arab",
                 'source': 'Ensembl',
+                'generate_ids_if_needed': 1,
             })[0]['genome_ref']
 
         # preload with reference data

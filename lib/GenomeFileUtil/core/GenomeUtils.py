@@ -14,7 +14,7 @@ warnings = {
                 "Ensure the correct file source is selected, correct the source file "
                 "or select the 'generate_missing_genes' option.",
     "spoofed_gene": "This gene was not in the source GenBank or GFF file. It was "
-                    "added to be the parent of the CDS {}.",
+                    "added to be the parent of a CDS.",
     "spoofed_genome": "SUSPECT: This genome has {} genes that needed to be "
                       "spoofed for existing parentless CDS.",
     "not_trans_spliced": "The feature coordinates order are suspect and the "

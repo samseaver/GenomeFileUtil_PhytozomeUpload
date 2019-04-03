@@ -215,13 +215,14 @@ class FastaGFFToGenome:
             file = params[key]
             if not isinstance(file, dict):
                 raise ValueError(f'Required "{key}" field must be a map/dict')
-            sources = ('path', 'shock_id', 'ftp_url')
+            sources = ('path', 'shock_id')
             n_valid_fields = sum(1 for f in sources if file.get(f))
+            print(f"inputs: {n_valid_fields}")
             if n_valid_fields < 1:
-                raise ValueError(f'required "file" field must include one source: '
+                raise ValueError(f'Required "{key}" field must include one source: '
                                  f'{", ".join(sources)}')
             if n_valid_fields > 1:
-                raise ValueError(f'required "file" field has too many sources specified: '
+                raise ValueError(f'Required "{key}" field has too many sources specified: '
                                  f'{", ".join(file.keys())}')
         if params.get('genetic_code'):
             if not (isinstance(params['genetic_code'], int) and 0 < params['genetic_code'] < 32):
@@ -253,13 +254,13 @@ class FastaGFFToGenome:
         for key in ('fasta_file', 'gff_file'):
             file = params[key]
             file_path = None
-            if 'path' in file and file['path'] is not None:
+            if file.get('path') is not None:
                 local_file_path = file['path']
                 file_path = os.path.join(input_directory, os.path.basename(local_file_path))
                 logging.info(f'Moving file from {local_file_path} to {file_path}')
                 shutil.copy2(local_file_path, file_path)
 
-            if 'shock_id' in file and file['shock_id'] is not None:
+            elif file.get('shock_id') is not None:
                 # handle shock file
                 logging.info(f'Downloading file from SHOCK node: '
                              f'{self.cfg.sharedFolder}-{file["shock_id"]}')
@@ -840,9 +841,8 @@ class FastaGFFToGenome:
         genome['num_contigs'] = len(assembly['contigs'])
         genome['ontologies_present'] = dict(self.ontologies_present)
         genome['ontology_events'] = self.ontology_events
-        genome['taxonomy'], genome['taxon_ref'], genome['domain'], \
-            genome["genetic_code"] = self.gi.retrieve_taxon(self.taxon_wsname,
-                                                            genome['scientific_name'])
+        genome.update(self.gi.retrieve_taxon(self.taxon_wsname,
+                                             genome['scientific_name'])._asdict())
         genome['source'], genome['genome_tiers'] = self.gi.determine_tier(
             source)
         genome['source_id'] = source_id
