@@ -8,6 +8,7 @@ import sys
 import time
 import uuid
 from collections import Counter, defaultdict, OrderedDict
+import logging
 
 import Bio.SeqIO
 import Bio.SeqUtils
@@ -75,10 +76,6 @@ class GenbankToGenome:
             'metadata': {}
         }
 
-    def log(self, message):
-        self._messages.append(message)
-        print('{0:.2f}'.format(time.time()) + ': ' + str(message))
-
     @property
     def messages(self):
         return "\n".join(self._messages)
@@ -125,9 +122,8 @@ class GenbankToGenome:
             'data': genome,
             "meta": params['metadata'],
         })
-        ref = "{}/{}/{}".format(result['info'][6], result['info'][0],
-                                result['info'][4])
-        self.log("Genome saved to {}".format(ref))
+        ref = f"{result['info'][6]}/{result['info'][0]}/{result['info'][4]}"
+        logging.info(f"Genome saved to {ref}")
 
         # 5) clear the temp directory
         shutil.rmtree(input_directory)
@@ -154,28 +150,24 @@ class GenbankToGenome:
         file = params['file']
         if not isinstance(file, dict):
             raise ValueError('required "file" field must be a map/dict')
-        n_valid_fields = 0
-        if 'path' in file and file['path'] is not None:
-            n_valid_fields += 1
-        if 'shock_id' in file and file['shock_id'] is not None:
-            n_valid_fields += 1
-        if 'ftp_url' in file and file['ftp_url'] is not None:
-            n_valid_fields += 1
+        sources = ('path', 'shock_id', 'ftp_url')
+        n_valid_fields = sum(1 for f in sources if file.get(f))
         if n_valid_fields < 1:
-            raise ValueError('required "file" field must include one source: '
-                             'path | shock_id | ftp_url')
+            raise ValueError(f'required "file" field must include one source: '
+                             f'{", ".join(sources)}')
         if n_valid_fields > 1:
-            raise ValueError('required "file" field has too many sources '
-                             'specified: ' + str(list(file.keys())))
+            raise ValueError(f'required "file" field has too many sources specified: '
+                             f'{", ".join(file.keys())}')
         if params.get('genetic_code'):
             if not (isinstance(params['genetic_code'], int) and 0 < params['genetic_code'] < 32):
-                raise ValueError("Invalid genetic code specified: {}".format(params))
+                raise ValueError(f"Invalid genetic code specified: {params}")
 
     def stage_input(self, params):
         """ Setup the input_directory by fetching the files and uncompressing if needed. """
 
         # construct the input directory where we stage files
-        input_directory =  os.path.join(self.cfg.sharedFolder, 'genome-upload-staging-'+str(uuid.uuid4()))
+        input_directory = os.path.join(self.cfg.sharedFolder,
+                                       f'genome-upload-staging-{uuid.uuid4()}')
         os.makedirs(input_directory)
 
         # at this point, the 'file' input is validated, so we don't have to catch any special cases
@@ -195,8 +187,8 @@ class GenbankToGenome:
 
         if 'shock_id' in file and file['shock_id'] is not None:
             # handle shock file
-            self.log('Downloading file from SHOCK node: {} - {}'.format(
-                self.cfg.shockURL, file['shock_id']))
+            logging.info(
+                f'Downloading file from SHOCK node: {self.cfg.shockURL} - {file["shock_id"]}')
             sys.stdout.flush()
             file_name = self.dfu.shock_to_file({
                                     'file_path': input_directory,
@@ -205,7 +197,7 @@ class GenbankToGenome:
             genbank_file_path = os.path.join(input_directory, file_name)
 
         if 'ftp_url' in file and file['ftp_url'] is not None:
-            self.log('Downloading file from: ' + str(file['ftp_url']))
+            logging.info('Downloading file from: ' + str(file['ftp_url']))
             local_file_path = self.dfu.download_web_file({
                 'file_url': file['ftp_url'],
                 'download_type': 'FTP'
@@ -216,7 +208,7 @@ class GenbankToGenome:
 
         # extract the file if it is compressed
         if genbank_file_path is not None:
-            self.log("staged input file =" + genbank_file_path)
+            logging.info("staged input file =" + genbank_file_path)
             self.dfu.unpack_file({'file_path': genbank_file_path})
 
         else:
@@ -225,7 +217,7 @@ class GenbankToGenome:
         return input_directory
 
     def parse_genbank(self, file_path, params):
-        self.log("Saving original file to shock")
+        logging.info("Saving original file to shock")
         shock_res = self.dfu.file_to_shock({
             'file_path': file_path,
             'make_handle': 1,
@@ -259,7 +251,7 @@ class GenbankToGenome:
         contigs = Bio.SeqIO.parse(file_path, "genbank")
         for record in contigs:
             r_annot = record.annotations
-            self.log("parsing contig: " + record.id)
+            logging.info("parsing contig: " + record.id)
             try:
                 dates.append(time.strptime(r_annot.get('date'), "%d-%b-%Y"))
             except (TypeError, ValueError):
@@ -271,9 +263,8 @@ class GenbankToGenome:
             if 'scientific_name' not in genome:
                 genome['scientific_name'] = organism
             elif genome['scientific_name'] != organism:
-                warn = "Multiple organism in provided files: {}, {}".format(
-                    genome['scientific_name'], organism)
-                genome['warnings'] = genome.get('warnings', []) + [warn]
+                self.genome_warnings.append(f"Multiple organism in provided files: "
+                                            f"{genome['scientific_name']}, {organism}")
 
             # only do the following once(on the first contig)
             if "source_id" not in genome:
@@ -332,15 +323,14 @@ class GenbankToGenome:
             genome['warnings'] = self.genome_warnings
         if self.genome_suspect:
             genome['suspect'] = 1
-        self.log("Feature Counts: {}".format(genome['feature_counts']))
+        logging.info(f"Feature Counts: {genome['feature_counts']}")
         return genome
 
     def _save_assembly(self, genbank_file, params):
         """Convert genbank file to fasta and sve as assembly"""
         contigs = Bio.SeqIO.parse(genbank_file, "genbank")
-        assembly_id = "{}_assembly".format(params['genome_name'])
-        fasta_file = "{}/{}_assembly.fasta".format(
-            self.cfg.sharedFolder, params['genome_name'], self.time_string)
+        assembly_id = f"{params['genome_name']}_assembly"
+        fasta_file = f"{self.cfg.sharedFolder}/{params['genome_name']}_assembly.fasta"
 
         out_contigs = []
         extra_info = defaultdict(dict)
@@ -356,15 +346,13 @@ class GenbankToGenome:
         assembly_ref = params.get("use_existing_assembly")
         if assembly_ref:
             if not re.match("\d+\/\d+\/\d+", assembly_ref):
-                raise ValueError("Assembly ref: {} is not a valid format. Must"
-                                 " be in numerical <ws>/<object>/<version>"
-                                 " format.".format(assembly_ref))
+                raise ValueError(f"Assembly ref: {assembly_ref} is not a valid format. Must"
+                                 f" be in numerical <ws>/<object>/<version> format.")
             ret = self.dfu.get_objects(
                 {'object_refs': [assembly_ref]}
             )['data'][0]
             if "KBaseGenomeAnnotations.Assembly" not in ret['info'][2]:
-                raise ValueError("{} is not a reference to an assembly"
-                                 .format(assembly_ref))
+                raise ValueError(f"{assembly_ref} is not a reference to an assembly")
             unmatched_ids = list()
             unmatched_ids_md5s = list()
             for current_contig in self.contig_seq.keys():
@@ -380,9 +368,9 @@ class GenbankToGenome:
                 raise ValueError(warnings['assembly_ref_extra_contigs'].format(", ".join(unmatched_ids)))
             if len(unmatched_ids_md5s) > 0:
                 raise ValueError(warnings["assembly_ref_diff_seq"].format(", ".join(unmatched_ids_md5s)))
-            self.log("Using supplied assembly: {}".format(assembly_ref))
+            logging.info(f"Using supplied assembly: {assembly_ref}")
             return assembly_ref
-        self.log("Saving sequence as Assembly object")
+        logging.info("Saving sequence as Assembly object")
         Bio.SeqIO.write(out_contigs, fasta_file, "fasta")
         assembly_ref = self.aUtil.save_assembly_from_fasta(
             {'file': {'path': fasta_file},
@@ -390,24 +378,24 @@ class GenbankToGenome:
              'assembly_name': assembly_id,
              'type': params.get('genome_type', 'isolate'),
              'contig_info': extra_info})
-        self.log("Assembly saved to {}".format(assembly_ref))
+        logging.info(f"Assembly saved to {assembly_ref}")
         return assembly_ref
 
     def _find_input_files(self, input_directory):
-        self.log("Scanning for Genbank Format files.")
+        logging.info("Scanning for Genbank Format files.")
         valid_extensions = [".gbff", ".gbk", ".gb", ".genbank", ".dat", ".gbf"]
 
         files = os.listdir(os.path.abspath(input_directory))
-        self.log("Genbank Files : " + ", ".join(files))
+        logging.info("Genbank Files : " + ", ".join(files))
         genbank_files = [x for x in files if
                          os.path.splitext(x)[-1].lower() in valid_extensions]
 
         if len(genbank_files) == 0:
             raise Exception(
-                "The input directory does not have any files with one of the "
-                "following extensions %s." % (",".join(valid_extensions)))
+                f"The input directory does not have any files with one of the "
+                f"following extensions {','.join(valid_extensions)}.")
 
-        self.log("Found {} genbank files".format(len(genbank_files)))
+        logging.info(f"Found {len(genbank_files)} genbank files")
 
         input_files = []
         for genbank_file in genbank_files:
@@ -463,10 +451,9 @@ class GenbankToGenome:
                     int(in_pub.pubmed_id),
                     "PubMed",
                     in_pub.title,
-                    "http://www.ncbi.nlm.nih.gov/pubmed/{}".format(
-                        in_pub.pubmed_id)]
+                    f"http://www.ncbi.nlm.nih.gov/pubmed/{in_pub.pubmed_id}"]
             pub_list.append(tuple(out_pub))
-        self.log("Parsed {} publication records".format(len(pub_list)))
+        logging.info(f"Parsed {len(pub_list)} publication records")
         return set(pub_list)
 
     def _parse_features(self, record, source):
@@ -484,14 +471,13 @@ class GenbankToGenome:
                 if feat.type == 'gene':
                     if not self.generate_ids:
                         raise ValueError("Unable to find a valid id for genes "
-                                         "among these tags: {}. Correct the "
-                                         "file or rerun with generate_ids"
-                                         .format(", ".join(tags)))
+                                         "among these tags: {", ".join(tags)}. Correct the "
+                                         "file or rerun with generate_ids")
                     self.orphan_types['gene'] += 1
-                    _id = "gene_{}".format(self.orphan_types['gene'])
+                    _id = f"gene_{self.orphan_types['gene']}"
                 if 'rna' in feat.type.lower() or feat.type in {'CDS', 'sig_peptide',
                                                                'five_prime_UTR', 'three_prime_UTR'}:
-                    _id = "gene_{}".format(self.orphan_types['gene'])
+                    _id = f"gene_{self.orphan_types['gene']}"
 
             return _id
 
@@ -545,6 +531,7 @@ class GenbankToGenome:
                 _id = _get_id(in_feature, ['gene', 'locus_tag'])
             else:
                 _id = _get_id(in_feature)
+
             # The following is common to all the feature types
             out_feat = {
                 "id": "_".join([_id, in_feature.type]),
@@ -650,7 +637,7 @@ class GenbankToGenome:
         """Creates the ontology_event if necessary
         Returns the index of the ontology event back."""
         if ontology_type not in self.ont_mappings:
-            raise ValueError("{} is not a supported ontology".format(ontology_type))
+            raise ValueError(f"{ontology_type} is not a supported ontology")
 
         if "event_index" not in self.ont_mappings[ontology_type]:
             self.ont_mappings[ontology_type]['event_index'] = len(self.ontology_events)
@@ -748,7 +735,7 @@ class GenbankToGenome:
             'cdss': [],
         })
         if _id in self.genes:
-            raise ValueError("Duplicate gene ID: {}".format(_id))
+            raise ValueError(f"Duplicate gene ID: {_id}")
         self.genes[_id] = out_feat
 
     def process_noncoding(self, gene_id, feat_type, out_feat):
@@ -782,7 +769,7 @@ class GenbankToGenome:
             out_feat['parent_gene'] = gene_id
         else:
             self.orphan_types['mrna'] += 1
-            out_feat['id'] = "mRNA_{}".format(self.orphan_types['mrna'])
+            out_feat['id'] = f"mRNA_{self.orphan_types['mrna']}"
             out_feat['warnings'] = out_feat.get('warnings', []) + [
                 'Unable to find parent gene for ' + str(out_feat['id'])]
 
@@ -790,9 +777,10 @@ class GenbankToGenome:
 
     def process_cds(self, gene_id, feat_seq, in_feature, out_feat):
         # Associate CDS with parents
+        cds_warnings = []
         if gene_id not in self.genes:
             if not self.generate_parents:
-                self.log("Expected gene id: {}".format(gene_id))
+                logging.info("Expected gene id: {}".format(gene_id))
                 raise ValueError(warnings['no_spoof'])
             new_feat = copy.copy(out_feat)
             new_feat['id'] = gene_id
@@ -808,16 +796,14 @@ class GenbankToGenome:
             out_feat['parent_gene'] = gene_id
         else:
             self.orphan_types['cds'] += 1
-            out_feat['id'] = "CDS_{}".format(self.orphan_types['cds'])
-            out_feat['warnings'] = out_feat.get('warnings', []) + [
-                'Unable to find parent gene for ' + str(out_feat['id'])]
+            out_feat['id'] = f"CDS_{self.orphan_types['cds']}"
+            cds_warnings.append(f"Unable to find parent gene for {out_feat['id']}")
 
         # there is a 1 to 1 relationship of mRNA to CDS so XXX_mRNA_1 will match XXX_CDS_1
         mrna_id = out_feat["id"].replace('CDS', 'mRNA')
         if mrna_id in self.mrnas:
             if not is_parent(self.mrnas[mrna_id], out_feat):
-                out_feat['warnings'] = out_feat.get('warnings', []) + [
-                    warnings['cds_mrna_cds'].format(mrna_id)]
+                cds_warnings.append(warnings['cds_mrna_cds'].format(mrna_id))
                 self.mrnas[mrna_id]['warnings'] = self.mrnas[mrna_id].get(
                     'warnings', []) + [warnings['cds_mrna_mrna']]
                 self.defects['bad_parent_loc'] += 1
@@ -830,9 +816,8 @@ class GenbankToGenome:
 
         # allow a little slack to account for frameshift and stop codon
         if prot_seq and abs(len(prot_seq) * 3 - len(feat_seq)) > 4:
-            out_feat['warnings'] = out_feat.get('warnings', []) + [
-                warnings["inconsistent_CDS_length"].format(len(feat_seq),
-                                                           len(prot_seq))]
+            cds_warnings.append(warnings["inconsistent_CDS_length"].format(len(feat_seq),
+                                                                           len(prot_seq)))
             self.genome_warnings.append(
                 warnings['genome_inc_CDS_length'].format(
                     out_feat['id'], len(feat_seq), len(prot_seq)))
@@ -841,23 +826,20 @@ class GenbankToGenome:
         try:
             if prot_seq and prot_seq != Seq.translate(
                     feat_seq, self.code_table, cds=True).strip("*"):
-                out_feat['warnings'] = out_feat.get('warnings', []) + [
-                    warnings["inconsistent_translation"]]
+                cds_warnings.append(warnings["inconsistent_translation"])
                 self.defects['cds_seq_not_matching'] += 1
 
         except TranslationError as e:
-            out_feat['warnings'] = out_feat.get('warnings', []) + [
-                "Unable to verify protein sequence:" + str(e)]
+            cds_warnings.append("Unable to verify protein sequence:" + str(e))
 
         if not prot_seq:
             try:
                 prot_seq = Seq.translate(
                         feat_seq, self.code_table, cds=True).strip("*")
-                out_feat['warnings'] = out_feat.get('warnings', []) + [
-                        warnings["no_translation_supplied"]]
+                cds_warnings.append(warnings["no_translation_supplied"])
+
             except TranslationError as e:
-                out_feat['warnings'] = out_feat.get('warnings', []) + [
-                    warnings["no_translation_supplied"] + str(e)]
+                cds_warnings.append(warnings["no_translation_supplied"] + str(e))
 
         out_feat.update({
             "protein_translation": prot_seq,
@@ -867,5 +849,8 @@ class GenbankToGenome:
 
         if out_feat.get('parent_gene'):
             propagate_cds_props_to_gene(out_feat, self.genes[gene_id])
+
+        if cds_warnings:
+            out_feat['warnings'] = cds_warnings
 
         self.cdss[out_feat['id']] = out_feat

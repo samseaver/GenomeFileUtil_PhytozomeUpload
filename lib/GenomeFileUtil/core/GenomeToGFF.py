@@ -183,27 +183,26 @@ class GenomeToGFF:
                 out_feature['attribute'] = self.gen_gff_attr(in_feature)
         except Exception as e:
             traceback.print_exc()
-            raise Exception('Unable to parse {}:{}'.format(in_feature, e))
+            raise Exception(f'Unable to parse {in_feature}:{e}')
         return out_feature
 
     @staticmethod
     def gen_gtf_attr(feature):
         """Makes the attribute line for a feature in gtf style"""
         if feature.get('type') == 'gene':
-            return 'gene_id "{}"; transcript_id ""'.format(feature['id'])
+            return f'gene_id "{feature["id"]}"; transcript_id ""'
 
         if "parent" in feature:
             feature['parent_gene'] = feature['parent']
 
-        return 'gene_id "{}"; transcript_id "{}"'.format(
-            feature.get('parent_gene', feature['id']),
-            feature.get('parent_mrna', feature['id']))
+        return (f'gene_id "{feature.get("parent_gene", feature["id"])}"; '
+                f'transcript_id "{feature.get("parent_mrna", feature["id"])}"')
 
     @staticmethod
     def gen_gff_attr(feature):
         """Makes the attribute line for a feature in gff style"""
         def _one_attr(k, val):
-            return '{}={}'.format(k, urllib.parse.quote(val, " /:"))
+            return f'{k}={urllib.parse.quote(val, " /:")}'
 
         # don't add an attribute that could be 0 without refactor
         for key in ('parent_gene', 'parent_mrna'):

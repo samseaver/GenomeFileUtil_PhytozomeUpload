@@ -37,10 +37,9 @@ class UtilTest(unittest.TestCase):
         suffix = int(time.time() * 1000)
         cls.wsName = "test_GenomeFileUtil_" + str(suffix)
         ret = cls.wsClient.create_workspace({'workspace': cls.wsName})
-        cls.genome_ref = 'KBaseExampleData/Escherichia_coli_K-12_MG1655'
-        #cls.genome_ref = cls.load_genome_direct('data/e_coli/new_ecoli_genome.json',
-        #                                        'data/e_coli/e_coli_assembly.fasta',
-        #                                        'TestGenome')
+        #cls.genome_ref = 'KBaseExampleData/Escherichia_coli_K-12_MG1655'
+        cls.genome_ref, cls.assembly_ref = cls.load_genome_direct(
+            'data/e_coli/new_ecoli_genome.json', 'data/e_coli/e_coli_assembly.fasta', 'TestGenome')
 
     @classmethod
     def load_genome_direct(cls, filename, assembly_filename, obj_name):
@@ -63,10 +62,10 @@ class UtilTest(unittest.TestCase):
                 'type': 'KBaseGenomes.Genome',
             }],
         }
-        info = cls.wsClient.save_objects(save_info)[0]['info']
+        info = cls.wsClient.save_objects(save_info)[0]
         ref = f"{info[6]}/{info[0]}/{info[4]}"
         print('created test genome: ' + ref + ' from file ' + filename)
-        return ref
+        return ref, assembly_ref
 
     @classmethod
     def tearDownClass(cls):
@@ -82,7 +81,7 @@ class UtilTest(unittest.TestCase):
                                                          })[0]
         self.assertIn('file_path', ret)
         with open(ret['file_path']) as infile:
-            header1 = '>NP_414542.1\n'
+            header1 = '>b0001_CDS_1\n'
             self.assertEqual(infile.readline(), header1)
             self.assertEqual(infile.readline(), 'MKRISTTITTTITITTGNGAG\n')
             infile.readline()
@@ -91,18 +90,17 @@ class UtilTest(unittest.TestCase):
     def test_genome_features_to_fasta(self):
         ret = self.serviceImpl.genome_features_to_fasta(self.ctx,
                                                         {'genome_ref': self.genome_ref,
-                                                         'filter_ids': ['b0001', 'NP_414543.1'],
+                                                         'filter_ids': ['b0001', 'b0001_CDS_1'],
                                                          'feature_lists': ['features', 'cdss']
                                                          })[0]
         self.assertIn('file_path', ret)
         with open(ret['file_path']) as infile:
             header1 = infile.readline()
-            self.assertIn('>b0001 functions=thr operon leader peptide', header1)
-            self.assertIn('GI:16127995', header1)
+            self.assertIn('>b0001 functions=leader,Amino acid biosynthesis:', header1)
+            self.assertIn('GeneID:944742', header1)
             self.assertIn('thrL', header1)
             self.assertEqual(infile.readline(), 'ATGAAACGCATTAGCACCACCATTACCACCACCATCACCATTACCACAGGTAACGGTGCGGGCTGA\n')
-            self.assertIn('>NP_414543.1', infile.readline(),)
-            self.assertEqual(len(infile.readline()), 71)
+            self.assertIn('>b0001_CDS_1', infile.readline())
 
     def test_bad_inputs(self):
         with self.assertRaisesRegexp(ValueError, 'required field "genome_ref"'):
@@ -117,5 +115,5 @@ class UtilTest(unittest.TestCase):
                                                              'feature_lists': ['foo']})
         with self.assertRaisesRegexp(ValueError, 'Object is not a Genome'):
             ret = self.serviceImpl.genome_features_to_fasta(self.ctx, {
-                'genome_ref': 'KBaseExampleData/Escherichia_coli_K-12_MG1655_assembly'})
+                'genome_ref': self.assembly_ref})
 

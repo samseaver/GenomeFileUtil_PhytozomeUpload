@@ -121,29 +121,28 @@ def is_parent(feat1, feat2):
     j = 0
     for i, l2 in enumerate(feat2['location']):
         if j >= len(feat1['location']):
-            logging.info("No part in {} contains {}".format(feat1['location'], l2))
+            logging.info(f"No part in {feat1['location']} contains {l2}")
             return False
         if feat1.get('type') == 'gene' or i == 0:
             while not _contains(feat1['location'][j], l2):
                 j += 1
                 if j == len(feat1['location']):
-                    logging.info("No part in {} contains {}".format(feat1['location'], l2))
+                    logging.info(f"No part in {feat1['location']} contains {l2}")
                     return False
             if feat1.get('type') == 'gene' or len(feat2['location']) == 1:
                 continue
 
         l1 = feat1['location'][j]
         if i == 0 and get_bio_end(l2) != get_bio_end(l1):
-            logging.info("For the first exon of the CDS the end sites must match: "
-                         "L1{} vs L2{}".format(l1, l2))
+            logging.info(
+                f"For the first exon of the CDS the end sites must match: L1{l1} vs L2{l2}")
             return False
         elif i == len(feat2['location']) - 1 and l2[1] != l1[1]:
-            logging.info("For the last exon of the CDS the start sites must match: "
-                         "L1{} vs L2{}".format(l1, l2))
+            logging.info(
+                f"For the last exon of the CDS the start sites must match: L1{l1} vs L2{l2}")
             return False
         elif 0 < i < (len(feat2['location']) - 1) and l1 != l2:
-            logging.info("For an interior exon all coordinates must match: "
-                         "L1{} vs L2{}".format(l1, l2))
+            logging.info(f"For an interior exon all coordinates must match: L1{l1} vs L2{l2}")
             return False
         j += 1
     return True

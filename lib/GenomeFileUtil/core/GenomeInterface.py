@@ -1,9 +1,9 @@
 import hashlib
 import json
+import logging
 import os
 import re
 import sys
-import time
 from collections import defaultdict
 
 import requests
@@ -16,11 +16,6 @@ from installed_clients.KBaseSearchEngineClient import KBaseSearchEngine
 from installed_clients.WSLargeDataIOClient import WsLargeDataIO
 
 MAX_GENOME_SIZE = 2**30
-
-
-def log(message, prefix_newline=False):
-    time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(time.time()))
-    print(('\n' if prefix_newline else '') + time_str + ': ' + message)
 
 
 class GenomeInterface:
@@ -46,7 +41,7 @@ class GenomeInterface:
                 validates params passed to save_one_genome method
         """
 
-        log('start validating save_one_genome params')
+        logging.info('start validating save_one_genome params')
 
         # check for required parameters
         for p in ['workspace', 'name', 'data']:
@@ -58,14 +53,14 @@ class GenomeInterface:
         """
         _check_shock_response: check shock node response (Copied from DataFileUtil)
         """
-        log('start checking shock response')
+        logging.info('start checking shock response')
 
         if not response.ok:
             try:
                 err = json.loads(response.content)['error'][0]
             except:
                 # this means shock is down or not responding.
-                self.log("Couldn't parse response error content from Shock: " +
+                logging.error("Couldn't parse response error content from Shock: " +
                          response.content)
                 response.raise_for_status()
             raise ValueError(errtxt + str(err))
@@ -75,7 +70,7 @@ class GenomeInterface:
         _own_handle: check that handle_property point to shock nodes owned by calling user
         """
 
-        log('start checking handle {} ownership'.format(handle_property))
+        logging.info('start checking handle {} ownership'.format(handle_property))
 
         if handle_property in genome_data:
             handle_id = genome_data[handle_property]
@@ -94,7 +89,7 @@ class GenomeInterface:
             user_id = self.auth_client.get_user(self.token)
 
             if owner != user_id:
-                log('start copying node to owner: {}'.format(user_id))
+                logging.info('start copying node to owner: {}'.format(user_id))
                 dfu_shock = self.dfu.copy_shock_node({'shock_id': shock_id,
                                                       'make_handle': True})
                 handle_id = dfu_shock['handle']['hid']
@@ -104,7 +99,7 @@ class GenomeInterface:
         """
         _check_dna_sequence_in_features: check dna sequence in each feature
         """
-        log('start checking dna sequence in each feature')
+        logging.info('start checking dna sequence in each feature')
 
         if 'features' in genome:
             features_to_work = {}
@@ -131,7 +126,7 @@ class GenomeInterface:
 
     def get_one_genome(self, params):
         """Fetch a genome using WSLargeDataIO and return it as a python dict"""
-        log('fetching genome object')
+        logging.info('fetching genome object')
 
         res = self.ws_large_data.get_objects(params)['data'][0]
         data = json.load(open(res['data_json_file']))
@@ -139,7 +134,7 @@ class GenomeInterface:
         #return self.dfu.get_objects(params)['data'][0]
 
     def save_one_genome(self, params):
-        log('start saving genome object')
+        logging.info('start saving genome object')
 
         self._validate_save_one_genome_params(params)
 
@@ -426,19 +421,9 @@ class GenomeInterface:
         Run a series of checks on the genome object and return any warnings
         """
 
-        def _get_size(obj):
-            return sys.getsizeof(json.dumps(obj))
-
-        def sizeof_fmt(num):
-            for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
-                if abs(num) < 1024.0:
-                    return "%3.1f %sB" % (num, unit)
-                num /= 1024.0
-            return "%.1f %sB" % (num, 'Yi')
-
         allowed_tiers = {'Representative', 'Reference', 'ExternalDB', 'User'}
 
-        log('Validating genome object contents')
+        logging.info('Validating genome object contents')
         warnings = g.get('warnings', [])
 
         # this will fire for some annotation methods like PROKKA
@@ -464,37 +449,56 @@ class GenomeInterface:
         if g['taxon_ref'] == "ReferenceTaxons/unknown_taxon":
             warnings.append('Unable to determine organism taxonomy')
 
-        #MAX_GENOME_SIZE = 1 #300000000 # UNCOMMENT TO TEST FAILURE MODE. Set to size needed
-        feature_lists = ('mrnas', 'features', 'non_coding_features','cdss')
+        GenomeInterface.handle_large_genomes(g)
+        return warnings
+
+    @staticmethod
+    def handle_large_genomes(g):
+        """Determines the size of various feature arrays and starts removing the dna_sequence if
+        the genome is getting too big to store in the workspace"""
+        def _get_size(obj):
+            return sys.getsizeof(json.dumps(obj))
+
+        def sizeof_fmt(num):
+            for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+                if abs(num) < 1024.0:
+                    return "%3.1f %sB" % (num, unit)
+                num /= 1024.0
+            return "%.1f %sB" % (num, 'Yi')
+
+        feature_lists = ('mrnas', 'features', 'non_coding_features', 'cdss')
         master_key_sizes = dict()
-        # Change want full breakdown to True if want to see break down of sizes. 
-        # By making this a changebale flag it will run faster for standard uploads.
+        # Change want full breakdown to True if want to see break down of sizes.
+        # By making this a changeable flag it will run faster for standard uploads.
         want_full_breakdown = False
         for x in feature_lists:
             if x in g:
-                need_to_remove_dna_sequence = _get_size(g) > MAX_GENOME_SIZE                
+                need_to_remove_dna_sequence = _get_size(g) > MAX_GENOME_SIZE
                 if need_to_remove_dna_sequence or want_full_breakdown:
                     feature_type_dict_keys = dict()
                     for feature in g[x]:
                         for feature_key in list(feature.keys()):
                             if feature_key == "dna_sequence" and need_to_remove_dna_sequence:
-                                del(feature["dna_sequence"])
+                                del (feature["dna_sequence"])
                             else:
                                 if feature_key not in feature_type_dict_keys:
                                     feature_type_dict_keys[feature_key] = 0
-                                feature_type_dict_keys[feature_key] += sys.getsizeof(feature[feature_key])
+                                feature_type_dict_keys[feature_key] += sys.getsizeof(
+                                    feature[feature_key])
                     for feature_key in feature_type_dict_keys:
-                        feature_type_dict_keys[feature_key] = sizeof_fmt(feature_type_dict_keys[feature_key])
-                    master_key_sizes[x] = feature_type_dict_keys                
-                print("{}: {}".format(x, sizeof_fmt(_get_size(g[x]))))
+                        feature_type_dict_keys[feature_key] = sizeof_fmt(
+                            feature_type_dict_keys[feature_key])
+                    master_key_sizes[x] = feature_type_dict_keys
+                print(f"{x}: {sizeof_fmt(_get_size(g[x]))}")
         total_size = _get_size(g)
-        print("Total size {} ".format(sizeof_fmt(total_size)))
+        print(f"Total size {sizeof_fmt(total_size)} ")
         if want_full_breakdown:
-            print("Here is the breakdown of the sizes of feature lists elements : {}".format(str(master_key_sizes)))         
-        if total_size > MAX_GENOME_SIZE:            
-            print("Here is the breakdown of the sizes of feature lists elements : {}".format(str(master_key_sizes)))         
-            raise ValueError("This genome size of {} exceeds the maximum permitted size of {}.\nHere "
-                             "is the breakdown for feature lists and their respective sizes:\n{}"
-                             .format(sizeof_fmt(total_size),sizeof_fmt(MAX_GENOME_SIZE),
-                                     str(master_key_sizes)))
-        return warnings
+            print(f"Here is the breakdown of the sizes of feature lists elements : "
+                  f"{str(master_key_sizes)}")
+        if total_size > MAX_GENOME_SIZE:
+            print(f"Here is the breakdown of the sizes of feature lists elements : "
+                  f"{str(master_key_sizes)}")
+            raise ValueError(f"This genome size of {sizeof_fmt(total_size)} exceeds the maximum "
+                             f"permitted size of {sizeof_fmt(MAX_GENOME_SIZE)}.\n"
+                             f"Here is the breakdown for feature lists and their respective "
+                             f"sizes:\n{master_key_sizes}")
