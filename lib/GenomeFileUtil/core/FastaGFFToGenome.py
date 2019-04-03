@@ -215,13 +215,14 @@ class FastaGFFToGenome:
             file = params[key]
             if not isinstance(file, dict):
                 raise ValueError(f'Required "{key}" field must be a map/dict')
-            sources = ('path', 'shock_id', 'ftp_url')
+            sources = ('path', 'shock_id')
             n_valid_fields = sum(1 for f in sources if file.get(f))
+            print(f"inputs: {n_valid_fields}")
             if n_valid_fields < 1:
-                raise ValueError(f'required "file" field must include one source: '
+                raise ValueError(f'Required "{key}" field must include one source: '
                                  f'{", ".join(sources)}')
             if n_valid_fields > 1:
-                raise ValueError(f'required "file" field has too many sources specified: '
+                raise ValueError(f'Required "{key}" field has too many sources specified: '
                                  f'{", ".join(file.keys())}')
         if params.get('genetic_code'):
             if not (isinstance(params['genetic_code'], int) and 0 < params['genetic_code'] < 32):
@@ -253,13 +254,13 @@ class FastaGFFToGenome:
         for key in ('fasta_file', 'gff_file'):
             file = params[key]
             file_path = None
-            if 'path' in file and file['path'] is not None:
+            if file.get('path') is not None:
                 local_file_path = file['path']
                 file_path = os.path.join(input_directory, os.path.basename(local_file_path))
                 logging.info(f'Moving file from {local_file_path} to {file_path}')
                 shutil.copy2(local_file_path, file_path)
 
-            if 'shock_id' in file and file['shock_id'] is not None:
+            elif file.get('shock_id') is not None:
                 # handle shock file
                 logging.info(f'Downloading file from SHOCK node: '
                              f'{self.cfg.sharedFolder}-{file["shock_id"]}')
@@ -290,71 +291,65 @@ class FastaGFFToGenome:
         feature_list = collections.defaultdict(list)
         is_patric = 0
 
-        gff_file_handle = open(input_gff_file)
-        current_line = gff_file_handle.readline()
-
-        while current_line != '':
-            current_line = current_line.strip()
-
+        for current_line in open(input_gff_file):
             if current_line.isspace() or current_line == "" or current_line.startswith("#"):
-                pass
-            else:
-                #Split line
+                continue
+
+            #Split line
+            try:
                 (contig_id, source_id, feature_type, start, end,
                  score, strand, phase, attributes) = current_line.split('\t')
+            except ValueError:
+                raise ValueError(f"unable to parse {current_line}")
 
-                #Checking to see if Phytozome
-                if "phytozome" in source_id.lower():
-                    self.is_phytozome = True
+            #Checking to see if Phytozome
+            if "phytozome" in source_id.lower():
+                self.is_phytozome = True
 
-                #Checking to see if Phytozome
-                if "PATRIC" in source_id:
-                    is_patric = True
+            #Checking to see if Phytozome
+            if "PATRIC" in source_id:
+                is_patric = True
 
-                #PATRIC prepends their contig ids with some gibberish
-                if is_patric and "|" in contig_id:
-                    contig_id = contig_id.split("|", 1)[1]
+            #PATRIC prepends their contig ids with some gibberish
+            if is_patric and "|" in contig_id:
+                contig_id = contig_id.split("|", 1)[1]
 
-                #Populating basic feature object
-                ftr = {'contig': contig_id, 'source': source_id,
-                       'type': feature_type, 'start': int(start),
-                       'end': int(end), 'score': score, 'strand': strand,
-                       'phase': phase, 'attributes': collections.defaultdict(list)}
+            #Populating basic feature object
+            ftr = {'contig': contig_id, 'source': source_id,
+                   'type': feature_type, 'start': int(start),
+                   'end': int(end), 'score': score, 'strand': strand,
+                   'phase': phase, 'attributes': collections.defaultdict(list)}
 
-                #Populating with attribute key-value pair
-                #This is where the feature id is from
-                for attribute in attributes.split(";"):
-                    attribute = attribute.strip()
+            #Populating with attribute key-value pair
+            #This is where the feature id is from
+            for attribute in attributes.split(";"):
+                attribute = attribute.strip()
 
-                    #Sometimes empty string
-                    if not attribute:
-                        continue
+                #Sometimes empty string
+                if not attribute:
+                    continue
 
-                    #Use of 1 to limit split as '=' character can also be made available later
-                    #Sometimes lack of "=", assume spaces instead
-                    if "=" in attribute:
-                        key, value = attribute.split("=", 1)
+                #Use of 1 to limit split as '=' character can also be made available later
+                #Sometimes lack of "=", assume spaces instead
+                if "=" in attribute:
+                    key, value = attribute.split("=", 1)
 
-                    elif " " in attribute:
-                        key, value = attribute.split(" ", 1)
+                elif " " in attribute:
+                    key, value = attribute.split(" ", 1)
 
-                    else:
-                        # Can not parse attribute
-                        continue
+                else:
+                    logging.debug(f'Unable to parse {attribute}')
+                    continue
 
-                    ftr['attributes'][make_snake_case(key)].append(parse.unquote(value.strip('"')))
+                ftr['attributes'][make_snake_case(key)].append(parse.unquote(value.strip('"')))
 
-                ftr['attributes']['raw'] = attributes
-                if "id" in ftr['attributes']:
-                    ftr['ID'] = ftr['attributes']['id'][0]
-                if "parent" in ftr['attributes']:
-                    ftr['Parent'] = ftr['attributes']['parent'][0]
+            ftr['attributes']['raw'] = attributes
+            if "id" in ftr['attributes']:
+                ftr['ID'] = ftr['attributes']['id'][0]
+            if "parent" in ftr['attributes']:
+                ftr['Parent'] = ftr['attributes']['parent'][0]
 
-                feature_list[contig_id].append(ftr)
-
-            current_line = gff_file_handle.readline()
-
-        gff_file_handle.close()
+            feature_list[contig_id].append(ftr)
 
         #Some GFF/GTF files don't use "ID" so we go through the possibilities        
         feature_list = self._add_missing_identifiers(feature_list)
@@ -840,9 +835,8 @@ class FastaGFFToGenome:
         genome['num_contigs'] = len(assembly['contigs'])
         genome['ontologies_present'] = dict(self.ontologies_present)
         genome['ontology_events'] = self.ontology_events
-        genome['taxonomy'], genome['taxon_ref'], genome['domain'], \
-            genome["genetic_code"] = self.gi.retrieve_taxon(self.taxon_wsname,
-                                                            genome['scientific_name'])
+        genome.update(self.gi.retrieve_taxon(self.taxon_wsname,
+                                             genome['scientific_name'])._asdict())
         genome['source'], genome['genome_tiers'] = self.gi.determine_tier(
             source)
         genome['source_id'] = source_id

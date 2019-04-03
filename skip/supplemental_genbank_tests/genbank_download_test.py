@@ -3,18 +3,14 @@ import os
 import shutil
 import time
 import unittest
+from configparser import ConfigParser
 from os import environ
 from pprint import pprint
 
-try:
-    from configparser import ConfigParser  # py2
-except:
-    from configparser import ConfigParser  # py3
-
-from installed_clients.AssemblyUtilClient import AssemblyUtil
-from GenomeAnnotationAPI.GenomeAnnotationAPIClient import GenomeAnnotationAPI
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
 from GenomeFileUtil.GenomeFileUtilServer import MethodContext
+from installed_clients.AssemblyUtilClient import AssemblyUtil
+from installed_clients.GenomeAnnotationAPIClient import GenomeAnnotationAPI
 from installed_clients.WorkspaceClient import Workspace as workspaceService
 
 

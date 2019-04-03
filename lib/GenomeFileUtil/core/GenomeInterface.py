@@ -4,7 +4,7 @@ import logging
 import os
 import re
 import sys
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 import requests
 
@@ -183,44 +183,20 @@ class GenomeInterface:
 
         return returnVal
 
-    def old_retrieve_taxon(self, taxon_wsname, scientific_name):
-        """
-        old_retrieve_taxon: use SOLR to retrieve taxonomy and taxon_reference
-
-        """
-        default = ('Unconfirmed Organism: ' + scientific_name,
-                   'ReferenceTaxons/unknown_taxon', 'Unknown', 11)
-        solr_url = 'http://kbase.us/internal/solr-ci/search/'
-        solr_core = 'taxonomy_ci'
-        query = '/select?q=scientific_name:"{}"&fl=scientific_name%2Cscientific_lineage%2Ctaxonomy_id%2Cdomain%2Cgenetic_code&rows=5&wt=json'
-        match = re.match("\S+\s?\S*", scientific_name)
-        if not match:
-            return default
-        res = requests.get(solr_url + solr_core + query.format(match.group(0)))
-        results = res.json()['response']['docs']
-        if not results:
-            return default
-        taxonomy = results[0]['scientific_lineage']
-        taxon_reference = '{}/{}_taxon'.format(
-            taxon_wsname, results[0]['taxonomy_id'])
-        domain = results[0]['domain']
-        genetic_code = results[0]['genetic_code']
-
-        return taxonomy, taxon_reference, domain, genetic_code
-
     def retrieve_taxon(self, taxon_wsname, scientific_name):
         """
         _retrieve_taxon: retrieve taxonomy and taxon_reference
 
         """
-        default = ('Unconfirmed Organism: ' + scientific_name,
-                   'ReferenceTaxons/unknown_taxon', 'Unknown', 11)
+        taxon_info = namedtuple('taxon_info', ['taxonomy', 'taxon_ref', 'domain', 'genetic_code'])
+        default = taxon_info('Unconfirmed Organism: ' + scientific_name,
+                             'ReferenceTaxons/unknown_taxon', 'Unknown', 11)
 
         def extract_values(search_obj):
-            return (search_obj['data']['scientific_lineage'],
-                    taxon_wsname+"/"+search_obj['object_name'],
-                    search_obj['data']['domain'],
-                    search_obj['data'].get('genetic_code', 11))
+            return taxon_info(search_obj['data']['scientific_lineage'],
+                              taxon_wsname+"/"+search_obj['object_name'],
+                              search_obj['data']['domain'],
+                              search_obj['data'].get('genetic_code', 11))
 
         search_params = {
             "object_types": ["taxon"],
@@ -242,8 +218,8 @@ class GenomeInterface:
         objects = self.kbse.search_objects(search_params)['objects']
         if len(objects):
             if len(objects) > 100000:
-                raise RuntimeError("Too many matching taxons returned for {}. "
-                                   "Potential issue with searchAPI.".format(scientific_name))
+                raise RuntimeError(f"Too many matching taxa returned for {scientific_name}. "
+                                   f"Potential issue with searchAPI.")
             return extract_values(objects[0])
         search_params['match_filter']['lookup_in_keys'] = {
             "aliases": {"value": scientific_name}
@@ -258,6 +234,7 @@ class GenomeInterface:
         """
         Given a user provided source parameter, assign a source and genome tier
         """
+        tier_info = namedtuple('tier_info', ['taxonomy', 'taxon_ref'])
         low_source = source.lower()
         if 'refseq' in low_source:
             if 'reference' in low_source:

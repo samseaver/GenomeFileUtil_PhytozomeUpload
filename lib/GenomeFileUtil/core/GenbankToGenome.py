@@ -101,20 +101,6 @@ class GenbankToGenome:
         genome = self.parse_genbank(consolidated_file, params)
         if params.get('genetic_code'):
             genome["genetic_code"] = params['genetic_code']
-        ###
-        # DEBUGGING CODE INSTRUCTIONS TO BE KEPT FOR DETERMINING ISSUE WITH A PARTICULAR FILE
-        # THAT FAILS TYPESPEC CHECKING - THIS ALLOW YOU TO LOOK AT THE JSON BEFORE SAVED:
-        # Turn this on :
-        #  1) uncomment the TWO LINES for json printing lines below the ###
-        #  2) move skip/utility_test/problem_genome_test.py into the test dir
-        #  3) change the file location in the test_problem_genome_for_json test
-        #  4) add your test file to the test/data dir
-        #  5) run kb-sdk test as normal
-        #  6) after test completes go and find the json file at test_local/workdir/tmp/ProblemGenome.json
-        ###
-        #with open(self.cfg.sharedFolder+'/ProblemGenome.json', 'w') as outfile:
-        #    json.dump(genome, outfile, indent=4)
-        #    json.dump(genome, outfile)
 
         result = self.gi.save_one_genome({
             'workspace': params['workspace_name'],
@@ -177,7 +163,7 @@ class GenbankToGenome:
         # is just sitting there, then use it.  Move the file to the staging input directory
         file = params['file']
         genbank_file_path = None
-        if 'path' in file and file['path'] is not None:
+        if file.get('path') is not None:
             # copy the local file to the input staging directory
             # (NOTE: could just move it, but then this method would have the side effect of moving your
             # file which another SDK module might have an open handle on)
@@ -269,9 +255,8 @@ class GenbankToGenome:
             # only do the following once(on the first contig)
             if "source_id" not in genome:
                 genome["source_id"] = record.id.split('.')[0]
-                genome['taxonomy'], genome['taxon_ref'], genome['domain'], \
-                genome['genetic_code'] = self.gi.retrieve_taxon(
-                    params['taxon_wsname'], genome['scientific_name'])
+                genome.update(self.gi.retrieve_taxon(params['taxon_wsname'],
+                                                     genome['scientific_name'])._asdict())
                 self.code_table = genome['genetic_code']
                 genome["molecule_type"] = r_annot.get('molecule_type', 'DNA')
                 genome['notes'] = r_annot.get('comment', "").replace('\\n', '\n')
@@ -456,31 +441,31 @@ class GenbankToGenome:
         logging.info(f"Parsed {len(pub_list)} publication records")
         return set(pub_list)
 
+    def _get_id(self, feat, tags=None):
+        """Assign a id to a feature based on the first tag that exists"""
+        _id = ""
+        if not tags:
+            tags = ['locus_tag', 'kbase_id']
+        for t in tags:
+            _id = feat.qualifiers.get(t, [""])[0]
+            if _id:
+                break
+
+        if not _id:
+            if feat.type == 'gene':
+                if not self.generate_ids:
+                    raise ValueError(f"Unable to find a valid id for gene "
+                                     f"among these tags: {', '.join(tags)}. Correct the "
+                                     f"file or rerun with generate_ids\n {feat}")
+                self.orphan_types['gene'] += 1
+                _id = f"gene_{self.orphan_types['gene']}"
+            if 'rna' in feat.type.lower() or feat.type in {'CDS', 'sig_peptide',
+                                                           'five_prime_UTR', 'three_prime_UTR'}:
+                _id = f"gene_{self.orphan_types['gene']}"
+
+        return _id
+
     def _parse_features(self, record, source):
-        def _get_id(feat, tags=None):
-            """Assign a id to a feature based on the first tag that exists"""
-            _id = ""
-            if not tags:
-                tags = ['locus_tag', 'kbase_id']
-            for t in tags:
-                _id = feat.qualifiers.get(t, [""])[0]
-                if _id:
-                    break
-
-            if not _id:
-                if feat.type == 'gene':
-                    if not self.generate_ids:
-                        raise ValueError("Unable to find a valid id for genes "
-                                         "among these tags: {", ".join(tags)}. Correct the "
-                                         "file or rerun with generate_ids")
-                    self.orphan_types['gene'] += 1
-                    _id = f"gene_{self.orphan_types['gene']}"
-                if 'rna' in feat.type.lower() or feat.type in {'CDS', 'sig_peptide',
-                                                               'five_prime_UTR', 'three_prime_UTR'}:
-                    _id = f"gene_{self.orphan_types['gene']}"
-
-            return _id
-
         def _location(feat):
             """Convert to KBase style location objects"""
             strand_trans = ("", "+", "-")
@@ -528,9 +513,9 @@ class GenbankToGenome:
                 continue
             feat_seq = self._get_seq(in_feature, record.id)
             if source == "Ensembl":
-                _id = _get_id(in_feature, ['gene', 'locus_tag'])
+                _id = self._get_id(in_feature, ['gene', 'locus_tag'])
             else:
-                _id = _get_id(in_feature)
+                _id = self._get_id(in_feature)
 
             # The following is common to all the feature types
             out_feat = {
@@ -712,6 +697,10 @@ class GenbankToGenome:
         return result
 
     def _find_parent_gene(self, potential_id, feature):
+        """Unfortunately, Genbank files don't have a parent ID and the features can be out of
+        order at times. To account for this, the this function works backwards from the end of
+        list of IDs and stops when if finds a parent with valid coordinates or it hits the maximum
+        number of tries"""
         if potential_id in self.genes:
             lookup_attempts = 0
             while lookup_attempts < MAX_PARENT_LOOKUPS:
@@ -777,20 +766,22 @@ class GenbankToGenome:
 
     def process_cds(self, gene_id, feat_seq, in_feature, out_feat):
         # Associate CDS with parents
-        cds_warnings = []
-        if gene_id not in self.genes:
-            if not self.generate_parents:
-                logging.info("Expected gene id: {}".format(gene_id))
-                raise ValueError(warnings['no_spoof'])
+        cds_warnings = out_feat.get('warnings', [])
+        validated_gene_id = self._find_parent_gene(gene_id, out_feat)
+        print(gene_id, validated_gene_id)
+        if validated_gene_id:
+            out_feat['id'] = "_".join((validated_gene_id, "CDS",
+                                       str(len(self.genes[validated_gene_id]['cdss']) + 1)))
+            self.genes[validated_gene_id]['cdss'].append(out_feat['id'])
+            out_feat['parent_gene'] = validated_gene_id
+        elif self.generate_parents and gene_id not in self.genes:
             new_feat = copy.copy(out_feat)
             new_feat['id'] = gene_id
             new_feat['warnings'] = [warnings['spoofed_gene']]
-            self.feature_counts['gene'] += 1
+            self.orphan_types['gene'] += 1
             self.defects['spoofed_genes'] += 1
-            self.process_gene(gene_id, new_feat)
+            self.process_gene(new_feat['id'], new_feat)
 
-        gene_id = self._find_parent_gene(gene_id, out_feat)
-        if gene_id:
             out_feat['id'] = "_".join((gene_id, "CDS", str(len(self.genes[gene_id]['cdss']) + 1)))
             self.genes[gene_id]['cdss'].append(out_feat['id'])
             out_feat['parent_gene'] = gene_id
@@ -848,7 +839,7 @@ class GenbankToGenome:
         })
 
         if out_feat.get('parent_gene'):
-            propagate_cds_props_to_gene(out_feat, self.genes[gene_id])
+            propagate_cds_props_to_gene(out_feat, self.genes[out_feat['parent_gene']])
 
         if cds_warnings:
             out_feat['warnings'] = cds_warnings
