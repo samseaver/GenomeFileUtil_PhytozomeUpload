@@ -183,7 +183,7 @@ class GenomeInterface:
 
         return returnVal
 
-    def retrieve_taxon(self, taxon_wsname, scientific_name):
+    def retrieve_taxon(self, taxon_wsname, scientific_name, tax_id=None):
         """
         _retrieve_taxon: retrieve taxonomy and taxon_reference
 
@@ -197,6 +197,16 @@ class GenomeInterface:
                               taxon_wsname+"/"+search_obj['object_name'],
                               search_obj['data']['domain'],
                               search_obj['data'].get('genetic_code', 11))
+
+        if tax_id:
+            ref = f'{taxon_wsname}/{tax_id}_taxon'
+            try:
+                tax_data = self.dfu.get_objects({'object_refs': [ref]})['data'][0]['data']
+            except:
+                raise ValueError(f'{tax_id} is not a valid KBase taxon ID. Please specify a '
+                                 f'different taxon or only a scientific name')
+            return taxon_info(tax_data['scientific_lineage'], ref,
+                              tax_data['domain'], tax_data['genetic_code'])
 
         search_params = {
             "object_types": ["taxon"],

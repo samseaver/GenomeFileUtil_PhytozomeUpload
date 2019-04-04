@@ -49,9 +49,9 @@ class GenomeFileUtil:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "0.8.10"
+    VERSION = "0.8.14"
     GIT_URL = "https://github.com/kbaseapps/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "674619122f6c1ac8ed84b29835031b287af6b199"
+    GIT_COMMIT_HASH = "f28c171c69f883cc34f6dc92944be04b6ce00cd2"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -73,28 +73,29 @@ class GenomeFileUtil:
            - becomes the name of the object workspace_name - the name of the
            workspace it gets saved to. source - Source of the file typically
            something like RefSeq or Ensembl taxon_ws_name - where the
-           reference taxons are : ReferenceTaxons taxon_reference - if
-           defined, will try to link the Genome to the specified taxonomy
-           object insteas of performing the lookup during upload release -
-           Release or version number of the data per example Ensembl has
-           numbered releases of all their data: Release 31
-           generate_ids_if_needed - If field used for feature id is not
-           there, generate ids (default behavior is raising an exception)
-           genetic_code - Genetic code of organism. Overwrites determined GC
-           from taxon object generate_missing_genes - If the file has CDS or
-           mRNA with no corresponding gene, generate a spoofed gene.
-           use_existing_assembly - Supply an existing assembly reference) ->
-           structure: parameter "file" of type "File" -> structure: parameter
-           "path" of String, parameter "shock_id" of String, parameter
-           "ftp_url" of String, parameter "genome_name" of String, parameter
-           "workspace_name" of String, parameter "source" of String,
-           parameter "taxon_wsname" of String, parameter "taxon_reference" of
-           String, parameter "release" of String, parameter
-           "generate_ids_if_needed" of String, parameter "genetic_code" of
-           Long, parameter "metadata" of type "usermeta" -> mapping from
-           String to String, parameter "generate_missing_genes" of type
-           "boolean" (A boolean - 0 for false, 1 for true. @range (0, 1)),
-           parameter "use_existing_assembly" of String
+           reference taxons are : ReferenceTaxons taxon_id - if defined, will
+           try to link the Genome to the specified taxonomy id in lieu of
+           performing the lookup during upload release - Release or version
+           number of the data per example Ensembl has numbered releases of
+           all their data: Release 31 generate_ids_if_needed - If field used
+           for feature id is not there, generate ids (default behavior is
+           raising an exception) genetic_code - Genetic code of organism.
+           Overwrites determined GC from taxon object scientific_name - will
+           be used to set the scientific name of the genome and link to a
+           taxon generate_missing_genes - If the file has CDS or mRNA with no
+           corresponding gene, generate a spoofed gene. use_existing_assembly
+           - Supply an existing assembly reference) -> structure: parameter
+           "file" of type "File" -> structure: parameter "path" of String,
+           parameter "shock_id" of String, parameter "ftp_url" of String,
+           parameter "genome_name" of String, parameter "workspace_name" of
+           String, parameter "source" of String, parameter "taxon_wsname" of
+           String, parameter "taxon_id" of String, parameter "release" of
+           String, parameter "generate_ids_if_needed" of String, parameter
+           "genetic_code" of Long, parameter "scientific_name" of String,
+           parameter "metadata" of type "usermeta" -> mapping from String to
+           String, parameter "generate_missing_genes" of type "boolean" (A
+           boolean - 0 for false, 1 for true. @range (0, 1)), parameter
+           "use_existing_assembly" of String
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
            "genome_ref" of String
         """
@@ -443,26 +444,28 @@ class GenomeFileUtil:
            - becomes the name of the object workspace_name - the name of the
            workspace it gets saved to. source - Source of the file typically
            something like RefSeq or Ensembl taxon_ws_name - where the
-           reference taxons are : ReferenceTaxons taxon_reference - if
-           defined, will try to link the Genome to the specified taxonomy
-           object insteas of performing the lookup during upload release -
-           Release or version number of the data per example Ensembl has
-           numbered releases of all their data: Release 31 genetic_code -
-           Genetic code of organism. Overwrites determined GC from taxon
-           object generate_missing_genes - If the file has CDS or mRNA with
-           no corresponding gene, generate a spoofed gene. Off by default) ->
-           structure: parameter "fasta_file" of type "File" -> structure:
-           parameter "path" of String, parameter "shock_id" of String,
-           parameter "ftp_url" of String, parameter "gff_file" of type "File"
-           -> structure: parameter "path" of String, parameter "shock_id" of
-           String, parameter "ftp_url" of String, parameter "genome_name" of
-           String, parameter "workspace_name" of String, parameter "source"
-           of String, parameter "taxon_wsname" of String, parameter
-           "taxon_reference" of String, parameter "release" of String,
-           parameter "genetic_code" of Long, parameter "scientific_name" of
-           String, parameter "metadata" of type "usermeta" -> mapping from
-           String to String, parameter "generate_missing_genes" of type
-           "boolean" (A boolean - 0 for false, 1 for true. @range (0, 1))
+           reference taxons are : ReferenceTaxons taxon_id - if defined, will
+           try to link the Genome to the specified taxonomy id in lieu of
+           performing the lookup during upload release - Release or version
+           number of the data per example Ensembl has numbered releases of
+           all their data: Release 31 genetic_code - Genetic code of
+           organism. Overwrites determined GC from taxon object
+           scientific_name - will be used to set the scientific name of the
+           genome and link to a taxon generate_missing_genes - If the file
+           has CDS or mRNA with no corresponding gene, generate a spoofed
+           gene. Off by default) -> structure: parameter "fasta_file" of type
+           "File" -> structure: parameter "path" of String, parameter
+           "shock_id" of String, parameter "ftp_url" of String, parameter
+           "gff_file" of type "File" -> structure: parameter "path" of
+           String, parameter "shock_id" of String, parameter "ftp_url" of
+           String, parameter "genome_name" of String, parameter
+           "workspace_name" of String, parameter "source" of String,
+           parameter "taxon_wsname" of String, parameter "taxon_id" of
+           String, parameter "release" of String, parameter "genetic_code" of
+           Long, parameter "scientific_name" of String, parameter "metadata"
+           of type "usermeta" -> mapping from String to String, parameter
+           "generate_missing_genes" of type "boolean" (A boolean - 0 for
+           false, 1 for true. @range (0, 1))
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
            "genome_ref" of String
         """
@@ -498,26 +501,28 @@ class GenomeFileUtil:
            - becomes the name of the object workspace_name - the name of the
            workspace it gets saved to. source - Source of the file typically
            something like RefSeq or Ensembl taxon_ws_name - where the
-           reference taxons are : ReferenceTaxons taxon_reference - if
-           defined, will try to link the Genome to the specified taxonomy
-           object insteas of performing the lookup during upload release -
-           Release or version number of the data per example Ensembl has
-           numbered releases of all their data: Release 31 genetic_code -
-           Genetic code of organism. Overwrites determined GC from taxon
-           object generate_missing_genes - If the file has CDS or mRNA with
-           no corresponding gene, generate a spoofed gene. Off by default) ->
-           structure: parameter "fasta_file" of type "File" -> structure:
-           parameter "path" of String, parameter "shock_id" of String,
-           parameter "ftp_url" of String, parameter "gff_file" of type "File"
-           -> structure: parameter "path" of String, parameter "shock_id" of
-           String, parameter "ftp_url" of String, parameter "genome_name" of
-           String, parameter "workspace_name" of String, parameter "source"
-           of String, parameter "taxon_wsname" of String, parameter
-           "taxon_reference" of String, parameter "release" of String,
-           parameter "genetic_code" of Long, parameter "scientific_name" of
-           String, parameter "metadata" of type "usermeta" -> mapping from
-           String to String, parameter "generate_missing_genes" of type
-           "boolean" (A boolean - 0 for false, 1 for true. @range (0, 1))
+           reference taxons are : ReferenceTaxons taxon_id - if defined, will
+           try to link the Genome to the specified taxonomy id in lieu of
+           performing the lookup during upload release - Release or version
+           number of the data per example Ensembl has numbered releases of
+           all their data: Release 31 genetic_code - Genetic code of
+           organism. Overwrites determined GC from taxon object
+           scientific_name - will be used to set the scientific name of the
+           genome and link to a taxon generate_missing_genes - If the file
+           has CDS or mRNA with no corresponding gene, generate a spoofed
+           gene. Off by default) -> structure: parameter "fasta_file" of type
+           "File" -> structure: parameter "path" of String, parameter
+           "shock_id" of String, parameter "ftp_url" of String, parameter
+           "gff_file" of type "File" -> structure: parameter "path" of
+           String, parameter "shock_id" of String, parameter "ftp_url" of
+           String, parameter "genome_name" of String, parameter
+           "workspace_name" of String, parameter "source" of String,
+           parameter "taxon_wsname" of String, parameter "taxon_id" of
+           String, parameter "release" of String, parameter "genetic_code" of
+           Long, parameter "scientific_name" of String, parameter "metadata"
+           of type "usermeta" -> mapping from String to String, parameter
+           "generate_missing_genes" of type "boolean" (A boolean - 0 for
+           false, 1 for true. @range (0, 1))
         :returns: instance of unspecified object
         """
         # ctx is the context object
@@ -558,7 +563,7 @@ class GenomeFileUtil:
            Prokka, (other annotators) @optional warnings contig_lengths
            contig_ids source_id taxonomy publications @optional
            ontology_events ontologies_present non_coding_features mrnas
-           @optional genbank_handle_ref gff_handle_ref
+           genome_type @optional genbank_handle_ref gff_handle_ref
            external_source_origination_date @optional release
            original_source_file_name notes quality_scores suspect
            assembly_ref @metadata ws gc_content as GC content @metadata ws
@@ -566,49 +571,51 @@ class GenomeFileUtil:
            as Size @metadata ws genetic_code as Genetic code @metadata ws
            domain as Domain @metadata ws source_id as Source ID @metadata ws
            source as Source @metadata ws scientific_name as Name @metadata ws
-           length(features) as Number of Protein Encoding Genes @metadata ws
-           length(cdss) as Number of CDS @metadata ws assembly_ref as
-           Assembly Object @metadata ws num_contigs as Number contigs
-           @metadata ws length(warnings) as Number of Genome Level Warnings
-           @metadata ws suspect as Suspect Genome) -> structure: parameter
-           "id" of type "Genome_id" (KBase genome ID @id kb), parameter
-           "scientific_name" of String, parameter "domain" of String,
-           parameter "warnings" of list of String, parameter "genome_tiers"
-           of list of String, parameter "feature_counts" of mapping from
-           String to Long, parameter "genetic_code" of Long, parameter
-           "dna_size" of Long, parameter "num_contigs" of Long, parameter
-           "molecule_type" of String, parameter "contig_lengths" of list of
-           Long, parameter "contig_ids" of list of String, parameter "source"
-           of String, parameter "source_id" of type "source_id" (Reference to
-           a source_id @id external), parameter "md5" of String, parameter
-           "taxonomy" of String, parameter "gc_content" of Double, parameter
-           "publications" of list of type "publication" (Structure for a
-           publication (float pubmedid string source (ex. Pubmed) string
-           title string web address string  publication year string authors
-           string journal)) -> tuple of size 7: parameter "pubmedid" of
-           Double, parameter "source" of String, parameter "title" of String,
-           parameter "url" of String, parameter "year" of String, parameter
-           "authors" of String, parameter "journal" of String, parameter
-           "ontology_events" of list of type "Ontology_event" (@optional
-           ontology_ref method_version eco) -> structure: parameter "id" of
+           genome_type as Genome Type @metadata ws length(features) as Number
+           of Protein Encoding Genes @metadata ws length(cdss) as Number of
+           CDS @metadata ws assembly_ref as Assembly Object @metadata ws
+           num_contigs as Number contigs @metadata ws length(warnings) as
+           Number of Genome Level Warnings @metadata ws suspect as Suspect
+           Genome) -> structure: parameter "id" of type "Genome_id" (KBase
+           genome ID @id kb), parameter "scientific_name" of String,
+           parameter "domain" of String, parameter "warnings" of list of
+           String, parameter "genome_tiers" of list of String, parameter
+           "feature_counts" of mapping from String to Long, parameter
+           "genetic_code" of Long, parameter "dna_size" of Long, parameter
+           "num_contigs" of Long, parameter "molecule_type" of String,
+           parameter "contig_lengths" of list of Long, parameter "contig_ids"
+           of list of String, parameter "source" of String, parameter
+           "source_id" of type "source_id" (Reference to a source_id @id
+           external), parameter "md5" of String, parameter "taxonomy" of
+           String, parameter "gc_content" of Double, parameter "publications"
+           of list of type "publication" (Structure for a publication (float
+           pubmedid string source (ex. Pubmed) string title string web
+           address string  publication year string authors string journal))
+           -> tuple of size 7: parameter "pubmedid" of Double, parameter
+           "source" of String, parameter "title" of String, parameter "url"
+           of String, parameter "year" of String, parameter "authors" of
+           String, parameter "journal" of String, parameter "ontology_events"
+           of list of type "Ontology_event" (@optional ontology_ref
+           method_version eco description) -> structure: parameter "id" of
            String, parameter "ontology_ref" of type "Ontology_ref" (Reference
            to a ontology object @id ws KBaseOntology.OntologyDictionary),
            parameter "method" of String, parameter "method_version" of
            String, parameter "timestamp" of String, parameter "eco" of
-           String, parameter "ontologies_present" of mapping from String to
-           mapping from String to String, parameter "features" of list of
-           type "Feature" (Structure for a single CDS encoding ???gene??? of
-           a genome ONLY PUT GENES THAT HAVE A CORRESPONDING CDS IN THIS
-           ARRAY NOTE: Sequence is optional. Ideally we can keep it in here,
-           but Recognize due to space constraints another solution may be
-           needed. We may want to add additional fields for other CDM
-           functions (e.g., atomic regulons, coexpressed fids, co_occurring
-           fids,...) protein_translation_length and protein_translation are
-           for longest coded protein (representative protein for splice
-           variants) NOTE: New Aliases field definitely breaks compatibility.
-           As Does Function. flags are flag fields in GenBank format. This
-           will be a controlled vocabulary. Initially Acceptable values are
-           pseudo, ribosomal_slippage, and trans_splicing Md5 is the md5 of
+           String, parameter "description" of String, parameter
+           "ontologies_present" of mapping from String to mapping from String
+           to String, parameter "features" of list of type "Feature"
+           (Structure for a single CDS encoding ???gene??? of a genome ONLY
+           PUT GENES THAT HAVE A CORRESPONDING CDS IN THIS ARRAY NOTE:
+           Sequence is optional. Ideally we can keep it in here, but
+           Recognize due to space constraints another solution may be needed.
+           We may want to add additional fields for other CDM functions
+           (e.g., atomic regulons, coexpressed fids, co_occurring fids,...)
+           protein_translation_length and protein_translation are for longest
+           coded protein (representative protein for splice variants) NOTE:
+           New Aliases field definitely breaks compatibility. As Does
+           Function. flags are flag fields in GenBank format. This will be a
+           controlled vocabulary. Initially Acceptable values are pseudo,
+           ribosomal_slippage, and trans_splicing Md5 is the md5 of
            dna_sequence. @optional functions ontology_terms note
            protein_translation mrnas flags warnings @optional inference_data
            dna_sequence aliases db_xrefs children functional_descriptions) ->
@@ -734,10 +741,11 @@ class GenomeFileUtil:
            (Reference to a report object @id ws KBaseReport.Report),
            parameter "method_version" of String, parameter "score" of String,
            parameter "score_interpretation" of String, parameter "timestamp"
-           of String, parameter "suspect" of type "Bool", parameter "hidden"
-           of type "boolean" (A boolean - 0 for false, 1 for true. @range (0,
-           1)), parameter "upgrade" of type "boolean" (A boolean - 0 for
-           false, 1 for true. @range (0, 1))
+           of String, parameter "suspect" of type "Bool", parameter
+           "genome_type" of String, parameter "hidden" of type "boolean" (A
+           boolean - 0 for false, 1 for true. @range (0, 1)), parameter
+           "upgrade" of type "boolean" (A boolean - 0 for false, 1 for true.
+           @range (0, 1))
         :returns: instance of type "SaveGenomeResult" -> structure: parameter
            "info" of type "object_info" (Information about an object,
            including user provided metadata. obj_id objid - the numerical id
