@@ -81,17 +81,7 @@ class FastaGFFToGenome:
             self.generate_genes = True
 
         # 4) do the upload
-        genome = self._gen_genome_json(
-            params,
-            input_fasta_file=file_paths["fasta_file"],
-            input_gff_file=file_paths["gff_file"],
-            workspace_name=params['workspace_name'],
-            core_genome_name=params['genome_name'],
-            scientific_name=params['scientific_name'],
-            source=params['source'],
-            source_id=params['source_id'],
-            release=params['release'],
-        )
+        genome = self._gen_genome_json(params, file_paths["gff_file"], file_paths["fasta_file"])
 
         return genome, input_directory
 
@@ -123,10 +113,7 @@ class FastaGFFToGenome:
 
         return details
 
-    def _gen_genome_json(self, params, input_gff_file=None, input_fasta_file=None,
-                        workspace_name=None, core_genome_name=None,
-                        scientific_name="unknown_taxon", source=None, source_id=None,
-                        release=None):
+    def _gen_genome_json(self, params, input_gff_file, input_fasta_file):
 
         # reading in GFF file
         features_by_contig = self._retrieve_gff_file(input_gff_file)
@@ -151,8 +138,8 @@ class FastaGFFToGenome:
         # save assembly file
         assembly_ref = self.au.save_assembly_from_fasta(
             {'file': {'path': input_fasta_file},
-             'workspace_name': workspace_name,
-             'assembly_name': core_genome_name + ".assembly",
+             'workspace_name': params['workspace_name'],
+             'assembly_name': params['genome_name'] + ".assembly",
              'type': params.get('genome_type', 'isolate'),
              })
         assembly_data = self.dfu.get_objects(
@@ -160,15 +147,8 @@ class FastaGFFToGenome:
              'ignore_errors': 0})['data'][0]['data']
 
         # generate genome info
-        genome = self._gen_genome_info(core_genome_name, scientific_name,
-                                       assembly_ref, source, source_id, assembly_data,
-                                       input_gff_file, molecule_type)
-        genome['release'] = release
-        if params.get('genetic_code'):
-            genome["genetic_code"] = params['genetic_code']
-
-        if params.get('genome_type'):
-            genome['genome_type'] = params['genome_type']
+        genome = self._gen_genome_info(assembly_ref, assembly_data,
+                                       input_gff_file, molecule_type, params)
 
         if self.spoof_gene_count > 0:
             self.warn(warnings['spoofed_genome'].format(self.spoof_gene_count))
@@ -234,7 +214,6 @@ class FastaGFFToGenome:
         default_params = {
             'taxon_wsname': self.cfg.raw['taxon-workspace-name'],
             'scientific_name': 'unknown_taxon',
-            'taxon_reference': None,
             'source': 'User',
             'release': None,
             'metadata': {},
@@ -812,34 +791,39 @@ class FastaGFFToGenome:
             ValueError('Feature {feature["id"]} must contain either exon or cds data to '
                        'construct an accurate location and sequence')
 
-    def _gen_genome_info(self, core_genome_name, scientific_name, assembly_ref,
-                         source, source_id, assembly, input_gff_file, molecule_type):
+    def _gen_genome_info(self, assembly_ref, assembly, input_gff_file, molecule_type, params):
         """
         _gen_genome_info: generate genome info
 
         """
-        genome = dict()
-        genome["id"] = core_genome_name
-        genome["scientific_name"] = scientific_name
-        genome["assembly_ref"] = assembly_ref
-        genome['molecule_type'] = molecule_type
-        genome["features"] = []
-        genome["cdss"] = []
-        genome["mrnas"] = []
-        genome['non_coding_features'] = []
-        genome["gc_content"] = assembly["gc_content"]
-        genome["dna_size"] = assembly["dna_size"]
-        genome['md5'] = assembly['md5']
+        genome = {
+            "id": params.get('genome_name'),
+            "scientific_name": params.get('scientific_name', "Unknown"),
+            "assembly_ref": assembly_ref,
+            'molecule_type': molecule_type,
+            "features": [],
+            "cdss": [],
+            "mrnas": [],
+            'non_coding_features': [],
+            "gc_content": assembly["gc_content"],
+            "dna_size": assembly["dna_size"],
+            'md5': assembly['md5'],
+            'num_contigs': len(assembly['contigs']),
+            'ontologies_present': dict(self.ontologies_present),
+            'ontology_events': self.ontology_events,
+        }
+
         genome['contig_ids'], genome['contig_lengths'] = zip(
             *[(k, v['length']) for k, v in assembly['contigs'].items()])
-        genome['num_contigs'] = len(assembly['contigs'])
-        genome['ontologies_present'] = dict(self.ontologies_present)
-        genome['ontology_events'] = self.ontology_events
+        genome['source'], genome['genome_tiers'] = self.gi.determine_tier(params.get('source'))
         genome.update(self.gi.retrieve_taxon(self.taxon_wsname,
-                                             genome['scientific_name'])._asdict())
-        genome['source'], genome['genome_tiers'] = self.gi.determine_tier(
-            source)
-        genome['source_id'] = source_id
+                                             genome['scientific_name'],
+                                             params.get('taxon_id'))._asdict())
+
+        # handle optional fields
+        for key in ('release', 'genetic_code', 'genome_type', 'source_id'):
+            if params.get(key):
+                genome[key] = params[key]
 
         # Phytozome gff files are not compatible with the RNASeq Pipeline
         # so it's better to build from the object than cache the file

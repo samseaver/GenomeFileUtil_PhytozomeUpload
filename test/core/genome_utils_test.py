@@ -56,6 +56,11 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertEqual(self.genome_interface.retrieve_taxon("meh", "foo"),
                          ('Unconfirmed Organism: foo',
                           'ReferenceTaxons/unknown_taxon', 'Unknown', 11))
+        self.assertEqual(self.genome_interface.retrieve_taxon("ReferenceTaxons", "foo", 201174),
+                         ('cellular organisms; Bacteria; Terrabacteria group',
+                          'ReferenceTaxons/201174_taxon', 'Bacteria', 11))
+        with self.assertRaisesRegex(ValueError, 'not a valid KBase taxon ID'):
+            self.genome_interface.retrieve_taxon("ReferenceTaxons", "foo", 9999999)
 
     def test_user(self):
         self.assertEqual(GenomeInterface.determine_tier('RefSeq user'),

@@ -64,7 +64,6 @@ class GenbankToGenome:
             'source': 'Genbank',
             'taxon_wsname': self.cfg.raw['taxon-workspace-name'],
             'taxon_lookup_obj_name': self.cfg.raw['taxon-lookup-object-name'],
-            'taxon_reference': None,
 
             'ontology_wsname': self.cfg.raw['ontology-workspace-name'],
             'ontology_GO_obj_name': self.cfg.raw['ontology-gene-ontology-obj-name'],
@@ -245,18 +244,18 @@ class GenbankToGenome:
             genome['contig_ids'].append(record.id)
             genome['contig_lengths'].append(len(record))
             genome["publications"] |= self._get_pubs(r_annot)
-            organism = r_annot.get('organism', 'Unknown Organism')
-            if 'scientific_name' not in genome:
-                genome['scientific_name'] = organism
-            elif genome['scientific_name'] != organism:
-                self.genome_warnings.append(f"Multiple organism in provided files: "
-                                            f"{genome['scientific_name']}, {organism}")
 
             # only do the following once(on the first contig)
             if "source_id" not in genome:
                 genome["source_id"] = record.id.split('.')[0]
+                organism = r_annot.get('organism', 'Unknown Organism')
+                if params.get('scientific_name'):
+                    genome['scientific_name'] = params['scientific_name']
+                else:
+                    genome['scientific_name'] = organism
                 genome.update(self.gi.retrieve_taxon(params['taxon_wsname'],
-                                                     genome['scientific_name'])._asdict())
+                                                     genome['scientific_name'],
+                                                     params.get('taxon_id'))._asdict())
                 self.code_table = genome['genetic_code']
                 genome["molecule_type"] = r_annot.get('molecule_type', 'DNA')
                 genome['notes'] = r_annot.get('comment', "").replace('\\n', '\n')

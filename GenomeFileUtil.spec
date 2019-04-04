@@ -24,14 +24,16 @@ module GenomeFileUtil {
     workspace_name - the name of the workspace it gets saved to.
     source - Source of the file typically something like RefSeq or Ensembl
     taxon_ws_name - where the reference taxons are : ReferenceTaxons
-    taxon_reference - if defined, will try to link the Genome to the specified
-        taxonomy object insteas of performing the lookup during upload
+    taxon_id - if defined, will try to link the Genome to the specified
+        taxonomy id in lieu of performing the lookup during upload
     release - Release or version number of the data 
           per example Ensembl has numbered releases of all their data: Release 31
     generate_ids_if_needed - If field used for feature id is not there, 
           generate ids (default behavior is raising an exception)
     genetic_code - Genetic code of organism. Overwrites determined GC from 
           taxon object
+    scientific_name - will be used to set the scientific name of the genome
+        and link to a taxon
     generate_missing_genes - If the file has CDS or mRNA with no corresponding
         gene, generate a spoofed gene.
     use_existing_assembly - Supply an existing assembly reference
@@ -45,11 +47,12 @@ module GenomeFileUtil {
 
         string source;
         string taxon_wsname;
-        string taxon_reference;
+        string taxon_id;
 
         string release;
         string generate_ids_if_needed;
         int    genetic_code;
+        string scientific_name;
         usermeta metadata;
         boolean generate_missing_genes;
         string use_existing_assembly;
@@ -172,12 +175,14 @@ module GenomeFileUtil {
     workspace_name - the name of the workspace it gets saved to.
     source - Source of the file typically something like RefSeq or Ensembl
     taxon_ws_name - where the reference taxons are : ReferenceTaxons
-    taxon_reference - if defined, will try to link the Genome to the specified
-        taxonomy object insteas of performing the lookup during upload
+    taxon_id - if defined, will try to link the Genome to the specified
+        taxonomy id in lieu of performing the lookup during upload
     release - Release or version number of the data 
           per example Ensembl has numbered releases of all their data: Release 31
     genetic_code - Genetic code of organism. Overwrites determined GC from 
           taxon object
+    scientific_name - will be used to set the scientific name of the genome
+        and link to a taxon
     generate_missing_genes - If the file has CDS or mRNA with no corresponding
         gene, generate a spoofed gene. Off by default
     */
@@ -190,7 +195,7 @@ module GenomeFileUtil {
 
         string source;
         string taxon_wsname;
-        string taxon_reference;
+        string taxon_id;
         string release;
         int    genetic_code;
         string scientific_name;
