@@ -375,6 +375,7 @@ class GenomeInterface:
                 if field == 'features':
                     if feat.get('type', 'gene') == 'gene':
                         if not feat.get('cdss', []):
+                            type_counts['non_coding_genes'] += 1
                             genome['non_coding_features'].append(feat)
                         else:
                             retained_features.append(feat)

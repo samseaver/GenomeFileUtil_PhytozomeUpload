@@ -594,7 +594,9 @@ class GenbankToGenome:
             else:
                 del g['mrnas'], g['cdss']
                 self.noncoding.append(g)
-                self.feature_counts["non_coding_features"] += 1
+                self.feature_counts["non_coding_genes"] += 1
+
+        self.feature_counts["non_coding_features"] = len(self.noncoding)
         return {'features': coding, 'non_coding_features': self.noncoding,
                 'cdss': list(self.cdss.values()), 'mrnas': list(self.mrnas.values())}
 

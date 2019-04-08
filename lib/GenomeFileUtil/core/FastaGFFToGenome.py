@@ -869,12 +869,13 @@ class FastaGFFToGenome:
                     feature.pop('mrnas', None)
                     feature.pop('cdss', None)
                     feature.pop('protein_translation_length', None)
-                    self.feature_counts["non_coding_features"] += 1
+                    self.feature_counts["non_coding_gene"] += 1
                     genome['non_coding_features'].append(feature)
             else:
                 genome['non_coding_features'].append(feature)
 
         if self.warnings:
             genome['warnings'] = self.warnings
+        self.feature_counts["non_coding_features"] = len(genome['non_coding_features'])
         genome['feature_counts'] = dict(self.feature_counts)
         return genome
