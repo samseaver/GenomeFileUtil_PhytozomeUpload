@@ -1,0 +1,282 @@
+
+Validating module in (/Users/jkbaumohl/Desktop/KBase_src/GenomeFileUtil)
+
+Validating method in (/Users/jkbaumohl/Desktop/KBase_src/GenomeFileUtil/ui/narrative/methods/import_genome_gbk_ftp)
+
+Validating method in (/Users/jkbaumohl/Desktop/KBase_src/GenomeFileUtil/ui/narrative/methods/import_genome_gbk_file)
+
+
+Congrats- this module is valid.
+
+
+Delete old Docker containers
+d935725504a6
+
+Build Docker image
+Sending build context to Docker daemon  444.1MB
+
+Step 1/11 : FROM kbase/sdkbase2:python
+ ---> a0a5dc7b1d08
+Step 2/11 : MAINTAINER KBase Developer
+ ---> Using cache
+ ---> e2796159f122
+Step 3/11 : RUN pip install biopython==1.70
+ ---> Using cache
+ ---> 5aaa01e89b05
+Step 4/11 : RUN pip install mock
+ ---> Using cache
+ ---> 29d1c88d894e
+Step 5/11 : COPY ./ /kb/module
+ ---> 578826919996
+Step 6/11 : RUN mkdir -p /kb/module/work
+ ---> Running in 13bda9a66d6f
+Removing intermediate container 13bda9a66d6f
+ ---> 1b6d901c6641
+Step 7/11 : RUN chmod -R a+rw /kb/module
+ ---> Running in 015f8c16b1c9
+Removing intermediate container 015f8c16b1c9
+ ---> 19dbf35e63f1
+Step 8/11 : WORKDIR /kb/module
+ ---> Running in dfba1c81be00
+Removing intermediate container dfba1c81be00
+ ---> 006f942948f0
+Step 9/11 : RUN make all
+ ---> Running in f9d1a9017c30
+kb-sdk compile GenomeFileUtil.spec \
+	--out lib \
+	--pysrvname GenomeFileUtil.GenomeFileUtilServer \
+	--pyimplname GenomeFileUtil.GenomeFileUtilImpl;
+KBase SDK version 1.0.18 (commit 5242615c0582fe47e041112d6a5134e63da01d89)
+chmod +x scripts/entrypoint.sh
+mkdir -p bin
+echo '#!/bin/bash' > scripts/start_server.sh
+echo 'script_dir=$(dirname "$(readlink -f "$0")")' >> scripts/start_server.sh
+echo 'export KB_DEPLOYMENT_CONFIG=$script_dir/../deploy.cfg' >> scripts/start_server.sh
+echo 'export PYTHONPATH=$script_dir/../lib:$PATH:$PYTHONPATH' >> scripts/start_server.sh
+echo 'uwsgi --master --processes 5 --threads 5 --http :5000 --wsgi-file $script_dir/../lib/GenomeFileUtil/GenomeFileUtilServer.py' >> scripts/start_server.sh
+chmod +x scripts/start_server.sh
+mkdir -p bin
+echo '#!/bin/bash' > bin/run_GenomeFileUtil_async_job.sh
+echo 'script_dir=$(dirname "$(readlink -f "$0")")' >> bin/run_GenomeFileUtil_async_job.sh
+echo 'export PYTHONPATH=$script_dir/../lib:$PATH:$PYTHONPATH' >> bin/run_GenomeFileUtil_async_job.sh
+echo 'python -u $script_dir/../lib/GenomeFileUtil/GenomeFileUtilServer.py $1 $2 $3' >> bin/run_GenomeFileUtil_async_job.sh
+chmod +x bin/run_GenomeFileUtil_async_job.sh
+echo '#!/bin/bash' > test/run_tests.sh
+echo 'script_dir=$(dirname "$(readlink -f "$0")")' >> test/run_tests.sh
+echo 'export KB_DEPLOYMENT_CONFIG=$script_dir/../deploy.cfg' >> test/run_tests.sh
+echo 'export KB_AUTH_TOKEN=`cat /kb/module/work/token`' >> test/run_tests.sh
+echo 'export PYTHONPATH=$script_dir/../lib:$PATH:$PYTHONPATH' >> test/run_tests.sh
+echo 'cd $script_dir/../test' >> test/run_tests.sh
+echo 'python -m nose --with-coverage --cover-package=GenomeFileUtil --cover-html --cover-html-dir=/kb/module/work/test_coverage --nocapture  --nologcapture .' >> test/run_tests.sh
+echo 'cp /kb/module/.coveragerc .' >> test/run_tests.sh
+echo 'cp .coverage /kb/module/work/' >> test/run_tests.sh
+echo 'mkdir -p /kb/module/work/kb/module/lib/' >> test/run_tests.sh
+echo 'cp -R /kb/module/lib/GenomeFileUtil/ /kb/module/work/kb/module/lib/' >> test/run_tests.sh
+chmod +x test/run_tests.sh
+Removing intermediate container f9d1a9017c30
+ ---> 931c38cb9ccd
+Step 10/11 : ENTRYPOINT [ "./scripts/entrypoint.sh" ]
+ ---> Running in 0516ea14ceb0
+Removing intermediate container 0516ea14ceb0
+ ---> 5e5b0e654261
+Step 11/11 : CMD [ ]
+ ---> Running in 8538ca594fcb
+Removing intermediate container 8538ca594fcb
+ ---> 8ec4eceea63c
+Successfully built 8ec4eceea63c
+Successfully tagged test/genomefileutil:latest
+Delete old Docker image
+Deleted: sha256:e0844c42eeb0a9de42dee4ec00b7c7253afd469c6795da56abfcedc3f73d2a50
+Deleted: sha256:5c7b418a0ebd230b615a2d170f524a5065182c02e0740f2c03d36c3a11f35f40
+Deleted: sha256:3eca1f0671a512f81b7d16a86dc2591670e7dd4b3235fdbfd3d58250764bd7d8
+Deleted: sha256:ec179e42cee9c1c9ec9937de095555ac52bcb88b64891e30e21c401fe9eed2f5
+Deleted: sha256:204da91bf7acedc2d6ac3d51e2339833c74080c1fe739e25ddc2797e10c42a64
+Deleted: sha256:5885ddbd5beab53f6c78d09e75d72ea1789899580c1f03d69ab3f4a0ee879a6c
+Deleted: sha256:a97088ac97e6ac66b21cd300fc9ef823986380de907073bfd875b4909fb81256
+Deleted: sha256:6785cbc1d78f2d4e74c13131b1313b5736b840726edc4381dbda3ae88e4e1376
+Deleted: sha256:364a0cf48202a21e5e70de6096c9850f33d288993bac5d0e01d10f7819dfd672
+Deleted: sha256:8935ae664e6f37156fa874d842fa9a36be6272479d28f565c093a0d6dcbf40c2
+Deleted: sha256:e85992e3d1f68b96612f78e1b94063d9846581d8cf4d216e674510d468325869
+
+Run Tests
+if [ ! -f /kb/module/work/token ]; then echo -e '\nOutside a docker container please run "kb-sdk test" rather than "make test"\n' && exit 1; fi
+bash test/run_tests.sh
+1554849804.54 - CallbackServer: Subjob method: DataFileUtil.unpack_file JobID: d2fe8869-4b11-4125-b46b-7233810e35b7
+1554849804.60 - CallbackServer: Running module DataFileUtil:
+url: https://github.com/kbaseapps/DataFileUtil
+commit: bd85fa75be6a15a087a7e49bd4686dd05c6d5655
+version: 0.0.27
+release: release
+
+1554849805.6239526: Shock url: https://ci.kbase.us/services/shock-api
+1554849806.77 - CallbackServer: Subjob method: DataFileUtil.file_to_shock JobID: 08c94794-d32f-4029-b076-65e26a190325
+1554849806.77 - CallbackServer: WARNING: Module DataFileUtil was already used once for this job. Using cached version:
+url: https://github.com/kbaseapps/DataFileUtil
+commit: bd85fa75be6a15a087a7e49bd4686dd05c6d5655
+version: 0.0.27
+release: release
+
+1554849807.958819: Shock url: https://ci.kbase.us/services/shock-api
+1554849808.0227895: gzipping (with pigz) /kb/module/work/tmp/genome-upload-staging-b48ab58f-547e-435e-b634-62992169d038/combined/Arab_Chloro_Modified.gbff to /kb/module/work/tmp/genome-upload-staging-b48ab58f-547e-435e-b634-62992169d038/combined/Arab_Chloro_Modified.gbff.gz
+1554849808.040804: uploading file /kb/module/work/tmp/genome-upload-staging-b48ab58f-547e-435e-b634-62992169d038/combined/Arab_Chloro_Modified.gbff.gz into shock node
+1554849808.262316: uploading done into shock node: bfb9f29f-29c7-493d-b342-ff2e4bfdecd4
+1554849808.95 - CallbackServer: Subjob method: AssemblyUtil.save_assembly_from_fasta JobID: 4f3950d6-459d-4b11-9279-7c5103a8266d
+1554849808.97 - CallbackServer: Running module AssemblyUtil:
+url: https://github.com/kbaseapps/AssemblyUtil
+commit: 1e3b460b2ffaad690124b007eaff209aeae69d9d
+version: 1.0.16
+release: release
+
+save_assembly_from_fasta -- paramaters = 
+{'assembly_name': 'ArabidopsisChloro_assembly',
+ 'contig_info': {'NC_000932.1': {'is_circ': 1}, 'NC_000933.1': {'is_circ': 0}},
+ 'file': {'path': '/kb/module/work/tmp/ArabidopsisChloro_assembly.fasta'},
+ 'type': 'isolate',
+ 'workspace_name': 'test_GenomeFileUtil_1554849804365'}
+validating parameters
+staging input files
+1554849810.65 - CallbackServer: Subjob method: DataFileUtil.unpack_file JobID: b65e0c69-e701-4ba9-89fb-fa00cbcf86aa
+1554849810.65 - CallbackServer: WARNING: Module DataFileUtil was already used once for this job. Using cached version:
+url: https://github.com/kbaseapps/DataFileUtil
+commit: bd85fa75be6a15a087a7e49bd4686dd05c6d5655
+version: 0.0.27
+release: release
+
+1554849811.763836: Shock url: https://ci.kbase.us/services/shock-api
+parsing FASTA file: /kb/module/work/tmp/ArabidopsisChloro_assembly.fasta
+ - parsed 2 contigs,154496 bp
+saving assembly to KBase
+Uploading FASTA file (/kb/module/work/tmp/ArabidopsisChloro_assembly.fasta) to SHOCK
+1554849812.82 - CallbackServer: Subjob method: DataFileUtil.file_to_shock JobID: 6a064e5c-48f7-431f-8d89-444f053e6b96
+1554849812.82 - CallbackServer: WARNING: Module DataFileUtil was already used once for this job. Using cached version:
+url: https://github.com/kbaseapps/DataFileUtil
+commit: bd85fa75be6a15a087a7e49bd4686dd05c6d5655
+version: 0.0.27
+release: release
+
+1554849814.1215255: Shock url: https://ci.kbase.us/services/shock-api
+1554849814.1823041: uploading file /kb/module/work/tmp/ArabidopsisChloro_assembly.fasta into shock node
+1554849814.4363585: uploading done into shock node: d7548667-3299-46d6-8726-e90fe2b61877
+1554849816.09 - CallbackServer: Subjob method: DataFileUtil.ws_name_to_id JobID: 7962a504-c5f1-4323-ae73-3bef82109d9d
+1554849816.09 - CallbackServer: WARNING: Module DataFileUtil was already used once for this job. Using cached version:
+url: https://github.com/kbaseapps/DataFileUtil
+commit: bd85fa75be6a15a087a7e49bd4686dd05c6d5655
+version: 0.0.27
+release: release
+
+1554849817.15693: Shock url: https://ci.kbase.us/services/shock-api
+Saving Assembly to Workspace
+1554849818.23 - CallbackServer: Subjob method: DataFileUtil.save_objects JobID: 9ba0ec8e-71b6-4012-b506-ab47e601d40c
+1554849818.23 - CallbackServer: WARNING: Module DataFileUtil was already used once for this job. Using cached version:
+url: https://github.com/kbaseapps/DataFileUtil
+commit: bd85fa75be6a15a087a7e49bd4686dd05c6d5655
+version: 0.0.27
+release: release
+
+1554849819.552172: Shock url: https://ci.kbase.us/services/shock-api
+1554849826.16 - CallbackServer: Subjob method: DataFileUtil.get_objects JobID: bb3d0dca-aa7b-4a21-a7ce-f401aca76b0a
+1554849826.16 - CallbackServer: WARNING: Module DataFileUtil was already used once for this job. Using cached version:
+url: https://github.com/kbaseapps/DataFileUtil
+commit: bd85fa75be6a15a087a7e49bd4686dd05c6d5655
+version: 0.0.27
+release: release
+
+1554849829.0366154: Shock url: https://ci.kbase.us/services/shock-api
+1554849831.60 - CallbackServer: Subjob method: DataFileUtil.ws_name_to_id JobID: 2e2fa77c-27cd-4ede-a881-2b29551c942a
+1554849831.60 - CallbackServer: WARNING: Module DataFileUtil was already used once for this job. Using cached version:
+url: https://github.com/kbaseapps/DataFileUtil
+commit: bd85fa75be6a15a087a7e49bd4686dd05c6d5655
+version: 0.0.27
+release: release
+
+1554849832.7559192: Shock url: https://ci.kbase.us/services/shock-api
+1554849833.75 - CallbackServer: Subjob method: WsLargeDataIO.save_objects JobID: db966abb-940d-45b2-b87d-274fd40b034b
+1554849833.76 - CallbackServer: Running module WsLargeDataIO:
+url: https://github.com/kbaseapps/WsLargeDataIO
+commit: 8d76a294f3877be83cce9b51daebe541acc107d3
+version: 0.0.3
+release: beta
+
+JsonServerSyslog using package name us.kbase
+WsLargeDataIO got SDK_CALLBACK_URL http://128.3.116.215:61779
+1554849841.34 - CallbackServer: Subjob method: DataFileUtil.get_objects JobID: 0fb205d4-57be-4f62-89e7-16c9538f7382
+1554849841.34 - CallbackServer: WARNING: Module DataFileUtil was already used once for this job. Using cached version:
+url: https://github.com/kbaseapps/DataFileUtil
+commit: bd85fa75be6a15a087a7e49bd4686dd05c6d5655
+version: 0.0.27
+release: release
+
+1554849842.6639752: Shock url: https://ci.kbase.us/services/shock-api
+genbank_to_genome -- paramaters = 
+{'file': {'path': 'data/Arabidopsis_gbff/Arab_Chloro_Modified.gbff'},
+ 'generate_ids_if_needed': 1,
+ 'genome_name': 'ArabidopsisChloro',
+ 'source': 'RefSeq Latest',
+ 'workspace_name': 'test_GenomeFileUtil_1554849804365'}
+RL4742 RL4742
+Zero_Span_two_exon Zero_Span_two_exon
+RL4742A RL4742A
+ArthCp001 ArthCp001
+ArthCp001A None
+MultiContigTransSpliced MultiContigTransSpliced
+ArthCp004 ArthCp004
+ArthCp053 ArthCp053
+InvalidOrder InvalidOrder
+ArthCp053_WO ArthCp053_WO
+ArthCp004_WO ArthCp004_WO
+ArthCp004_ENSEMBL ArthCp004_ENSEMBL
+ArthCp047 ArthCp047
+SPO1_87 SPO1_87
+ArthCp005 ArthCp005
+ArthCp006 ArthCp006
+ArthCp007 ArthCp007
+ArthCp008 ArthCp008
+ArthCp009 ArthCp009
+ArthCp010 ArthCp010
+ArthCp011 ArthCp011
+ArthCp012 ArthCp012
+ArthCp013 ArthCp013
+ArthCp014 ArthCp014
+ArthCp015 ArthCp015
+ArthCp015_non3 ArthCp015_non3
+mrnas: 1.6 KiB
+features: 43.6 KiB
+non_coding_features: 13.6 KiB
+cdss: 42.4 KiB
+Total size 104.4 KiB 
+import complete -- result = 
+{'genome_info': [2,
+                 'ArabidopsisChloro',
+                 'KBaseGenomes.Genome-15.1',
+                 '2019-04-09T22:44:00+0000',
+                 1,
+                 'jkbaumohl',
+                 41575,
+                 'test_GenomeFileUtil_1554849804365',
+                 '99b8c50004c6888f5462dde045016c03',
+                 104464,
+                 {'Assembly Object': '41575/1/1',
+                  'Domain': 'Eukaryota',
+                  'GC content': '0.36295',
+                  'Genetic code': '11',
+                  'MD5': '6d0a8cea7e23001b119e21ccaa6356bf',
+                  'Name': 'Arabidopsis thaliana',
+                  'Number contigs': '2',
+                  'Number of CDS': '26',
+                  'Number of Genome Level Warnings': '9',
+                  'Number of Protein Encoding Genes': '25',
+                  'Size': '154496',
+                  'Source': 'RefSeq',
+                  'Source ID': 'NC_000932',
+                  'Suspect Genome': '1',
+                  'Taxonomy': 'cellular organisms; Eukaryota; Viridiplantae; '
+                              'Streptophyta; Streptophytina; Embryophyta; '
+                              'Tracheophyta; Euphyllophyta; Spermatophyta; '
+                              'Magnoliophyta; Mesangiospermae; eudicotyledons; '
+                              'Gunneridae; Pentapetalae; rosids; malvids; '
+                              'Brassicales; Brassicaceae; Camelineae; '
+                              'Arabidopsis'}],
+ 'genome_ref': '41575/2/1'}
+Test workspace was deleted
+Shutting down callback server...
+1554849846.15 - CallbackServer: Shutting down executor service

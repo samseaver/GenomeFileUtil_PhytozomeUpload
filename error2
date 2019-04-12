@@ -1,0 +1,58 @@
+  **WARNINGS** - value "file/ftp_url" within path [behavior/service-mapping/input_mapping/2/target_property] in spec.json doesn't match any field of structure defined as argument type (GenbankToGenomeParams)
+  **WARNINGS** - value "file/shock_id" within path [behavior/service-mapping/input_mapping/2/target_property] in spec.json doesn't match any field of structure defined as argument type (GenbankToGenomeParams)
+readlink: illegal option -- f
+usage: readlink [-n] [file ...]
+1555098936.9610093 INFO: Loaded 7 ontologies
+1555098936.971079 INFO: staged input file =/kb/module/work/tmp/genome-upload-staging-ad4b2b30-1db9-4146-a1ee-f17feac93329/Arab_Chloro_Modified.gbff
+1555098940.4315882 INFO: Scanning for Genbank Format files.
+1555098940.4348514 INFO: Genbank Files : Arab_Chloro_Modified.gbff
+1555098940.4350512 INFO: Found 1 genbank files
+1555098940.4492319 INFO: Saving original file to shock
+/miniconda/lib/python3.6/site-packages/Bio/GenBank/Scanner.py:1126: BiopythonParserWarning: Premature end of file in sequence data
+  BiopythonParserWarning)
+1555098943.803046 INFO: Saving sequence as Assembly object
+1555098969.684102 INFO: Assembly saved to 41619/1/1
+1555098973.0988796 INFO: parsing contig: NC_000932.1
+1555098973.105632 INFO: Parsed 2 publication records
+1555098973.3407686 INFO: No part in [('NC_000932.1', 69724, '-', 114), ('NC_000932.1', 98793, '-', 795)] contains ('NC_000932.1', 98795, '-', 234)
+1555098973.34096 INFO: No part in [('NC_000932.1', 69724, '-', 114), ('NC_000932.1', 98793, '-', 795)] contains ('NC_000932.1', 98795, '-', 234)
+1555098973.3410547 INFO: No part in [('NC_000932.1', 154400, '+', 79), ('NC_000932.1', 1, '+', 72)] contains ('NC_000932.1', 69724, '-', 114)
+1555098973.3414245 INFO: No part in [('NC_000932.1', 72, '-', 72), ('NC_000932.1', 154478, '-', 79)] contains ('NC_000932.1', 69724, '-', 114)
+1555098973.341808 INFO: No part in [('NC_000932.1', 71, '-', 71), ('NC_000932.1', 154478, '-', 79)] contains ('NC_000932.1', 69724, '-', 114)
+1555098973.3423376 INFO: No part in [('NC_000932.1', 69724, '-', 114), ('NC_000932.1', 98793, '-', 795)] contains ('NC_000932.1', 98795, '-', 234)
+1555098973.3424656 INFO: No part in [('NC_000932.1', 69724, '-', 114), ('NC_000932.1', 98793, '-', 795)] contains ('NC_000932.1', 98795, '-', 234)
+1555098973.3425822 INFO: No part in [('NC_000932.1', 154400, '+', 79), ('NC_000932.1', 1, '+', 72)] contains ('NC_000932.1', 69724, '-', 114)
+1555098973.3427055 INFO: No part in [('NC_000932.1', 72, '-', 72), ('NC_000932.1', 154478, '-', 79)] contains ('NC_000932.1', 69724, '-', 114)
+1555098973.3428183 INFO: No part in [('NC_000932.1', 71, '-', 71), ('NC_000932.1', 154478, '-', 79)] contains ('NC_000932.1', 69724, '-', 114)
+1555098973.3565767 INFO: parsing contig: NC_000933.1
+1555098973.3567977 INFO: Parsed 2 publication records
+1555098973.3582523 INFO: Feature Counts: {'gene': 28, 'CDS': 26, 'mRNA': 2, 'tRNA': 1, 'misc_feature': 2, 'protein_encoding_gene': 25, 'non_coding_genes': 3, 'non_coding_features': 6}
+1555098973.3583646 INFO: start saving genome object
+1555098973.3584464 INFO: start validating save_one_genome params
+1555098973.3588836 INFO: start checking handle genbank_handle_ref ownership
+1555098973.583101 INFO: start checking shock response
+1555098973.6850846 INFO: start checking handle gff_handle_ref ownership
+1555098973.6852648 INFO: start checking dna sequence in each feature
+1555098973.6853714 INFO: Validating genome object contents
+1555098987.2917929 INFO: Genome saved to 41619/2/1
+......................
+Name                                           Stmts   Miss  Cover
+------------------------------------------------------------------
+GenomeFileUtil/GenomeFileUtilImpl.py             169    116    31%
+GenomeFileUtil/GenomeFileUtilServer.py           392    275    30%
+GenomeFileUtil/__init__.py                         0      0   100%
+GenomeFileUtil/authclient.py                      59     19    68%
+GenomeFileUtil/core/FastaGFFToGenome.py          530    480     9%
+GenomeFileUtil/core/GenbankToGenome.py           528     88    83%
+GenomeFileUtil/core/GenomeFeaturesToFasta.py      71     60    15%
+GenomeFileUtil/core/GenomeInterface.py           307    176    43%
+GenomeFileUtil/core/GenomeToGFF.py               145    123    15%
+GenomeFileUtil/core/GenomeToGenbank.py           179    156    13%
+GenomeFileUtil/core/GenomeUtils.py               204    141    31%
+------------------------------------------------------------------
+TOTAL                                           2584   1634    37%
+----------------------------------------------------------------------
+Ran 22 tests in 54.622s
+
+OK
+cp: cannot stat '/kb/module/.coveragerc': No such file or directory
