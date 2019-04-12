@@ -85,57 +85,49 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(len(genome["genome_tiers"]) == 1, "Should only have 1 tier in it.")
 
     def test_for_alias_colon(self):
-        genome = self.__class__.genome
+        self.assertIn("ArthCp001_CDS_1", self.genome_cdss,"Did not find ArthCp001_CDS_1 in Genomes CDSs")
+        cds = self.genome_cdss["ArthCp001_CDS_1"]
         colon_included = False
-        for feature in genome["cdss"]:
-            if feature['id'] == "ArthCp001_CDS_1":
-                for alias_tuple in feature["aliases"]:
-                    if alias_tuple[0] == "gene_synonym":
-                        if alias_tuple[1] == "TEST:COLON":
-                            colon_included = True
+        for alias_tuple in cds["aliases"]:
+            if alias_tuple[0] == "gene_synonym":
+                if alias_tuple[1] == "TEST:COLON":
+                    colon_included = True
         self.assertTrue(colon_included, "The synonym TEST:COLON was not found.")
 
     def test_for_db_xref_colon(self):
-        genome = self.__class__.genome
+        self.assertIn("ArthCp001_CDS_1", self.genome_cdss,"Did not find ArthCp001_CDS_1 in Genomes CDSs")
+        cds = self.genome_cdss["ArthCp001_CDS_1"]
         found_normal_colon = False
         found_1extra_colon = False
         found_2extra_colon = False
-        for feature in genome["cdss"]:
-            if feature['id'] == "ArthCp001_CDS_1":
-                for db_xref_tuple in feature["db_xrefs"]:
-                    if db_xref_tuple[0] == "MSI":
-                        if db_xref_tuple[1] == "123":
-                            found_normal_colon = True
-                        elif db_xref_tuple[1] == "MSI:123":
-                            found_1extra_colon = True
-                        elif db_xref_tuple[1] == "GB:MSI:123":
-                            found_2extra_colon = True                                                    
+        for db_xref_tuple in cds["db_xrefs"]:
+            if db_xref_tuple[0] == "MSI":
+                if db_xref_tuple[1] == "123":
+                    found_normal_colon = True
+                elif db_xref_tuple[1] == "MSI:123":
+                    found_1extra_colon = True
+                elif db_xref_tuple[1] == "GB:MSI:123":
+                    found_2extra_colon = True                                                    
         self.assertTrue(found_normal_colon, "The normal colon db_xref was not found.")
         self.assertTrue(found_1extra_colon, "The 1extra colon db_xref was not found.")
         self.assertTrue(found_2extra_colon, "The 2extra colon db_xref was not found.")
 
     def test_for_trans_splicing(self):
         genome = self.__class__.genome
-        gene_flag_found = False
-        cds_flag_found = False
         found_mRNA = False
-        for feature in genome["features"]:
-            if feature['id'] == "ArthCp001":
-                if "flags" in feature:
-                    for flag in feature["flags"]:
-                        if flag == "trans_splicing":
-                            gene_flag_found = True
-                gene_sequence = "ATGCCAACCATTAAACAACTTATTAGAAATACAAGACAGCCAATCCGAAACGTCACGAAATCCCCAGCGCTTCGGGGATGCCCTCAGCGACGAGGAACATGTACTCGGGTGTATACTATCACCCCCAAAAAACCAAACTCTGCTTTACGTAAAGTTGCCAGAGTACGATTAACCTCGGGATTTGAAATCACTGCTTATATACCTGGTATTGGCCATAATTTACAAGAACATTCTGTAGTCTTAGTAAGAGGGGGAAGGGTTAAGGATTTACCCGGTGTGAGATATCACATTGTTCGAGGAACCCTAGATGCTGTCGGAGTAAAGGATCGTCAACAAGGGCGTTCTAGTGCGTTGTAGATTCTTATCCAAGACTTGTATCATTTGATGATGCCATGTGAATCGCTAGAAACATGTGAAGTGTATGGCTAACCCAATAACGAAAGTTTCGTAAGGGGACTGGAGCAGGCTACCACGAGACAAAAGATCTTCTTTCAAAAGAGATTCGATTCGGAACTCTTATATGTCCAAGGTTCAATATTGAAATAATTTCAGAGGTTTTCCCTGACTTTGTCCGTGTCAACAAACAATTCGAAATGCCTCGACTTTTTTAGAACAGGTCCGGGTCAAATAGCAATGATTCGAAGCACTTATTTTTACACTATTTCGGAAACCCAAGGACTCAATCGTATGGATATGTAAAATACAGGATTTCCAATCCTAGCAGGAAAAGGAGGGAAACGGATACTCAATTTAAAAGTGAGTAAACAGAATTCCATACTCGATTTCAGAGATACATATATAATTCTGTGGAAAGCCGTATTCGATGAAAGTCGTATGTACGGTTTGGAGGGAGATCTTTCATATCTTTCGAGATCCACCCTACAATATGGGGTCAAAAAGCCAAAATAA"
-                self.assertTrue(feature['dna_sequence'] == gene_sequence, "The DNA sequence for the gene ArthCp001 was not as expected. It contained the following sequence : " + str(feature['dna_sequence']))
-                if 'cdss' in feature:
-                    self.assertTrue("ArthCp001_CDS_1" in feature['cdss'], "The child CDS of ArthCp001_CDS_1 was not found")
-                else:
-                    self.assertTrue('cdss' in feature, "There was no child CDS for ArthCp001")
-                if 'mrnas' in feature:
-                    self.assertTrue("ArthCp001_mRNA_1" in feature['mrnas'], "The child mRNA of ArthCp001_mRNA_1 was not found")
-                else:
-                    self.assertTrue('mrnas' in feature, "There was no child mRNA for ArthCp001")
-        self.assertTrue(gene_flag_found, "The trans_splicing flag for the gene ArthCp001 was not found.")
+        self.assertIn("ArthCp001", self.genome_features,"Did not find ArthCp001 in Genomes features")
+        feature = self.genome_features["ArthCp001"]
+        self.assertIn('trans_splicing', feature.get('flags', []),"The trans_splicing flag for the gene ArthCp001 was not found.")
+        gene_sequence = "ATGCCAACCATTAAACAACTTATTAGAAATACAAGACAGCCAATCCGAAACGTCACGAAATCCCCAGCGCTTCGGGGATGCCCTCAGCGACGAGGAACATGTACTCGGGTGTATACTATCACCCCCAAAAAACCAAACTCTGCTTTACGTAAAGTTGCCAGAGTACGATTAACCTCGGGATTTGAAATCACTGCTTATATACCTGGTATTGGCCATAATTTACAAGAACATTCTGTAGTCTTAGTAAGAGGGGGAAGGGTTAAGGATTTACCCGGTGTGAGATATCACATTGTTCGAGGAACCCTAGATGCTGTCGGAGTAAAGGATCGTCAACAAGGGCGTTCTAGTGCGTTGTAGATTCTTATCCAAGACTTGTATCATTTGATGATGCCATGTGAATCGCTAGAAACATGTGAAGTGTATGGCTAACCCAATAACGAAAGTTTCGTAAGGGGACTGGAGCAGGCTACCACGAGACAAAAGATCTTCTTTCAAAAGAGATTCGATTCGGAACTCTTATATGTCCAAGGTTCAATATTGAAATAATTTCAGAGGTTTTCCCTGACTTTGTCCGTGTCAACAAACAATTCGAAATGCCTCGACTTTTTTAGAACAGGTCCGGGTCAAATAGCAATGATTCGAAGCACTTATTTTTACACTATTTCGGAAACCCAAGGACTCAATCGTATGGATATGTAAAATACAGGATTTCCAATCCTAGCAGGAAAAGGAGGGAAACGGATACTCAATTTAAAAGTGAGTAAACAGAATTCCATACTCGATTTCAGAGATACATATATAATTCTGTGGAAAGCCGTATTCGATGAAAGTCGTATGTACGGTTTGGAGGGAGATCTTTCATATCTTTCGAGATCCACCCTACAATATGGGGTCAAAAAGCCAAAATAA"
+        self.assertTrue(feature['dna_sequence'] == gene_sequence, "The DNA sequence for the gene ArthCp001 was not as expected. It contained the following sequence : " + str(feature['dna_sequence']))
+        if 'cdss' in feature:
+            self.assertTrue("ArthCp001_CDS_1" in feature['cdss'], "The child CDS of ArthCp001_CDS_1 was not found")
+        else:
+            self.assertTrue('cdss' in feature, "There was no child CDS for ArthCp001")
+        if 'mrnas' in feature:
+            self.assertTrue("ArthCp001_mRNA_1" in feature['mrnas'], "The child mRNA of ArthCp001_mRNA_1 was not found")
+        else:
+            self.assertTrue('mrnas' in feature, "There was no child mRNA for ArthCp001")
         for feature in genome["mrnas"]:
             if feature['id'] == "ArthCp001_mRNA_1":
                 found_mRNA = True
@@ -144,93 +136,61 @@ class GenomeFileUtilTest(unittest.TestCase):
                 else:
                     self.assertTrue('parent_gene' in feature, "The parent gene for ArthCp001_CDS_1 was not populated")
         self.assertTrue(found_mRNA, "The mRNA ArthCp001_mRNA_1 was not found.")
-        for feature in genome["cdss"]:
-            if feature['id'] == "ArthCp001_CDS_1":
-                if "flags" in feature:
-                    for flag in feature["flags"]:
-                        if flag == "trans_splicing":
-                            cds_flag_found = True
-                cds_sequence = "ATGCCAACCATTAAACAACTTATTAGAAATACAAGACAGCCAATCCGAAACGTCACGAAATCCCCAGCGCTTCGGGGATGCCCTCAGCGACGAGGAACATGTACTCGGGTGTATACTATCACCCCCAAAAAACCAAACTCTGCTTTACGTAAAGTTGCCAGAGTACGATTAACCTCGGGATTTGAAATCACTGCTTATATACCTGGTATTGGCCATAATTTACAAGAACATTCTGTAGTCTTAGTAAGAGGGGGAAGGGTTAAGGATTTACCCGGTGTGAGATATCACATTGTTCGAGGAACCCTAGATGCTGTCGGAGTAAAGGATCGTCAACAAGGGCGTTCTAAATATGGGGTCAAAAAGCCAAAATAA"
-                self.assertTrue(feature['dna_sequence'] == cds_sequence, "The DNA sequence for the cds ArthCp001_CDS_1 was not as expected. It contained the following sequence : " + str(feature['dna_sequence']))
-                cds_translation = "MPTIKQLIRNTRQPIRNVTKSPALRGCPQRRGTCTRVYTITPKKPNSALRKVARVRLTSGFEITAYIPGIGHNLQEHSVVLVRGGRVKDLPGVRYHIVRGTLDAVGVKDRQQGRSKYGVKKPK"
-                self.assertTrue(feature['protein_translation'] == cds_translation, "The AA sequence for the cds ArthCp001_CDS_1 was not as expected. It contained the following sequence : " + str(feature['protein_translation']))
-                if 'parent_gene' in feature:
-                    self.assertTrue(feature['parent_gene'] == 'ArthCp001',"The parent gene for ArthCp001_CDS_1 was not as expected")
-                else:
-                    self.assertTrue('parent_gene' in feature, "The parent gene for ArthCp001_CDS_1 was not populated")
-        self.assertTrue(cds_flag_found, "The trans_splicing flag for the CDS ArthCp001 was not found.")
+        self.assertIn("ArthCp001_CDS_1", self.genome_cdss,"Did not find ArthCp001_CDS_1 in Genomes CDSs")
+        cds = self.genome_cdss["ArthCp001_CDS_1"]        
+        self.assertIn('trans_splicing', cds.get('flags', []),"The trans_splicing flag for the CDS ArthCp001_CDS_1 was not found.")
+        cds_sequence = "ATGCCAACCATTAAACAACTTATTAGAAATACAAGACAGCCAATCCGAAACGTCACGAAATCCCCAGCGCTTCGGGGATGCCCTCAGCGACGAGGAACATGTACTCGGGTGTATACTATCACCCCCAAAAAACCAAACTCTGCTTTACGTAAAGTTGCCAGAGTACGATTAACCTCGGGATTTGAAATCACTGCTTATATACCTGGTATTGGCCATAATTTACAAGAACATTCTGTAGTCTTAGTAAGAGGGGGAAGGGTTAAGGATTTACCCGGTGTGAGATATCACATTGTTCGAGGAACCCTAGATGCTGTCGGAGTAAAGGATCGTCAACAAGGGCGTTCTAAATATGGGGTCAAAAAGCCAAAATAA"
+        self.assertTrue(cds['dna_sequence'] == cds_sequence, "The DNA sequence for the cds ArthCp001_CDS_1 was not as expected. It contained the following sequence : " + str(cds['dna_sequence']))
+        cds_translation = "MPTIKQLIRNTRQPIRNVTKSPALRGCPQRRGTCTRVYTITPKKPNSALRKVARVRLTSGFEITAYIPGIGHNLQEHSVVLVRGGRVKDLPGVRYHIVRGTLDAVGVKDRQQGRSKYGVKKPK"
+        self.assertTrue(cds['protein_translation'] == cds_translation, "The AA sequence for the cds ArthCp001_CDS_1 was not as expected. It contained the following sequence : " + str(cds['protein_translation']))
+        if 'parent_gene' in cds:
+            self.assertTrue(cds['parent_gene'] == 'ArthCp001',"The parent gene for ArthCp001_CDS_1 was not as expected")
+        else:
+            self.assertTrue('parent_gene' in cds, "The parent gene for ArthCp001_CDS_1 was not populated")
 
     def test_both_strand_trans_splicing(self):
-        genome = self.__class__.genome
-        found_gene = False
-        found_cds = False
-        gene_flag_found = False
-        cds_flag_found = False
-        for feature in genome["features"]:
-            if feature['id'] == "ArthCp047":
-                found_gene = True
-                if "flags" in feature:
-                    for flag in feature["flags"]:
-                        if flag == "trans_splicing":
-                            gene_flag_found = True
-                gene_sequence = "ATGCCAACCATTAAACAACTTATTAGAAATACAAGACAGCCAATCCGAAACGTCACGAAATCCCCAGCGCTTCGGGGATGCCCTCAGCGACGAGGAACATGTACTCGGGTGTATACTATCACCCCCAAAAAACCAAACTCTGCTTTACGTAAAGTTGCCAGAGTACGATTAACCTCGGGATTTGAAATCACTGCTTATATACCTGGTATTGGCCATAATTTACAAGAACATTCTGTAGTCTTAGTAAGAGGGGGAAGGGTTAAGGATTTACCCGGTGTGAGATATCACATTGTTCGAGGAACCCTAGATGCTGTCGGAGTAAAGGATCGTCAACAAGGGCGTTCTAGTGCGTTGTAGATTCTTATCCAAGACTTGTATCATTTGATGATGCCATGTGAATCGCTAGAAACATGTGAAGTGTATGGCTAACCCAATAACGAAAGTTTCGTAAGGGGACTGGAGCAGGCTACCACGAGACAAAAGATCTTCTTTCAAAAGAGATTCGATTCGGAACTCTTATATGTCCAAGGTTCAATATTGAAATAATTTCAGAGGTTTTCCCTGACTTTGTCCGTGTCAACAAACAATTCGAAATGCCTCGACTTTTTTAGAACAGGTCCGGGTCAAATAGCAATGATTCGAAGCACTTATTTTTACACTATTTCGGAAACCCAAGGACTCAATCGTATGGATATGTAAAATACAGGATTTCCAATCCTAGCAGGAAAAGGAGGGAAACGGATACTCAATTTAAAAGTGAGTAAACAGAATTCCATACTCGATTTCAGAGATACATATATAATTCTGTGGAAAGCCGTATTCGATGAAAGTCGTATGTACGGTTTGGAGGGAGATCTTTCATATCTTTCGAGATCCACCCTACAATATGGGGTCAAAAAGCCAAAATAA"
-                self.assertTrue(feature['dna_sequence'] == gene_sequence, "The DNA sequence for the gene ArthCp047 was not as expected. It contained the following sequence : " + str(feature['dna_sequence']))
-                if 'cdss' in feature:
-                    self.assertTrue("ArthCp047_CDS_1" in feature['cdss'], "The child CDS of ArthCp047 was not found")
-                else:
-                    self.assertTrue('cdss' in feature, "There was no child CDS for ArthCp047")
-        self.assertTrue(found_gene, "The gene ArthCp047 was not found.")
-        self.assertTrue(gene_flag_found, "The trans_splicing flag for the gene ArthCp047 was not found.")
-        for feature in genome["cdss"]:
-            if feature['id'] == "ArthCp047_CDS_1":
-                found_cds = True
-                if "flags" in feature:
-                    for flag in feature["flags"]:
-                        if flag == "trans_splicing":
-                            cds_flag_found = True
-                cds_sequence = "ATGCCAACCATTAAACAACTTATTAGAAATACAAGACAGCCAATCCGAAACGTCACGAAATCCCCAGCGCTTCGGGGATGCCCTCAGCGACGAGGAACATGTACTCGGGTGTATACTATCACCCCCAAAAAACCAAACTCTGCTTTACGTAAAGTTGCCAGAGTACGATTAACCTCGGGATTTGAAATCACTGCTTATATACCTGGTATTGGCCATAATTTACAAGAACATTCTGTAGTCTTAGTAAGAGGGGGAAGGGTTAAGGATTTACCCGGTGTGAGATATCACATTGTTCGAGGAACCCTAGATGCTGTCGGAGTAAAGGATCGTCAACAAGGGCGTTCTAAATATGGGGTCAAAAAGCCAAAATAA"
-                self.assertTrue(feature['dna_sequence'] == cds_sequence, "The DNA sequence for the cds ArthCp047_CDS_1 was not as expected. It contained the following sequence : " + str(feature['dna_sequence']))
-                cds_translation = "MPTIKQLIRNTRQPIRNVTKSPALRGCPQRRGTCTRVYTITPKKPNSALRKVARVRLTSGFEITAYIPGIGHNLQEHSVVLVRGGRVKDLPGVRYHIVRGTLDAVGVKDRQQGRSKYGVKKPK"
-                self.assertTrue(feature['protein_translation'] == cds_translation, "The AA sequence for the cds ArthCp001_CDS_1 was not as expected. It contained the following sequence : " + str(feature['protein_translation']))
-                if 'parent_gene' in feature:
-                    self.assertTrue(feature['parent_gene'] == 'ArthCp047',"The parent gene for ArthCp047_CDS_1 was not as expected")
-                else:
-                    self.assertTrue('parent_gene' in feature, "The parent gene for ArthCp047_CDS_1 was not populated")
-        self.assertTrue(found_cds, "The cds ArthCp047_CDS_1 was not found.")
-        self.assertTrue(cds_flag_found, "The trans_splicing flag for the CDS ArthCp047_CDS_1 was not found.")
+        self.assertIn("ArthCp047", self.genome_features,"Did not find ArthCp047 in Genomes features")
+        feature = self.genome_features["ArthCp047"]
+        self.assertIn('trans_splicing', feature.get('flags', []),"The trans_splicing flag for the gene ArthCp047 was not found.")        
+        gene_sequence = "ATGCCAACCATTAAACAACTTATTAGAAATACAAGACAGCCAATCCGAAACGTCACGAAATCCCCAGCGCTTCGGGGATGCCCTCAGCGACGAGGAACATGTACTCGGGTGTATACTATCACCCCCAAAAAACCAAACTCTGCTTTACGTAAAGTTGCCAGAGTACGATTAACCTCGGGATTTGAAATCACTGCTTATATACCTGGTATTGGCCATAATTTACAAGAACATTCTGTAGTCTTAGTAAGAGGGGGAAGGGTTAAGGATTTACCCGGTGTGAGATATCACATTGTTCGAGGAACCCTAGATGCTGTCGGAGTAAAGGATCGTCAACAAGGGCGTTCTAGTGCGTTGTAGATTCTTATCCAAGACTTGTATCATTTGATGATGCCATGTGAATCGCTAGAAACATGTGAAGTGTATGGCTAACCCAATAACGAAAGTTTCGTAAGGGGACTGGAGCAGGCTACCACGAGACAAAAGATCTTCTTTCAAAAGAGATTCGATTCGGAACTCTTATATGTCCAAGGTTCAATATTGAAATAATTTCAGAGGTTTTCCCTGACTTTGTCCGTGTCAACAAACAATTCGAAATGCCTCGACTTTTTTAGAACAGGTCCGGGTCAAATAGCAATGATTCGAAGCACTTATTTTTACACTATTTCGGAAACCCAAGGACTCAATCGTATGGATATGTAAAATACAGGATTTCCAATCCTAGCAGGAAAAGGAGGGAAACGGATACTCAATTTAAAAGTGAGTAAACAGAATTCCATACTCGATTTCAGAGATACATATATAATTCTGTGGAAAGCCGTATTCGATGAAAGTCGTATGTACGGTTTGGAGGGAGATCTTTCATATCTTTCGAGATCCACCCTACAATATGGGGTCAAAAAGCCAAAATAA"
+        self.assertTrue(feature['dna_sequence'] == gene_sequence, "The DNA sequence for the gene ArthCp047 was not as expected. It contained the following sequence : " + str(feature['dna_sequence']))
+        if 'cdss' in feature:
+            self.assertTrue("ArthCp047_CDS_1" in feature['cdss'], "The child CDS of ArthCp047 was not found")
+        else:
+            self.assertTrue('cdss' in feature, "There was no child CDS for ArthCp047")
+        self.assertIn("ArthCp047_CDS_1", self.genome_cdss,"Did not find ArthCp047_CDS_1 in Genomes CDSs")
+        cds = self.genome_cdss["ArthCp047_CDS_1"]   
+        self.assertIn('trans_splicing', cds.get('flags', []),"The trans_splicing flag for the gene ArthCp047_CDS_1 was not found.")      
+        cds_sequence = "ATGCCAACCATTAAACAACTTATTAGAAATACAAGACAGCCAATCCGAAACGTCACGAAATCCCCAGCGCTTCGGGGATGCCCTCAGCGACGAGGAACATGTACTCGGGTGTATACTATCACCCCCAAAAAACCAAACTCTGCTTTACGTAAAGTTGCCAGAGTACGATTAACCTCGGGATTTGAAATCACTGCTTATATACCTGGTATTGGCCATAATTTACAAGAACATTCTGTAGTCTTAGTAAGAGGGGGAAGGGTTAAGGATTTACCCGGTGTGAGATATCACATTGTTCGAGGAACCCTAGATGCTGTCGGAGTAAAGGATCGTCAACAAGGGCGTTCTAAATATGGGGTCAAAAAGCCAAAATAA"
+        self.assertTrue(cds['dna_sequence'] == cds_sequence, "The DNA sequence for the cds ArthCp047_CDS_1 was not as expected. It contained the following sequence : " + str(cds['dna_sequence']))
+        cds_translation = "MPTIKQLIRNTRQPIRNVTKSPALRGCPQRRGTCTRVYTITPKKPNSALRKVARVRLTSGFEITAYIPGIGHNLQEHSVVLVRGGRVKDLPGVRYHIVRGTLDAVGVKDRQQGRSKYGVKKPK"
+        self.assertTrue(cds['protein_translation'] == cds_translation, "The AA sequence for the cds ArthCp001_CDS_1 was not as expected. It contained the following sequence : " + str(cds['protein_translation']))
+        if 'parent_gene' in cds:
+            self.assertTrue(cds['parent_gene'] == 'ArthCp047',"The parent gene for ArthCp047_CDS_1 was not as expected")
+        else:
+            self.assertTrue('parent_gene' in cds, "The parent gene for ArthCp047_CDS_1 was not populated")
 
     def test_for_trans_splicing_multicontig(self):
-        genome = self.__class__.genome
-        gene_flag_found = False
-        cds_flag_found = False
-        for feature in genome["features"]:
-            if feature['id'] == "MultiContigTransSpliced":
-                if "flags" in feature:
-                    for flag in feature["flags"]:
-                        if flag == "trans_splicing":
-                            gene_flag_found = True
-                gene_sequence = "ATGCCAACCATTAAACAACTTATTAGAAATACAAGACAGCCAATCCGAAACGTCACGAAATCCCCAGCGCTTCGGGGATGCCCTCAGCGACGAGGAACATGTACTCGGGTGTATACTATCACCCCCAAAAAACCAAACTCTGCTTTACGTAAAGTTGCCAGAGTACGATTAACCTCGGGATTTGAAATCACTGCTTATATACCTGGTATTGGCCATAATTTACAAGAACATTCTGTAGTCTTAGTAAGAGGGGGAAGGGTTAAGGATTTACCCGGTGTGAGATATCACATTGTTCGAGGAACCCTAGATGCTGTCGGAGTAAAGGATCGTCAACAAGGGCGTTCTAGTGCGTTGTAGATTCTTATCCAAGACTTGTATCATTTGATGATGCCATGTGAATCGCTAGAAACATGTGAAGTGTATGGCTAACCCAATAACGAAAGTTTCGTAAGGGGACTGGAGCAGGCTACCACGAGACAAAAGATCTTCTTTCAAAAGAGATTCGATTCGGAACTCTTATATGTCCAAGGTTCAATATTGAAATAATTTCAGAGGTTTTCCCTGACTTTGTCCGTGTCAACAAACAATTCGAAATGCCTCGACTTTTTTAGAACAGGTCCGGGTCAAATAGCAATGATTCGAAGCACTTATTTTTACACTATTTCGGAAACCCAAGGACTCAATCGTATGGATATGTAAAATACAGGATTTCCAATCCTAGCAGGAAAAGGAGGGAAACGGATACTCAATTTAAAAGTGAGTAAACAGAATTCCATACTCGATTTCAGAGATACATATATAATTCTGTGGAAAGCCGTATTCGATGAAAGTCGTATGTACGGTTTGGAGGGAGATCTTTCATATCTTTCGAGATCCACCCTACAATATGGGGTCAAAAAGCCAAAAATGTAG"
-                self.assertTrue(feature['dna_sequence'] == gene_sequence, "The DNA sequence for the gene MultiContigTransSpliced was not as expected. It contained the following sequence : " + str(feature['dna_sequence']))
-                if 'cdss' in feature:
-                    self.assertTrue("MultiContigTransSpliced_CDS_1" in feature['cdss'], "The child CDS of MultiContigTransSpliced was not found")
-                else:
-                    self.assertTrue('cdss' in feature, "There was no child CDS for MultiContigTransSpliced")
-        self.assertTrue(gene_flag_found, "The trans_splicing flag for the gene MultiContigTransSpliced was not found.")
-        for feature in genome["cdss"]:
-            if feature['id'] == "MultiContigTransSpliced_CDS_1":
-                if "flags" in feature:
-                    for flag in feature["flags"]:
-                        if flag == "trans_splicing":
-                            cds_flag_found = True
-                cds_sequence = "ATGCCAACCATTAAACAACTTATTAGAAATACAAGACAGCCAATCCGAAACGTCACGAAATCCCCAGCGCTTCGGGGATGCCCTCAGCGACGAGGAACATGTACTCGGGTGTATACTATCACCCCCAAAAAACCAAACTCTGCTTTACGTAAAGTTGCCAGAGTACGATTAACCTCGGGATTTGAAATCACTGCTTATATACCTGGTATTGGCCATAATTTACAAGAACATTCTGTAGTCTTAGTAAGAGGGGGAAGGGTTAAGGATTTACCCGGTGTGAGATATCACATTGTTCGAGGAACCCTAGATGCTGTCGGAGTAAAGGATCGTCAACAAGGGCGTTCTAAATATGGGGTCAAAAAGCCAAAAATGTAG"
-                self.assertTrue(feature['dna_sequence'] == cds_sequence, "The DNA sequence for the cds MultiContigTransSpliced_CDS_1 was not as expected. It contained the following sequence : " + str(feature['dna_sequence']))
-                cds_translation = "MPTIKQLIRNTRQPIRNVTKSPALRGCPQRRGTCTRVYTITPKKPNSALRKVARVRLTSGFEITAYIPGIGHNLQEHSVVLVRGGRVKDLPGVRYHIVRGTLDAVGVKDRQQGRSKYGVKKPKM"
-                self.assertTrue(feature['protein_translation'] == cds_translation, "The AA sequence for the cds MultiContigTransSpliced_CDS_1 was not as expected. It contained the following sequence : " + str(feature['protein_translation']))
-                if 'parent_gene' in feature:
-                    self.assertTrue(feature['parent_gene'] == 'MultiContigTransSpliced',"The parent gene for MultiContigTransSpliced_CDS_1 was not as expected")
-                else:
-                    self.assertTrue('parent_gene' in feature, "The parent gene for MultiContigTransSpliced_CDS_1 was not populated")
-        self.assertTrue(cds_flag_found, "The trans_splicing flag for the CDS MultiContigTransSpliced_CDS_1 was not found.")
+        self.assertIn("MultiContigTransSpliced", self.genome_features,"Did not find MultiContigTransSpliced in Genomes features")
+        feature = self.genome_features["MultiContigTransSpliced"]
+        self.assertIn('trans_splicing', feature.get('flags', []),"The trans_splicing flag for the gene MultiContigTransSpliced was not found.")  
+        gene_sequence = "ATGCCAACCATTAAACAACTTATTAGAAATACAAGACAGCCAATCCGAAACGTCACGAAATCCCCAGCGCTTCGGGGATGCCCTCAGCGACGAGGAACATGTACTCGGGTGTATACTATCACCCCCAAAAAACCAAACTCTGCTTTACGTAAAGTTGCCAGAGTACGATTAACCTCGGGATTTGAAATCACTGCTTATATACCTGGTATTGGCCATAATTTACAAGAACATTCTGTAGTCTTAGTAAGAGGGGGAAGGGTTAAGGATTTACCCGGTGTGAGATATCACATTGTTCGAGGAACCCTAGATGCTGTCGGAGTAAAGGATCGTCAACAAGGGCGTTCTAGTGCGTTGTAGATTCTTATCCAAGACTTGTATCATTTGATGATGCCATGTGAATCGCTAGAAACATGTGAAGTGTATGGCTAACCCAATAACGAAAGTTTCGTAAGGGGACTGGAGCAGGCTACCACGAGACAAAAGATCTTCTTTCAAAAGAGATTCGATTCGGAACTCTTATATGTCCAAGGTTCAATATTGAAATAATTTCAGAGGTTTTCCCTGACTTTGTCCGTGTCAACAAACAATTCGAAATGCCTCGACTTTTTTAGAACAGGTCCGGGTCAAATAGCAATGATTCGAAGCACTTATTTTTACACTATTTCGGAAACCCAAGGACTCAATCGTATGGATATGTAAAATACAGGATTTCCAATCCTAGCAGGAAAAGGAGGGAAACGGATACTCAATTTAAAAGTGAGTAAACAGAATTCCATACTCGATTTCAGAGATACATATATAATTCTGTGGAAAGCCGTATTCGATGAAAGTCGTATGTACGGTTTGGAGGGAGATCTTTCATATCTTTCGAGATCCACCCTACAATATGGGGTCAAAAAGCCAAAAATGTAG"
+        self.assertTrue(feature['dna_sequence'] == gene_sequence, "The DNA sequence for the gene MultiContigTransSpliced was not as expected. It contained the following sequence : " + str(feature['dna_sequence']))
+        if 'cdss' in feature:
+            self.assertTrue("MultiContigTransSpliced_CDS_1" in feature['cdss'], "The child CDS of MultiContigTransSpliced was not found")
+        else:
+            self.assertTrue('cdss' in feature, "There was no child CDS for MultiContigTransSpliced")
+        self.assertIn("MultiContigTransSpliced_CDS_1", self.genome_cdss,"Did not find MultiContigTransSpliced_CDS_1 in Genomes CDSs")
+        cds = self.genome_cdss["MultiContigTransSpliced_CDS_1"]   
+        self.assertIn('trans_splicing', cds.get('flags', []),"The trans_splicing flag for the gene MultiContigTransSpliced_CDS_1 was not found.")      
+        cds_sequence = "ATGCCAACCATTAAACAACTTATTAGAAATACAAGACAGCCAATCCGAAACGTCACGAAATCCCCAGCGCTTCGGGGATGCCCTCAGCGACGAGGAACATGTACTCGGGTGTATACTATCACCCCCAAAAAACCAAACTCTGCTTTACGTAAAGTTGCCAGAGTACGATTAACCTCGGGATTTGAAATCACTGCTTATATACCTGGTATTGGCCATAATTTACAAGAACATTCTGTAGTCTTAGTAAGAGGGGGAAGGGTTAAGGATTTACCCGGTGTGAGATATCACATTGTTCGAGGAACCCTAGATGCTGTCGGAGTAAAGGATCGTCAACAAGGGCGTTCTAAATATGGGGTCAAAAAGCCAAAAATGTAG"
+        self.assertTrue(cds['dna_sequence'] == cds_sequence, "The DNA sequence for the cds MultiContigTransSpliced_CDS_1 was not as expected. It contained the following sequence : " + str(cds['dna_sequence']))
+        cds_translation = "MPTIKQLIRNTRQPIRNVTKSPALRGCPQRRGTCTRVYTITPKKPNSALRKVARVRLTSGFEITAYIPGIGHNLQEHSVVLVRGGRVKDLPGVRYHIVRGTLDAVGVKDRQQGRSKYGVKKPKM"
+        self.assertTrue(cds['protein_translation'] == cds_translation, "The AA sequence for the cds MultiContigTransSpliced_CDS_1 was not as expected. It contained the following sequence : " + str(cds['protein_translation']))
+        if 'parent_gene' in feature:
+            self.assertTrue(cds['parent_gene'] == 'MultiContigTransSpliced',"The parent gene for MultiContigTransSpliced_CDS_1 was not as expected")
+        else:
+            self.assertTrue('parent_gene' in cds, "The parent gene for MultiContigTransSpliced_CDS_1 was not populated")
 
     def test_for_invalid_order(self):
         genome = self.genome
@@ -249,257 +209,105 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertIn(warnings['genome_not_trans_spliced'].format(4), genome["warnings"])
 
     def test_for_zero_spanning_pos_strand_feature(self):
-        genome = self.__class__.genome
-        found_gene = False
-        found_cds = False
-        gene_transpliced_flag = False
-        cds_transpliced_flag = False
-        has_gene_warning = False
-        has_cds_warning = False
-        genome_warning = False
-        for feature in genome["features"]:
-            if feature['id'] == "RL4742A":
-                found_gene = True
-                if "flags" in feature:
-                    for flag in feature["flags"]:
-                        if flag == "trans_splicing":
-                            gene_transpliced_flag = True
-                if "warnings" in feature:
-                    if warnings['not_trans_spliced'] in feature["warnings"]:
-                        has_gene_warning = True
-        self.assertFalse(has_gene_warning, "The position coordinates are out of order, but they start and stop at the start and end of a circular contig, therefore it is valid.")
-        self.assertFalse(gene_transpliced_flag, "The trans_splicing flag was set, technically it appears it may be transpliced, but the file does not state it to be.")
-        for feature in genome["cdss"]:
-            if feature['id'] == "RL4742A_CDS_1":
-                found_cds = True
-                if "flags" in feature:
-                    for flag in feature["flags"]:
-                        if flag == "trans_splicing":
-                            cds_transpliced_flag = True
-                if "warnings" in feature:
-                    if warnings['not_trans_spliced'] in feature["warnings"]:
-                        has_cds_warning = True
-        self.assertFalse(has_cds_warning, "The position coordinates for CDS 'RL4742A' are out of order, but they start and stop at the start and end of a circular contig, therefore it is valid.")
-        self.assertFalse(cds_transpliced_flag, "The trans_splicing flag for the cds RL4742A_CDS_1 was set, technically it appears it may be transpliced, but the file does not state it to be.")
-        self.assertTrue(found_gene, "The gene InvalidOrder was not found.")
-        self.assertTrue(found_cds, "The CDS InvalidOrder_CDS_1 was not found.")
+        self.assertIn('RL4742A', self.genome_features)
+        gene = self.genome_features["RL4742A"]
+        self.assertNotIn('trans_splicing', gene.get('flags', []), "The trans_splicing flag was set, technically it appears it may be transpliced, but the file does not state it to be.")
+        self.assertNotIn(warnings['not_trans_spliced'], gene.get("warnings",[]), "The position coordinates are out of order, but they start and stop at the start and end of a circular contig, therefore it is valid.")
+
+        self.assertIn('RL4742A_CDS_1', self.genome_cdss)
+        cds = self.genome_cdss['RL4742A_CDS_1']
+        self.assertNotIn('trans_splicing', cds.get('flags', []), "The trans_splicing flag was set, technically it appears it may be transpliced, but the file does not state it to be.")
+        self.assertNotIn(warnings['not_trans_spliced'], cds.get("warnings",[]), "The trans_splicing flag for the cds RL4742A_CDS_1 was set, technically it appears it may be transpliced, but the file does not state it to be.")
 
     def test_for_zero_spanning_neg_strand_feature(self):
-        genome = self.__class__.genome
-        found_gene = False
-        found_cds = False
-        gene_transpliced_flag = False
-        cds_transpliced_flag = False
-        has_gene_warning = False
-        has_cds_warning = False
-        genome_warning = False
-        for feature in genome["features"]:
-            if feature['id'] == "RL4742":
-                found_gene = True
-                if "flags" in feature:
-                    for flag in feature["flags"]:
-                        if flag == "trans_splicing":
-                            gene_transpliced_flag = True
-                if "warnings" in feature:
-                    if warnings['not_trans_spliced'] in feature["warnings"]:
-                        has_gene_warning = True
-        self.assertFalse(has_gene_warning, "The position coordinates gene 'RL4742' are out of order, but they start and stop at the start and end of a circular contig, therefore it is valid.")
-        self.assertFalse(gene_transpliced_flag, "The trans_splicing flag for the gene RL4742 was set, technically it appears it may be transpliced, but the file does not state it to be.")
-        for feature in genome["cdss"]:
-            if feature['id'] == "RL4742_CDS_1":
-                found_cds = True
-                if "flags" in feature:
-                    for flag in feature["flags"]:
-                        if flag == "trans_splicing":
-                            cds_transpliced_flag = True
-                if "warnings" in feature:
-                    if warnings['not_trans_spliced'] in feature["warnings"]:
-                        has_cds_warning = True
-        self.assertFalse(has_cds_warning, "The position coordinates CDS 'RL4742' are out of order, but they start and stop at the start and end of a circular contig, therefore it is valid.")
-        self.assertFalse(cds_transpliced_flag, "The trans_splicing flag for the cds RL4742_CDS_1 was set, technically it appears it may be transpliced, but the file does not state it to be.")
-        self.assertTrue(found_gene, "The gene RL4742 was not found.")
-        self.assertTrue(found_cds, "The CDS RL4742_CDS_1 was not found.")
+        self.assertIn('RL4742', self.genome_features)
+        gene = self.genome_features["RL4742"]
+        self.assertNotIn('trans_splicing', gene.get('flags', []), "The trans_splicing flag was set, technically it appears it may be transpliced, but the file does not state it to be.")
+        self.assertNotIn(warnings['not_trans_spliced'], gene.get("warnings",[]), "The position coordinates are out of order, but they start and stop at the start and end of a circular contig, therefore it is valid.")
+
+        self.assertIn('RL4742_CDS_1', self.genome_cdss)
+        cds = self.genome_cdss['RL4742_CDS_1']
+        self.assertNotIn('trans_splicing', cds.get('flags', []), "The trans_splicing flag was set, technically it appears it may be transpliced, but the file does not state it to be.")
+        self.assertNotIn(warnings['not_trans_spliced'], cds.get("warnings",[]), "The trans_splicing flag for the cds RL4742_CDS_1 was set, technically it appears it may be transpliced, but the file does not state it to be.")
 
     def test_for_zero_spanning_two_exon_feature(self):
-        genome = self.__class__.genome
-        found_gene = False
-        found_cds = False
-        gene_transpliced_flag = False
-        cds_transpliced_flag = False
-        has_gene_warning = False
-        has_cds_warning = False
-        genome_warning = False
-        for feature in genome["features"]:
-            if feature['id'] == "Zero_Span_two_exon":
-                found_gene = True
-                if "flags" in feature:
-                    for flag in feature["flags"]:
-                        if flag == "trans_splicing":
-                            gene_transpliced_flag = True
-                if "warnings" in feature:
-                    if warnings['not_trans_spliced'] in feature["warnings"]:
-                        has_gene_warning = True
-        self.assertFalse(has_gene_warning, "The position coordinates gene 'Zero_Span_two_exon' are out of order, but they start and stop at the start and end of a circular contig, therefore it is valid.")
-        self.assertFalse(gene_transpliced_flag, "The trans_splicing flag for the gene Zero_Span_two_exon was set, but it is not trans_spliced.")
-        for feature in genome["cdss"]:
-            if feature['id'] == "Zero_Span_two_exon_CDS_1":
-                found_cds = True
-                if "flags" in feature:
-                    for flag in feature["flags"]:
-                        if flag == "trans_splicing":
-                            cds_transpliced_flag = True
-                if "warnings" in feature:
-                    if warnings['not_trans_spliced'] in feature["warnings"]:
-                        has_cds_warning = True
-        self.assertFalse(has_cds_warning, "The position coordinates CDS 'Zero_Span_two_exon' are out of order, but they are the child of a gene that start and stop at the start and end of a circular contig, therefore it is valid.")
-        self.assertFalse(cds_transpliced_flag, "The trans_splicing flag for the cds Zero_Span_two_exon_CDS_1 was set, technically it appears it may be transpliced, but the file does not state it to be.")
-        self.assertTrue(found_gene, "The gene Zero_Span_two_exon was not found.")
-        self.assertTrue(found_cds, "The CDS Zero_Span_two_exon_CDS_1 was not found.")
+        self.assertIn('Zero_Span_two_exon', self.genome_features)
+        gene = self.genome_features["Zero_Span_two_exon"]
+        self.assertNotIn('trans_splicing', gene.get('flags', []), "The trans_splicing flag for the gene Zero_Span_two_exon was set, but it is not trans_spliced.")
+        self.assertNotIn(warnings['not_trans_spliced'], gene.get("warnings",[]), "The position coordinates gene 'Zero_Span_two_exon' are out of order, but they start and stop at the start and end of a circular contig, therefore it is valid.")
+
+        self.assertIn('Zero_Span_two_exon_CDS_1', self.genome_cdss)
+        cds = self.genome_cdss['Zero_Span_two_exon_CDS_1']
+        self.assertNotIn('trans_splicing', cds.get('flags', []), "The trans_splicing flag for the gene Zero_Span_two_exon_CDS_1 was set, but it is not trans_spliced.")
+        self.assertNotIn(warnings['not_trans_spliced'], cds.get("warnings",[]), "The position coordinates gene 'Zero_Span_two_exon_CDS_1' are out of order, but they start and stop at the start and end of a circular contig, therefore it is valid.")
 
     def test_ensembl_ontology_terms(self):
         genome = self.__class__.genome
-        found_cds = False
-        for feature in genome["cdss"]:
-            if feature['id'] == "ArthCp001_CDS_1":
-                found_cds = True
-                self.assertTrue("ontology_terms" in feature,"There are 2 Ensembl style ontology terms that should be accounted for.")
-                self.assertTrue("GO" in feature["ontology_terms"],"There is 1 Ensembl style ontology GO term that should be accounted for.")
-                self.assertTrue("GO:0009523" in feature["ontology_terms"]["GO"],"GO:0009523 should be in the feature's ontology terms map ")
-                self.assertTrue("GO:0009523" in genome["ontologies_present"]["GO"],"GO:0009523 should be in the ontologies_present map")
-                self.assertTrue("PO" in feature["ontology_terms"],"There is 1 Ensembl style ontology PO term that should be accounted for.")
-                self.assertTrue("PO:0000005" in feature["ontology_terms"]["PO"],"PO:0000005 should be in the feature's ontology terms map ")
-                self.assertTrue("PO:0000005" in genome["ontologies_present"]["PO"],"PO:0000005 should be in the ontologies_present map")
-        self.assertTrue(found_cds, "The cds ArthCp001_CDS_1 was not found.")
+        self.assertIn('ArthCp001_CDS_1', self.genome_cdss)
+        feature = self.genome_cdss['ArthCp001_CDS_1']
+        self.assertTrue("ontology_terms" in feature,"There are 2 Ensembl style ontology terms that should be accounted for.")
+        self.assertTrue("GO" in feature["ontology_terms"],"There is 1 Ensembl style ontology GO term that should be accounted for.")
+        self.assertTrue("GO:0009523" in feature["ontology_terms"]["GO"],"GO:0009523 should be in the feature's ontology terms map ")
+        self.assertTrue("GO:0009523" in genome["ontologies_present"]["GO"],"GO:0009523 should be in the ontologies_present map")
+        self.assertTrue("PO" in feature["ontology_terms"],"There is 1 Ensembl style ontology PO term that should be accounted for.")
+        self.assertTrue("PO:0000005" in feature["ontology_terms"]["PO"],"PO:0000005 should be in the feature's ontology terms map ")
+        self.assertTrue("PO:0000005" in genome["ontologies_present"]["PO"],"PO:0000005 should be in the ontologies_present map")
         self.assertTrue("ontology_events" in genome,"There should be an ontology event for the upload.")
 
     def test_drastic_translation_length_difference(self):
         genome = self.__class__.genome
-        found_cds = False
-        has_CDS_warning = False
-        has_translation_off_warning = False
-        genome_suspect = False
-        genome_translation_length_warning = False
-        genome_translation_warning = False
-        for feature in genome["cdss"]:
-            if feature['id'] == "ArthCp004_CDS_1":
-                found_cds = True
-                if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == warnings["inconsistent_CDS_length"].format(240,88):
-                            has_CDS_warning = True
-                        if warning == warnings["inconsistent_translation"]:
-                            has_translation_off_warning = True
-        self.assertTrue(found_cds, "The cds ArthCp004_CDS_1 was not found.")
-        self.assertTrue(has_CDS_warning, "The AA translation length is significantly off in ArthCp004_CDS_1")
-        self.assertTrue(has_translation_off_warning, "The AA translation sequence is significantly off in ArthCp004_CDS_1")
-        if "warnings" in genome:
-            for warning in genome["warnings"]:
-                if warning == warnings["genome_inc_CDS_length"].format("ArthCp004_CDS_1",240,88):
-                    genome_translation_length_warning = True
-                if warning == warnings["genome_inc_translation"].format(2, 26):
-                    genome_translation_warning = True
-        if "suspect" in genome:
-            if genome["suspect"] == 1:
-                genome_suspect = True
-        self.assertTrue(genome_translation_length_warning,"This does not have the translation length warning it should.")
-        self.assertTrue(genome_translation_warning,"This does not have the CDS translation proportion warning it should." + str(genome["warnings"]))
-        self.assertTrue(genome_suspect,"This has significant translation issues both in length and AA sequence.")
+        self.assertIn('ArthCp004_CDS_1', self.genome_cdss)
+        cds = self.genome_cdss['ArthCp004_CDS_1']
+        self.assertIn(warnings["inconsistent_CDS_length"].format(240,88), cds.get("warnings",[]), "The AA translation length is significantly off in ArthCp004_CDS_1")
+        self.assertIn(warnings["inconsistent_translation"], cds.get("warnings",[]), "The AA translation sequence is significantly off in ArthCp004_CDS_1")
+
+        self.assertIn(warnings["genome_inc_CDS_length"].format("ArthCp004_CDS_1",240,88), genome.get("warnings",[]), "This does not have the translation length warning it should.")
+        self.assertIn(warnings["genome_inc_translation"].format(2, 26), genome.get("warnings",[]), "This does not have the CDS translation proportion warning it should." + str(genome["warnings"]))
+        self.assertTrue("suspect" in genome and genome["suspect"] == 1,"This has significant translation issues both in length and AA sequence.")
 
     def test_translation_not_supplied(self):
-        genome = self.__class__.genome
-        found_cds = False
-        has_cds_warning = False
-        has_translation = False
-        for feature in genome["cdss"]:
-            if feature['id'] == "ArthCp015_CDS_1":
-                found_cds = True
-                if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        if warning == warnings["no_translation_supplied"]:
-                            has_cds_warning = True
-                if feature.get("protein_translation"):
-                    has_translation = True
-        self.assertTrue(found_cds,"Did not find ArthCp015_CDS_1.")
-        self.assertTrue(has_cds_warning,"Missing warning was derived from DNA Sequence.")
-        self.assertTrue(has_translation,"The translation was derived and populated.")            
-
+        self.assertIn('ArthCp015_CDS_1', self.genome_cdss)
+        cds = self.genome_cdss['ArthCp015_CDS_1']
+        self.assertIn(warnings["no_translation_supplied"], cds.get("warnings",[]), "Missing warning was derived from DNA Sequence.")
+        self.assertTrue(cds.get("protein_translation"),"The translation was derived and populated.")  
+        
     def test_translation_not_supplied_not_multiple_of_3(self):
-        genome = self.__class__.genome
-        found_cds = False
-        has_cds_warning = False
-        has_empty_translation = False
-        for feature in genome["cdss"]:
-            if feature['id'] == "ArthCp015_non3_CDS_1":
-                found_cds = True
-                if "warnings" in feature:
-                    for warning in feature["warnings"]:
-                        #Note the later portion of this error is thrown by biopython
-                        #if they change their error message, this will need to be updated.
-                        if warning == warnings["no_translation_supplied"] + "Sequence length 88 is not a multiple of three" :
-                            has_cds_warning = True
-                if "protein_translation" in feature:
-                    if feature["protein_translation"] == "":
-                        has_empty_translation = True
-        self.assertTrue(found_cds,"Did not find ArthCp015_non3_CDS_1.")
-        self.assertTrue(has_cds_warning,"Missing warning unable to do translation.")
-        self.assertTrue(has_empty_translation,"No trnaslation supplied and not a multiple of 3, should be emoty.")
+        self.assertIn('ArthCp015_non3_CDS_1', self.genome_cdss)
+        cds = self.genome_cdss['ArthCp015_non3_CDS_1']  
+        self.assertIn(warnings["no_translation_supplied"] + "Sequence length 88 is not a multiple of three", cds.get("warnings",[]), "Missing warning unable to do translation.")  
+        self.assertTrue(cds.get("protein_translation") == "","No translation supplied and not a multiple of 3, should be empty.")
 
     def test_ensembl_coordinates(self):
-        genome = self.__class__.genome
-        refseq_gene = None
-        ensembl_gene = None
-        refseq_CDS = None
-        ensembl_CDS = None
-        for feature in genome["features"]:
-            if feature['id'] == "ArthCp004":
-                refseq_gene = feature
-            if feature['id'] == "ArthCp004_ENSEMBL":
-                ensembl_gene = feature
+        self.assertIn('ArthCp004', self.genome_features)
+        refseq_gene = self.genome_features["ArthCp004"]
+        self.assertIn('ArthCp004_ENSEMBL', self.genome_features)
+        ensembl_gene = self.genome_features["ArthCp004_ENSEMBL"]
         self.assertTrue(refseq_gene and ensembl_gene, "One or both of the following genes were not found: ArthCp004, ArthCp004_ENSEMBL")
         self.assertTrue(refseq_gene["location"] == ensembl_gene["location"],"The Ensembl style coordinates did not result in the same gene location information")
         self.assertTrue(refseq_gene["dna_sequence"] == ensembl_gene["dna_sequence"],"The Ensembl style coordinates did not result in the same gene sequence information")
-        for feature in genome["cdss"]:
-            if feature['id'] == "ArthCp004_CDS_1":
-                refseq_CDS = feature
-            if feature['id'] == "ArthCp004_ENSEMBL_CDS_1":
-                ensembl_CDS = feature
+ 
+        self.assertIn('ArthCp004_CDS_1', self.genome_cdss)
+        refseq_CDS = self.genome_cdss['ArthCp004_CDS_1']  
+        self.assertIn('ArthCp004_ENSEMBL_CDS_1', self.genome_cdss)
+        ensembl_CDS = self.genome_cdss['ArthCp004_ENSEMBL_CDS_1'] 
         self.assertTrue(refseq_CDS and ensembl_CDS,"One or both of the following CDSs were not found: ArthCp004_CDS_1, ArthCp004_ENSEMBL_CDS_1")
         self.assertTrue(refseq_CDS["location"] == ensembl_CDS["location"],"The Ensembl style coordinates did not result in the same CDS location information: ENSEMBL CDS LOCATIONS : " +
                                                                         str(ensembl_CDS["location"]) + " --- REFSEQ CDS LOCATIONS : " + str(refseq_CDS["location"]))
         self.assertTrue(refseq_CDS["dna_sequence"] == ensembl_CDS["dna_sequence"], "The Ensembl style coordinates did not result in the same CDS sequence information")
         cds_translation = "MVKLRLKRCGRKQRAVYRILAIDVRYRREGRDLSKVGFYDPITNQTFLNLSAILDFLKKGAQPTRTAHDISKKAGIFTE"
-        self.assertTrue(ensembl_CDS['protein_translation'] == cds_translation, "The AA sequence for the cds ArthCp004_ENSEMBL_CDS_1 was not as expected. It contained the following sequence : " + str(feature['protein_translation']))
-
+        self.assertTrue(ensembl_CDS['protein_translation'] == cds_translation, "The AA sequence for the cds ArthCp004_ENSEMBL_CDS_1 was not as expected. It contained the following sequence : " + str(ensembl_CDS['protein_translation']))
+ 
     def test_check_ribosomal_slippage(self):
-        genome = self.__class__.genome
-        found_cds = False
-        ribosomal_slippage_flag = False
-        has_warnings = False
-        for feature in genome["cdss"]:
-            if feature['id'] == "SPO1_87_CDS_1":
-                found_CDS = True
-                if "flags" in feature:
-                    for flag in feature["flags"]:
-                        if flag == "ribosomal_slippage":
-                            ribosomal_slippage_flag = True
-                    self.assertTrue(ribosomal_slippage_flag,"The CDS SPO1_87_CDS_1 was supposed to have a ribosomal slippage flag")
-                #Has the folowing warning: This CDS did not have a supplied translation. The translation is derived directly from DNA sequence.
-                #self.assertFalse("warnings" in feature, "Since there is a ribosomal slippage, there should be any translation sequence off warnings.")
+        self.assertIn('SPO1_87_CDS_1', self.genome_cdss)
+        cds = self.genome_cdss['SPO1_87_CDS_1']  
+        self.assertIn('ribosomal_slippage', cds.get('flags', []),"The CDS SPO1_87_CDS_1 was supposed to have a ribosomal slippage flag")      
 
     def test_invalid_coordinates_off_of_contig(self):
         genome = self.__class__.genome
-        found_cds = False
-        found_gene = False
+        self.assertNotIn('ArthCp085', self.genome_features,"'ArthCp085' Should not have been added to the genes, since it has invalid coordinates over the end of the contig")
+        self.assertNotIn('ArthCp085_CDS_1', self.genome_features,"'ArthCp085__CDS_1' Should not have been added to the CDS, since it has invalid coordinates over the end of the contig")
         found_gene_warning = False
         found_cds_warning = False
-        for feature in genome["features"]:
-            if feature['id'] == "ArthCp085":
-                found_gene = True
-        for feature in genome["cdss"]:
-            if feature['id'] == "ArthCp085_CDS_1":
-                found_cds = True
-        self.assertFalse(found_gene,"'ArthCp085' Should not have been added to the genes, since it has invalid coordinates over the end of the contig")
-        self.assertFalse(found_cds,"'ArthCp085__CDS_1' Should not have been added to the CDS, since it has invalid coordinates over the end of the contig")
         if "warnings" in genome:
             for warning in genome["warnings"]:
                 if warning == warnings["coordinates_off_end"].format('ArthCp085_gene'):
