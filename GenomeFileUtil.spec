@@ -19,18 +19,18 @@ module GenomeFileUtil {
 
     typedef mapping<string, string> usermeta;
 
-    /* 
+    /*
     genome_name - becomes the name of the object
     workspace_name - the name of the workspace it gets saved to.
     source - Source of the file typically something like RefSeq or Ensembl
     taxon_ws_name - where the reference taxons are : ReferenceTaxons
     taxon_id - if defined, will try to link the Genome to the specified
         taxonomy id in lieu of performing the lookup during upload
-    release - Release or version number of the data 
+    release - Release or version number of the data
           per example Ensembl has numbered releases of all their data: Release 31
-    generate_ids_if_needed - If field used for feature id is not there, 
+    generate_ids_if_needed - If field used for feature id is not there,
           generate ids (default behavior is raising an exception)
-    genetic_code - Genetic code of organism. Overwrites determined GC from 
+    genetic_code - Genetic code of organism. Overwrites determined GC from
           taxon object
     scientific_name - will be used to set the scientific name of the genome
         and link to a taxon
@@ -66,7 +66,7 @@ module GenomeFileUtil {
                 returns (GenomeSaveResult result) authentication required;
 
     /*
-        is_gtf - optional flag switching export to GTF format (default is 0, 
+        is_gtf - optional flag switching export to GTF format (default is 0,
             which means GFF)
         target_dir - optional target directory to create file in (default is
             temporary folder with name 'gff_<timestamp>' created in scratch)
@@ -170,16 +170,16 @@ module GenomeFileUtil {
     funcdef export_genome_features_protein_to_fasta(ExportParams params)
                 returns (ExportOutput output) authentication required;
 
-    /* 
+    /*
     genome_name - becomes the name of the object
     workspace_name - the name of the workspace it gets saved to.
     source - Source of the file typically something like RefSeq or Ensembl
     taxon_ws_name - where the reference taxons are : ReferenceTaxons
     taxon_id - if defined, will try to link the Genome to the specified
         taxonomy id in lieu of performing the lookup during upload
-    release - Release or version number of the data 
+    release - Release or version number of the data
           per example Ensembl has numbered releases of all their data: Release 31
-    genetic_code - Genetic code of organism. Overwrites determined GC from 
+    genetic_code - Genetic code of organism. Overwrites determined GC from
           taxon object
     scientific_name - will be used to set the scientific name of the genome
         and link to a taxon
