@@ -1,6 +1,7 @@
 import csv
 import os
 import time
+import json
 import traceback
 import urllib.error
 import urllib.parse
@@ -57,19 +58,31 @@ class GenomeToGFF:
         if not os.path.exists(target_dir):
             os.makedirs(target_dir)
 
-        # 4) Build the GFF/GTF file and return it
-        result = self.build_gff_file(data, target_dir, info[1], is_gtf == 1)
+        is_metagenome = 'metagenome' in info[2].lower()
+        # is_metagenome = params.get('genome_type') and params['genome_type'] == 'metagenome'
+
+        if is_metagenome:
+            # if the type is metagenome, get from shock
+            result = get_gff_handle(data, target_dir)
+        else:
+            # 4) Build the GFF/GTF file and return it
+            result = self.build_gff_file(data, target_dir, info[1], is_gtf == 1, is_metagenome)
         if result is None:
             raise ValueError('Unable to generate file.  Something went wrong')
-        result['from_cache'] = 0
+        if is_metagenome:
+            result['from_cache'] = 1
+        else:
+            result['from_cache'] = 0
         return result
 
     def get_gff_handle(self, data, output_dir):
 
-        if 'gff_handle_ref' not in data:
+        if not data.get('gff_handle_ref'):
             return None
-        if data['gff_handle_ref'] is None:
-            return None
+        # if 'gff_handle_ref' not in data:
+        #     return None
+        # if data['gff_handle_ref'] is None:
+        #     return None
 
         print('pulling cached GFF file from Shock: '+str(data['gff_handle_ref']))
         file_ret = self.dfu.shock_to_file(
@@ -78,7 +91,7 @@ class GenomeToGFF:
              'unpack': 'unpack'})
         return {'file_path': file_ret['file_path']}
 
-    def build_gff_file(self, genome_data, output_dir, output_filename, is_gtf):
+    def build_gff_file(self, genome_data, output_dir, output_filename, is_gtf, is_metagenome):
         def feature_sort(feat):
             order = ('gene', 'mRNA', 'CDS')
             if feat.get('children'):
@@ -98,31 +111,51 @@ class GenomeToGFF:
         out_file_path = os.path.join(output_dir, output_filename + file_ext)
         print('Creating file: ' + str(out_file_path))
 
-        """There is two ways of printing, if a feature has a parent_gene, it 
-        will be printed breadth first when it's parent parent gene is printed.
-        if not, it needs to be added to the features_by_contig to be printed"""
-        # sort every feature in the feat_arrays into a dict by contig
-        features_by_contig = defaultdict(list)
-        for feature in genome_data['features'] + genome_data.get(
-                'non_coding_features', []):
-            # type is not present in new gene array
-            if 'type' not in feature:
-                feature['type'] = 'gene'
-            features_by_contig[feature['location'][0][0]].append(feature)
+        if is_metagenome:
+            json_file_path = os.path.join(output_dir, output_filename + '_features.json')
 
-        for mrna in genome_data.get('mrnas', []):
-            mrna['type'] = 'mRNA'
-            if mrna.get('parent_gene'):
-                self.child_dict[mrna['id']] = mrna
-            else:
-                features_by_contig[mrna['location'][0][0]].append(mrna)
+            json_res = self.dfu.shock_to_file({
+                'handle_id': genome_data['features_handle_ref'],
+                'file_path': json_file_path
+            })
+            with open(json_res['file_path']) as json_fid:
+                features = json.load(json_fid)
 
-        for cds in genome_data.get('cdss', []):
-            cds['type'] = 'CDS'
-            if cds.get('parent_gene') or cds.get('parent_mrna'):
-                self.child_dict[cds['id']] = cds
-            else:
-                features_by_contig[cds['location'][0][0]].append(cds)
+            features_by_contig = defaultdict(list)
+            for feature in features:
+                if 'type' not in feature:
+                    feature['type'] = 'gene'
+                elif feature['type']== 'CDS' or feature['type'] == 'mRNA':
+                    if feature.get('parent_gene'):
+                        self.child_dict[feature['id']] = feature
+                features_by_contig[feature['location'][0][0]].append(feature)
+
+        else:
+            """There is two ways of printing, if a feature has a parent_gene, it
+            will be printed breadth first when it's parent parent gene is printed.
+            if not, it needs to be added to the features_by_contig to be printed"""
+            # sort every feature in the feat_arrays into a dict by contig
+            features_by_contig = defaultdict(list)
+            for feature in genome_data['features'] + genome_data.get(
+                    'non_coding_features', []):
+                # type is not present in new gene array
+                if 'type' not in feature:
+                    feature['type'] = 'gene'
+                features_by_contig[feature['location'][0][0]].append(feature)
+
+            for mrna in genome_data.get('mrnas', []):
+                mrna['type'] = 'mRNA'
+                if mrna.get('parent_gene'):
+                    self.child_dict[mrna['id']] = mrna
+                else:
+                    features_by_contig[mrna['location'][0][0]].append(mrna)
+
+            for cds in genome_data.get('cdss', []):
+                cds['type'] = 'CDS'
+                if cds.get('parent_gene') or cds.get('parent_mrna'):
+                    self.child_dict[cds['id']] = cds
+                else:
+                    features_by_contig[cds['location'][0][0]].append(cds)
 
         file_handle = open(out_file_path, 'w')
         writer = csv.DictWriter(file_handle, gff_header, delimiter="\t",

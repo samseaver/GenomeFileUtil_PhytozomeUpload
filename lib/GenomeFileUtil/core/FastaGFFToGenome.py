@@ -944,10 +944,12 @@ class FastaGFFToGenome:
 
             # sort features into their respective arrays
             if feature['type'] == 'CDS':
-                del feature['type']
+                if not self.is_metagenome:
+                    del feature['type']
                 cdss.append(feature)
             elif feature['type'] == 'mRNA':
-                del feature['type']
+                if not self.is_metagenome:
+                    del feature['type']
                 mrnas.append(feature)
             elif feature['type'] == 'gene':
                 # remove duplicates that may arise from CDS info propagation
@@ -955,7 +957,8 @@ class FastaGFFToGenome:
                     if key in feature:
                         feature[key] = list(set(feature[key]))
                 if feature['cdss']:
-                    del feature['type']
+                    if not self.is_metagenome:
+                        del feature['type']
                     self.feature_counts["protein_encoding_gene"] += 1
                     features.append(feature)
                 else:
