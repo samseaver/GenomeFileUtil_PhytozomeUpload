@@ -130,18 +130,3 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertTrue(found_genome_warning,"The genome warning was not present.")  
         self.assertTrue(suspect_genome,"The genome was not labeled as being suspect.")  
 
-    def test_spoof_off(self):
-        gbk_path = "data/e_coli/Ecoli_spoofing_test_genome.gbff"
-        ws_obj_name = 'Ecoli_spoof_fail'
-        with self.assertRaisesRegex(
-                            ValueError, warnings['no_spoof']):
-            self.getImpl().genbank_to_genome(
-                                self.getContext(),
-                                {
-                                    'file': {
-                                        'path': gbk_path},
-                                    'workspace_name': self.getWsName(),
-                                    'genome_name': ws_obj_name,
-                                    'generate_ids_if_needed': 1
-                                })
-

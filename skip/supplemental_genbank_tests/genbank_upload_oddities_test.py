@@ -97,10 +97,14 @@ class GenomeFileUtilTest(unittest.TestCase):
     def test_for_db_xref_colon(self):
         self.assertIn("ArthCp001_CDS_1", self.genome_cdss,"Did not find ArthCp001_CDS_1 in Genomes CDSs")
         cds = self.genome_cdss["ArthCp001_CDS_1"]
+        found_no_colon = False
         found_normal_colon = False
         found_1extra_colon = False
         found_2extra_colon = False
         for db_xref_tuple in cds["db_xrefs"]:
+            if db_xref_tuple[0] == "Unknown_Source":
+                if db_xref_tuple[1] == "no_colon":
+                    found_normal_colon = True
             if db_xref_tuple[0] == "MSI":
                 if db_xref_tuple[1] == "123":
                     found_normal_colon = True
