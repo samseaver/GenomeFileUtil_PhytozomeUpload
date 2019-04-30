@@ -547,6 +547,8 @@ class FastaGFFToGenome:
             elif ref.startswith('TIGR'):
                 ontology['TIGRFAM'][ref] = [self._create_ontology_event("TIGRFAM")]
                 self.ontologies_present['TIGRFAM'][ref] = self.ont_mappings['TIGRFAM'].get(ref, '')
+            elif ":" not in ref:
+                db_xrefs.append(tuple(["Unknown_Source", ref]))
             else:
                 db_xrefs.append(tuple(ref.split(":", 1)))
         return dict(ontology), db_xrefs
