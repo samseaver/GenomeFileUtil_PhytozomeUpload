@@ -62,6 +62,7 @@ class FastaGFFToGenome:
         self.ontology_events = list()
         self.skiped_features = collections.Counter()
         self.feature_counts = collections.Counter()
+        self.used_dict = collections.defaultdict(lambda: 0)
 
     def warn(self, message):
         self.warnings.append(message)
@@ -139,6 +140,7 @@ class FastaGFFToGenome:
             if self.strict:
                 raise ValueError("Every feature sequence id must match a fasta sequence id")
         prot_fasta_path = f"{self.cfg.sharedFolder}/{params['genome_name']}_protein.fasta"
+        # not sure if we want to still do this if this is a metagenome
         self._process_cdss(prot_fasta_path)
 
         # save assembly file
@@ -387,11 +389,20 @@ class FastaGFFToGenome:
         for contig in feature_list:
             for i, feat in enumerate(feature_list[contig]):
                 if "ID" not in feature_list[contig][i]:
-                    for key in ("transcriptid", "proteinid", "pacid",
-                                "parent", "name", 'transcript_id'):
+                    # all of the following are not guaranteed to be unique ID's
+                    # for key in ("transcriptid", "proteinid", "pacid",
+                    #             "parent", "name", 'transcript_id'):
+                    for key in ("name", "transcriptid", "transcript_id", "pacid",
+                                "parent", "proteinid", "proteinId", "protein_id"):
                         if key in feature_list[contig][i]['attributes']:
-                            feature_list[contig][i]['ID'] = feature_list[
-                                contig][i]['attributes'][key][0]
+                            new_id = feature_list[contig][i]['attributes'][key][0]
+                            self.used_dict[new_id]+=1
+                            feature_list[contig][i]['ID'] = new_id
+                            if self.used_dict[new_id] > 1:
+                                new_id = new_id + "." + str(self.used_dict[new_id])
+                            feature_list[contig][i]['ID'] = new_id
+                            # feature_list[contig][i]['ID'] = feature_list[
+                            #     contig][i]['attributes'][key][0]
                             break
                     if feat['type'] not in self.skip_types:
                         self.feature_counts[feat['type']] += 1
@@ -592,7 +603,9 @@ class FastaGFFToGenome:
         """Converts a feature from the gff ftr format into the appropriate
         format for a genome object """
         def _aliases(feat):
-            keys = ('locus_tag', 'old_locus_tag', 'protein_id',
+            # TODO: looks like we may need to add more potential aliases to this list,
+            #      - proteinid, proteinId (variations of protein_id)s
+            keys = ('locus_tag', 'old_locus_tag', 'protein_id',  # 'proteinid', 'proteinId', 'name'
                     'transcript_id', 'gene', 'ec_number', 'gene_synonym')
             alias_list = []
             for key in keys:
@@ -759,6 +772,7 @@ class FastaGFFToGenome:
             if self.is_metagenome:
                 protein_id = ""
                 if cds.get("aliases"):
+                    aliases = cds['aliases']
                     for key, val in aliases:
                         if key == "protein_id":
                             protein_id = val
@@ -900,14 +914,17 @@ class FastaGFFToGenome:
             prot_to_shock = self.dfu.file_to_shock(
                 {'file_path': prot_fasta_path, 'make_handle': 1, 'pack': 'gzip'}
             )
-            genome['features_handle_ref'] = prot_to_shock['handle']['hid']
+            genome['prot_fasta_handle_ref'] = prot_to_shock['handle']['hid']
+            # genome['features_handle_ref'] = prot_to_shock['handle']['hid']
 
         genome['contig_ids'], genome['contig_lengths'] = zip(
             *[(k, v['length']) for k, v in assembly['contigs'].items()])
-        if not self.is_metagenome:
-            genome['source'], genome['genome_tiers'] = self.gi.determine_tier(params.get('source'))
-        else:
+
+        if self.is_metagenome:
             genome['source'], _ = self.gi.determine_tier(params.get('source'))
+            genome['genome_tiers'] = []
+        else:
+            genome['source'], genome['genome_tiers'] = self.gi.determine_tier(params.get('source'))
 
         genome.update(self.gi.retrieve_taxon(self.taxon_wsname,
                                              genome['scientific_name'],
@@ -980,26 +997,32 @@ class FastaGFFToGenome:
             json_file_path =  f'{self.cfg.sharedFolder}/{genome_name}_features.json'
             # save to json files first
             with open(json_file_path, 'w') as fid:
-                json.dumps(metagenome_features, fid)
+                json.dump(metagenome_features, fid)
             # write json to shock
             json_to_shock = self.dfu.file_to_shock(
                 {'file_path': json_file_path, 'make_handle': 1, 'pack': 'gzip'}
             )
-
+            self.feature_counts["non_coding_features"] = len(non_coding_features)
             genome['features_handle_ref'] = json_to_shock['handle']['hid']
             # remove json file to avoid disk overflow
             os.remove(json_file_path)
             # delete python objects to reduce overhead
             del metagenome_features
             del features, cdss, mrnas, non_coding_features
+
+            # Were going to add dummy fields for now
+            # TODO: get rid of these fields.
+            genome['features'] = []
+            genome['cdss'] = []
+
         else:
             # TODO determine whether we want to deepcopy here instaed of reference.
             genome['features'] = features
             genome['cdss'] = cdss
             genome['mrnas'] = mrnas
             genome['non_coding_features'] = non_coding_features
+            self.feature_counts["non_coding_features"] = len(genome['non_coding_features'])
         if self.warnings:
             genome['warnings'] = self.warnings
-        self.feature_counts["non_coding_features"] = len(genome['non_coding_features'])
         genome['feature_counts'] = dict(self.feature_counts)
         return genome

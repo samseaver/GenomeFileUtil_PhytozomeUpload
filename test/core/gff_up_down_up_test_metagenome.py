@@ -33,9 +33,9 @@ class GenomeFileUtilTest(unittest.TestCase):
         cls.wsClient = workspaceService(cls.wsURL, token=token)
         cls.serviceImpl = GenomeFileUtil(cls.cfg)
         # get metagenome data.
-        gff_path   = "data/metagenomes/ebi/.gff.gz"
-        fasta_path = "data/metagenomes/ebi/.gff.gz"
-        ws_obj_name = 'fungal_model'
+        gff_path   = "data/metagenomes/ebi/59111.assembled.gff"
+        fasta_path = "data/metagenomes/ebi/59111.assembled.fna"
+        ws_obj_name = 'metagenome_test_objects'
         suffix = int(time.time() * 1000)
         cls.wsName = "test_GenomeFileUtil_" + str(suffix)
         ret = cls.wsClient.create_workspace({'workspace': cls.wsName})
@@ -50,7 +50,8 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'gff_file': {'path': gff_path},
                 'source': 'GFF',
                 'type': 'Reference',
-                'genome_type': 'Metagenome'
+                'genome_type': 'Metagenome',
+                'generate_missing_genes': True
             })[0]
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
         cls.genome_orig = data_file_cli.get_objects(
@@ -80,14 +81,32 @@ class GenomeFileUtilTest(unittest.TestCase):
             cls.wsClient.delete_workspace({'workspace': cls.wsName})
             print('Test workspace was deleted')
 
-    def feature_list_comparison(self, feature_list_name):
-        genome_orig = self.genome_orig
-        genome_new = self.genome_new
-        self.assertTrue(len(genome_orig[feature_list_name]) == len(genome_new[feature_list_name]),
-                    feature_list_name + " list is not of equal length in Original and New Genomes.")
-        print("\n\n" + feature_list_name + " TOTAL NUMBER:" + str(len(genome_orig[feature_list_name])))
-        orig_dict = dict([(x['id'], x) for x in genome_orig[feature_list_name]])
-        new_dict = dict([(x['id'], x) for x in genome_new[feature_list_name]])
+    def test_feature_list_comparison(self):
+        metagenome_orig = self.genome_orig
+        metagenome_new = self.genome_new
+
+        scratch_dir = cls.cfg['scratch']
+
+        dfu = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
+        orig_file_name = dfu.shock_to_file({'file_path': scratch_dir,
+                                            'shock_id': metagenome_orig['features_handle_ref']
+                                            })['node_file_name']
+        new_file_name = dfu.shock_to_file({'file_path': scratch_dir,
+                                           'shock_id': metagenome_new['features_handle_ref']
+                                           })['node_file_name']
+
+        # open json files
+        with open(orig_file_name) as fid:
+            metagenome_orig_data = json.load(fid)
+        with open(new_file_name) as fid:
+            metagenome_new_data = json.load(fid)
+
+        self.assertTrue(len(metagenome_orig_data) == len(metagenome_new_data),
+                        "list is not of equal length in Original and New Genomes.")
+        print("\n\n" + " TOTAL NUMBER:" + str(len(metagenome_orig_data)))
+
+        orig_dict = dict([(x['id'], x) for x in metagenome_orig_data])
+        new_dict = dict([(x['id'], x) for x in metagenome_new_data])
 
         first_pass_matches = 0
         first_pass_non_match = 0
@@ -137,17 +156,5 @@ class GenomeFileUtilTest(unittest.TestCase):
                     self.maxDiff = None
                     self.assertEqual(orig_feature,new_feature)
         self.assertEqual(len(orig_dict),(first_pass_matches + second_pass_matches),
-                        "There were %d first pass matches and %d second pass matches out of %d items in %s" %
-                        (first_pass_matches, second_pass_matches, len(orig_dict), feature_list_name))
-
-    def test_gene_features(self):
-        self.feature_list_comparison("features")
-
-    def test_cds_features(self):
-        self.feature_list_comparison("cdss")
-
-    def test_mrna_features(self):
-        self.feature_list_comparison("mrnas")
-
-    def test_ncf_features(self):
-        self.feature_list_comparison("non_coding_features")
+                        "There were %d first pass matches and %d second pass matches out of %d items in features" %
+                        (first_pass_matches, second_pass_matches, len(orig_dict)))
