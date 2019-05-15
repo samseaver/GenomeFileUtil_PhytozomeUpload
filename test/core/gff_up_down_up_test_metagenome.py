@@ -1,5 +1,8 @@
 import os
 import time
+import json
+import gzip
+import shutil
 import unittest
 from configparser import ConfigParser
 
@@ -85,15 +88,28 @@ class GenomeFileUtilTest(unittest.TestCase):
         metagenome_orig = self.genome_orig
         metagenome_new = self.genome_new
 
-        scratch_dir = cls.cfg['scratch']
+        scratch_dir = self.cfg['scratch']
 
         dfu = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
         orig_file_name = dfu.shock_to_file({'file_path': scratch_dir,
-                                            'shock_id': metagenome_orig['features_handle_ref']
-                                            })['node_file_name']
+                                            'handle_id': metagenome_orig['features_handle_ref'],
+                                            'unpack': 'unpack'
+                                            })['file_path']
         new_file_name = dfu.shock_to_file({'file_path': scratch_dir,
-                                           'shock_id': metagenome_new['features_handle_ref']
-                                           })['node_file_name']
+                                           'handle_id': metagenome_new['features_handle_ref'],
+                                           'unpack': 'unpack'
+                                           })['file_path']
+
+        # if '.gz' in orig_file_name:
+        #     with gzip.open(orig_file_name, 'rb') as f_in:
+        #         with open(orig_file_name.split('.gz')[0], 'wb') as f_out:
+        #             shutil.copyfileobj(f_in, f_out)
+        #     orig_file_name = orig_file_name.split('.gz')[0]
+        # if '.gz' in new_file_name:
+        #     with gzip.open(new_file_name, 'rb') as f_in:
+        #         with open(new_file_name.split('.gz')[0], 'wb') as f_out:
+        #             shutil.copyfileobj(f_in, f_out)
+        #     new_file_name = new_file_name.split('.gz')[0]
 
         # open json files
         with open(orig_file_name) as fid:
@@ -101,6 +117,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         with open(new_file_name) as fid:
             metagenome_new_data = json.load(fid)
 
+        print('Testing length or original vs new genome')
         self.assertTrue(len(metagenome_orig_data) == len(metagenome_new_data),
                         "list is not of equal length in Original and New Genomes.")
         print("\n\n" + " TOTAL NUMBER:" + str(len(metagenome_orig_data)))
@@ -112,6 +129,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         first_pass_non_match = 0
         second_pass_matches = 0
 
+        print('Testing keys in metagenomes....')
         for key in orig_dict:
             orig_feature = orig_dict[key]
             new_feature = new_dict[key]

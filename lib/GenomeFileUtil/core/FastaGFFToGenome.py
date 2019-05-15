@@ -62,7 +62,6 @@ class FastaGFFToGenome:
         self.ontology_events = list()
         self.skiped_features = collections.Counter()
         self.feature_counts = collections.Counter()
-        self.used_dict = collections.defaultdict(lambda: 0)
 
     def warn(self, message):
         self.warnings.append(message)
@@ -140,7 +139,7 @@ class FastaGFFToGenome:
             if self.strict:
                 raise ValueError("Every feature sequence id must match a fasta sequence id")
         prot_fasta_path = f"{self.cfg.sharedFolder}/{params['genome_name']}_protein.fasta"
-        # not sure if we want to still do this if this is a metagenome
+        # if is a metagenome, the following function writes a protein fasta
         self._process_cdss(prot_fasta_path)
 
         # save assembly file
@@ -390,19 +389,11 @@ class FastaGFFToGenome:
             for i, feat in enumerate(feature_list[contig]):
                 if "ID" not in feature_list[contig][i]:
                     # all of the following are not guaranteed to be unique ID's
-                    # for key in ("transcriptid", "proteinid", "pacid",
-                    #             "parent", "name", 'transcript_id'):
-                    for key in ("name", "transcriptid", "transcript_id", "pacid",
-                                "parent", "proteinid", "proteinId", "protein_id"):
+                    for key in ("transcriptid", "proteinid", "pacid",
+                                "parent", "name", 'transcript_id'):
                         if key in feature_list[contig][i]['attributes']:
-                            new_id = feature_list[contig][i]['attributes'][key][0]
-                            self.used_dict[new_id]+=1
-                            feature_list[contig][i]['ID'] = new_id
-                            if self.used_dict[new_id] > 1:
-                                new_id = new_id + "." + str(self.used_dict[new_id])
-                            feature_list[contig][i]['ID'] = new_id
-                            # feature_list[contig][i]['ID'] = feature_list[
-                            #     contig][i]['attributes'][key][0]
+                            feature_list[contig][i]['ID'] = feature_list[
+                                contig][i]['attributes'][key][0]
                             break
                     if feat['type'] not in self.skip_types:
                         self.feature_counts[feat['type']] += 1
@@ -603,9 +594,7 @@ class FastaGFFToGenome:
         """Converts a feature from the gff ftr format into the appropriate
         format for a genome object """
         def _aliases(feat):
-            # TODO: looks like we may need to add more potential aliases to this list,
-            #      - proteinid, proteinId (variations of protein_id)s
-            keys = ('locus_tag', 'old_locus_tag', 'protein_id',  # 'proteinid', 'proteinId', 'name'
+            keys = ('locus_tag', 'old_locus_tag', 'protein_id',
                     'transcript_id', 'gene', 'ec_number', 'gene_synonym')
             alias_list = []
             for key in keys:
@@ -759,7 +748,8 @@ class FastaGFFToGenome:
     def _process_cdss(self, prot_fasta_path):
         """Because CDSs can have multiple fragments, it's necessary to go
         back over them to calculate a final protein sequence"""
-        prot_fasta = []
+        if self.is_metagenome:
+            prot_fasta = []
         for cds_id in self.cdss:
             cds = self.feature_dict[cds_id]
             try:
@@ -811,9 +801,10 @@ class FastaGFFToGenome:
 
             self.feature_dict[cds['id']] = cds
 
-        with open(prot_fasta_path, 'w') as fid:
-            for line in prot_fasta:
-                fid.write(line)
+        if self.is_metagenome:
+            with open(prot_fasta_path, 'w') as fid:
+                for line in prot_fasta:
+                    fid.write(line)
 
 
 
@@ -922,6 +913,7 @@ class FastaGFFToGenome:
 
         if self.is_metagenome:
             genome['source'], _ = self.gi.determine_tier(params.get('source'))
+            # TODO: included while metagenome is still type KBaseGenomes.Genome
             genome['genome_tiers'] = []
         else:
             genome['source'], genome['genome_tiers'] = self.gi.determine_tier(params.get('source'))
