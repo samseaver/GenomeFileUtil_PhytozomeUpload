@@ -354,7 +354,7 @@ class FastaGFFToGenome:
         for contig in feature_list:
             for i, feat in enumerate(feature_list[contig]):
                 if "ID" not in feature_list[contig][i]:
-                    print("feature_list[contig]:" + str(i) + "::" + str(feature_list[contig][i])
+                    print("feature_list[contig]:" + str(i) + "::" + str(feature_list[contig][i]))
                     for key in ("transcriptid", "proteinId", "pacid",
                                 "parent", 
                                 "name", 
