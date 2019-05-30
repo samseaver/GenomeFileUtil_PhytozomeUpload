@@ -354,20 +354,11 @@ class FastaGFFToGenome:
         for contig in feature_list:
             for i, feat in enumerate(feature_list[contig]):
                 if "ID" not in feature_list[contig][i]:
-                    print("feature_list[contig]:" + str(i) + "::" + str(feature_list[contig][i]))
-                    for key in ("protein_id", 
-                                #"proteinId", "proteinid", 
-                                "name", 
-                                "pacid", "parent",                                 
-                                #"transcriptid", 'transcript_id'
-                                ):
-                        print("Using Key:" + str(key))
-                        print("Attributes:" + str(feature_list[contig][i]['attributes']))
+                    for key in ("protein_id", "name",
+                                "pacid", "parent"):
                         if key in feature_list[contig][i]['attributes']:
                             feature_list[contig][i]['ID'] = feature_list[
                                 contig][i]['attributes'][key][0]
-                            print("FOUND THE KEY:" + str(key) + " value used: " + str(feature_list[
-                                contig][i]['attributes'][key][0])) 
                             break
                     if feat['type'] not in self.skip_types:
                         self.feature_counts[feat['type']] += 1
