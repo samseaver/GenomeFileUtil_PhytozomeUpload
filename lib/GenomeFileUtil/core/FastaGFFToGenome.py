@@ -364,6 +364,8 @@ class FastaGFFToGenome:
                         if key in feature_list[contig][i]['attributes']:
                             feature_list[contig][i]['ID'] = feature_list[
                                 contig][i]['attributes'][key][0]
+                            print("FOUND THE KEY:" + str(key) + " value used: " + str(feature_list[
+                                contig][i]['attributes'][key][0])) 
                             break
                     if feat['type'] not in self.skip_types:
                         self.feature_counts[feat['type']] += 1
