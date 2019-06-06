@@ -40,7 +40,7 @@ class GenomeFileUtil:
     GenomeFileUtil
 
     Module Description:
-    
+
     '''
 
     ######## WARNING FOR GEVENT USERS ####### noqa
@@ -539,6 +539,36 @@ class GenomeFileUtil:
         # return the results
         return [genome]
 
+    def fasta_gff_to_metagenome(self, ctx, params):
+        """
+        """
+        # ctx is the context object
+        # return variables are: returnVal
+        #BEGIN fasta_gff_to_genome
+        print('--->\nRunning GenomeFileUtil.fasta_gff_to_metagenome\nparams:')
+        print(json.dumps(params, indent=1))
+
+        for key in list(params.keys()):
+            if params[key] is None:
+                del params[key]
+
+        for key, value in params.items():
+            if isinstance(value, str):
+                params[key] = value.strip()
+
+        params['is_metagenome'] = True
+
+        importer = FastaGFFToGenome(self.cfg)
+        returnVal = importer.import_file(params)
+        #END fasta_gff_to_genome
+
+        # At some point might do deeper type checking...
+        if not isinstance(returnVal, dict):
+            raise ValueError('Method fasta_gff_to_genome return value ' +
+                             'returnVal is not type dict as required.')
+        # return the results
+        return [returnVal]
+
     def save_one_genome(self, ctx, params):
         """
         :param params: instance of type "SaveOneGenomeParams" -> structure:
@@ -808,7 +838,7 @@ class GenomeFileUtil:
         return [returnVal]
     def status(self, ctx):
         #BEGIN_STATUS
-        returnVal = {'state': "OK", 'message': "", 'version': self.VERSION, 
+        returnVal = {'state': "OK", 'message': "", 'version': self.VERSION,
                      'git_url': self.GIT_URL, 'git_commit_hash': self.GIT_COMMIT_HASH}
         #END_STATUS
         return [returnVal]

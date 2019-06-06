@@ -54,6 +54,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'source': 'GFF',
                 'type': 'Reference',
                 'genome_type': 'Metagenome',
+                'is_metagenome': True,
                 'generate_missing_genes': True
             })[0]
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
@@ -74,7 +75,9 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'gff_file': {'path': down_result['file_path']},
                 'source': 'GFF',
                 'type': 'Reference',
-                'genome_type': 'Metagenome'
+                'genome_type': 'Metagenome',
+                'is_metagenome': True,
+                'generate_missing_genes': True
             })[0]
         cls.genome_new = data_file_cli.get_objects({'object_refs': [new_result['genome_ref']]})['data'][0]['data']
 

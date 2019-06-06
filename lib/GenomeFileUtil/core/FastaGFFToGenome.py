@@ -88,9 +88,10 @@ class FastaGFFToGenome:
     def import_file(self, params):
 
         self.is_metagenome = False
-        if params.get('genome_type'):
-            if params['genome_type'].lower() == "metagenome":
-                self.is_metagenome = True
+        ws_datatype = "KBaseGenomes.Genome"
+        if params.get('is_metagenome'):
+            self.is_metagenome = params['is_metagenome']
+            ws_datatype = "KBaseMetagenomes.AnnotatedMetagenomeAssembly"
 
         genome, input_directory = self.generate_genome_json(params)
 
@@ -100,6 +101,7 @@ class FastaGFFToGenome:
             'name': params['genome_name'],
             'data': genome,
             "meta": params.get('metadata', {}),
+            'workspace_datatype': ws_datatype,
         })
         report_string = 'A genome with {} contigs and the following feature ' \
                         'types was imported: {}'.format(len(genome['contig_ids']), "\n".join(
@@ -148,11 +150,15 @@ class FastaGFFToGenome:
             if we want to pass more stuff to AssemblyUtil, do here.
         TODO: add flag to save_assembly_from_fasta
         '''
+        if self.is_metagenome:
+            genome_type = "metagenome"
+        else:
+            genome_type = params.get('genome_type', 'isolate')
         assembly_ref = self.au.save_assembly_from_fasta(
             {'file': {'path': input_fasta_file},
              'workspace_name': params['workspace_name'],
              'assembly_name': params['genome_name'] + ".assembly",
-             'type': params.get('genome_type', 'isolate'),
+             'type': genome_type,
              })
         assembly_data = self.dfu.get_objects(
             {'object_refs': [assembly_ref],
@@ -891,22 +897,20 @@ class FastaGFFToGenome:
         }
         if self.is_metagenome:
             metagenome_fields = [
-                "num_features",
-                "publications",
-                "external_source_origination_date",
-                "original_source_file_name",
-                "notes",
-                "environment",
+                ("publications", []),
+                ("external_source_origination_date", None),
+                ("original_source_file_name", None),
+                ("notes", None),
+                ("environment" , None),
             ]
-            for field in metagenome_fields:
-                if params.get(field):
-                    genome[field] = params[field]
+            for field, default in metagenome_fields:
+                genome[field] = params.get(field, default)
+
             # save protein fasta to shock
             prot_to_shock = self.dfu.file_to_shock(
                 {'file_path': prot_fasta_path, 'make_handle': 1, 'pack': 'gzip'}
             )
-            genome['prot_fasta_handle_ref'] = prot_to_shock['handle']['hid']
-            # genome['features_handle_ref'] = prot_to_shock['handle']['hid']
+            genome['protein_handle_ref'] = prot_to_shock['handle']['hid']
 
         genome['contig_ids'], genome['contig_lengths'] = zip(
             *[(k, v['length']) for k, v in assembly['contigs'].items()])
@@ -929,7 +933,7 @@ class FastaGFFToGenome:
 
         # Phytozome gff files are not compatible with the RNASeq Pipeline
         # so it's better to build from the object than cache the file
-        if self.is_phytozome:
+        if self.is_phytozome or self.is_metagenome:
             gff_file_to_shock = self.dfu.file_to_shock(
                 {'file_path': input_gff_file, 'make_handle': 1, 'pack': "gzip"})
             genome['gff_handle_ref'] = gff_file_to_shock['handle']['hid']
@@ -984,6 +988,7 @@ class FastaGFFToGenome:
         if self.is_metagenome:
             # TODO: make this section more efficient by editing the above.
             metagenome_features = features + cdss + mrnas + non_coding_features
+            genome['num_features'] = len(metagenome_features)
             # jsonify and save to shock
             genome_name = params['genome_name']
             json_file_path =  f'{self.cfg.sharedFolder}/{genome_name}_features.json'
@@ -1001,12 +1006,6 @@ class FastaGFFToGenome:
             # delete python objects to reduce overhead
             del metagenome_features
             del features, cdss, mrnas, non_coding_features
-
-            # Were going to add dummy fields for now
-            # TODO: get rid of these fields.
-            genome['features'] = []
-            genome['cdss'] = []
-
         else:
             # TODO determine whether we want to deepcopy here instaed of reference.
             genome['features'] = features

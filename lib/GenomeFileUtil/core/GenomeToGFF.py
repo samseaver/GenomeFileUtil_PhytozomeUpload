@@ -47,8 +47,9 @@ class GenomeToGFF:
         data, info = self.gi.get_one_genome({'objects': [{"ref": params['genome_ref']}]})
 
         # 3) make sure the type is valid
-        if info[2].split(".")[1].split('-')[0] != 'Genome':
-            raise ValueError('Object is not a Genome, it is a:' + str(info[2]))
+        ws_type_name = info[2].split('.')[1].split('-')[0]
+        if ws_type_name != 'Genome' and ws_type_name != 'AnnotatedMetagenomeAssembly':
+            raise ValueError('Object is not a Genome or an AnnotatedMetagenomeAssembly, it is a:' + str(info[2]))
 
         is_gtf = params.get('is_gtf', 0)
 
@@ -58,12 +59,11 @@ class GenomeToGFF:
         if not os.path.exists(target_dir):
             os.makedirs(target_dir)
 
-        is_metagenome = 'metagenome' in info[2].lower()
-        # is_metagenome = params.get('genome_type') and params['genome_type'] == 'metagenome'
+        is_metagenome = 'AnnotatedMetagenomeAssembly' in info[2]
 
         if is_metagenome:
             # if the type is metagenome, get from shock
-            result = get_gff_handle(data, target_dir)
+            result = self.get_gff_handle(data, target_dir)
         else:
             # 4) Build the GFF/GTF file and return it
             result = self.build_gff_file(data, target_dir, info[1], is_gtf == 1, is_metagenome)
