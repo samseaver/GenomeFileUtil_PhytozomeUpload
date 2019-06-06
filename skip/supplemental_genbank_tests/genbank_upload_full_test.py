@@ -92,7 +92,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         ws_obj_name = 'DrosophilaGenome.1'
         with self.assertRaisesRegex(
                         ValueError, 
-                        "Unable to find a valid id for genes among these tags: locus_tag," + \
+                        "Unable to find a valid id for gene among these tags: locus_tag," + \
                         " kbase_id. Correct the file or rerun with generate_ids"):
             self.getImpl().genbank_to_genome(
                 self.getContext(),
@@ -167,4 +167,3 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertIsNotNone(result['genome_ref'])
         self.assertTrue(int(
             result['genome_info'][10]['Number of Protein Encoding Genes']) > 0)
-

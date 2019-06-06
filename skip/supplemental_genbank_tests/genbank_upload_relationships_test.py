@@ -809,12 +809,11 @@ class GenomeFileUtilTest(unittest.TestCase):
 
 '''
 TO DO
-Same CDS valid to multiple mRNA and CDS (happy still, valid) - DONE
-CDS not a child of gene by location
+CDS not a child of gene by location - Done test_2variants_1CDS_not_inside_gene
 mRNA not a child of gene by location
 CDS and mRNA not a child of gene (but CDS child of mRNA)
 CDS not a child of mRNA
-Gene has 2 variants one with good CDS, one with invalid CDS
+Gene has 2 variants one with good CDS, one with invalid CDS - DONE test_2variants_1CDS_not_inside_gene
 internal boundaries of CDS with mRNA
 CDS with mRNA parent with 1 more exon 
 CDS seq not in mRNA sequence.

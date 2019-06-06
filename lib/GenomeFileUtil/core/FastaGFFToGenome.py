@@ -395,8 +395,10 @@ class FastaGFFToGenome:
             for i, feat in enumerate(feature_list[contig]):
                 if "ID" not in feature_list[contig][i]:
                     # all of the following are not guaranteed to be unique ID's
-                    for key in ("transcriptid", "proteinid", "pacid",
-                                "parent", "name", 'transcript_id'):
+                    # for key in ("transcriptid", "proteinid", "pacid",
+                    #             "parent", "name", 'transcript_id'):
+                    for key in ("protein_id", "name",
+                                "pacid", "parent"):
                         if key in feature_list[contig][i]['attributes']:
                             feature_list[contig][i]['ID'] = feature_list[
                                 contig][i]['attributes'][key][0]
@@ -588,6 +590,8 @@ class FastaGFFToGenome:
             elif ref.startswith('TIGR'):
                 ontology['TIGRFAM'][ref] = [self._create_ontology_event("TIGRFAM")]
                 self.ontologies_present['TIGRFAM'][ref] = self.ont_mappings['TIGRFAM'].get(ref, '')
+            elif ":" not in ref:
+                db_xrefs.append(tuple(["Unknown_Source", ref]))
             else:
                 db_xrefs.append(tuple(ref.split(":", 1)))
         return dict(ontology), db_xrefs
