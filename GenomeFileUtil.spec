@@ -82,6 +82,13 @@ module GenomeFileUtil {
         string target_dir;
     } GenomeToGFFParams;
 
+    typedef structure {
+        string genome_ref;
+        list <string> ref_path_to_genome;
+        boolean is_gtf;
+        string target_dir;
+    } MetagenomeToGFFParams;
+
     /* from_cache is 1 if the file already exists and was just returned, 0 if
     the file was generated during this call. */
     typedef structure {
@@ -89,8 +96,16 @@ module GenomeFileUtil {
         boolean from_cache;
     } GenomeToGFFResult;
 
+    typedef structure {
+        string file_path;
+        boolean from_cache;
+    } MetagenomeToGFFResult;
+
     funcdef genome_to_gff(GenomeToGFFParams params)
                 returns (GenomeToGFFResult result) authentication required;
+
+    funcdef metagenome_to_gff(MetagenomeToGFFParams params)
+                returns (MetagenomeToGFFResult result) authentication required;
 
     typedef structure {
         string genome_ref;

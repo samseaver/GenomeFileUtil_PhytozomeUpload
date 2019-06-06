@@ -155,6 +155,30 @@ class GenomeFileUtil:
         # return the results
         return [result]
 
+    def metagenome_to_gff(self, ctx, params):
+        """
+        """
+        # ctx is the context object
+        # return variables are: result
+        #BEGIN metagenome_to_gff
+        print('metagenome_to_gff -- paramaters = ')
+        pprint(params)
+
+        exporter = GenomeToGFF(self.cfg)
+        result = exporter.export(ctx, params)
+
+        print('export complete -- result = ')
+        pprint(result)
+        #END metagenome_to_gff
+
+        # At some point might do deeper type checking...
+        if not isinstance(result, dict):
+            raise ValueError('Method genome_to_gff return value ' +
+                             'result is not type dict as required.')
+        # return the results
+        return [result]
+
+
     def genome_to_genbank(self, ctx, params):
         """
         :param params: instance of type "GenomeToGenbankParams" -> structure:

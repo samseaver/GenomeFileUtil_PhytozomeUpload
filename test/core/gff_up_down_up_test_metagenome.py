@@ -62,7 +62,7 @@ class GenomeFileUtilTest(unittest.TestCase):
             {'object_refs': [result['genome_ref']]})['data'][0]['data']
 
         print('testing GFF download by building the file')
-        down_result = cls.serviceImpl.genome_to_gff(
+        down_result = cls.serviceImpl.metagenome_to_gff(
             cls.ctx, {'genome_ref': result['genome_ref']})[0]
 
         print('Reuploading GFF file')
