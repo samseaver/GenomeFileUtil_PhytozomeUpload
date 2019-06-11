@@ -359,12 +359,12 @@ def confirm_genomes_feature_relationships(genome):
     return features_with_relationships_not_found
 
 
-    
-
-
-
-
-
-        
-
-
+# James wrote this in AssemblyUtil, copying here.
+def sort_dict(in_struct):
+    """Recursively sort a dictionary by dictionary keys. (saves WS the trouble)"""
+    if isinstance(in_struct, dict):
+        return {k: sort_dict(in_struct[k]) for k in sorted(in_struct)}
+    elif isinstance(in_struct, list):
+        return [sort_dict(k) for k in sorted(in_struct)]
+    else:
+        return in_struct

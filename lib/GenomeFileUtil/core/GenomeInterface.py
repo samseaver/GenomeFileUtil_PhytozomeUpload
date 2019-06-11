@@ -14,6 +14,7 @@ from installed_clients.AssemblySequenceAPIServiceClient import AssemblySequenceA
 from installed_clients.DataFileUtilClient import DataFileUtil
 from installed_clients.KBaseSearchEngineClient import KBaseSearchEngine
 from installed_clients.WSLargeDataIOClient import WsLargeDataIO
+from GenomeFileUtil.core import GenomeUtils
 
 MAX_GENOME_SIZE = 2**30
 
@@ -160,6 +161,9 @@ class GenomeInterface:
         if "AnnotatedMetagenomeAssembly" not in ws_datatype:
             self._check_dna_sequence_in_features(data)
             data['warnings'] = self.validate_genome(data)
+
+        # sort data
+        data = GenomeUtils.sort_dict(data)
 
         # dump genome to scratch for upload
         data_path = os.path.join(self.scratch, name + ".json")
