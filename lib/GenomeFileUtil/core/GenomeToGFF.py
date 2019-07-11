@@ -76,13 +76,9 @@ class GenomeToGFF:
         return result
 
     def get_gff_handle(self, data, output_dir):
-
+        """Get the gff file directly from the 'gff_handle_ref' field in the object"""
         if not data.get('gff_handle_ref'):
             return None
-        # if 'gff_handle_ref' not in data:
-        #     return None
-        # if data['gff_handle_ref'] is None:
-        #     return None
 
         print('pulling cached GFF file from Shock: '+str(data['gff_handle_ref']))
         file_ret = self.dfu.shock_to_file(

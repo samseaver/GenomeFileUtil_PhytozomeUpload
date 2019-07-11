@@ -993,7 +993,6 @@ class FastaGFFToGenome:
             # TODO: make this section more efficient by editing the above.
             metagenome_features = features + cdss + mrnas + non_coding_features
             genome['num_features'] = len(metagenome_features)
-            # jsonify and save to shock
             genome_name = params['genome_name']
             json_file_path =  f'{self.cfg.sharedFolder}/{genome_name}_features.json'
             # save to json files first
@@ -1005,13 +1004,13 @@ class FastaGFFToGenome:
             )
             self.feature_counts["non_coding_features"] = len(non_coding_features)
             genome['features_handle_ref'] = json_to_shock['handle']['hid']
-            # remove json file to avoid disk overflow
+            # remove json file to avoid disk overload
             os.remove(json_file_path)
             # delete python objects to reduce overhead
             del metagenome_features
             del features, cdss, mrnas, non_coding_features
         else:
-            # TODO determine whether we want to deepcopy here instaed of reference.
+            # TODO determine whether we want to deepcopy here instead of reference.
             genome['features'] = features
             genome['cdss'] = cdss
             genome['mrnas'] = mrnas

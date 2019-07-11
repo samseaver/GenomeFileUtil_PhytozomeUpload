@@ -103,17 +103,6 @@ class GenomeFileUtilTest(unittest.TestCase):
                                            'unpack': 'unpack'
                                            })['file_path']
 
-        # if '.gz' in orig_file_name:
-        #     with gzip.open(orig_file_name, 'rb') as f_in:
-        #         with open(orig_file_name.split('.gz')[0], 'wb') as f_out:
-        #             shutil.copyfileobj(f_in, f_out)
-        #     orig_file_name = orig_file_name.split('.gz')[0]
-        # if '.gz' in new_file_name:
-        #     with gzip.open(new_file_name, 'rb') as f_in:
-        #         with open(new_file_name.split('.gz')[0], 'wb') as f_out:
-        #             shutil.copyfileobj(f_in, f_out)
-        #     new_file_name = new_file_name.split('.gz')[0]
-
         # open json files
         with open(orig_file_name) as fid:
             metagenome_orig_data = json.load(fid)
@@ -155,22 +144,6 @@ class GenomeFileUtilTest(unittest.TestCase):
                 inference_new = new_feature.pop('inference_data',None)
                 if "warnings" in orig_feature and "warnings" not in new_feature:
                     del(orig_feature["warnings"])
-####################
-#THESE ARE TEMPORARY TO FIND OTHER ISSUES:
-#                if feature_list_name == "features":
-#                    if 'protein_translation' in orig_feature:
-#                        del orig_feature['protein_translation']
-#                        del new_feature['protein_translation']
-#                if 'protein_translation_length' in orig_feature:
-#                    del orig_feature['protein_translation_length']
-#                    del new_feature['protein_translation_length']
-#                if 'protein_md5' in orig_feature:
-#                    del orig_feature['protein_md5']
-#                    del new_feature['protein_md5']
-#                if 'functions' in orig_feature:
-#                    del orig_feature['functions']
-#                    del new_feature['functions']
-##################
                 if orig_feature == new_feature:
                     second_pass_matches += 1
                 else:
