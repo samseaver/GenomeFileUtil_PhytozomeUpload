@@ -911,6 +911,7 @@ class FastaGFFToGenome:
                 ("external_source_origination_date", None),
                 ("original_source_file_name", None),
                 ("notes", None),
+                #NOTE: in the future environment should use an ontology.
                 ("environment" , None),
             ]
             for field, default in metagenome_fields:
