@@ -87,11 +87,11 @@ class FastaGFFToGenome:
 
     def import_file(self, params):
 
-        self.is_metagenome = False
-        ws_datatype = "KBaseGenomes.Genome"
-        if params.get('is_metagenome'):
-            self.is_metagenome = params['is_metagenome']
+        self.is_metagenome = params.get('is_metagenome', False)
+        if self.is_metagenome:
             ws_datatype = "KBaseMetagenomes.AnnotatedMetagenomeAssembly"
+        else:
+            ws_datatype = "KBaseGenomes.Genome"
 
         genome, input_directory = self.generate_genome_json(params)
 
@@ -759,7 +759,7 @@ class FastaGFFToGenome:
         """Because CDSs can have multiple fragments, it's necessary to go
         back over them to calculate a final protein sequence"""
         if self.is_metagenome:
-            prot_fasta = []
+            prot_fasta = {}
         for cds_id in self.cdss:
             cds = self.feature_dict[cds_id]
             try:
@@ -783,8 +783,11 @@ class FastaGFFToGenome:
                     pass
                 # TODO: update header to reflect what we actually want people
                 # to see.
-                fasta_seq_data = ">" + protein_id + " cds_id:" + cds['id']
-                prot_fasta.append(fasta_seq_data + "\n" + prot_seq + "\n")
+                if protein_id in prot_fasta:
+                    prot_fasta[protein_id][0] += "/" + cds['id']
+                else:
+                    fasta_seq_data = ">" + protein_id + " cds_ids:" + cds['id']
+                    prot_fasta[protein_id] = [fasta_seq_data, prot_seq]
 
             else:
                 cds.update({
@@ -813,9 +816,8 @@ class FastaGFFToGenome:
 
         if self.is_metagenome:
             with open(prot_fasta_path, 'w') as fid:
-                for line in prot_fasta:
-                    fid.write(line)
-
+                for key, line in prot_fasta.items():
+                    fid.write('\n'.join(line))
 
 
     def _update_from_exons(self, feature):

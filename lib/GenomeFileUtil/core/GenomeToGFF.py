@@ -69,10 +69,7 @@ class GenomeToGFF:
             result = self.build_gff_file(data, target_dir, info[1], is_gtf == 1, is_metagenome)
         if result is None:
             raise ValueError('Unable to generate file.  Something went wrong')
-        if is_metagenome:
-            result['from_cache'] = 1
-        else:
-            result['from_cache'] = 0
+        result['from_cache'] = int(is_metagenome)
         return result
 
     def get_gff_handle(self, data, output_dir):
