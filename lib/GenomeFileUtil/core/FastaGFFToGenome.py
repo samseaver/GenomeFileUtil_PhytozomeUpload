@@ -760,6 +760,7 @@ class FastaGFFToGenome:
         back over them to calculate a final protein sequence"""
         if self.is_metagenome:
             prot_fasta = {}
+            untranslatable_prot = set()
         for cds_id in self.cdss:
             cds = self.feature_dict[cds_id]
             try:
@@ -767,10 +768,12 @@ class FastaGFFToGenome:
                             self.code_table, cds=True).strip("*"))
             except TranslationError as e:
                 cds['warnings'] = cds.get('warnings', []) + [str(e)]
-                #NOTE: we may need a different way of handling this for metagenomes.
+                #NOTE: we may need a dif erent way of handling this for metagenomes.
                 prot_seq = ""
+                if self.is_metagenome:
+                    untranslatable_prot.add(protein_id)
 
-            if self.is_metagenome:
+            if self.is_metagenome and prot_seq != "":
                 protein_id = ""
                 if cds.get("aliases"):
                     aliases = cds['aliases']
@@ -785,7 +788,7 @@ class FastaGFFToGenome:
                 # TODO: update header to reflect what we actually want people
                 # to see.
                 if protein_id in prot_fasta:
-                    prot_fasta[protein_id][0] += "/" + cds['id']
+                    prot_fasta[protein_id][0] += "|" + cds['id']
                 else:
                     fasta_seq_data = ">" + protein_id + " cds_ids:" + cds['id']
                     prot_fasta[protein_id] = [fasta_seq_data, prot_seq]
@@ -819,7 +822,7 @@ class FastaGFFToGenome:
             with open(prot_fasta_path, 'w') as fid:
                 for key, line in prot_fasta.items():
                     fid.write('\n'.join(line))
-
+            # do something with 'untranslatable_prot'
 
     def _update_from_exons(self, feature):
         """This function updates the sequence and location of a feature based
