@@ -767,6 +767,7 @@ class FastaGFFToGenome:
                             self.code_table, cds=True).strip("*"))
             except TranslationError as e:
                 cds['warnings'] = cds.get('warnings', []) + [str(e)]
+                #NOTE: we may need a different way of handling this for metagenomes.
                 prot_seq = ""
 
             if self.is_metagenome:
