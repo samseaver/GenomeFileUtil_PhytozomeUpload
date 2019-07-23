@@ -932,8 +932,6 @@ class FastaGFFToGenome:
 
         if self.is_metagenome:
             genome['source'], _ = self.gi.determine_tier(params.get('source'))
-            # TODO: included while metagenome is still type KBaseGenomes.Genome
-            genome['genome_tiers'] = []
         else:
             genome['source'], genome['genome_tiers'] = self.gi.determine_tier(params.get('source'))
 
