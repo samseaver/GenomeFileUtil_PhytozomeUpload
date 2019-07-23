@@ -122,18 +122,18 @@ class GenomeFileUtilTest(unittest.TestCase):
 #                    del new_feature['protein_translation_length']
 #                if 'protein_md5' in orig_feature:
 #                    del orig_feature['protein_md5']
-#                    del new_feature['protein_md5']                
+#                    del new_feature['protein_md5']
 #                if 'functions' in orig_feature:
 #                    del orig_feature['functions']
-#                    del new_feature['functions']                
+#                    del new_feature['functions']
 ##################
                 if orig_feature == new_feature:
                     second_pass_matches += 1
                 else:
                     self.maxDiff = None
-                    self.assertEqual(orig_feature,new_feature)        
+                    self.assertEqual(orig_feature,new_feature)
         self.assertEqual(len(orig_dict),(first_pass_matches + second_pass_matches),
-                        "There were %d first pass matches and %d second pass matches out of %d items in %s" % 
+                        "There were %d first pass matches and %d second pass matches out of %d items in %s" %
                         (first_pass_matches, second_pass_matches, len(orig_dict), feature_list_name))
 
     def test_gene_features(self):
@@ -147,11 +147,11 @@ class GenomeFileUtilTest(unittest.TestCase):
 
     def test_ncf_features(self):
         self.feature_list_comparison("non_coding_features")
-    
+
     def test_genome_level_attributes(self):
         genome_orig = self.__class__.genome_orig
-        genome_new = self.__class__.genome_new 
-        self.maxDiff = None       
+        genome_new = self.__class__.genome_new
+        self.maxDiff = None
         self.assertEqual(genome_orig["scientific_name"],genome_new["scientific_name"])
         self.assertEqual(genome_orig["domain"],genome_new["domain"])
         self.assertEqual(genome_orig["genome_tiers"],genome_new["genome_tiers"])
@@ -167,10 +167,3 @@ class GenomeFileUtilTest(unittest.TestCase):
         for publication in genome_orig["publications"]:
             self.assertTrue(publication in genome_new["publications"])
         self.assertEqual(genome_orig["ontologies_present"],genome_new["ontologies_present"])
-
-
-
-
-
-
-

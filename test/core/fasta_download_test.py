@@ -116,4 +116,3 @@ class UtilTest(unittest.TestCase):
         with self.assertRaisesRegexp(ValueError, 'Object is not a Genome'):
             ret = self.serviceImpl.genome_features_to_fasta(self.ctx, {
                 'genome_ref': self.assembly_ref})
-

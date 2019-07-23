@@ -152,7 +152,7 @@ class GenomeFileUtilTest(unittest.TestCase):
             }]
         }
         result = self.ws.save_objects(save_info)
-        
+
     def test_upgrade_mixed_model(self):
         mixed = json.load(open('data/mixed_genome.json'))
         mixed['assembly_ref'] = self.assembly_ref
