@@ -365,6 +365,7 @@ def sort_dict(in_struct):
     if isinstance(in_struct, dict):
         return {k: sort_dict(in_struct[k]) for k in sorted(in_struct)}
     elif isinstance(in_struct, list):
-        return [sort_dict(k) for k in sorted(in_struct)]
+        return [sort_dict(k) for k in in_struct]
+        # return [sort_dict(k) for k in sorted(in_struct)]
     else:
         return in_struct

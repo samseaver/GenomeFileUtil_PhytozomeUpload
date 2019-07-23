@@ -53,6 +53,7 @@ class FastaGFFToGenome:
                            'start_codon', 'stop_codon', 'region', 'chromosome', 'scaffold')
         self.spoof_gene_count = 0
         self.is_phytozome = False
+        self.is_metagenome = False
         self.strict = True
         self.generate_genes = False
         self.warnings = []
@@ -768,30 +769,33 @@ class FastaGFFToGenome:
                             self.code_table, cds=True).strip("*"))
             except TranslationError as e:
                 cds['warnings'] = cds.get('warnings', []) + [str(e)]
-                #NOTE: we may need a dif erent way of handling this for metagenomes.
+                #NOTE: we may need a different way of handling this for metagenomes.
                 prot_seq = ""
                 if self.is_metagenome:
-                    untranslatable_prot.add(protein_id)
+                    untranslatable_prot.add(cds_id)
 
-            if self.is_metagenome and prot_seq != "":
-                protein_id = ""
-                if cds.get("aliases"):
-                    aliases = cds['aliases']
-                    for key, val in aliases:
-                        if key == "protein_id":
-                            protein_id = val
-                    if not protein_id:
-                        protein_id = cds['id']# assign to some default
+            if self.is_metagenome:
+                if prot_seq != "":
+                    protein_id = ""
+                    if cds.get("aliases"):
+                        aliases = cds['aliases']
+                        for key, val in aliases:
+                            if key == "protein_id":
+                                protein_id = val
+                        if not protein_id:
+                            protein_id = cds['id']# assign to some default
+                    else:
+                        # log a warning here?
+                        pass
+                    # TODO: update header to reflect what we actually want people
+                    # to see.
+                    if protein_id in prot_fasta:
+                        prot_fasta[protein_id][0] += "|" + cds['id']
+                    else:
+                        fasta_seq_data = ">" + protein_id + " cds_ids:" + cds['id']
+                        prot_fasta[protein_id] = [fasta_seq_data, prot_seq]
                 else:
-                    # log a warning here?
                     pass
-                # TODO: update header to reflect what we actually want people
-                # to see.
-                if protein_id in prot_fasta:
-                    prot_fasta[protein_id][0] += "|" + cds['id']
-                else:
-                    fasta_seq_data = ">" + protein_id + " cds_ids:" + cds['id']
-                    prot_fasta[protein_id] = [fasta_seq_data, prot_seq]
 
             else:
                 cds.update({

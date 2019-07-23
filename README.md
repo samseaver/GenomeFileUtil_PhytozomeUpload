@@ -6,6 +6,10 @@
 This is the basic readme for this module. Include any usage or deployment instructions and links to other documentation here.
 
 
+# Testing
+Important testing information. The Testing environment for the GenomeFileUtil is 'ci'
+
+
 ##Release Notes
 
 ### 0.8.10 (11/2018)

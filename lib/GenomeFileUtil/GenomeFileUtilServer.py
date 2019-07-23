@@ -346,6 +346,10 @@ class Application(object):
                              name='GenomeFileUtil.genome_to_gff',
                              types=[dict])
         self.method_authentication['GenomeFileUtil.genome_to_gff'] = 'required'  # noqa
+        self.rpc_service.add(impl_GenomeFileUtil.metagenome_to_gff,
+                             name='GenomeFileUtil.metagenome_to_gff',
+                             types=[dict])
+        self.method_authentication['GenomeFileUtil.metagenome_to_gff'] = 'required'  # noqa
         self.rpc_service.add(impl_GenomeFileUtil.genome_to_genbank,
                              name='GenomeFileUtil.genome_to_genbank',
                              types=[dict])
@@ -378,6 +382,10 @@ class Application(object):
                              name='GenomeFileUtil.fasta_gff_to_genome_json',
                              types=[dict])
         self.method_authentication['GenomeFileUtil.fasta_gff_to_genome_json'] = 'required'  # noqa
+        self.rpc_service.add(impl_GenomeFileUtil.fasta_gff_to_metagenome,
+                             name='GenomeFileUtil.fasta_gff_to_metagenome',
+                             types=[dict])
+        self.method_authentication['GenomeFileUtil.fasta_gff_to_metagenome'] = 'required'  # noqa
         self.rpc_service.add(impl_GenomeFileUtil.save_one_genome,
                              name='GenomeFileUtil.save_one_genome',
                              types=[dict])
