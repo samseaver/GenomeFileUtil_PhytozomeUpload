@@ -1,4 +1,6 @@
 This directory should contain scripts and files needed to test your module's code.
+
+NOTE: make sure that your test environment is 'ci', the tests won't function otherwise.
  
 Unfortunately not all tests can be run at once as it overloads the callback server.
 So the tests have been broken up into three main areas.
