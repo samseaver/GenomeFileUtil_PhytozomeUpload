@@ -148,9 +148,3 @@ class GenomeFileUtilTest(unittest.TestCase):
 
     def test_ncf_features(self):
         self.feature_list_comparison("non_coding_features")
-
-
-
-
-
-

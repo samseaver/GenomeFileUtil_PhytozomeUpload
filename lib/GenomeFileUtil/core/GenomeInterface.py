@@ -14,6 +14,7 @@ from installed_clients.AssemblySequenceAPIServiceClient import AssemblySequenceA
 from installed_clients.DataFileUtilClient import DataFileUtil
 from installed_clients.KBaseSearchEngineClient import KBaseSearchEngine
 from installed_clients.WSLargeDataIOClient import WsLargeDataIO
+from GenomeFileUtil.core import GenomeUtils
 
 MAX_GENOME_SIZE = 2**30
 
@@ -141,19 +142,28 @@ class GenomeInterface:
         workspace = params['workspace']
         name = params['name']
         data = params['data']
-        if 'meta' in params and params['meta']:
-            meta = params['meta']
+
+        ws_datatype = params.get('workspace_datatype', "KBaseGenomes.Genome")
+
+        meta = params.get('meta', {})
+
+        if "AnnotatedMetagenomeAssembly" in ws_datatype:
+            if params.get('upgrade') or 'feature_counts' not in data:
+                data = self._update_metagenome(data)
         else:
-            meta = {}
-        if params.get('upgrade') or 'feature_counts' not in data:
-            data = self._update_genome(data)
+            if params.get('upgrade') or 'feature_counts' not in data:
+                data = self._update_genome(data)
 
         # check all handles point to shock nodes owned by calling user
         self._own_handle(data, 'genbank_handle_ref')
         self._own_handle(data, 'gff_handle_ref')
 
-        self._check_dna_sequence_in_features(data)
-        data['warnings'] = self.validate_genome(data)
+        if "AnnotatedMetagenomeAssembly" not in ws_datatype:
+            self._check_dna_sequence_in_features(data)
+            data['warnings'] = self.validate_genome(data)
+
+        # sort data
+        data = GenomeUtils.sort_dict(data)
 
         # dump genome to scratch for upload
         data_path = os.path.join(self.scratch, name + ".json")
@@ -171,7 +181,7 @@ class GenomeInterface:
             workspace_id = self.dfu.ws_name_to_id(workspace)
 
         save_params = {'id': workspace_id,
-                       'objects': [{'type': 'KBaseGenomes.Genome',
+                       'objects': [{'type': ws_datatype,
                                     'data_json_file': data_path,
                                     'name': name,
                                     'meta': meta,
@@ -208,6 +218,8 @@ class GenomeInterface:
             return taxon_info(tax_data['scientific_lineage'], ref,
                               tax_data['domain'], tax_data['genetic_code'])
 
+        # ELASTICSEARCH changes should be validated for this section.
+        # May be easier to just edit this section to work with new searchAPI2
         search_params = {
             "object_types": ["taxon"],
             "match_filter": {
@@ -266,21 +278,29 @@ class GenomeInterface:
             return "Ensembl", ['Representative', 'ExternalDB']
         return source, ['User']
 
+    def _update_metagenome(self, genome):
+        """Checks for missing required fields and fixes breaking changes"""
+        if 'molecule_type' not in genome:
+            genome['molecule_type'] = 'Unknown'
+
     def _update_genome(self, genome):
         """Checks for missing required fields and fixes breaking changes"""
         # do top level updates
         ontologies_present = defaultdict(dict)
         ontologies_present.update(genome.get('ontologies_present', {}))
         ontology_events = genome.get('ontology_events', [])
+        # NOTE: 'genome_tier' not in Metagenome spec
         if 'genome_tier' not in genome:
+            # NOTE: should the 'genome_tiers' below be 'genome_tier'?
             genome['source'], genome['genome_tiers'] = self.determine_tier(
                 genome['source'])
         if 'molecule_type' not in genome:
             genome['molecule_type'] = 'Unknown'
+        # NOTE: New Taxon changes should most likely fit in here.
+        # NOTE: Metagenome object does not have a 'taxon_ref' field
         if 'taxon_ref' not in genome:
             genome['taxonomy'], genome['taxon_ref'], domain, genetic_code = self.retrieve_taxon(
                 self.taxon_wsname, genome['scientific_name'])
-
             if 'genetic_code' in genome and genome['genetic_code'] != genetic_code:
                 genome['warnings'] = genome.get('warnings', []) + [
                     "The genetic_code of this genome differs from that of its assigned taxon"]
@@ -317,6 +337,7 @@ class GenomeInterface:
                 genome["md5"] = contig_data['md5']
                 genome["num_contigs"] = len(contig_data['contigs'])
 
+        # NOTE: metagenomes do not have the following fields
         if 'cdss' not in genome:
             genome['cdss'] = []
         if 'mrnas' not in genome:
@@ -414,6 +435,10 @@ class GenomeInterface:
         logging.info('Validating genome object contents')
         warnings = g.get('warnings', [])
 
+        # TODO: Determine whether these checks make any sense for Metagenome
+        #       object. Looks like many don't.
+        #       Add validations for Metagenome object
+
         # this will fire for some annotation methods like PROKKA
         if g['domain'] == "Bacteria" and len(g.get('cdss', [])) != len(
                 g['features']):
@@ -447,6 +472,7 @@ class GenomeInterface:
         def _get_size(obj):
             return sys.getsizeof(json.dumps(obj))
 
+        # seems pretty uneccessary...
         def sizeof_fmt(num):
             for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
                 if abs(num) < 1024.0:
@@ -467,6 +493,7 @@ class GenomeInterface:
                     for feature in g[x]:
                         for feature_key in list(feature.keys()):
                             if feature_key == "dna_sequence" and need_to_remove_dna_sequence:
+                                # NOTE: should this get stored somewhere?
                                 del (feature["dna_sequence"])
                             else:
                                 if feature_key not in feature_type_dict_keys:

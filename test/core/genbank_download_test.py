@@ -152,8 +152,3 @@ class GenomeFileUtilTest(unittest.TestCase):
         res1 = genomeFileUtil.genome_to_genbank(self.getContext(),
                                                 {'genome_ref': ref})[0]
         self.assertEqual(res1['from_cache'], 0)
-
-
-
-
-

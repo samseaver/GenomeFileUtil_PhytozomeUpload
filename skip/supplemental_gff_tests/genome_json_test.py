@@ -238,6 +238,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
         assert 'genome_tiers' in genome_json
 
         self.assertEqual(genome_json['domain'], 'Eukaryota')
+
         self.assertEqual(genome_json['genetic_code'], 11)
         self.assertEqual(genome_json['scientific_name'], 'Populus trichocarpa')
         self.assertEqual(genome_json['source'], 'Genbank')

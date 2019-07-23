@@ -47,7 +47,7 @@ class GenomeFileUtilTest(unittest.TestCase):
               'generate_ids_if_needed': 1
             })[0]
 #        print("HERE IS THE RESULT:")
-        data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'], 
+        data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'],
                                 token=cls.ctx['token'],
                                 service_ver='dev')
         cls.genome_orig = data_file_cli.get_objects({'object_refs': [result['genome_ref']]})['data'][0]['data']
@@ -111,7 +111,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 inference_new = new_feature.pop('inference_data',None)
                 if "warnings" in orig_feature:
                     if 'The coordinates supplied for this feature are non-exact. DNA or protein translations are approximate.' in  orig_feature["warnings"]:
-                        orig_feature["warnings"] = [warning for warning in orig_feature["warnings"] if warning != 
+                        orig_feature["warnings"] = [warning for warning in orig_feature["warnings"] if warning !=
                             'The coordinates supplied for this feature are non-exact. DNA or protein translations are approximate.']
                 if "warnings" in orig_feature and "warnings" not in new_feature:
                     del(orig_feature["warnings"])
@@ -120,9 +120,9 @@ class GenomeFileUtilTest(unittest.TestCase):
                     second_pass_matches += 1
                 else:
                     self.maxDiff = None
-                    self.assertEqual(orig_feature,new_feature)        
+                    self.assertEqual(orig_feature,new_feature)
         self.assertEqual(len(orig_dict),(first_pass_matches + second_pass_matches),
-                        "There were %d first pass matches and %d second pass matches out of %d items in %s" % 
+                        "There were %d first pass matches and %d second pass matches out of %d items in %s" %
                         (first_pass_matches, second_pass_matches, len(orig_dict), feature_list_name))
 
     def test_gene_features(self):
@@ -136,11 +136,11 @@ class GenomeFileUtilTest(unittest.TestCase):
 
     def test_ncf_features(self):
         self.feature_list_comparison("non_coding_features")
-    
+
     def test_genome_level_attributes(self):
         genome_orig = self.__class__.genome_orig
-        genome_new = self.__class__.genome_new 
-        self.maxDiff = None       
+        genome_new = self.__class__.genome_new
+        self.maxDiff = None
         self.assertEqual(genome_orig["scientific_name"],genome_new["scientific_name"])
         self.assertEqual(genome_orig["domain"],genome_new["domain"])
         self.assertEqual(genome_orig["genome_tiers"],genome_new["genome_tiers"])
