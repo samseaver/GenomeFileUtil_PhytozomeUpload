@@ -613,6 +613,10 @@ class GenomeFileUtil:
         for key, value in params.items():
             if isinstance(value, str):
                 params[key] = value.strip()
+            # convert all named fields from 'metagenome' to 'genome'
+            if 'metagenome' in key:
+              params[key.replace('metagenome', 'genome')] = params[key]
+              del params[key]
 
         params['is_metagenome'] = True
 
