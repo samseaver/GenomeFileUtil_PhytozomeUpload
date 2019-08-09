@@ -43,6 +43,7 @@ class GenomeToGFF:
         # 1) validate parameters and extract defaults
         self.validate_params(params)
 
+
         # 2) get genome info
         data, info = self.gi.get_one_genome({'objects': [{"ref": params['genome_ref']}]})
 

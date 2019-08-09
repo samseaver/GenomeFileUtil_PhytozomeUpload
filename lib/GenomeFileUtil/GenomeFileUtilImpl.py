@@ -175,6 +175,8 @@ class GenomeFileUtil:
         print('metagenome_to_gff -- paramaters = ')
         pprint(params)
 
+        params['genome_ref'] = params['metagenome_ref']
+
         exporter = GenomeToGFF(self.cfg)
         result = exporter.export(ctx, params)
 
@@ -613,10 +615,6 @@ class GenomeFileUtil:
         for key, value in params.items():
             if isinstance(value, str):
                 params[key] = value.strip()
-            # convert all named fields from 'metagenome' to 'genome'
-            if 'metagenome' in key:
-              params[key.replace('metagenome', 'genome')] = params[key]
-              del params[key]
 
         params['is_metagenome'] = True
 

@@ -58,11 +58,11 @@ class GenomeFileUtilTest(unittest.TestCase):
             })[0]
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
         cls.genome_orig = data_file_cli.get_objects(
-            {'object_refs': [result['genome_ref']]})['data'][0]['data']
+            {'object_refs': [result['metagenome_ref']]})['data'][0]['data']
 
         print('testing GFF download by building the file')
         down_result = cls.serviceImpl.metagenome_to_gff(
-            cls.ctx, {'genome_ref': result['genome_ref']})[0]
+            cls.ctx, {'metagenome_ref': result['metagenome_ref']})[0]
 
         print('Reuploading GFF file')
         new_result = cls.serviceImpl.fasta_gff_to_metagenome(
@@ -77,7 +77,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'genome_type': 'Metagenome',
                 'generate_missing_genes': True
             })[0]
-        cls.genome_new = data_file_cli.get_objects({'object_refs': [new_result['genome_ref']]})['data'][0]['data']
+        cls.genome_new = data_file_cli.get_objects({'object_refs': [new_result['metagenome_ref']]})['data'][0]['data']
 
     @classmethod
     def tearDownClass(cls):

@@ -91,9 +91,10 @@ class FastaGFFToGenome:
         self.is_metagenome = params.get('is_metagenome', False)
         if self.is_metagenome:
             ws_datatype = "KBaseMetagenomes.AnnotatedMetagenomeAssembly"
+            str_prefix = "meta"
         else:
             ws_datatype = "KBaseGenomes.Genome"
-
+            str_prefix = ""
         genome, input_directory = self.generate_genome_json(params)
 
         json.dump(genome, open(f"{self.cfg.sharedFolder}/{genome['id']}.json", 'w'), indent=4)
@@ -115,8 +116,8 @@ class FastaGFFToGenome:
         # 6) return the result
         info = result['info']
         details = {
-            'genome_ref': f'{info[6]}/{info[0]}/{info[4]}',
-            'genome_info': info
+            str_prefix+'genome_ref': f'{info[6]}/{info[0]}/{info[4]}',
+            str_prefix+'genome_info': info
         }
 
         return details
@@ -152,7 +153,7 @@ class FastaGFFToGenome:
         TODO: add flag to save_assembly_from_fasta
         '''
         if self.is_metagenome:
-            genome_type = "metagenome"
+            genome_type = params.get('genome_type', "metagenome")
         else:
             genome_type = params.get('genome_type', 'isolate')
         assembly_ref = self.au.save_assembly_from_fasta(

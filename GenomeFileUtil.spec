@@ -60,6 +60,7 @@ module GenomeFileUtil {
 
     typedef structure {
         string genome_ref;
+        Workspace.object_info genome_info;
     } GenomeSaveResult;
 
     funcdef genbank_to_genome(GenbankToGenomeParams params)
@@ -96,7 +97,7 @@ module GenomeFileUtil {
     */
 
     typedef structure {
-        string genome_ref;
+        string metagenome_ref;
         list <string> ref_path_to_genome;
         boolean is_gtf;
         string target_dir;
@@ -106,10 +107,6 @@ module GenomeFileUtil {
         string file_path;
         boolean from_cache;
     } MetagenomeToGFFResult;
-
-    typedef structure {
-        string metagenome_ref;
-    } MetagenomeSaveResult;
 
     funcdef metagenome_to_gff(MetagenomeToGFFParams params)
                 returns (MetagenomeToGFFResult result) authentication required;
@@ -265,6 +262,11 @@ module GenomeFileUtil {
         usermeta metadata;
         boolean generate_missing_genes;
     } FastaGFFToMetagenomeParams;
+
+    typedef structure {
+        string metagenome_ref;
+        Workspace.object_info metagenome_info;
+    } MetagenomeSaveResult;
 
     funcdef fasta_gff_to_metagenome(FastaGFFToMetagenomeParams params)
                 returns (MetagenomeSaveResult returnVal) authentication required;
