@@ -161,6 +161,8 @@ class GenomeInterface:
         if "AnnotatedMetagenomeAssembly" not in ws_datatype:
             self._check_dna_sequence_in_features(data)
             data['warnings'] = self.validate_genome(data)
+        else:
+            data['warnings'] = self.validate_metagenome(data)
 
         # sort data
         data = GenomeUtils.sort_dict(data)
@@ -423,6 +425,15 @@ class GenomeInterface:
         genome['feature_counts'] = type_counts
 
         return genome
+
+    @staticmethod
+    def validate_metagenome(g):
+        """
+        needs to be expanded...
+        """
+        warnings = g.get('warnings', [])
+
+        return warnings
 
     @staticmethod
     def validate_genome(g):
