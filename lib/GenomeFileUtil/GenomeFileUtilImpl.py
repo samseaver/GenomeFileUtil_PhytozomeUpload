@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import shutil
+import uuid
 from pprint import pprint
 
 from GenomeFileUtil.core.FastaGFFToGenome import FastaGFFToGenome
@@ -51,7 +52,7 @@ class GenomeFileUtil:
     ######################################### noqa
     VERSION = "0.8.14"
     GIT_URL = "https://github.com/slebras/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "c2507297bc30731ddcd160783c9482a52e6eeea8"
+    GIT_COMMIT_HASH = "40989bb6d75618a8f9a82d2b6804cb861c26245d"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -97,7 +98,51 @@ class GenomeFileUtil:
            boolean - 0 for false, 1 for true. @range (0, 1)), parameter
            "use_existing_assembly" of String
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
-           "genome_ref" of String
+           "genome_ref" of String, parameter "genome_info" of type
+           "object_info" (Information about an object, including user
+           provided metadata. obj_id objid - the numerical id of the object.
+           obj_name name - the name of the object. type_string type - the
+           type of the object. timestamp save_date - the save date of the
+           object. obj_ver ver - the version of the object. username saved_by
+           - the user that saved or copied the object. ws_id wsid - the
+           workspace containing the object. ws_name workspace - the workspace
+           containing the object. string chsum - the md5 checksum of the
+           object. int size - the size of the object in bytes. usermeta meta
+           - arbitrary user-supplied metadata about the object.) -> tuple of
+           size 11: parameter "objid" of type "obj_id" (The unique, permanent
+           numerical ID of an object.), parameter "name" of type "obj_name"
+           (A string used as a name for an object. Any string consisting of
+           alphanumeric characters and the characters |._- that is not an
+           integer is acceptable.), parameter "type" of type "type_string" (A
+           type string. Specifies the type and its version in a single string
+           in the format [module].[typename]-[major].[minor]: module - a
+           string. The module name of the typespec containing the type.
+           typename - a string. The name of the type as assigned by the
+           typedef statement. major - an integer. The major version of the
+           type. A change in the major version implies the type has changed
+           in a non-backwards compatible way. minor - an integer. The minor
+           version of the type. A change in the minor version implies that
+           the type has changed in a way that is backwards compatible with
+           previous type definitions. In many cases, the major and minor
+           versions are optional, and if not provided the most recent version
+           will be used. Example: MyModule.MyType-3.1), parameter "save_date"
+           of type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ,
+           where Z is either the character Z (representing the UTC timezone)
+           or the difference in time to UTC in the format +/-HHMM, eg:
+           2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC
+           time) 2013-04-03T08:56:32Z (UTC time)), parameter "version" of
+           Long, parameter "saved_by" of type "username" (Login name of a
+           KBase user account.), parameter "wsid" of type "ws_id" (The
+           unique, permanent numerical ID of a workspace.), parameter
+           "workspace" of type "ws_name" (A string used as a name for a
+           workspace. Any string consisting of alphanumeric characters and
+           "_", ".", or "-" that is not an integer is acceptable. The name
+           may optionally be prefixed with the workspace owner's user name
+           and a colon, e.g. kbasetest:my_workspace.), parameter "chsum" of
+           String, parameter "size" of Long, parameter "meta" of type
+           "usermeta" (User provided metadata about an object. Arbitrary
+           key-value pairs provided by the user.) -> mapping from String to
+           String
         """
         # ctx is the context object
         # return variables are: result
@@ -161,7 +206,7 @@ class GenomeFileUtil:
            optional flag switching export to GTF format (default is 0, which
            means GFF) target_dir - optional target directory to create file
            in (default is temporary folder with name 'gff_<timestamp>'
-           created in scratch)) -> structure: parameter "genome_ref" of
+           created in scratch)) -> structure: parameter "metagenome_ref" of
            String, parameter "ref_path_to_genome" of list of String,
            parameter "is_gtf" of type "boolean" (A boolean - 0 for false, 1
            for true. @range (0, 1)), parameter "target_dir" of String
@@ -474,6 +519,139 @@ class GenomeFileUtil:
         # return the results
         return [output]
 
+    def export_metagenome_as_gff(self, ctx, params):
+        """
+        input and output structure functions for standards downloaders
+        :param params: instance of type "ExportParams" (input and output
+           structure functions for standard downloaders) -> structure:
+           parameter "input_ref" of String
+        :returns: instance of type "ExportOutput" -> structure: parameter
+           "shock_id" of String
+        """
+        # ctx is the context object
+        # return variables are: output
+        #BEGIN export_metagenome_as_gff
+        if 'input_ref' not in params:
+            raise ValueError('Cannot run export_metagenome_as_gff- no "input_ref" '
+                             'field defined.')
+
+        # get WS metadata to get ws_name and obj_name
+        ws = Workspace(url=self.cfg.workspaceURL)
+        info = ws.get_objects2({'objects': [{
+            'ref': params['input_ref'],
+            'included':['/assembly_ref', 'source_id', '/gff_handle_ref']}
+        ]})['data'][0]['data']
+
+        # export to file (building from KBase Genome Object)
+        result = self.genome_to_gff(ctx, {
+            'genome_ref': params['input_ref']
+        })[0]
+
+        # get assembly
+        assembly_ref = info.get('assembly_ref', "")
+
+        print(('Assembly reference = ' + assembly_ref))
+        print('Downloading assembly')
+        au = AssemblyUtil(self.cfg.callbackURL)
+        assembly_file_path = au.get_assembly_as_fasta(
+            {'ref': params['input_ref'] + ";" + assembly_ref}
+        )['path']
+
+        source_id = info.get('source_id', uuid.uiid4())
+
+        # create the output directory and move the files there
+        export_package_dir = os.path.join(self.cfg.sharedFolder, source_id)
+        os.makedirs(export_package_dir)
+        shutil.move(
+            result['file_path'],
+            os.path.join(export_package_dir,
+                         'KBase_derived_' + os.path.basename(result['file_path'])))
+        shutil.move(
+            assembly_file_path,
+            os.path.join(export_package_dir,
+                         os.path.basename(assembly_file_path)))
+
+        # add cached genome if appropriate
+        exporter = GenomeToGFF(self.cfg)
+        cached = exporter.get_gff_handle(info, export_package_dir)
+
+        # package it up
+        dfUtil = DataFileUtil(self.cfg.callbackURL)
+        package_details = dfUtil.package_for_download({
+                                    'file_path': export_package_dir,
+                                    'ws_refs': [params['input_ref']]
+                                })
+
+        output = {'shock_id': package_details['shock_id']}
+
+        #END export_metagenome_as_gff
+
+        # At some point might do deeper type checking...
+        if not isinstance(output, dict):
+            raise ValueError('Method export_metagenome_as_gff return value ' +
+                             'output is not type dict as required.')
+        # return the results
+        return [output]
+
+    def export_metagenome_features_protein_to_fasta(self, ctx, params):
+        """
+        :param params: instance of type "ExportParams" (input and output
+           structure functions for standard downloaders) -> structure:
+           parameter "input_ref" of String
+        :returns: instance of type "ExportOutput" -> structure: parameter
+           "shock_id" of String
+        """
+        # ctx is the context object
+        # return variables are: output
+        #BEGIN export_metagenome_features_protein_to_fasta
+        if 'input_ref' not in params:
+            raise ValueError('Cannot run export_metagenome_features_protein_to_fasta- no "input_ref" '
+                             'field defined.')
+
+        # get WS metadata to get ws_name and obj_name
+        ws = Workspace(url=self.cfg.workspaceURL)
+        info = ws.get_objects2({'objects': [{
+            'ref': params['input_ref'],
+            'included':['/protein_handle_ref', 'source_id']}
+        ]})['data'][0]['data']
+
+        protein_fasta_handle_ref = info.get('protein_handle_ref')
+        # get assembly
+
+        dfUtil = DataFileUtil(self.cfg.callbackURL)
+        protein_fasta_path = dfUtil.shock_to_file({
+          "handle_id": protein_fasta_handle_ref
+        })['file_path']
+
+        source_id = info.get('source_id', uuid.uiid4())
+
+        # create the output directory and move the files there
+        export_package_dir = os.path.join(self.cfg.sharedFolder, source_id)
+        os.makedirs(export_package_dir)
+        shutil.move(
+            protein_fasta_path,
+            os.path.join(export_package_dir,
+                         'KBase_derived_' + os.path.basename(protein_fasta_path)))
+
+        # package it up
+        dfUtil = DataFileUtil(self.cfg.callbackURL)
+        package_details = dfUtil.package_for_download({
+                                    'file_path': export_package_dir,
+                                    'ws_refs': [params['input_ref']]
+                                })
+
+        output = {'shock_id': package_details['shock_id']}
+
+        pass
+        #END export_metagenome_features_protein_to_fasta
+
+        # At some point might do deeper type checking...
+        if not isinstance(output, dict):
+            raise ValueError('Method export_metagenome_features_protein_to_fasta return value ' +
+                             'output is not type dict as required.')
+        # return the results
+        return [output]
+
     def fasta_gff_to_genome(self, ctx, params):
         """
         :param params: instance of type "FastaGFFToGenomeParams" (genome_name
@@ -503,7 +681,51 @@ class GenomeFileUtil:
            "generate_missing_genes" of type "boolean" (A boolean - 0 for
            false, 1 for true. @range (0, 1))
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
-           "genome_ref" of String
+           "genome_ref" of String, parameter "genome_info" of type
+           "object_info" (Information about an object, including user
+           provided metadata. obj_id objid - the numerical id of the object.
+           obj_name name - the name of the object. type_string type - the
+           type of the object. timestamp save_date - the save date of the
+           object. obj_ver ver - the version of the object. username saved_by
+           - the user that saved or copied the object. ws_id wsid - the
+           workspace containing the object. ws_name workspace - the workspace
+           containing the object. string chsum - the md5 checksum of the
+           object. int size - the size of the object in bytes. usermeta meta
+           - arbitrary user-supplied metadata about the object.) -> tuple of
+           size 11: parameter "objid" of type "obj_id" (The unique, permanent
+           numerical ID of an object.), parameter "name" of type "obj_name"
+           (A string used as a name for an object. Any string consisting of
+           alphanumeric characters and the characters |._- that is not an
+           integer is acceptable.), parameter "type" of type "type_string" (A
+           type string. Specifies the type and its version in a single string
+           in the format [module].[typename]-[major].[minor]: module - a
+           string. The module name of the typespec containing the type.
+           typename - a string. The name of the type as assigned by the
+           typedef statement. major - an integer. The major version of the
+           type. A change in the major version implies the type has changed
+           in a non-backwards compatible way. minor - an integer. The minor
+           version of the type. A change in the minor version implies that
+           the type has changed in a way that is backwards compatible with
+           previous type definitions. In many cases, the major and minor
+           versions are optional, and if not provided the most recent version
+           will be used. Example: MyModule.MyType-3.1), parameter "save_date"
+           of type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ,
+           where Z is either the character Z (representing the UTC timezone)
+           or the difference in time to UTC in the format +/-HHMM, eg:
+           2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC
+           time) 2013-04-03T08:56:32Z (UTC time)), parameter "version" of
+           Long, parameter "saved_by" of type "username" (Login name of a
+           KBase user account.), parameter "wsid" of type "ws_id" (The
+           unique, permanent numerical ID of a workspace.), parameter
+           "workspace" of type "ws_name" (A string used as a name for a
+           workspace. Any string consisting of alphanumeric characters and
+           "_", ".", or "-" that is not an integer is acceptable. The name
+           may optionally be prefixed with the workspace owner's user name
+           and a colon, e.g. kbasetest:my_workspace.), parameter "chsum" of
+           String, parameter "size" of Long, parameter "meta" of type
+           "usermeta" (User provided metadata about an object. Arbitrary
+           key-value pairs provided by the user.) -> mapping from String to
+           String
         """
         # ctx is the context object
         # return variables are: returnVal
@@ -602,7 +824,51 @@ class GenomeFileUtil:
            "generate_missing_genes" of type "boolean" (A boolean - 0 for
            false, 1 for true. @range (0, 1))
         :returns: instance of type "MetagenomeSaveResult" -> structure:
-           parameter "metagenome_ref" of String
+           parameter "metagenome_ref" of String, parameter "metagenome_info"
+           of type "object_info" (Information about an object, including user
+           provided metadata. obj_id objid - the numerical id of the object.
+           obj_name name - the name of the object. type_string type - the
+           type of the object. timestamp save_date - the save date of the
+           object. obj_ver ver - the version of the object. username saved_by
+           - the user that saved or copied the object. ws_id wsid - the
+           workspace containing the object. ws_name workspace - the workspace
+           containing the object. string chsum - the md5 checksum of the
+           object. int size - the size of the object in bytes. usermeta meta
+           - arbitrary user-supplied metadata about the object.) -> tuple of
+           size 11: parameter "objid" of type "obj_id" (The unique, permanent
+           numerical ID of an object.), parameter "name" of type "obj_name"
+           (A string used as a name for an object. Any string consisting of
+           alphanumeric characters and the characters |._- that is not an
+           integer is acceptable.), parameter "type" of type "type_string" (A
+           type string. Specifies the type and its version in a single string
+           in the format [module].[typename]-[major].[minor]: module - a
+           string. The module name of the typespec containing the type.
+           typename - a string. The name of the type as assigned by the
+           typedef statement. major - an integer. The major version of the
+           type. A change in the major version implies the type has changed
+           in a non-backwards compatible way. minor - an integer. The minor
+           version of the type. A change in the minor version implies that
+           the type has changed in a way that is backwards compatible with
+           previous type definitions. In many cases, the major and minor
+           versions are optional, and if not provided the most recent version
+           will be used. Example: MyModule.MyType-3.1), parameter "save_date"
+           of type "timestamp" (A time in the format YYYY-MM-DDThh:mm:ssZ,
+           where Z is either the character Z (representing the UTC timezone)
+           or the difference in time to UTC in the format +/-HHMM, eg:
+           2012-12-17T23:24:06-0500 (EST time) 2013-04-03T08:56:32+0000 (UTC
+           time) 2013-04-03T08:56:32Z (UTC time)), parameter "version" of
+           Long, parameter "saved_by" of type "username" (Login name of a
+           KBase user account.), parameter "wsid" of type "ws_id" (The
+           unique, permanent numerical ID of a workspace.), parameter
+           "workspace" of type "ws_name" (A string used as a name for a
+           workspace. Any string consisting of alphanumeric characters and
+           "_", ".", or "-" that is not an integer is acceptable. The name
+           may optionally be prefixed with the workspace owner's user name
+           and a colon, e.g. kbasetest:my_workspace.), parameter "chsum" of
+           String, parameter "size" of Long, parameter "meta" of type
+           "usermeta" (User provided metadata about an object. Arbitrary
+           key-value pairs provided by the user.) -> mapping from String to
+           String
         """
         # ctx is the context object
         # return variables are: returnVal
