@@ -2,7 +2,7 @@ import json
 
 
 class RENotFound(RuntimeError):
-    """A resource was not found on the relation engine."""
+    """A resource we need from the Relation Engine was not found."""
 
     def __init__(self, resource, key, val, resp_json):
         """
@@ -15,9 +15,9 @@ class RENotFound(RuntimeError):
         self.resp_json = resp_json
 
     def __repr__(self):
-        # Eg: "Relation engine API error fetching taxon results by taxonomy ID
+        # Eg: "The Relation Engine was unable to fetch taxon results by taxonomy ID
         #     using the value 123. The server response was:
         #     etc."
-        return (f"Relation engine API error fetching {self.resource} results by"
+        return (f"The Relation Engine was unable to fetch {self.resource} results by "
                 f"{self.key} using the value '{self.val}'. The server response "
                 f"was: \n{json.dumps(self.resp_json, indent=2)}")
