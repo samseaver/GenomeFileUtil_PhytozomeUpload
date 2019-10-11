@@ -315,19 +315,19 @@ class GenomeInterface:
         # NOTE: New Taxon changes should most likely fit in here.
         # NOTE: Metagenome object does not have a 'taxon_ref' field
         if 'taxon_ref' not in genome:
-            genome['taxonomy'], genome['taxon_ref'], domain, genetic_code = self.retrieve_taxon(
-                genome['scientific_name'])
-            if 'genetic_code' in genome and genome['genetic_code'] != genetic_code:
+            taxon_data = self.retrieve_taxon(genome['scientific_name'])
+            genome['taxonomy'] = taxon_data['taxonomy']
+            if 'genetic_code' in genome and genome['genetic_code'] != taxon_data['genetic_code']:
                 genome['warnings'] = genome.get('warnings', []) + [
                     "The genetic_code of this genome differs from that of its assigned taxon"]
             else:
-                genome['genetic_code'] = genetic_code
+                genome['genetic_code'] = taxon_data['genetic_code']
 
-            if 'domain' in genome and genome['domain'] != domain:
+            if 'domain' in genome and genome['domain'] != taxon_data['domain']:
                 genome['warnings'] = genome.get('warnings', []) + [
                     "The domain of this genome differs from that of its assigned taxon"]
             else:
-                genome['domain'] = domain
+                genome['domain'] = taxon_data['domain']
 
         if any([x not in genome for x in ('dna_size', 'md5', 'gc_content',
                                           'num_contigs')]):
