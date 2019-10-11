@@ -2,9 +2,9 @@ import hashlib
 import json
 import logging
 import os
-import re
+import time
 import sys
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 
 import requests
 
@@ -15,6 +15,7 @@ from installed_clients.DataFileUtilClient import DataFileUtil
 from installed_clients.KBaseSearchEngineClient import KBaseSearchEngine
 from installed_clients.WSLargeDataIOClient import WsLargeDataIO
 from GenomeFileUtil.core import GenomeUtils
+from GenomeFileUtil.core.exceptions import RENotFound
 
 MAX_GENOME_SIZE = 2**30
 
@@ -59,10 +60,9 @@ class GenomeInterface:
         if not response.ok:
             try:
                 err = json.loads(response.content)['error'][0]
-            except:
+            except Exception:
                 # this means shock is down or not responding.
-                logging.error("Couldn't parse response error content from Shock: " +
-                         response.content)
+                logging.error("Couldn't parse response error content from Shock: " + response.content)
                 response.raise_for_status()
             raise ValueError(errtxt + str(err))
 
@@ -132,7 +132,7 @@ class GenomeInterface:
         res = self.ws_large_data.get_objects(params)['data'][0]
         data = json.load(open(res['data_json_file']))
         return data, res['info']
-        #return self.dfu.get_objects(params)['data'][0]
+        # return self.dfu.get_objects(params)['data'][0]
 
     def save_one_genome(self, params):
         logging.info('start saving genome object')
@@ -169,8 +169,7 @@ class GenomeInterface:
         data_path = os.path.join(self.scratch, name + ".json")
         json.dump(data, open(data_path, 'w'))
 
-        if 'hidden' in params and str(params['hidden']).lower() in (
-        'yes', 'true', 't', '1'):
+        if 'hidden' in params and str(params['hidden']).lower() in ('yes', 'true', 't', '1'):
             hidden = 1
         else:
             hidden = 0
@@ -193,70 +192,86 @@ class GenomeInterface:
 
         return returnVal
 
-    def retrieve_taxon(self, taxon_wsname, scientific_name, tax_id=None):
+    def retrieve_taxon(self, scientific_name, tax_id=None):
         """
-        _retrieve_taxon: retrieve taxonomy and taxon_reference
+        Fetch the taxonomy data for a genome using (preferably) taxonomy ID,
+        falling back to an NCBI scientific name (for any rank).
 
+        We return a dict representing a subset of the genome object, which will
+        get merged upstream into the larger genome object:
+        {
+          "taxonomy": "x;y;z",    # NCBI taxonomy lineage string for human readability
+          "domain": "x"           # String name of the domain
+          "genetic_code": 11      # NCBI categorization of the lineage
+                                   (https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi)
+          "taxon_assignments": {  # Mapping of taxonomy namespace to taxonomy ID
+            "NCBI": 1234
+          }
+        }
         """
-        taxon_info = namedtuple('taxon_info', ['taxonomy', 'taxon_ref', 'domain', 'genetic_code'])
-        default = taxon_info('Unconfirmed Organism: ' + scientific_name,
-                             'ReferenceTaxons/unknown_taxon', 'Unknown', 11)
-
-        def extract_values(search_obj):
-            return taxon_info(search_obj['data']['scientific_lineage'],
-                              taxon_wsname+"/"+search_obj['object_name'],
-                              search_obj['data']['domain'],
-                              search_obj['data'].get('genetic_code', 11))
-
-        if tax_id:
-            ref = f'{taxon_wsname}/{tax_id}_taxon'
-            try:
-                tax_data = self.dfu.get_objects({'object_refs': [ref]})['data'][0]['data']
-            except:
-                raise ValueError(f'{tax_id} is not a valid KBase taxon ID. Please specify a '
-                                 f'different taxon or only a scientific name')
-            return taxon_info(tax_data['scientific_lineage'], ref,
-                              tax_data['domain'], tax_data['genetic_code'])
-
-        # ELASTICSEARCH changes should be validated for this section.
-        # May be easier to just edit this section to work with new searchAPI2
-        search_params = {
-            "object_types": ["taxon"],
-            "match_filter": {
-                "lookup_in_keys": {
-                    "scientific_name": {"value": scientific_name}},
-                "exclude_subobjects": 1
-            },
-            "access_filter": {
-                "with_private": 0,
-                "with_public": 1
-            },
-            "sorting_rules": [{
-                "is_object_property": 0,
-                "property": "timestamp",
-                "ascending": 0
-            }]
+        ret = {
+            "taxonomy": f"Unconfirmed: {scientific_name}",
+            "domain": "Unknown",
+            "genetic_code": 11  # Bacterial, archaeal and plant plastid code
         }
-        objects = self.kbse.search_objects(search_params)['objects']
-        if len(objects):
-            if len(objects) > 100000:
-                raise RuntimeError(f"Too many matching taxa returned for {scientific_name}. "
-                                   f"Potential issue with searchAPI.")
-            return extract_values(objects[0])
-        search_params['match_filter']['lookup_in_keys'] = {
-            "aliases": {"value": scientific_name}
-        }
-        objects = self.kbse.search_objects(search_params)['objects']
-        if len(objects):
-            return extract_values(objects[0])
-        return default
+        # FIXME is there any way to avoid hard-coding the below path?
+        reapi_url = os.environ['KBASE_ENDPOINT'].strip('/') + '/relation_engine_api'
+        now = int(time.time() * 1000)  # unix epoch for right now, for use in the RE API
+        if not tax_id:
+            # Fetch the tax id with the Relation Engine API by exact match on sciname
+            resp = requests.post(
+                reapi_url,
+                params={'stored_query': 'ncbi_fetch_taxon_by_sciname'},
+                data=json.dumps({"sciname": scientific_name, "ts": now})
+            )
+            resp_json = resp.json()
+            if not resp.ok or not resp_json['results']:
+                raise RENotFound(coll='ncbi_taxon', key="scientific_name", val=scientific_name,
+                                 resp_json=resp_json)
+            re_result = resp_json['results'][0]
+            # We will use the taxonomy ID from the result from here on out
+            tax_id = re_result['ncbi_taxon_id']
+        else:
+            # Fetch the taxon from Relation Engine by taxon ID
+            resp = requests.post(
+                reapi_url,
+                params={'stored_query': 'ncbi_fetch_taxon'},
+                data=json.dumps({'id': tax_id, 'ts': now})
+            )
+            resp_json = resp.json()
+            if not resp.ok or not resp_json['results']:
+                raise RENotFound(coll='ncbi_taxon', key="ncbi_taxon_id", val=tax_id, resp_json=resp_json)
+            re_result = resp_json['results'][0]
+        # Refer to the following schema for returned fields in `re_result`:
+        # https://github.com/kbase/relation_engine_spec/blob/develop/schemas/ncbi/ncbi_taxon.yaml
+        ret['genetic_code'] = re_result['gencode']
+        ret['taxon_assignments'] = {'NCBI': tax_id}
+        # Fetch the lineage on RE using the taxon ID to fill the "taxonomy" and "domain" fields.
+        resp = requests.post(
+            reapi_url,
+            params={'stored_query': 'ncbi_taxon_get_lineage'},
+            data={'id': tax_id, 'ts': now, 'select': ['scientific_name', 'rank']}
+        )
+        resp_json = resp.json()
+        if not resp.ok or not resp_json['results']:
+            raise RuntimeError(f"Unable to fetch the taxonomic lineage for ID {tax_id}. "
+                               f"The response from the relation engine API was:\n{resp.text}.")
+        # The results will be an array of taxon docs with "scientific_name" and "rank" fields
+        lineage = [r['scientific_name'] for r in resp_json['results']]
+        # Fetch the domain in the lineage. The `domain` var should be a singleton list.
+        domain = [r['scientific_name'] for r in resp_json['results'] if r['rank'] == 'domain']
+        if domain:  # if not empty
+            ret['domain'] = domain[0]
+        ret['taxonomy'] = ';'.join(lineage)
+        return ret
 
     @staticmethod
     def determine_tier(source):
         """
         Given a user provided source parameter, assign a source and genome tier
         """
-        tier_info = namedtuple('tier_info', ['taxonomy', 'taxon_ref'])
+        # NOTE: The `tier_info` variable is assigned but never used
+        # tier_info = namedtuple('tier_info', ['taxonomy', 'taxon_ref'])
         low_source = source.lower()
         if 'refseq' in low_source:
             if 'reference' in low_source:
@@ -300,7 +315,7 @@ class GenomeInterface:
         # NOTE: Metagenome object does not have a 'taxon_ref' field
         if 'taxon_ref' not in genome:
             genome['taxonomy'], genome['taxon_ref'], domain, genetic_code = self.retrieve_taxon(
-                self.taxon_wsname, genome['scientific_name'])
+                genome['scientific_name'])
             if 'genetic_code' in genome and genome['genetic_code'] != genetic_code:
                 genome['warnings'] = genome.get('warnings', []) + [
                     "The genetic_code of this genome differs from that of its assigned taxon"]

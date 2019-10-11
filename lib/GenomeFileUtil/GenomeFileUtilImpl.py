@@ -50,8 +50,8 @@ class GenomeFileUtil:
     # the latter method is running.
     ######################################### noqa
     VERSION = "0.8.14"
-    GIT_URL = "https://github.com/slebras/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "c2507297bc30731ddcd160783c9482a52e6eeea8"
+    GIT_URL = "https://github.com/kbaseapps/GenomeFileUtil"
+    GIT_COMMIT_HASH = "1f23a974376074c67844762624376555ed7b9281"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
