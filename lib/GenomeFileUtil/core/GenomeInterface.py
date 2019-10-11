@@ -226,7 +226,7 @@ class GenomeInterface:
             )
             resp_json = resp.json()
             if not resp.ok or not resp_json['results']:
-                raise RENotFound(coll='ncbi_taxon', key="scientific_name", val=scientific_name,
+                raise RENotFound(resource='NCBI taxon', key="scientific name", val=scientific_name,
                                  resp_json=resp_json)
             re_result = resp_json['results'][0]
             # We will use the taxonomy ID from the result from here on out
@@ -240,7 +240,8 @@ class GenomeInterface:
             )
             resp_json = resp.json()
             if not resp.ok or not resp_json['results']:
-                raise RENotFound(coll='ncbi_taxon', key="ncbi_taxon_id", val=tax_id, resp_json=resp_json)
+                raise RENotFound(resource='NCBI taxon', key="taxonomy ID", val=tax_id,
+                                 resp_json=resp_json)
             re_result = resp_json['results'][0]
         # Refer to the following schema for returned fields in `re_result`:
         # https://github.com/kbase/relation_engine_spec/blob/develop/schemas/ncbi/ncbi_taxon.yaml
@@ -254,8 +255,8 @@ class GenomeInterface:
         )
         resp_json = resp.json()
         if not resp.ok or not resp_json['results']:
-            raise RuntimeError(f"Unable to fetch the taxonomic lineage for ID {tax_id}. "
-                               f"The response from the relation engine API was:\n{resp.text}.")
+            raise RENotFound(resource='NCBI taxon lineage', key='taxonomy ID', val=tax_id,
+                             resp_json=resp_json)
         # The results will be an array of taxon docs with "scientific_name" and "rank" fields
         lineage = [r['scientific_name'] for r in resp_json['results']]
         # Fetch the domain in the lineage. The `domain` var should be a singleton list.
