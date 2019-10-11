@@ -6,11 +6,11 @@
 This is the basic readme for this module. Include any usage or deployment instructions and links to other documentation here.
 
 
-# Testing
+## Testing
 Important testing information. The Testing environment for the GenomeFileUtil is 'ci'
 
 
-##Release Notes
+## Release Notes
 
 ### 0.8.10 (11/2018)
 Use WSLargeDataIO for saving and pulling genomes
