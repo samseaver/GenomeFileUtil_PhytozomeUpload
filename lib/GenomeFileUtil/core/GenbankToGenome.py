@@ -253,8 +253,7 @@ class GenbankToGenome:
                     genome['scientific_name'] = params['scientific_name']
                 else:
                     genome['scientific_name'] = organism
-                genome.update(self.gi.retrieve_taxon(params['taxon_wsname'],
-                                                     genome['scientific_name'],
+                genome.update(self.gi.retrieve_taxon(genome['scientific_name'],
                                                      params.get('taxon_id'))._asdict())
                 self.code_table = genome['genetic_code']
                 genome["molecule_type"] = r_annot.get('molecule_type', 'DNA')
