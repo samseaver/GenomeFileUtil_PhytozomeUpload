@@ -210,7 +210,7 @@ class GenomeInterface:
         }
         """
         ret = {
-            "taxonomy": f"Unconfirmed: {scientific_name}",
+            "taxonomy": f"Unconfirmed Organism: {scientific_name}",
             "domain": "Unknown",
             "genetic_code": 11  # Bacterial, archaeal and plant plastid code
         }
