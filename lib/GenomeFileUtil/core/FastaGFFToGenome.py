@@ -935,8 +935,7 @@ class FastaGFFToGenome:
         else:
             genome['source'], genome['genome_tiers'] = self.gi.determine_tier(params.get('source'))
 
-        genome.update(self.gi.retrieve_taxon(genome['scientific_name'],
-                                             params.get('taxon_id'))._asdict())
+        genome.update(self.gi.retrieve_taxon(genome['scientific_name'], params.get('taxon_id')))
 
         # handle optional fields
         for key in ('release', 'genetic_code', 'genome_type', 'source_id'):
