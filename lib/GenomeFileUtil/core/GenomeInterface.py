@@ -470,7 +470,9 @@ class GenomeInterface:
         if "genome_tiers" in g and set(g['genome_tiers']) - allowed_tiers:
             warnings.append("Undefined terms in genome_tiers: " + ", ".join(
                 set(g['genome_tiers']) - allowed_tiers))
-        if g['taxon_ref'] == "ReferenceTaxons/unknown_taxon":
+        assignments = g.get('taxon_assignments', {})
+        if 'NCBI' not in assignments or (
+                'taxon_ref' in g and g['taxon_ref'] == "ReferenceTaxons/unknown_taxon"):
             warnings.append('Unable to determine organism taxonomy')
 
         GenomeInterface.handle_large_genomes(g)
