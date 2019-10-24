@@ -6,6 +6,7 @@ import time
 import sys
 from collections import defaultdict
 
+from relation_engine_client import REClient
 import requests
 
 from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
@@ -15,7 +16,6 @@ from installed_clients.DataFileUtilClient import DataFileUtil
 from installed_clients.KBaseSearchEngineClient import KBaseSearchEngine
 from installed_clients.WSLargeDataIOClient import WsLargeDataIO
 from GenomeFileUtil.core import GenomeUtils
-from GenomeFileUtil.core.exceptions import RENotFound
 
 MAX_GENOME_SIZE = 2**30
 
@@ -214,53 +214,39 @@ class GenomeInterface:
             "domain": "Unknown",
             "genetic_code": 11  # Bacterial, archaeal and plant plastid code
         }
-        # FIXME is there any way to avoid hard-coding the below path?
         reapi_url = os.environ['KBASE_ENDPOINT'].strip('/') + '/relation_engine_api'
+        re_client = REClient(reapi_url)
+        # FIXME this timestamp needs to come from the client
         now = int(time.time() * 1000)  # unix epoch for right now, for use in the RE API
         if not tax_id:
             # Fetch the tax id with the Relation Engine API by exact match on sciname
-            resp = requests.post(
-                reapi_url,
-                params={'stored_query': 'ncbi_fetch_taxon_by_sciname'},
-                data=json.dumps({"sciname": scientific_name, "ts": now})
-            )
-            resp_json = resp.json()
-            if not resp.ok or not resp_json['results']:
-                raise RENotFound(resource='NCBI taxon', key="scientific name", val=scientific_name,
-                                 resp_json=resp_json)
+            resp_json = re_client.stored_query(
+                'ncbi_fetch_taxon_by_sciname',
+                {'sciname': scientific_name, 'ts': now},
+                raise_not_found=True)
             re_result = resp_json['results'][0]
             # We will use the taxonomy ID from the result from here on out
             tax_id = re_result['ncbi_taxon_id']
         else:
             # Fetch the taxon from Relation Engine by taxon ID
-            resp = requests.post(
-                reapi_url,
-                params={'stored_query': 'ncbi_fetch_taxon'},
-                data=json.dumps({'id': tax_id, 'ts': now})
-            )
-            resp_json = resp.json()
-            if not resp.ok or not resp_json['results']:
-                raise RENotFound(resource='NCBI taxon', key="taxonomy ID", val=tax_id,
-                                 resp_json=resp_json)
+            resp_json = re_client.stored_query(
+                'ncbi_fetch_taxon',
+                {'id': tax_id, 'ts': now},
+                raise_not_found=True)
             re_result = resp_json['results'][0]
         # Refer to the following schema for returned fields in `re_result`:
         # https://github.com/kbase/relation_engine_spec/blob/develop/schemas/ncbi/ncbi_taxon.yaml
         ret['genetic_code'] = re_result['gencode']
         ret['taxon_assignments'] = {'NCBI': tax_id}
         # Fetch the lineage on RE using the taxon ID to fill the "taxonomy" and "domain" fields.
-        resp = requests.post(
-            reapi_url,
-            params={'stored_query': 'ncbi_taxon_get_lineage'},
-            data={'id': tax_id, 'ts': now, 'select': ['scientific_name', 'rank']}
-        )
-        resp_json = resp.json()
-        if not resp.ok or not resp_json['results']:
-            raise RENotFound(resource='NCBI taxon lineage', key='taxonomy ID', val=tax_id,
-                             resp_json=resp_json)
+        lineage_resp = re_client.stored_query(
+            'ncbi_taxon_get_lineage',
+            {'id': tax_id, 'ts': now, 'select': ['scientific_name', 'rank']},
+            raise_not_found=True)
         # The results will be an array of taxon docs with "scientific_name" and "rank" fields
-        lineage = [r['scientific_name'] for r in resp_json['results']]
+        lineage = [r['scientific_name'] for r in lineage_resp['results']]
         # Fetch the domain in the lineage. The `domain` var should be a singleton list.
-        domain = [r['scientific_name'] for r in resp_json['results'] if r['rank'] == 'domain']
+        domain = [r['scientific_name'] for r in lineage_resp['results'] if r['rank'] == 'domain']
         if domain:  # if not empty
             ret['domain'] = domain[0]
         ret['taxonomy'] = ';'.join(lineage)
