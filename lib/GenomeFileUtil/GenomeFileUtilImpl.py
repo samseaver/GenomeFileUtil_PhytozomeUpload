@@ -29,6 +29,7 @@ class SDKConfig:
         self.srvWizURL = config['srv-wiz-url']
         self.token = os.environ['KB_AUTH_TOKEN']
         self.authServiceUrl = config['auth-service-url']
+        self.re_api_url = config['re-api-url']
         self.raw = config
 
 #END_HEADER

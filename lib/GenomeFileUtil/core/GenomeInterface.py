@@ -7,6 +7,7 @@ import sys
 from collections import defaultdict
 
 from relation_engine_client import REClient
+from relation_engine_client.exceptions import RENotFound
 import requests
 
 from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
@@ -28,7 +29,7 @@ class GenomeInterface:
         self.token = config.token
         self.auth_service_url = config.authServiceUrl
         self.callback_url = config.callbackURL
-
+        self.re_api_url = config.re_api_url
         self.auth_client = _KBaseAuth(self.auth_service_url)
         self.dfu = DataFileUtil(self.callback_url)
         self.kbse = KBaseSearchEngine(config.raw['search-url'])
@@ -209,30 +210,38 @@ class GenomeInterface:
           }
         }
         """
+        # Start with some default values
         ret = {
             "taxonomy": f"Unconfirmed Organism: {scientific_name}",
             "domain": "Unknown",
             "genetic_code": 11  # Bacterial, archaeal and plant plastid code
         }
-        reapi_url = os.environ['KBASE_ENDPOINT'].strip('/') + '/relation_engine_api'
-        re_client = REClient(reapi_url)
+        re_client = REClient(self.re_api_url)
         # FIXME this timestamp needs to come from the client
         now = int(time.time() * 1000)  # unix epoch for right now, for use in the RE API
         if not tax_id:
             # Fetch the tax id with the Relation Engine API by exact match on sciname
-            resp_json = re_client.stored_query(
-                'ncbi_fetch_taxon_by_sciname',
-                {'sciname': scientific_name, 'ts': now},
-                raise_not_found=True)
+            try:
+                resp_json = re_client.stored_query(
+                    'ncbi_fetch_taxon_by_sciname',
+                    {'sciname': scientific_name, 'ts': now},
+                    raise_not_found=True)
+            except RENotFound:
+                # Taxon not found; return defaults
+                return ret
             re_result = resp_json['results'][0]
             # We will use the taxonomy ID from the result from here on out
             tax_id = re_result['ncbi_taxon_id']
         else:
             # Fetch the taxon from Relation Engine by taxon ID
-            resp_json = re_client.stored_query(
-                'ncbi_fetch_taxon',
-                {'id': tax_id, 'ts': now},
-                raise_not_found=True)
+            try:
+                resp_json = re_client.stored_query(
+                    'ncbi_fetch_taxon',
+                    {'id': str(tax_id), 'ts': now},
+                    raise_not_found=True)
+            except RENotFound:
+                # Taxon not found; return defaults
+                return ret
             re_result = resp_json['results'][0]
         # Refer to the following schema for returned fields in `re_result`:
         # https://github.com/kbase/relation_engine_spec/blob/develop/schemas/ncbi/ncbi_taxon.yaml
@@ -241,7 +250,7 @@ class GenomeInterface:
         # Fetch the lineage on RE using the taxon ID to fill the "taxonomy" and "domain" fields.
         lineage_resp = re_client.stored_query(
             'ncbi_taxon_get_lineage',
-            {'id': tax_id, 'ts': now, 'select': ['scientific_name', 'rank']},
+            {'id': str(tax_id), 'ts': now, 'select': ['scientific_name', 'rank']},
             raise_not_found=True)
         # The results will be an array of taxon docs with "scientific_name" and "rank" fields
         lineage = [r['scientific_name'] for r in lineage_resp['results']]
