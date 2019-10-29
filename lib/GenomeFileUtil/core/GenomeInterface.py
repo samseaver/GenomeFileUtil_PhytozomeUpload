@@ -43,9 +43,7 @@ class GenomeInterface:
         _validate_save_one_genome_params:
                 validates params passed to save_one_genome method
         """
-
         logging.info('start validating save_one_genome params')
-
         # check for required parameters
         for p in ['workspace', 'name', 'data']:
             if p not in params:
@@ -137,17 +135,14 @@ class GenomeInterface:
 
     def save_one_genome(self, params):
         logging.info('start saving genome object')
-
         self._validate_save_one_genome_params(params)
-
         workspace = params['workspace']
         name = params['name']
         data = params['data']
-
+        # XXX there is no `workspace_datatype` param in the spec
         ws_datatype = params.get('workspace_datatype', "KBaseGenomes.Genome")
-
+        # XXX there is no `meta` param in the spec
         meta = params.get('meta', {})
-
         if "AnnotatedMetagenomeAssembly" in ws_datatype:
             if params.get('upgrade') or 'feature_counts' not in data:
                 data = self._update_metagenome(data)
@@ -158,18 +153,15 @@ class GenomeInterface:
         # check all handles point to shock nodes owned by calling user
         self._own_handle(data, 'genbank_handle_ref')
         self._own_handle(data, 'gff_handle_ref')
-
         if "AnnotatedMetagenomeAssembly" not in ws_datatype:
             self._check_dna_sequence_in_features(data)
             data['warnings'] = self.validate_genome(data)
 
         # sort data
         data = GenomeUtils.sort_dict(data)
-
         # dump genome to scratch for upload
         data_path = os.path.join(self.scratch, name + ".json")
         json.dump(data, open(data_path, 'w'))
-
         if 'hidden' in params and str(params['hidden']).lower() in ('yes', 'true', 't', '1'):
             hidden = 1
         else:
@@ -186,80 +178,9 @@ class GenomeInterface:
                                     'name': name,
                                     'meta': meta,
                                     'hidden': hidden}]}
-
         dfu_oi = self.ws_large_data.save_objects(save_params)[0]
-
         returnVal = {'info': dfu_oi, 'warnings': data['warnings']}
-
         return returnVal
-
-    def retrieve_taxon(self, scientific_name, tax_id=None):
-        """
-        Fetch the taxonomy data for a genome using (preferably) taxonomy ID,
-        falling back to an NCBI scientific name (for any rank).
-
-        We return a dict representing a subset of the genome object, which will
-        get merged upstream into the larger genome object:
-        {
-          "taxonomy": "x;y;z",    # NCBI taxonomy lineage string for human readability
-          "domain": "x"           # String name of the domain
-          "genetic_code": 11      # NCBI categorization of the lineage
-                                   (https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi)
-          "taxon_assignments": {  # Mapping of taxonomy namespace to taxonomy ID
-            "NCBI": 1234
-          }
-        }
-        """
-        # Start with some default values
-        ret = {
-            "taxonomy": f"Unconfirmed Organism: {scientific_name}",
-            "domain": "Unknown",
-            "genetic_code": 11  # Bacterial, archaeal and plant plastid code
-        }
-        re_client = REClient(self.re_api_url)
-        # FIXME this timestamp needs to come from the client
-        now = int(time.time() * 1000)  # unix epoch for right now, for use in the RE API
-        if not tax_id:
-            # Fetch the tax id with the Relation Engine API by exact match on sciname
-            try:
-                resp_json = re_client.stored_query(
-                    'ncbi_fetch_taxon_by_sciname',
-                    {'sciname': scientific_name, 'ts': now},
-                    raise_not_found=True)
-            except RENotFound:
-                # Taxon not found; return defaults
-                return ret
-            re_result = resp_json['results'][0]
-            # We will use the taxonomy ID from the result from here on out
-            tax_id = re_result['ncbi_taxon_id']
-        else:
-            # Fetch the taxon from Relation Engine by taxon ID
-            try:
-                resp_json = re_client.stored_query(
-                    'ncbi_fetch_taxon',
-                    {'id': str(tax_id), 'ts': now},
-                    raise_not_found=True)
-            except RENotFound:
-                # Taxon not found; return defaults
-                return ret
-            re_result = resp_json['results'][0]
-        # Refer to the following schema for returned fields in `re_result`:
-        # https://github.com/kbase/relation_engine_spec/blob/develop/schemas/ncbi/ncbi_taxon.yaml
-        ret['genetic_code'] = re_result['gencode']
-        ret['taxon_assignments'] = {'NCBI': tax_id}
-        # Fetch the lineage on RE using the taxon ID to fill the "taxonomy" and "domain" fields.
-        lineage_resp = re_client.stored_query(
-            'ncbi_taxon_get_lineage',
-            {'id': str(tax_id), 'ts': now, 'select': ['scientific_name', 'rank']},
-            raise_not_found=True)
-        # The results will be an array of taxon docs with "scientific_name" and "rank" fields
-        lineage = [r['scientific_name'] for r in lineage_resp['results']]
-        # Fetch the domain in the lineage. The `domain` var should be a singleton list.
-        domain = [r['scientific_name'] for r in lineage_resp['results'] if r['rank'] == 'domain']
-        if domain:  # if not empty
-            ret['domain'] = domain[0]
-        ret['taxonomy'] = ';'.join(lineage)
-        return ret
 
     @staticmethod
     def determine_tier(source):
@@ -307,20 +228,21 @@ class GenomeInterface:
                 genome['source'])
         if 'molecule_type' not in genome:
             genome['molecule_type'] = 'Unknown'
-        # NOTE: New Taxon changes should most likely fit in here.
-        # NOTE: Metagenome object does not have a 'taxon_ref' field
-        if 'taxon_ref' not in genome:
-            taxon_data = self.retrieve_taxon(genome['scientific_name'])
+
+        # If an NCBI taxoomy ID is provided, fetch additional data about the taxon
+        # NOTE: Metagenome object does not have a 'taxon_assignments' field
+        if 'taxon_assignments' in genome and genome['taxon_assignments'].get('NCBI'):
+            tax_id = genome['taxon_assignments']['NCBI']
+            taxon_data = GenomeUtils.fetch_taxon_data(tax_id)
             genome['taxonomy'] = taxon_data['taxonomy']
             if 'genetic_code' in genome and genome['genetic_code'] != taxon_data['genetic_code']:
                 genome['warnings'] = genome.get('warnings', []) + [
-                    "The genetic_code of this genome differs from that of its assigned taxon"]
+                    f"The genetic_code of this genome differs from the NCBI data for taxon ID {tax_id}"]
             else:
                 genome['genetic_code'] = taxon_data['genetic_code']
-
             if 'domain' in genome and genome['domain'] != taxon_data['domain']:
                 genome['warnings'] = genome.get('warnings', []) + [
-                    "The domain of this genome differs from that of its assigned taxon"]
+                    f"The domain of this genome differs from the NCBI data for taxon ID {tax_id}"]
             else:
                 genome['domain'] = taxon_data['domain']
 

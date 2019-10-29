@@ -1,4 +1,4 @@
-import collections
+emport collections
 import copy
 import datetime
 import hashlib
@@ -915,8 +915,8 @@ class FastaGFFToGenome:
                 ("external_source_origination_date", None),
                 ("original_source_file_name", None),
                 ("notes", None),
-                #NOTE: in the future environment should use an ontology.
-                ("environment" , None),
+                # NOTE: in the future environment should use an ontology.
+                ("environment", None),
             ]
             for field, default in metagenome_fields:
                 genome[field] = params.get(field, default)
@@ -935,7 +935,9 @@ class FastaGFFToGenome:
         else:
             genome['source'], genome['genome_tiers'] = self.gi.determine_tier(params.get('source'))
 
-        genome.update(self.gi.retrieve_taxon(genome['scientific_name'], params.get('taxon_id')))
+        if params.get('taxon_id'):
+            taxon_data = fetch_taxon_data(params['taxon_id'])
+            genome.update(taxon_data)
 
         # handle optional fields
         for key in ('release', 'genetic_code', 'genome_type', 'source_id'):

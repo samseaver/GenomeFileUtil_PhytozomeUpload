@@ -20,7 +20,7 @@ from installed_clients.AssemblyUtilClient import AssemblyUtil
 from installed_clients.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
 from GenomeFileUtil.core.GenomeUtils import is_parent, propagate_cds_props_to_gene, warnings
-from GenomeFileUtil.core.GenomeUtils import parse_inferences, load_ontology_mappings
+from GenomeFileUtil.core.GenomeUtils import parse_inferences, load_ontology_mappings, fetch_taxon_data
 from installed_clients.WorkspaceClient import Workspace
 
 MAX_MISC_FEATURE_SIZE = 10000
@@ -253,7 +253,9 @@ class GenbankToGenome:
                     genome['scientific_name'] = params['scientific_name']
                 else:
                     genome['scientific_name'] = organism
-                genome.update(self.gi.retrieve_taxon(genome['scientific_name'], params.get('taxon_id')))
+                if 'taxon_id' in params:
+                    taxon_data = fetch_taxon_data(params.get('taxon_id'))
+                    genome.update(taxon_data)
                 self.code_table = genome['genetic_code']
                 genome["molecule_type"] = r_annot.get('molecule_type', 'DNA')
                 genome['notes'] = r_annot.get('comment', "").replace('\\n', '\n')

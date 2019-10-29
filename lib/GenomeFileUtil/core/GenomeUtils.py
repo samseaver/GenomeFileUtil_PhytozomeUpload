@@ -2,6 +2,10 @@ import json
 import logging
 import os
 import re
+import time
+
+from relation_engine_client import REClient
+from relation_engine_client.exceptions import RENotFound
 
 warnings = {
     "cds_excluded": "SUSPECT: CDS from {} was excluded because the associated "
@@ -163,6 +167,7 @@ def parse_inferences(inferences):
             inference['type'] = sp_inf[0]
             inference['evidence'] = ":".join(sp_inf[1:])
             result.append(inference)
+        # FIXME what is going on with this try/except block
         except IndexError('Unparseable inference string: ' + inf):
             continue
     return result
@@ -197,7 +202,7 @@ def propagate_cds_props_to_gene(cds, gene):
 def load_ontology_mappings(path='data'):
     mapping_dict = {}
     for file in os.listdir(path):
-        m = re.match("(\w+)_ontology_mapping.json", file)
+        m = re.match(r"(\w+)_ontology_mapping.json", file)
         if m:
             ont_dict = json.load(open(os.path.join(path, file)))
             mapping_dict[m.group(1).upper()] = ont_dict
@@ -220,29 +225,29 @@ def check_full_contig_length_or_multi_strand_feature(feature, is_transpliced, co
             return feature
         location_min = get_start(location)
         location_max = get_end(location)
-        strand_set.add(location[2])                 
+        strand_set.add(location[2])
         if feature_min_location is None or feature_min_location > location_min:
             feature_min_location = location_min
         if feature_max_location is None or feature_max_location < location_max:
             feature_max_location = location_max
     if feature_min_location == 1 \
-        and feature_max_location == contig_length \
-        and feature['type'] not in skip_types: 
-        feature["warnings"] = feature.get('warnings', []) + [warnings["contig_length_feature"]]  
+            and feature_max_location == contig_length \
+            and feature['type'] not in skip_types:
+        feature["warnings"] = feature.get('warnings', []) + [warnings["contig_length_feature"]]
     if len(strand_set) > 1 and not is_transpliced:
         feature["warnings"] = feature.get('warnings', []) + [warnings["both_strand_coordinates"]]
-    return feature 
+    return feature
 
 
 def check_feature_ids_uniqueness(genome):
     """
     Tests that all feature ids in a genome are unique across all 4 feature type lists
-    Returns dict of Non Unique IDS and the counts associated with them. 
+    Returns dict of Non Unique IDS and the counts associated with them.
     If all IDS are unique, it then returns an empty dict
     """
     unique_feature_ids = set()
     duplicate_feature_id_counts = dict()
-    feature_lists = ["features","cdss","mrnas","non_coding_features"]
+    feature_lists = ["features", "cdss", "mrnas", "non_coding_features"]
 
     for feature_list in feature_lists:
         for feature in genome[feature_list]:
@@ -296,7 +301,7 @@ def confirm_feature_relationships(feature, feature_list_name, feature_id_sets_di
                 if child not in feature_id_sets_dict['non_coding_features']:
                     not_found_children.append(child)
             if len(not_found_children) > 0:
-                not_found_relationships['children'] = not_found_children           
+                not_found_relationships['children'] = not_found_children
     elif feature_list_name == "cdss":
         # means will have parent_gene relationship, may have parent_mrna relationship.
         if "parent_gene" in feature:
@@ -312,14 +317,14 @@ def confirm_feature_relationships(feature, feature_list_name, feature_id_sets_di
                 not_found_relationships['parent_gene'] = [feature['parent_gene']]
         if "cds" in feature:
             if feature['cds'] not in feature_id_sets_dict['cdss']:
-                not_found_relationships['cds'] = [feature['cds']]                     
+                not_found_relationships['cds'] = [feature['cds']]
     elif feature_list_name == "non_coding_features":
         # NEED TO CHECK BOTH FEATURES AND NON_CODING_FEATURES FOR PARENT_GENE
         # Children will only be NON_CODING_FEATURES
         # Do parent could be in either feature or non_coding_features (Only 1 parent)
         if "parent_gene" in feature:
             if feature['parent_gene'] not in feature_id_sets_dict['features'] and \
-            feature['parent_gene'] not in feature_id_sets_dict['non_coding_features']:
+                    feature['parent_gene'] not in feature_id_sets_dict['non_coding_features']:
                 not_found_relationships['parent_gene'] = [feature['parent_gene']]
         if "children" in feature:
             not_found_children = list()
@@ -327,8 +332,8 @@ def confirm_feature_relationships(feature, feature_list_name, feature_id_sets_di
                 if child not in feature_id_sets_dict['non_coding_features']:
                     not_found_children.append(child)
             if len(not_found_children) > 0:
-                not_found_relationships['children'] = not_found_children  
-    else:    
+                not_found_relationships['children'] = not_found_children
+    else:
         # Raise an error the searched for feature does not exist in any of the 4 lists.
         raise ValueError('Feature List Name : ' + feature_list_name + ' was not one of the expected 4 types.')
     return not_found_relationships
@@ -339,12 +344,13 @@ def confirm_genomes_feature_relationships(genome):
     Confirms the relationships of all features in a genome
     Note this is not a quick operation, should be used sparingly and not necessarily for every genome
     Takes a genome and returns a dict with feature ids as the key and a dict of relationship type and missing features
-    NOTE THIS DOES NOT INSURE THAT RELATIONSHIPS ARE RECIPROCAL. JUST CHECKS THAT A FEATURE EXISTS FOR LISTED RELATIONSHIPS.
+    NOTE THIS DOES NOT INSURE THAT RELATIONSHIPS ARE RECIPROCAL. JUST CHECKS
+    THAT A FEATURE EXISTS FOR LISTED RELATIONSHIPS.
     """
     features_with_relationships_not_found = dict()
-    feature_lists = ["features","cdss","mrnas","non_coding_features"]
+    feature_lists = ["features", "cdss", "mrnas", "non_coding_features"]
     # dict is the feature list and the key is the set of ids in that list.
-    feature_id_sets_dict = dict() 
+    feature_id_sets_dict = dict()
     for feature_list in feature_lists:
         if feature_list in genome:
             feature_id_sets_dict[feature_list] = make_id_set(genome[feature_list])
@@ -353,7 +359,7 @@ def confirm_genomes_feature_relationships(genome):
     for feature_list in feature_lists:
         for feature in genome[feature_list]:
             feature_relationship_dict = confirm_feature_relationships(feature, feature_list, feature_id_sets_dict)
-            if len(feature_relationship_dict) > 0 :
+            if len(feature_relationship_dict) > 0:
                 # print("FEATURE RELATIONSHIP RESULTS: " + str(feature_relationship_dict))
                 features_with_relationships_not_found[feature['id']] = feature_relationship_dict
     return features_with_relationships_not_found
@@ -369,3 +375,52 @@ def sort_dict(in_struct):
         # return [sort_dict(k) for k in sorted(in_struct)]
     else:
         return in_struct
+
+
+def fetch_taxon_data(tax_id, re_api_url):
+    """
+    Fetch the taxonomy data for a genome using an NCBI taxonomy ID.
+
+    We return a dict representing a subset of the genome object, which will
+    get merged upstream into the larger genome object:
+    {
+      "taxonomy": "x;y;z",    # NCBI taxonomy lineage string for human readability
+      "domain": "x"           # String name of the domain
+      "genetic_code": 11      # NCBI categorization of the lineage
+                               (https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi)
+      "taxon_assignments": {  # Mapping of taxonomy namespace to taxonomy ID
+        "NCBI": 1234
+      }
+    }
+    """
+    ret = {}  # type: dict
+    re_client = REClient(re_api_url)
+    # FIXME this timestamp needs to come from the client
+    now = int(time.time() * 1000)  # unix epoch for right now, for use in the RE API
+    # Fetch the taxon from Relation Engine by taxon ID
+    try:
+        resp_json = re_client.stored_query(
+            'ncbi_fetch_taxon',
+            {'id': str(tax_id), 'ts': now},
+            raise_not_found=True)
+    except RENotFound as err:
+        # Taxon not found; return defaults
+        # TODO log the error in more detail
+        raise err
+    re_result = resp_json['results'][0]
+    # Refer to the following schema for returned fields in `re_result`:
+    # https://github.com/kbase/relation_engine_spec/blob/develop/schemas/ncbi/ncbi_taxon.yaml
+    ret['genetic_code'] = re_result['gencode']
+    # Fetch the lineage on RE using the taxon ID to fill the "taxonomy" and "domain" fields.
+    lineage_resp = re_client.stored_query(
+        'ncbi_taxon_get_lineage',
+        {'id': str(tax_id), 'ts': now, 'select': ['scientific_name', 'rank']},
+        raise_not_found=True)
+    # The results will be an array of taxon docs with "scientific_name" and "rank" fields
+    lineage = [r['scientific_name'] for r in lineage_resp['results']]
+    # Fetch the domain in the lineage. The `domain` var should be a singleton list.
+    domain = [r['scientific_name'] for r in lineage_resp['results'] if r['rank'] == 'domain']
+    if domain:  # if not empty
+        ret['domain'] = domain[0]
+    ret['taxonomy'] = ';'.join(lineage)
+    return ret
