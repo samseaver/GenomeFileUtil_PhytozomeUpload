@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Use the Relation Engine API for finding and populating taxonomy data
+- Use the NCBI taxonomy ID as the primary way to assign taxonomy data instead of sciname
 
 ## [0.8.10] - 2018-11
 
