@@ -1,4 +1,4 @@
-emport collections
+import collections
 import copy
 import datetime
 import hashlib
