@@ -261,7 +261,6 @@ module GenomeFileUtil {
         string workspace_name;
 
         string source;
-        string scientific_name;
         usermeta metadata;
         boolean generate_missing_genes;
     } FastaGFFToMetagenomeParams;
