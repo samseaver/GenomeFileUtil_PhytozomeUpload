@@ -393,7 +393,7 @@ def fetch_taxon_data(tax_id, re_api_url):
       }
     }
     """
-    ret = {}  # type: dict
+    ret = {'taxon_assignments': {'NCBI': str(tax_id)}}
     re_client = REClient(re_api_url)
     # FIXME this timestamp needs to come from the client
     now = int(time.time() * 1000)  # unix epoch for right now, for use in the RE API

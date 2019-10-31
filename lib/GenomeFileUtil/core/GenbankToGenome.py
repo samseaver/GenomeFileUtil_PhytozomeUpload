@@ -60,6 +60,7 @@ class GenbankToGenome:
         self.excluded_features = ('source', 'exon', 'fasta_record')
         self.ont_mappings = load_ontology_mappings('/kb/module/data')
         self.code_table = 11
+        self.re_api_url = config.re_api_url
         self.default_params = {
             'source': 'Genbank',
             'taxon_wsname': self.cfg.raw['taxon-workspace-name'],
@@ -254,7 +255,7 @@ class GenbankToGenome:
                 else:
                     genome['scientific_name'] = organism
                 if 'taxon_id' in params:
-                    taxon_data = fetch_taxon_data(params.get('taxon_id'))
+                    taxon_data = fetch_taxon_data(params.get('taxon_id'), self.re_api_url)
                     genome.update(taxon_data)
                 self.code_table = genome['genetic_code']
                 genome["molecule_type"] = r_annot.get('molecule_type', 'DNA')

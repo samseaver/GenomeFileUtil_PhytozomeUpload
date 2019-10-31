@@ -233,7 +233,7 @@ class GenomeInterface:
         # NOTE: Metagenome object does not have a 'taxon_assignments' field
         if 'taxon_assignments' in genome and genome['taxon_assignments'].get('NCBI'):
             tax_id = genome['taxon_assignments']['NCBI']
-            taxon_data = GenomeUtils.fetch_taxon_data(tax_id)
+            taxon_data = GenomeUtils.fetch_taxon_data(tax_id, self.re_api_url)
             genome['taxonomy'] = taxon_data['taxonomy']
             if 'genetic_code' in genome and genome['genetic_code'] != taxon_data['genetic_code']:
                 genome['warnings'] = genome.get('warnings', []) + [

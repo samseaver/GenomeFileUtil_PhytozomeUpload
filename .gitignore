@@ -18,3 +18,4 @@ sdk.cfg
 coverage_report/
 .coverage
 *.egg-info/
+test_local

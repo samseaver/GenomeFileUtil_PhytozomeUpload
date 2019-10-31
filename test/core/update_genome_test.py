@@ -43,7 +43,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         # create one WS for all tests
         suffix = int(time.time() * 1000)
         wsName = "test_GenomeAnnotationAPI_" + str(suffix)
-        ret = cls.ws.create_workspace({'workspace': wsName})
+        cls.ws.create_workspace({'workspace': wsName})
         cls.wsName = wsName
 
         # save new genome
@@ -82,7 +82,7 @@ class GenomeFileUtilTest(unittest.TestCase):
             return self.__class__.wsName
         suffix = int(time.time() * 1000)
         wsName = "test_GenomeFileUtil_" + str(suffix)
-        ret = self.getWsClient().create_workspace({'workspace': wsName})
+        self.getWsClient().create_workspace({'workspace': wsName})
         self.__class__.wsName = wsName
         return wsName
 
@@ -105,7 +105,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'name': 'rhodobacter'
             }]
         }
-        result = self.ws.save_objects(save_info)
+        self.ws.save_objects(save_info)
 
     def test_upgrade_genome_rast(self):
         old_rhodobacter = json.load(open('data/Rhodo_SPAdes_RAST.json'))
@@ -120,7 +120,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'name': 'rhodobacter_rast'
             }]
         }
-        result = self.ws.save_objects(save_info)
+        self.ws.save_objects(save_info)
 
     def test_upgrade_genome_prokka(self):
         old_rhodobacter = json.load(open('data/Rhodo_SPAdes_Prokka.json'))
@@ -135,7 +135,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'name': 'rhodobacter_prokka'
             }]
         }
-        result = self.ws.save_objects(save_info)
+        self.ws.save_objects(save_info)
 
     def test_upgrade_community_model(self):
         community = json.load(open('data/community_model_genome.json'))
@@ -151,7 +151,7 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'name': 'community_model'
             }]
         }
-        result = self.ws.save_objects(save_info)
+        self.ws.save_objects(save_info)
 
     def test_upgrade_mixed_model(self):
         mixed = json.load(open('data/mixed_genome.json'))
@@ -167,4 +167,4 @@ class GenomeFileUtilTest(unittest.TestCase):
                 'name': 'mixed_model'
             }]
         }
-        result = self.ws.save_objects(save_info)
+        self.ws.save_objects(save_info)

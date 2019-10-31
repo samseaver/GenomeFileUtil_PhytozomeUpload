@@ -63,6 +63,7 @@ class FastaGFFToGenome:
         self.ontology_events = list()
         self.skiped_features = collections.Counter()
         self.feature_counts = collections.Counter()
+        self.re_api_url = config.re_api_url
 
     def warn(self, message):
         self.warnings.append(message)
@@ -936,7 +937,7 @@ class FastaGFFToGenome:
             genome['source'], genome['genome_tiers'] = self.gi.determine_tier(params.get('source'))
 
         if params.get('taxon_id'):
-            taxon_data = fetch_taxon_data(params['taxon_id'])
+            taxon_data = fetch_taxon_data(params['taxon_id'], self.re_api_url)
             genome.update(taxon_data)
 
         # handle optional fields
