@@ -2,19 +2,15 @@ import hashlib
 import json
 import logging
 import os
-import time
 import sys
 from collections import defaultdict
 
-from relation_engine_client import REClient
-from relation_engine_client.exceptions import RENotFound
 import requests
 
 from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
 from installed_clients.AbstractHandleClient import AbstractHandle as HandleService
 from installed_clients.AssemblySequenceAPIServiceClient import AssemblySequenceAPI
 from installed_clients.DataFileUtilClient import DataFileUtil
-from installed_clients.KBaseSearchEngineClient import KBaseSearchEngine
 from installed_clients.WSLargeDataIOClient import WsLargeDataIO
 from GenomeFileUtil.core import GenomeUtils
 
@@ -32,7 +28,6 @@ class GenomeInterface:
         self.re_api_url = config.re_api_url
         self.auth_client = _KBaseAuth(self.auth_service_url)
         self.dfu = DataFileUtil(self.callback_url)
-        self.kbse = KBaseSearchEngine(config.raw['search-url'])
         self.taxon_wsname = config.raw['taxon-workspace-name']
         self.scratch = config.raw['scratch']
         self.ws_large_data = WsLargeDataIO(self.callback_url)
@@ -218,36 +213,24 @@ class GenomeInterface:
     def _update_genome(self, genome):
         """Checks for missing required fields and fixes breaking changes"""
         # do top level updates
-        ontologies_present = defaultdict(dict)
+        ontologies_present = defaultdict(dict)  # type: dict
         ontologies_present.update(genome.get('ontologies_present', {}))
         ontology_events = genome.get('ontology_events', [])
-        # NOTE: 'genome_tier' not in Metagenome spec
-        if 'genome_tier' not in genome:
-            # NOTE: should the 'genome_tiers' below be 'genome_tier'?
-            genome['source'], genome['genome_tiers'] = self.determine_tier(
-                genome['source'])
+        # NOTE: 'genome_tiers' not in Metagenome spec
+        if 'genome_tiers' not in genome:
+            genome['source'], genome['genome_tiers'] = self.determine_tier(genome['source'])
         if 'molecule_type' not in genome:
             genome['molecule_type'] = 'Unknown'
 
-        # If an NCBI taxoomy ID is provided, fetch additional data about the taxon
+        # If an NCBI taxonomy ID is provided, fetch additional data about the taxon
         # NOTE: Metagenome object does not have a 'taxon_assignments' field
-        if 'taxon_assignments' in genome and genome['taxon_assignments'].get('NCBI'):
-            tax_id = genome['taxon_assignments']['NCBI']
-            taxon_data = GenomeUtils.fetch_taxon_data(tax_id, self.re_api_url)
-            genome['taxonomy'] = taxon_data['taxonomy']
-            if 'genetic_code' in genome and genome['genetic_code'] != taxon_data['genetic_code']:
-                genome['warnings'] = genome.get('warnings', []) + [
-                    f"The genetic_code of this genome differs from the NCBI data for taxon ID {tax_id}"]
-            else:
-                genome['genetic_code'] = taxon_data['genetic_code']
-            if 'domain' in genome and genome['domain'] != taxon_data['domain']:
-                genome['warnings'] = genome.get('warnings', []) + [
-                    f"The domain of this genome differs from the NCBI data for taxon ID {tax_id}"]
-            else:
-                genome['domain'] = taxon_data['domain']
+        if 'taxon_assignments' in genome and genome['taxon_assignments'].get('ncbi'):
+            tax_id = genome['taxon_assignments']['ncbi']
+            GenomeUtils.set_taxon_data(tax_id, self.re_api_url, genome)
+        else:
+            GenomeUtils.set_default_taxon_data(genome)
 
-        if any([x not in genome for x in ('dna_size', 'md5', 'gc_content',
-                                          'num_contigs')]):
+        if any([x not in genome for x in ('dna_size', 'md5', 'gc_content', 'num_contigs')]):
             if 'assembly_ref' in genome:
                 assembly_data = self.dfu.get_objects(
                     {'object_refs': [genome['assembly_ref']],
@@ -354,7 +337,6 @@ class GenomeInterface:
         type_counts['non_coding_features'] = len(
             genome.get('non_coding_features', []))
         genome['feature_counts'] = type_counts
-
         return genome
 
     @staticmethod
@@ -373,16 +355,15 @@ class GenomeInterface:
         #       Add validations for Metagenome object
 
         # this will fire for some annotation methods like PROKKA
-        if g['domain'] == "Bacteria" and len(g.get('cdss', [])) != len(
-                g['features']):
+        if g.get('domain') == "Bacteria" and len(g.get('cdss', [])) != len(g['features']):
             warnings.append("For prokaryotes, CDS array should generally be the"
                             " same length as the Features array.")
 
-        if g['domain'] == "Eukaryota" and len(g.get('features', [])) == len(g.get('cdss', [])):
+        if g.get('domain') == "Eukaryota" and len(g.get('features', [])) == len(g.get('cdss', [])):
             warnings.append("For Eukaryotes, CDS array should not be the same "
                             "length as the Features array due to RNA splicing.")
 
-        if "molecule_type" in g and g['molecule_type'] not in {"DNA", 'ds-DNA'}:
+        if g.get('molecule_type') not in {"DNA", 'ds-DNA'}:
             if g.get('domain', '') not in {'Virus', 'Viroid'} and \
                             g['molecule_type'] not in {"DNA", 'ds-DNA'}:
                 warnings.append("Genome molecule_type {} is not expected "
@@ -393,7 +374,7 @@ class GenomeInterface:
             warnings.append("Undefined terms in genome_tiers: " + ", ".join(
                 set(g['genome_tiers']) - allowed_tiers))
         assignments = g.get('taxon_assignments', {})
-        if 'NCBI' not in assignments or (
+        if 'ncbi' not in assignments or (
                 'taxon_ref' in g and g['taxon_ref'] == "ReferenceTaxons/unknown_taxon"):
             warnings.append('Unable to determine organism taxonomy')
 

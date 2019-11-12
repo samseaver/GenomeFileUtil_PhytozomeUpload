@@ -19,9 +19,11 @@ from Bio.SeqFeature import ExactPosition
 from installed_clients.AssemblyUtilClient import AssemblyUtil
 from installed_clients.DataFileUtilClient import DataFileUtil
 from GenomeFileUtil.core.GenomeInterface import GenomeInterface
-from GenomeFileUtil.core.GenomeUtils import is_parent, propagate_cds_props_to_gene, warnings
-from GenomeFileUtil.core.GenomeUtils import parse_inferences, load_ontology_mappings, fetch_taxon_data
 from installed_clients.WorkspaceClient import Workspace
+from GenomeFileUtil.core.GenomeUtils import (
+    is_parent, propagate_cds_props_to_gene, warnings, parse_inferences,
+    load_ontology_mappings, set_taxon_data, set_default_taxon_data
+)
 
 MAX_MISC_FEATURE_SIZE = 10000
 MAX_PARENT_LOOKUPS = 5
@@ -226,11 +228,32 @@ class GenbankToGenome:
             "contig_ids": [],
             "contig_lengths": [],
         }
-        genome['source'], genome['genome_tiers'] = \
-            self.gi.determine_tier(params['source'])
+        genome['source'], genome['genome_tiers'] = self.gi.determine_tier(params['source'])
 
         if params.get('genome_type'):
             genome['genome_type'] = params['genome_type']
+
+        taxon_id = None
+        # Try to extract the taxonomy ID from the genbank
+        if params.get('taxon_id'):
+            taxon_id = int(params['taxon_id'])
+        else:
+            with open(file_path) as fd:
+                genbank = Bio.SeqIO.read(fd, 'genbank')
+            source_ft = genbank.features[0]
+            if source_ft.type == 'source':
+                qual = source_ft.qualifiers.get('db_xref')
+                for entry in qual:
+                    match = re.match(r'^taxon:(\d+)$', entry)
+                    if match and match.groups():
+                        taxon_id = int(match.groups()[0])
+
+        # Set taxonomy-related fields in the genome
+        # Also validates the given taxon ID
+        if taxon_id:
+            set_taxon_data(taxon_id, self.re_api_url, genome)
+        else:
+            set_default_taxon_data(genome)
 
         dates = []
         # Parse data from genbank file
@@ -254,9 +277,6 @@ class GenbankToGenome:
                     genome['scientific_name'] = params['scientific_name']
                 else:
                     genome['scientific_name'] = organism
-                if 'taxon_id' in params:
-                    taxon_data = fetch_taxon_data(params.get('taxon_id'), self.re_api_url)
-                    genome.update(taxon_data)
                 self.code_table = genome['genetic_code']
                 genome["molecule_type"] = r_annot.get('molecule_type', 'DNA')
                 genome['notes'] = r_annot.get('comment', "").replace('\\n', '\n')
@@ -289,10 +309,11 @@ class GenbankToGenome:
             self.genome_suspect = 1
 
         if self.defects['bad_parent_loc']:
-            self.genome_warnings.append("There were {} parent/child "
+            self.genome_warnings.append(
+                f"There were {self.defects['bad_parent_loc']} parent/child "
                 "relationships that were not able to be determined. Some of "
-                "these may have splice variants that may be valid "
-                "relationships.".format(self.defects['bad_parent_loc']))
+                "these may have splice variants that may be valid relationships."
+            )
 
         if self.defects['spoofed_genes']:
             self.genome_warnings.append(warnings['spoofed_genome'].format(
@@ -772,7 +793,6 @@ class GenbankToGenome:
         # Associate CDS with parents
         cds_warnings = out_feat.get('warnings', [])
         validated_gene_id = self._find_parent_gene(gene_id, out_feat)
-        print(gene_id, validated_gene_id)
         if validated_gene_id:
             out_feat['id'] = "_".join((validated_gene_id, "CDS",
                                        str(len(self.genes[validated_gene_id]['cdss']) + 1)))

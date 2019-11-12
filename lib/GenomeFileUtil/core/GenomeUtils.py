@@ -7,6 +7,9 @@ import time
 from relation_engine_client import REClient
 from relation_engine_client.exceptions import RENotFound
 
+# Name of the ncbi taxonomy namespace stored in "taxon_assignments"
+_NCBI_TAX = 'ncbi'
+
 warnings = {
     "cds_excluded": "SUSPECT: CDS from {} was excluded because the associated "
                     "CDS failed coordinates validation",
@@ -360,7 +363,6 @@ def confirm_genomes_feature_relationships(genome):
         for feature in genome[feature_list]:
             feature_relationship_dict = confirm_feature_relationships(feature, feature_list, feature_id_sets_dict)
             if len(feature_relationship_dict) > 0:
-                # print("FEATURE RELATIONSHIP RESULTS: " + str(feature_relationship_dict))
                 features_with_relationships_not_found[feature['id']] = feature_relationship_dict
     return features_with_relationships_not_found
 
@@ -377,9 +379,25 @@ def sort_dict(in_struct):
         return in_struct
 
 
-def fetch_taxon_data(tax_id, re_api_url):
+def set_default_taxon_data(genome_dict):
     """
-    Fetch the taxonomy data for a genome using an NCBI taxonomy ID.
+    Add default to the genome data dict for taxonomy-related fields.
+    This will not override any preset or user-passed fields.
+    Mutates genome_dict.
+    """
+    sciname = genome_dict.get('sciname')
+    if sciname:
+        genome_dict.setdefault('taxonomy', f'Unconfirmed Organism: {sciname}')
+    else:
+        genome_dict.setdefault('taxonomy', 'Unconfirmed Organism')
+    # XXX genetic_code should probably not have a default, but it matches previous/legacy behavior.
+    genome_dict.setdefault('genetic_code', 11)
+    genome_dict.setdefault('domain', 'Unknown')
+
+
+def set_taxon_data(tax_id, re_api_url, genome_dict):
+    """
+    Fetch and set taxonomy data for a genome using an NCBI taxonomy ID.
 
     We return a dict representing a subset of the genome object, which will
     get merged upstream into the larger genome object:
@@ -393,10 +411,20 @@ def fetch_taxon_data(tax_id, re_api_url):
       }
     }
     """
-    ret = {'taxon_assignments': {'NCBI': str(tax_id)}}
+    # We use the Relation Engine to do a lookup on taxonomy data from ID
     re_client = REClient(re_api_url)
-    # FIXME this timestamp needs to come from the client
+    # FIXME this timestamp should come from the client
     now = int(time.time() * 1000)  # unix epoch for right now, for use in the RE API
+    tax_id = str(tax_id)
+    genome_dict.setdefault('warnings', [])
+    assignments = genome_dict.get('taxon_assignments')
+    # Check to make sure that tax_id == genome.taxon_assignments.ncbi
+    if assignments and assignments.get(_NCBI_TAX) and assignments[_NCBI_TAX] != tax_id:
+        raise RuntimeError(
+            f"The provided taxon ID ({tax_id}) differs from the "
+            f"taxon ID in the genome's `taxon_assignments` field: {assignments[_NCBI_TAX]}."
+        )
+    genome_dict['taxon_assignments'] = {'ncbi': tax_id}
     # Fetch the taxon from Relation Engine by taxon ID
     try:
         resp_json = re_client.stored_query(
@@ -404,23 +432,45 @@ def fetch_taxon_data(tax_id, re_api_url):
             {'id': str(tax_id), 'ts': now},
             raise_not_found=True)
     except RENotFound as err:
-        # Taxon not found; return defaults
-        # TODO log the error in more detail
+        # Taxon not found; log and raise
+        logging.error(str(err))
         raise err
     re_result = resp_json['results'][0]
     # Refer to the following schema for returned fields in `re_result`:
     # https://github.com/kbase/relation_engine_spec/blob/develop/schemas/ncbi/ncbi_taxon.yaml
-    ret['genetic_code'] = re_result['gencode']
+    gencode = int(re_result['gencode'])
+    # If there is a mismatch on some of these fields from NCBI, save a warning and continue
+    if genome_dict.get('genetic_code') and genome_dict['genetic_code'] != gencode:
+        genome_dict['warnings'].append(
+            f"The genetic code provided by NCBI ({gencode}) "
+            f"does not match the one given by the user ({genome_dict['genetic_code']})"
+        )
+    genome_dict.setdefault('genetic_code', gencode)
     # Fetch the lineage on RE using the taxon ID to fill the "taxonomy" and "domain" fields.
     lineage_resp = re_client.stored_query(
         'ncbi_taxon_get_lineage',
         {'id': str(tax_id), 'ts': now, 'select': ['scientific_name', 'rank']},
         raise_not_found=True)
     # The results will be an array of taxon docs with "scientific_name" and "rank" fields
-    lineage = [r['scientific_name'] for r in lineage_resp['results']]
+    lineage = [r['scientific_name'] for r in lineage_resp['results'] if r['scientific_name'] != 'root']
     # Fetch the domain in the lineage. The `domain` var should be a singleton list.
-    domain = [r['scientific_name'] for r in lineage_resp['results'] if r['rank'] == 'domain']
-    if domain:  # if not empty
-        ret['domain'] = domain[0]
-    ret['taxonomy'] = ';'.join(lineage)
-    return ret
+    # In NCBI taxonomy, 'domain' is known as 'superkingdom'
+    domain = [r['scientific_name'] for r in lineage_resp['results'] if r['rank'] == 'superkingdom']
+    if genome_dict.get('domain') and genome_dict['domain'] != domain:
+        genome_dict['warnings'].append(
+            f"The domain provided by NCBI ({domain}) "
+            f"does not match the one given by the user ({genome_dict['domain']})"
+        )
+    genome_dict.setdefault('domain', domain[0] if domain else 'Unknown')
+    genome_dict.setdefault('taxonomy', ';'.join(lineage))
+    sciname = lineage_resp['results'][-1]['scientific_name']
+    # Assign the scientific name to the most specific (right-most) taxon in the lineage
+    genome_dict.setdefault('scientific_name', sciname)
+    # The FastaGFFToGenome labyrinth of code sets the below default, which we want to override
+    if genome_dict.get('scientific_name') == 'unknown_taxon':
+        genome_dict['scientific_name'] = sciname
+    if genome_dict['scientific_name'] != sciname:
+        genome_dict['warnings'].append(
+            f"The scientific name provided by NCBI ('{sciname}') "
+            f"does not match the one given by the user ('{genome_dict['scientific_name']}')"
+        )

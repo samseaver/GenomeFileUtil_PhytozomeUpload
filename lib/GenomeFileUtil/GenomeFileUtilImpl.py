@@ -508,6 +508,7 @@ class GenomeFileUtil:
         # return variables are: returnVal
         #BEGIN fasta_gff_to_genome
         print('--->\nRunning GenomeFileUtil.fasta_gff_to_genome\nparams:')
+        print(params)
         print(json.dumps(params, indent=1))
 
         for key in list(params.keys()):
