@@ -10,12 +10,10 @@ from GenomeFileUtil.core import GenomeUtils
 from installed_clients.WorkspaceClient import Workspace as workspaceService
 
 
-@unittest.skip('x')
 class GenomeFileUtilTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        print('xyzxyzxyz')
         logging.basicConfig(level=logging.INFO)
         token = environ.get('KB_AUTH_TOKEN', None)
         # WARNING: don't call any logging methods on the context object,

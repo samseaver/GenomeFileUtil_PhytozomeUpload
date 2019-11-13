@@ -11,11 +11,9 @@ from installed_clients.AssemblyUtilClient import AssemblyUtil
 from installed_clients.WorkspaceClient import Workspace as workspaceService
 
 
-@unittest.skip('x')
 class UtilTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        print('xyzxyzxyz')
         token = os.environ.get('KB_AUTH_TOKEN', None)
         # WARNING: don't call any logging methods on the context object,
         # it'll result in a NoneType error

@@ -381,7 +381,7 @@ def sort_dict(in_struct):
 
 def set_default_taxon_data(genome_dict):
     """
-    Add default to the genome data dict for taxonomy-related fields.
+    Add defaults to the genome data dict for taxonomy-related fields.
     This will not override any preset or user-passed fields.
     Mutates genome_dict.
     """
@@ -390,7 +390,7 @@ def set_default_taxon_data(genome_dict):
         genome_dict.setdefault('taxonomy', f'Unconfirmed Organism: {sciname}')
     else:
         genome_dict.setdefault('taxonomy', 'Unconfirmed Organism')
-    # XXX genetic_code should probably not have a default, but it matches previous/legacy behavior.
+    # XXX genetic_code should probably not have a default, but this matches previous/legacy behavior.
     genome_dict.setdefault('genetic_code', 11)
     genome_dict.setdefault('domain', 'Unknown')
 
