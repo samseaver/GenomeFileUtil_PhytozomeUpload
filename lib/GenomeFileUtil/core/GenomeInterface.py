@@ -182,8 +182,6 @@ class GenomeInterface:
         """
         Given a user provided source parameter, assign a source and genome tier
         """
-        # NOTE: The `tier_info` variable is assigned but never used
-        # tier_info = namedtuple('tier_info', ['taxonomy', 'taxon_ref'])
         low_source = source.lower()
         if 'refseq' in low_source:
             if 'reference' in low_source:
