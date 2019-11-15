@@ -399,8 +399,7 @@ def set_taxon_data(tax_id, re_api_url, genome_dict):
     """
     Fetch and set taxonomy data for a genome using an NCBI taxonomy ID.
 
-    We return a dict representing a subset of the genome object, which will
-    get merged upstream into the larger genome object:
+    We mutate the genome_dict with the following fields:
     {
       "taxonomy": "x;y;z",    # NCBI taxonomy lineage string for human readability
       "domain": "x"           # String name of the domain

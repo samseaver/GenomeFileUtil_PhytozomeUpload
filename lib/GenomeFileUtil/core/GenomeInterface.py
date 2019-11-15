@@ -223,7 +223,7 @@ class GenomeInterface:
         # If an NCBI taxonomy ID is provided, fetch additional data about the taxon
         # NOTE: Metagenome object does not have a 'taxon_assignments' field
         if 'taxon_assignments' in genome and genome['taxon_assignments'].get('ncbi'):
-            tax_id = genome['taxon_assignments']['ncbi']
+            tax_id = int(genome['taxon_assignments']['ncbi'])
             GenomeUtils.set_taxon_data(tax_id, self.re_api_url, genome)
         else:
             GenomeUtils.set_default_taxon_data(genome)
