@@ -88,8 +88,8 @@ class IntegrationTest(unittest.TestCase):
 
     def test_fasta_gff_to_genome_with_taxon(self):
         """
-        Test the `fasta_gff_to_genome` method
-        Taxonomy ID should be pulled from the source file.
+        Test the `fasta_gff_to_genome` method.
+        Taxonomy ID is set in the parameters.
         """
         # boolean generate_missing_genes;
         result = self.gfu.fasta_gff_to_genome(self.ctx, {

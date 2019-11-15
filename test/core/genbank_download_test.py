@@ -15,7 +15,6 @@ from GenomeFileUtil.GenomeFileUtilServer import MethodContext
 from installed_clients.WorkspaceClient import Workspace as workspaceService
 
 
-@unittest.skip('x')
 class GenomeFileUtilTest(unittest.TestCase):
 
     @classmethod

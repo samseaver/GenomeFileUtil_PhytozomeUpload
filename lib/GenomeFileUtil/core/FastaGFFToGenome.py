@@ -938,24 +938,9 @@ class FastaGFFToGenome:
         else:
             genome['source'], genome['genome_tiers'] = self.gi.determine_tier(params.get('source'))
 
-        taxon_id = None
-        if params.get('taxon_id'):
-            taxon_id = int(params['taxon_id'])
-        else:
-            # Try to extract the taxon ID from the gff
-            # If it is from NCBI, it will be in an comment in the source
-            # Example:
-            # ##species https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=36870
-            with open(input_gff_file) as fd:
-                for line in fd.readlines():
-                    if line.startswith('##species'):
-                        match = re.match(r'##species .+\?id=(\d+).*$', line)
-                        if match and match.groups():
-                            taxon_id = int(match.groups()[0])
-                        break
         # Set taxonomy-related fields in the genome data
-        if taxon_id:
-            GenomeUtils.set_taxon_data(taxon_id, self.re_api_url, genome)
+        if params.get('taxon_id'):
+            GenomeUtils.set_taxon_data(int(params['taxon_id']), self.re_api_url, genome)
         else:
             GenomeUtils.set_default_taxon_data(genome)
 

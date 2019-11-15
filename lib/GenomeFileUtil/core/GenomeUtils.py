@@ -407,7 +407,7 @@ def set_taxon_data(tax_id, re_api_url, genome_dict):
       "genetic_code": 11      # NCBI categorization of the lineage
                                (https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi)
       "taxon_assignments": {  # Mapping of taxonomy namespace to taxonomy ID
-        "NCBI": 1234
+        "ncbi": 1234
       }
     }
     """
@@ -445,14 +445,19 @@ def set_taxon_data(tax_id, re_api_url, genome_dict):
             f"The genetic code provided by NCBI ({gencode}) "
             f"does not match the one given by the user ({genome_dict['genetic_code']})"
         )
-    genome_dict.setdefault('genetic_code', gencode)
+    genome_dict['genetic_code'] = gencode
     # Fetch the lineage on RE using the taxon ID to fill the "taxonomy" and "domain" fields.
     lineage_resp = re_client.stored_query(
         'ncbi_taxon_get_lineage',
         {'id': str(tax_id), 'ts': now, 'select': ['scientific_name', 'rank']},
         raise_not_found=True)
     # The results will be an array of taxon docs with "scientific_name" and "rank" fields
-    lineage = [r['scientific_name'] for r in lineage_resp['results'] if r['scientific_name'] != 'root']
+    lineage = [
+        r['scientific_name'] for r in lineage_resp['results']
+        if r['scientific_name'] != 'root' and r['scientific_name'] != 'cellular organisms'
+    ]
+    # Format and normalize the lineage string
+    taxonomy = '; '.join(lineage).replace('\n', '')
     # Fetch the domain in the lineage. The `domain` var should be a singleton list.
     # In NCBI taxonomy, 'domain' is known as 'superkingdom'
     domain = [r['scientific_name'] for r in lineage_resp['results'] if r['rank'] == 'superkingdom']
@@ -461,16 +466,19 @@ def set_taxon_data(tax_id, re_api_url, genome_dict):
             f"The domain provided by NCBI ({domain}) "
             f"does not match the one given by the user ({genome_dict['domain']})"
         )
-    genome_dict.setdefault('domain', domain[0] if domain else 'Unknown')
-    genome_dict.setdefault('taxonomy', ';'.join(lineage))
+    # Set the domain from NCBI, if possible. Otherwise, fall back to anything
+    # the user supplied, or 'Unknown'.
+    if domain:
+        genome_dict['domain'] = domain[0]
+    elif not genome_dict.get('domain'):
+        genome_dict['domain'] = 'Unknown'
+    genome_dict['taxonomy'] = taxonomy
     sciname = lineage_resp['results'][-1]['scientific_name']
-    # Assign the scientific name to the most specific (right-most) taxon in the lineage
-    genome_dict.setdefault('scientific_name', sciname)
     # The FastaGFFToGenome labyrinth of code sets the below default, which we want to override
-    if genome_dict.get('scientific_name') == 'unknown_taxon':
-        genome_dict['scientific_name'] = sciname
-    if genome_dict['scientific_name'] != sciname:
+    if genome_dict.get('scientific_name') and genome_dict['scientific_name'] != sciname:
         genome_dict['warnings'].append(
             f"The scientific name provided by NCBI ('{sciname}') "
             f"does not match the one given by the user ('{genome_dict['scientific_name']}')"
         )
+    # Assign the scientific name to the most specific (right-most) taxon in the lineage
+    genome_dict['scientific_name'] = sciname

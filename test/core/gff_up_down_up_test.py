@@ -42,7 +42,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         result = cls.serviceImpl.fasta_gff_to_genome(cls.ctx, {
             'workspace_name': cls.wsName,
             'genome_name': 'MyGenome',
-            'taxon_id': '3702',
+            'taxon_id': '243276',
             'fasta_file': {'path': fasta_path},
             'gff_file': {'path': gff_path},
             'source': 'GFF',
@@ -57,16 +57,15 @@ class GenomeFileUtilTest(unittest.TestCase):
             cls.ctx, {'genome_ref': result['genome_ref']})[0]
 
         print('Reuploading GFF file')
-        new_result = cls.serviceImpl.fasta_gff_to_genome(
-            cls.ctx,
-            {
-                'workspace_name': cls.wsName,
-                'genome_name': 'MyGenome',
-                'fasta_file': {'path': fasta_path},
-                'gff_file': {'path': down_result['file_path']},
-                'source': 'GFF',
-                'type': 'Reference'
-            })[0]
+        new_result = cls.serviceImpl.fasta_gff_to_genome(cls.ctx, {
+            'workspace_name': cls.wsName,
+            'genome_name': 'MyGenome',
+            'fasta_file': {'path': fasta_path},
+            'gff_file': {'path': down_result['file_path']},
+            'source': 'GFF',
+            'type': 'Reference',
+            'taxon_id': '243276'
+        })[0]
         cls.genome_new = data_file_cli.get_objects({'object_refs': [new_result['genome_ref']]})['data'][0]['data']
 
     @classmethod

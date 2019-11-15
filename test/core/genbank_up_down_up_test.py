@@ -39,10 +39,10 @@ class GenomeFileUtilTest(unittest.TestCase):
         cls.wsClient.create_workspace({'workspace': cls.wsName})
         result = cls.serviceImpl.genbank_to_genome(cls.ctx, {
             'file': {'path': gbk_path},
-            'taxon_id': '3702',
             'workspace_name': cls.wsName,
             'genome_name': ws_obj_name,
-            'generate_ids_if_needed': 1
+            'generate_ids_if_needed': 1,
+            'taxon_id': '511145'
         })[0]
 
         data_file_cli = DataFileUtil(
@@ -58,10 +58,10 @@ class GenomeFileUtilTest(unittest.TestCase):
         new_ws_obj_name = 'ecoli_2contigs_new'
         new_result = cls.serviceImpl.genbank_to_genome(cls.ctx, {
             'file': {'path': new_gbk_path},
-            'taxon_id': '3702',
             'workspace_name': cls.wsName,
             'genome_name': new_ws_obj_name,
-            'generate_ids_if_needed': 1
+            'generate_ids_if_needed': 1,
+            'taxon_id': '511145'
         })[0]
         cls.genome_new = data_file_cli.get_objects({'object_refs': [new_result['genome_ref']]})['data'][0]['data']
 
@@ -72,8 +72,8 @@ class GenomeFileUtilTest(unittest.TestCase):
             print('Test workspace was deleted')
 
     def feature_list_comparison(self, feature_list_name):
-        genome_orig = self.__class__.genome_orig
-        genome_new = self.__class__.genome_new
+        genome_orig = self.genome_orig
+        genome_new = self.genome_new
         self.assertEqual(
             len(genome_orig[feature_list_name]),
             len(genome_new[feature_list_name]),
@@ -146,8 +146,8 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.feature_list_comparison("non_coding_features")
 
     def test_genome_level_attributes(self):
-        genome_orig = self.__class__.genome_orig
-        genome_new = self.__class__.genome_new
+        genome_orig = self.genome_orig
+        genome_new = self.genome_new
         self.maxDiff = None
         self.assertEqual(genome_orig["scientific_name"], genome_new["scientific_name"])
         self.assertEqual(genome_orig["domain"], genome_new["domain"])

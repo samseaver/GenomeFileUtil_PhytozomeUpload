@@ -233,25 +233,10 @@ class GenbankToGenome:
         if params.get('genome_type'):
             genome['genome_type'] = params['genome_type']
 
-        taxon_id = None
-        # Try to extract the taxonomy ID from the genbank
-        if params.get('taxon_id'):
-            taxon_id = int(params['taxon_id'])
-        else:
-            with open(file_path) as fd:
-                genbank = Bio.SeqIO.read(fd, 'genbank')
-            source_ft = genbank.features[0]
-            if source_ft.type == 'source':
-                qual = source_ft.qualifiers.get('db_xref')
-                for entry in qual:
-                    match = re.match(r'^taxon:(\d+)$', entry)
-                    if match and match.groups():
-                        taxon_id = int(match.groups()[0])
-
         # Set taxonomy-related fields in the genome
         # Also validates the given taxon ID
-        if taxon_id:
-            set_taxon_data(taxon_id, self.re_api_url, genome)
+        if params.get('taxon_id'):
+            set_taxon_data(int(params['taxon_id']), self.re_api_url, genome)
         else:
             set_default_taxon_data(genome)
 

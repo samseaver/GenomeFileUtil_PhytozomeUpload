@@ -40,9 +40,9 @@ class GenomeFileUtilTest(unittest.TestCase):
         result = cls.serviceImpl.genbank_to_genome(cls.ctx, {
             'file': {'path': gbk_path},
             'workspace_name': cls.wsName,
-            'taxon_id': '3702',
             'genome_name': ws_obj_name,
-            'generate_ids_if_needed': 1
+            'generate_ids_if_needed': 1,
+            'taxon_id': '3702'
         })[0]
         data_file_cli = DataFileUtil(
             os.environ['SDK_CALLBACK_URL'],
@@ -58,8 +58,8 @@ class GenomeFileUtilTest(unittest.TestCase):
             'file': {'path': new_gbk_path},
             'workspace_name': cls.wsName,
             'genome_name': new_ws_obj_name,
-            'taxon_id': '3702',
-            'generate_ids_if_needed': 1
+            'generate_ids_if_needed': 1,
+            'taxon_id': '3702'
         })[0]
         cls.genome_new = data_file_cli.get_objects({'object_refs': [new_result['genome_ref']]})['data'][0]['data']
 

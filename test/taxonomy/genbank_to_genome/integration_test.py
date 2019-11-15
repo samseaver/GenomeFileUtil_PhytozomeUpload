@@ -85,7 +85,7 @@ class IntegrationTest(unittest.TestCase):
     def test_genbank_to_genome_ok_with_taxon(self):
         """
         Test the `save_one_genome` method.
-        Pass a taxon ID for arabidopsis. We should get all our fields set but with various warnings.
+        Pass a taxon ID in the parameters.
         """
         result = self.gfu.genbank_to_genome(self.ctx, {
             'workspace_name': self.ws_name,
