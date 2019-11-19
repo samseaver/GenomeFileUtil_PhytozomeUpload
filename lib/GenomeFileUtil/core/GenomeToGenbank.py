@@ -169,10 +169,11 @@ class GenomeFile:
 
         go = self.genome_object  # I'm lazy
         raw_contig.dbxrefs = self.genome_object.get('aliases', [])
+        taxonomy = [tax.strip() for tax in go.get('taxonomy', '').split(';')]
         raw_contig.annotations.update({
             "comment": go.get('notes', ""),
             "source": "KBase_" + go.get('source', ""),
-            "taxonomy": go.get('taxonomy', "").split("; "),
+            "taxonomy": taxonomy,
             "organism": go.get('scientific_name', ""),
             "date": time.strftime("%d-%b-%Y",
                                   time.localtime(time.time())).upper()

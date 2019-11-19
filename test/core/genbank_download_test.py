@@ -6,10 +6,7 @@ import unittest
 from os import environ
 from pprint import pprint
 
-try:
-    from ConfigParser import ConfigParser  # py2
-except:
-    from configparser import ConfigParser  # py3
+from configparser import ConfigParser  # py3
 
 from installed_clients.AssemblyUtilClient import AssemblyUtil
 from installed_clients.GenomeAnnotationAPIClient import GenomeAnnotationAPI
@@ -47,7 +44,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         # create one WS for all tests
         suffix = int(time.time() * 1000)
         wsName = "test_GenomeAnnotationAPI_" + str(suffix)
-        ret = cls.ws.create_workspace({'workspace': wsName})
+        cls.ws.create_workspace({'workspace': wsName})
         cls.wsName = wsName
 
     @classmethod
@@ -64,7 +61,7 @@ class GenomeFileUtilTest(unittest.TestCase):
             return self.__class__.wsName
         suffix = int(time.time() * 1000)
         wsName = "test_GenomeFileUtil_" + str(suffix)
-        ret = self.getWsClient().create_workspace({'workspace': wsName})
+        self.getWsClient().create_workspace({'workspace': wsName})
         self.__class__.wsName = wsName
         return wsName
 
@@ -82,7 +79,6 @@ class GenomeFileUtilTest(unittest.TestCase):
             'file': {'path': assembly_filename}
         })
         pprint('created test assembly: ' + assembly_ref)
-
         with open(filename, 'r') as file:
             data_str = file.read()
         data = json.loads(data_str)
@@ -101,14 +97,17 @@ class GenomeFileUtilTest(unittest.TestCase):
         # load test data data
         assembly_file_path = os.path.join(self.cfg['scratch'], 'e_coli_assembly.fasta')
         shutil.copy('data/e_coli/e_coli_assembly.fasta', assembly_file_path)
-        e_coli_ref = self.load_genome_direct('data/e_coli/e_coli.json',
-                                             assembly_file_path, 'tax_bug_test')
-
+        e_coli_ref = self.load_genome_direct(
+            'data/e_coli/e_coli.json',
+            assembly_file_path,
+            'tax_bug_test'
+        )
         # run the test
         genomeFileUtil = self.getImpl()
         print('testing Genbank download by building the file')
-        res1 = genomeFileUtil.genome_to_genbank(self.getContext(),
-            {'genome_ref': e_coli_ref})[0]
+        res1 = genomeFileUtil.genome_to_genbank(self.getContext(), {
+            'genome_ref': e_coli_ref
+        })[0]
         self.assertEqual(res1['from_cache'], 0)
 
     def test_check_for_taxonomy_bug(self):
@@ -116,12 +115,14 @@ class GenomeFileUtilTest(unittest.TestCase):
         assembly_file_path = os.path.join(self.cfg['scratch'], 'e_coli_assembly.fasta')
         shutil.copy('data/e_coli/e_coli_assembly.fasta', assembly_file_path)
         e_coli_ref = self.load_genome_direct(
-            'data/taxonomy_bug_test_genome.json', assembly_file_path, 'tax_bug_test')
+            'data/taxonomy_bug_test_genome.json',
+            assembly_file_path,
+            'tax_bug_test'
+        )
         # run the test
         genomeFileUtil = self.getImpl()
         print('testing Genbank download by building the file')
-        res1 = genomeFileUtil.genome_to_genbank(self.getContext(),
-            {'genome_ref': e_coli_ref})[0]
+        res1 = genomeFileUtil.genome_to_genbank(self.getContext(), {'genome_ref': e_coli_ref})[0]
         self.assertEqual(res1['from_cache'], 0)
 
     def test_contig_set_download(self):
@@ -136,7 +137,6 @@ class GenomeFileUtilTest(unittest.TestCase):
         }
         info = self.ws.save_objects(save_info)[0]
         cs_ref = "{}/{}/{}".format(info[6], info[0], info[4])
-
         genome_data = json.load(open('data/rhodobacter.json'))
         genome_data['contigset_ref'] = cs_ref
         save_info = {
@@ -149,6 +149,5 @@ class GenomeFileUtilTest(unittest.TestCase):
         # run the test
         genomeFileUtil = self.getImpl()
         print('testing Genbank download by building the file')
-        res1 = genomeFileUtil.genome_to_genbank(self.getContext(),
-                                                {'genome_ref': ref})[0]
+        res1 = genomeFileUtil.genome_to_genbank(self.getContext(), {'genome_ref': ref})[0]
         self.assertEqual(res1['from_cache'], 0)

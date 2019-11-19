@@ -29,6 +29,7 @@ class SDKConfig:
         self.srvWizURL = config['srv-wiz-url']
         self.token = os.environ['KB_AUTH_TOKEN']
         self.authServiceUrl = config['auth-service-url']
+        self.re_api_url = config['re-api-url']
         self.raw = config
 
 #END_HEADER
@@ -50,8 +51,8 @@ class GenomeFileUtil:
     # the latter method is running.
     ######################################### noqa
     VERSION = "0.8.14"
-    GIT_URL = "https://github.com/slebras/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "c2507297bc30731ddcd160783c9482a52e6eeea8"
+    GIT_URL = "https://github.com/kbaseapps/GenomeFileUtil"
+    GIT_COMMIT_HASH = "97a0c33e1e85c5c3351638513e1a5b324d8e5e93"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER

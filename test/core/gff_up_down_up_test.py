@@ -34,22 +34,20 @@ class GenomeFileUtilTest(unittest.TestCase):
         cls.serviceImpl = GenomeFileUtil(cls.cfg)
         gff_path = "data/fasta_gff/RefSeq/Bacterial_Data/NC_021490.gff.gz"
         fasta_path = "data/fasta_gff/RefSeq/Bacterial_Data/NC_021490.fasta.gz"
-        ws_obj_name = 'fungal_model'
         suffix = int(time.time() * 1000)
         cls.wsName = "test_GenomeFileUtil_" + str(suffix)
-        ret = cls.wsClient.create_workspace({'workspace': cls.wsName})
+        cls.wsClient.create_workspace({'workspace': cls.wsName})
 
         print('Uploading GFF file')
-        result = cls.serviceImpl.fasta_gff_to_genome(
-            cls.ctx,
-            {
-                'workspace_name': cls.wsName,
-                'genome_name': 'MyGenome',
-                'fasta_file': {'path': fasta_path},
-                'gff_file': {'path': gff_path},
-                'source': 'GFF',
-                'type': 'Reference'
-            })[0]
+        result = cls.serviceImpl.fasta_gff_to_genome(cls.ctx, {
+            'workspace_name': cls.wsName,
+            'genome_name': 'MyGenome',
+            'taxon_id': '243276',
+            'fasta_file': {'path': fasta_path},
+            'gff_file': {'path': gff_path},
+            'source': 'GFF',
+            'type': 'Reference'
+        })[0]
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
         cls.genome_orig = data_file_cli.get_objects(
             {'object_refs': [result['genome_ref']]})['data'][0]['data']
@@ -59,16 +57,15 @@ class GenomeFileUtilTest(unittest.TestCase):
             cls.ctx, {'genome_ref': result['genome_ref']})[0]
 
         print('Reuploading GFF file')
-        new_result = cls.serviceImpl.fasta_gff_to_genome(
-            cls.ctx,
-            {
-                'workspace_name': cls.wsName,
-                'genome_name': 'MyGenome',
-                'fasta_file': {'path': fasta_path},
-                'gff_file': {'path': down_result['file_path']},
-                'source': 'GFF',
-                'type': 'Reference'
-            })[0]
+        new_result = cls.serviceImpl.fasta_gff_to_genome(cls.ctx, {
+            'workspace_name': cls.wsName,
+            'genome_name': 'MyGenome',
+            'fasta_file': {'path': fasta_path},
+            'gff_file': {'path': down_result['file_path']},
+            'source': 'GFF',
+            'type': 'Reference',
+            'taxon_id': '243276'
+        })[0]
         cls.genome_new = data_file_cli.get_objects({'object_refs': [new_result['genome_ref']]})['data'][0]['data']
 
     @classmethod
@@ -81,7 +78,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         genome_orig = self.genome_orig
         genome_new = self.genome_new
         self.assertTrue(len(genome_orig[feature_list_name]) == len(genome_new[feature_list_name]),
-                    feature_list_name + " list is not of equal length in Original and New Genomes.")
+                        feature_list_name + " list is not of equal length in Original and New Genomes.")
         print("\n\n" + feature_list_name + " TOTAL NUMBER:" + str(len(genome_orig[feature_list_name])))
         orig_dict = dict([(x['id'], x) for x in genome_orig[feature_list_name]])
         new_dict = dict([(x['id'], x) for x in genome_new[feature_list_name]])
@@ -106,36 +103,34 @@ class GenomeFileUtilTest(unittest.TestCase):
                 first_pass_matches += 1
             else:
                 first_pass_non_match += 1
-                note_orig = orig_feature.pop("note",None)
-                note_new = new_feature.pop("note",None)
-                inference_orig = orig_feature.pop('inference_data',None)
-                inference_new = new_feature.pop('inference_data',None)
+                orig_feature.pop("note", None)
+                new_feature.pop("note", None)
+                orig_feature.pop('inference_data', None)
+                new_feature.pop('inference_data', None)
                 if "warnings" in orig_feature and "warnings" not in new_feature:
                     del(orig_feature["warnings"])
-####################
-#THESE ARE TEMPORARY TO FIND OTHER ISSUES:
-#                if feature_list_name == "features":
-#                    if 'protein_translation' in orig_feature:
-#                        del orig_feature['protein_translation']
-#                        del new_feature['protein_translation']
-#                if 'protein_translation_length' in orig_feature:
-#                    del orig_feature['protein_translation_length']
-#                    del new_feature['protein_translation_length']
-#                if 'protein_md5' in orig_feature:
-#                    del orig_feature['protein_md5']
-#                    del new_feature['protein_md5']
-#                if 'functions' in orig_feature:
-#                    del orig_feature['functions']
-#                    del new_feature['functions']
-##################
+                # THESE ARE TEMPORARY TO FIND OTHER ISSUES:
+                # if feature_list_name == "features":
+                #     if 'protein_translation' in orig_feature:
+                #         del orig_feature['protein_translation']
+                #         del new_feature['protein_translation']
+                # if 'protein_translation_length' in orig_feature:
+                #     del orig_feature['protein_translation_length']
+                #     del new_feature['protein_translation_length']
+                # if 'protein_md5' in orig_feature:
+                #     del orig_feature['protein_md5']
+                #     del new_feature['protein_md5']
+                # if 'functions' in orig_feature:
+                #     del orig_feature['functions']
+                #     del new_feature['functions']
                 if orig_feature == new_feature:
                     second_pass_matches += 1
                 else:
                     self.maxDiff = None
-                    self.assertEqual(orig_feature,new_feature)
-        self.assertEqual(len(orig_dict),(first_pass_matches + second_pass_matches),
-                        "There were %d first pass matches and %d second pass matches out of %d items in %s" %
-                        (first_pass_matches, second_pass_matches, len(orig_dict), feature_list_name))
+                    self.assertEqual(orig_feature, new_feature)
+        self.assertEqual(len(orig_dict), (first_pass_matches + second_pass_matches),
+                         "There were %d first pass matches and %d second pass matches out of %d items in %s" %
+                         (first_pass_matches, second_pass_matches, len(orig_dict), feature_list_name))
 
     def test_gene_features(self):
         self.feature_list_comparison("features")
