@@ -36,8 +36,8 @@ class UtilTest(unittest.TestCase):
         cls.serviceImpl = GenomeFileUtil(cls.cfg)
         suffix = int(time.time() * 1000)
         cls.wsName = "test_GenomeFileUtil_" + str(suffix)
-        ret = cls.wsClient.create_workspace({'workspace': cls.wsName})
-        #cls.genome_ref = 'KBaseExampleData/Escherichia_coli_K-12_MG1655'
+        cls.wsClient.create_workspace({'workspace': cls.wsName})
+        # cls.genome_ref = 'KBaseExampleData/Escherichia_coli_K-12_MG1655'
         cls.genome_ref, cls.assembly_ref = cls.load_genome_direct(
             'data/e_coli/new_ecoli_genome.json', 'data/e_coli/e_coli_assembly.fasta', 'TestGenome')
 
@@ -51,7 +51,6 @@ class UtilTest(unittest.TestCase):
             'assembly_name': obj_name + '.assembly',
             'file': {'path': assembly_path}
         })
-
         data = json.load(open(filename))
         data['assembly_ref'] = assembly_ref
         save_info = {
@@ -74,11 +73,11 @@ class UtilTest(unittest.TestCase):
             print('Test workspace was deleted')
 
     def test_genome_protein_to_fasta(self):
-        ret = self.serviceImpl.genome_proteins_to_fasta(self.ctx,
-                                                        {'genome_ref': self.genome_ref,
-                                                         'include_functions': False,
-                                                         'include_aliases': False,
-                                                         })[0]
+        ret = self.serviceImpl.genome_proteins_to_fasta(self.ctx, {
+            'genome_ref': self.genome_ref,
+            'include_functions': False,
+            'include_aliases': False,
+        })[0]
         self.assertIn('file_path', ret)
         with open(ret['file_path']) as infile:
             header1 = '>b0001_CDS_1\n'
@@ -88,11 +87,11 @@ class UtilTest(unittest.TestCase):
             self.assertEqual(len(infile.readline()), 71)
 
     def test_genome_features_to_fasta(self):
-        ret = self.serviceImpl.genome_features_to_fasta(self.ctx,
-                                                        {'genome_ref': self.genome_ref,
-                                                         'filter_ids': ['b0001', 'b0001_CDS_1'],
-                                                         'feature_lists': ['features', 'cdss']
-                                                         })[0]
+        ret = self.serviceImpl.genome_features_to_fasta(self.ctx, {
+            'genome_ref': self.genome_ref,
+            'filter_ids': ['b0001', 'b0001_CDS_1'],
+            'feature_lists': ['features', 'cdss']
+        })[0]
         self.assertIn('file_path', ret)
         with open(ret['file_path']) as infile:
             header1 = infile.readline()
@@ -104,15 +103,15 @@ class UtilTest(unittest.TestCase):
 
     def test_bad_inputs(self):
         with self.assertRaisesRegexp(ValueError, 'required field "genome_ref"'):
-            ret = self.serviceImpl.genome_features_to_fasta(self.ctx, {})
+            self.serviceImpl.genome_features_to_fasta(self.ctx, {})
         with self.assertRaisesRegexp(ValueError, 'Unknown parameter'):
-            ret = self.serviceImpl.genome_features_to_fasta(self.ctx,
-                                                            {'genome_ref': self.genome_ref,
-                                                             'foo': 'bar'})
+            self.serviceImpl.genome_features_to_fasta(self.ctx, {
+                'genome_ref': self.genome_ref,
+                'foo': 'bar'})
         with self.assertRaisesRegexp(ValueError, 'Unknown feature_lists'):
-            ret = self.serviceImpl.genome_features_to_fasta(self.ctx,
-                                                            {'genome_ref': self.genome_ref,
-                                                             'feature_lists': ['foo']})
+            self.serviceImpl.genome_features_to_fasta(self.ctx, {
+                'genome_ref': self.genome_ref,
+                'feature_lists': ['foo']})
         with self.assertRaisesRegexp(ValueError, 'Object is not a Genome'):
-            ret = self.serviceImpl.genome_features_to_fasta(self.ctx, {
+            self.serviceImpl.genome_features_to_fasta(self.ctx, {
                 'genome_ref': self.assembly_ref})

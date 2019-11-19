@@ -1,0 +1,25 @@
+##sequence-region BA000021.3 1 697724
+##species https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=36870
+BA000021.3	DDBJ	region	1	697724	.	+	.	ID=BA000021.3:1..697724;Dbxref=taxon:36870;Is_circular=true;gbkey=Src;mol_type=genomic DNA;nat-host=Glossina brevipalpis;note=equivalent name: Wigglesworthia brevipalpis
+BA000021.3	DDBJ	gene	182	2068	.	+	.	ID=gene-gidA;Name=gidA;gbkey=Gene;gene=gidA;gene_biotype=protein_coding
+BA000021.3	DDBJ	CDS	182	2068	.	+	0	ID=cds-BAC24147.1;Parent=gene-gidA;Dbxref=NCBI_GP:BAC24147.1;Name=BAC24147.1;Note=Unknown function;gbkey=CDS;gene=gidA;product=BAC24147.1;protein_id=BAC24147.1;transl_table=11
+BA000021.3	DDBJ	gene	2230	3066	.	+	.	ID=gene-atpB;Name=atpB;gbkey=Gene;gene=atpB;gene_biotype=protein_coding
+BA000021.3	DDBJ	CDS	2230	3066	.	+	0	ID=cds-BAC24148.1;Parent=gene-atpB;Dbxref=NCBI_GP:BAC24148.1;Name=BAC24148.1;Note=Energy metabolism;gbkey=CDS;gene=atpB;product=BAC24148.1;protein_id=BAC24148.1;transl_table=11
+BA000021.3	DDBJ	gene	3076	3315	.	+	.	ID=gene-atpE;Name=atpE;gbkey=Gene;gene=atpE;gene_biotype=protein_coding
+BA000021.3	DDBJ	CDS	3076	3315	.	+	0	ID=cds-BAC24149.1;Parent=gene-atpE;Dbxref=NCBI_GP:BAC24149.1;Name=BAC24149.1;Note=Energy metabolism;gbkey=CDS;gene=atpE;product=BAC24149.1;protein_id=BAC24149.1;transl_table=11
+BA000021.3	DDBJ	gene	3328	3813	.	+	.	ID=gene-atpF;Name=atpF;gbkey=Gene;gene=atpF;gene_biotype=protein_coding
+BA000021.3	DDBJ	CDS	3328	3813	.	+	0	ID=cds-BAC24150.1;Parent=gene-atpF;Dbxref=NCBI_GP:BAC24150.1;Name=BAC24150.1;Note=Energy metabolism;gbkey=CDS;gene=atpF;product=BAC24150.1;protein_id=BAC24150.1;transl_table=11
+BA000021.3	DDBJ	gene	3817	4347	.	+	.	ID=gene-atpH;Name=atpH;gbkey=Gene;gene=atpH;gene_biotype=protein_coding
+BA000021.3	DDBJ	CDS	3817	4347	.	+	0	ID=cds-BAC24151.1;Parent=gene-atpH;Dbxref=NCBI_GP:BAC24151.1;Name=BAC24151.1;Note=Energy metabolism;gbkey=CDS;gene=atpH;product=BAC24151.1;protein_id=BAC24151.1;transl_table=11
+BA000021.3	DDBJ	gene	4368	5900	.	+	.	ID=gene-atpA;Name=atpA;gbkey=Gene;gene=atpA;gene_biotype=protein_coding
+BA000021.3	DDBJ	CDS	4368	5900	.	+	0	ID=cds-BAC24152.1;Parent=gene-atpA;Dbxref=NCBI_GP:BAC24152.1;Name=BAC24152.1;Note=Energy metabolism;gbkey=CDS;gene=atpA;product=BAC24152.1;protein_id=BAC24152.1;transl_table=11
+BA000021.3	DDBJ	gene	5954	6817	.	+	.	ID=gene-atpG;Name=atpG;gbkey=Gene;gene=atpG;gene_biotype=protein_coding
+BA000021.3	DDBJ	CDS	5954	6817	.	+	0	ID=cds-BAC24153.1;Parent=gene-atpG;Dbxref=NCBI_GP:BAC24153.1;Name=BAC24153.1;Note=Energy metabolism;gbkey=CDS;gene=atpG;product=BAC24153.1;protein_id=BAC24153.1;transl_table=11
+BA000021.3	DDBJ	gene	6842	8230	.	+	.	ID=gene-atpD;Name=atpD;gbkey=Gene;gene=atpD;gene_biotype=protein_coding
+BA000021.3	DDBJ	CDS	6842	8230	.	+	0	ID=cds-BAC24154.1;Parent=gene-atpD;Dbxref=NCBI_GP:BAC24154.1;Name=BAC24154.1;Note=Energy metabolism;gbkey=CDS;gene=atpD;product=BAC24154.1;protein_id=BAC24154.1;transl_table=11
+BA000021.3	DDBJ	gene	8242	8658	.	+	.	ID=gene-atpC;Name=atpC;gbkey=Gene;gene=atpC;gene_biotype=protein_coding
+BA000021.3	DDBJ	CDS	8242	8658	.	+	0	ID=cds-BAC24155.1;Parent=gene-atpC;Dbxref=NCBI_GP:BAC24155.1;Name=BAC24155.1;Note=Energy metabolism;gbkey=CDS;gene=atpC;product=BAC24155.1;protein_id=BAC24155.1;transl_table=11
+BA000021.3	DDBJ	gene	8848	10233	.	+	.	ID=gene-glmU;Name=glmU;gbkey=Gene;gene=glmU;gene_biotype=protein_coding
+BA000021.3	DDBJ	CDS	8848	10233	.	+	0	ID=cds-BAC24156.1;Parent=gene-glmU;Dbxref=NCBI_GP:BAC24156.1;Name=BAC24156.1;Note=Cell envelope;gbkey=CDS;gene=glmU;product=BAC24156.1;protein_id=BAC24156.1;transl_table=11
+BA000021.3	DDBJ	gene	10399	12237	.	+	.	ID=gene-glmS;Name=glmS;gbkey=Gene;gene=glmS;gene_biotype=protein_coding
+BA000021.3	DDBJ	CDS	10399	12237	.	+	0	ID=cds-BAC24157.1;Parent=gene-glmS;Dbxref=NCBI_GP:BAC24157.1;Name=BAC24157.1;Note=Central intermediary metabolism;gbkey=CDS;gene=glmS;product=BAC24157.1;protein_id=BAC24157.1;transl_table=11

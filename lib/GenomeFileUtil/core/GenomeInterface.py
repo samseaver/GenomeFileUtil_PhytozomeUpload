@@ -2,9 +2,8 @@ import hashlib
 import json
 import logging
 import os
-import re
 import sys
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 
 import requests
 
@@ -12,7 +11,6 @@ from GenomeFileUtil.authclient import KBaseAuth as _KBaseAuth
 from installed_clients.AbstractHandleClient import AbstractHandle as HandleService
 from installed_clients.AssemblySequenceAPIServiceClient import AssemblySequenceAPI
 from installed_clients.DataFileUtilClient import DataFileUtil
-from installed_clients.KBaseSearchEngineClient import KBaseSearchEngine
 from installed_clients.WSLargeDataIOClient import WsLargeDataIO
 from GenomeFileUtil.core import GenomeUtils
 
@@ -27,10 +25,9 @@ class GenomeInterface:
         self.token = config.token
         self.auth_service_url = config.authServiceUrl
         self.callback_url = config.callbackURL
-
+        self.re_api_url = config.re_api_url
         self.auth_client = _KBaseAuth(self.auth_service_url)
         self.dfu = DataFileUtil(self.callback_url)
-        self.kbse = KBaseSearchEngine(config.raw['search-url'])
         self.taxon_wsname = config.raw['taxon-workspace-name']
         self.scratch = config.raw['scratch']
         self.ws_large_data = WsLargeDataIO(self.callback_url)
@@ -41,9 +38,7 @@ class GenomeInterface:
         _validate_save_one_genome_params:
                 validates params passed to save_one_genome method
         """
-
         logging.info('start validating save_one_genome params')
-
         # check for required parameters
         for p in ['workspace', 'name', 'data']:
             if p not in params:
@@ -59,10 +54,9 @@ class GenomeInterface:
         if not response.ok:
             try:
                 err = json.loads(response.content)['error'][0]
-            except:
+            except Exception:
                 # this means shock is down or not responding.
-                logging.error("Couldn't parse response error content from Shock: " +
-                         response.content)
+                logging.error("Couldn't parse response error content from Shock: " + response.content)
                 response.raise_for_status()
             raise ValueError(errtxt + str(err))
 
@@ -132,21 +126,18 @@ class GenomeInterface:
         res = self.ws_large_data.get_objects(params)['data'][0]
         data = json.load(open(res['data_json_file']))
         return data, res['info']
-        #return self.dfu.get_objects(params)['data'][0]
+        # return self.dfu.get_objects(params)['data'][0]
 
     def save_one_genome(self, params):
         logging.info('start saving genome object')
-
         self._validate_save_one_genome_params(params)
-
         workspace = params['workspace']
         name = params['name']
         data = params['data']
-
+        # XXX there is no `workspace_datatype` param in the spec
         ws_datatype = params.get('workspace_datatype', "KBaseGenomes.Genome")
-
+        # XXX there is no `meta` param in the spec
         meta = params.get('meta', {})
-
         if "AnnotatedMetagenomeAssembly" in ws_datatype:
             if params.get('upgrade') or 'feature_counts' not in data:
                 data = self._update_metagenome(data)
@@ -157,20 +148,16 @@ class GenomeInterface:
         # check all handles point to shock nodes owned by calling user
         self._own_handle(data, 'genbank_handle_ref')
         self._own_handle(data, 'gff_handle_ref')
-
         if "AnnotatedMetagenomeAssembly" not in ws_datatype:
             self._check_dna_sequence_in_features(data)
             data['warnings'] = self.validate_genome(data)
 
         # sort data
         data = GenomeUtils.sort_dict(data)
-
         # dump genome to scratch for upload
         data_path = os.path.join(self.scratch, name + ".json")
         json.dump(data, open(data_path, 'w'))
-
-        if 'hidden' in params and str(params['hidden']).lower() in (
-        'yes', 'true', 't', '1'):
+        if 'hidden' in params and str(params['hidden']).lower() in ('yes', 'true', 't', '1'):
             hidden = 1
         else:
             hidden = 0
@@ -186,77 +173,15 @@ class GenomeInterface:
                                     'name': name,
                                     'meta': meta,
                                     'hidden': hidden}]}
-
         dfu_oi = self.ws_large_data.save_objects(save_params)[0]
-
         returnVal = {'info': dfu_oi, 'warnings': data['warnings']}
-
         return returnVal
-
-    def retrieve_taxon(self, taxon_wsname, scientific_name, tax_id=None):
-        """
-        _retrieve_taxon: retrieve taxonomy and taxon_reference
-
-        """
-        taxon_info = namedtuple('taxon_info', ['taxonomy', 'taxon_ref', 'domain', 'genetic_code'])
-        default = taxon_info('Unconfirmed Organism: ' + scientific_name,
-                             'ReferenceTaxons/unknown_taxon', 'Unknown', 11)
-
-        def extract_values(search_obj):
-            return taxon_info(search_obj['data']['scientific_lineage'],
-                              taxon_wsname+"/"+search_obj['object_name'],
-                              search_obj['data']['domain'],
-                              search_obj['data'].get('genetic_code', 11))
-
-        if tax_id:
-            ref = f'{taxon_wsname}/{tax_id}_taxon'
-            try:
-                tax_data = self.dfu.get_objects({'object_refs': [ref]})['data'][0]['data']
-            except:
-                raise ValueError(f'{tax_id} is not a valid KBase taxon ID. Please specify a '
-                                 f'different taxon or only a scientific name')
-            return taxon_info(tax_data['scientific_lineage'], ref,
-                              tax_data['domain'], tax_data['genetic_code'])
-
-        # ELASTICSEARCH changes should be validated for this section.
-        # May be easier to just edit this section to work with new searchAPI2
-        search_params = {
-            "object_types": ["taxon"],
-            "match_filter": {
-                "lookup_in_keys": {
-                    "scientific_name": {"value": scientific_name}},
-                "exclude_subobjects": 1
-            },
-            "access_filter": {
-                "with_private": 0,
-                "with_public": 1
-            },
-            "sorting_rules": [{
-                "is_object_property": 0,
-                "property": "timestamp",
-                "ascending": 0
-            }]
-        }
-        objects = self.kbse.search_objects(search_params)['objects']
-        if len(objects):
-            if len(objects) > 100000:
-                raise RuntimeError(f"Too many matching taxa returned for {scientific_name}. "
-                                   f"Potential issue with searchAPI.")
-            return extract_values(objects[0])
-        search_params['match_filter']['lookup_in_keys'] = {
-            "aliases": {"value": scientific_name}
-        }
-        objects = self.kbse.search_objects(search_params)['objects']
-        if len(objects):
-            return extract_values(objects[0])
-        return default
 
     @staticmethod
     def determine_tier(source):
         """
         Given a user provided source parameter, assign a source and genome tier
         """
-        tier_info = namedtuple('tier_info', ['taxonomy', 'taxon_ref'])
         low_source = source.lower()
         if 'refseq' in low_source:
             if 'reference' in low_source:
@@ -286,35 +211,24 @@ class GenomeInterface:
     def _update_genome(self, genome):
         """Checks for missing required fields and fixes breaking changes"""
         # do top level updates
-        ontologies_present = defaultdict(dict)
+        ontologies_present = defaultdict(dict)  # type: dict
         ontologies_present.update(genome.get('ontologies_present', {}))
         ontology_events = genome.get('ontology_events', [])
-        # NOTE: 'genome_tier' not in Metagenome spec
-        if 'genome_tier' not in genome:
-            # NOTE: should the 'genome_tiers' below be 'genome_tier'?
-            genome['source'], genome['genome_tiers'] = self.determine_tier(
-                genome['source'])
+        # NOTE: 'genome_tiers' not in Metagenome spec
+        if 'genome_tiers' not in genome:
+            genome['source'], genome['genome_tiers'] = self.determine_tier(genome['source'])
         if 'molecule_type' not in genome:
             genome['molecule_type'] = 'Unknown'
-        # NOTE: New Taxon changes should most likely fit in here.
-        # NOTE: Metagenome object does not have a 'taxon_ref' field
-        if 'taxon_ref' not in genome:
-            genome['taxonomy'], genome['taxon_ref'], domain, genetic_code = self.retrieve_taxon(
-                self.taxon_wsname, genome['scientific_name'])
-            if 'genetic_code' in genome and genome['genetic_code'] != genetic_code:
-                genome['warnings'] = genome.get('warnings', []) + [
-                    "The genetic_code of this genome differs from that of its assigned taxon"]
-            else:
-                genome['genetic_code'] = genetic_code
 
-            if 'domain' in genome and genome['domain'] != domain:
-                genome['warnings'] = genome.get('warnings', []) + [
-                    "The domain of this genome differs from that of its assigned taxon"]
-            else:
-                genome['domain'] = domain
+        # If an NCBI taxonomy ID is provided, fetch additional data about the taxon
+        # NOTE: Metagenome object does not have a 'taxon_assignments' field
+        if 'taxon_assignments' in genome and genome['taxon_assignments'].get('ncbi'):
+            tax_id = int(genome['taxon_assignments']['ncbi'])
+            GenomeUtils.set_taxon_data(tax_id, self.re_api_url, genome)
+        else:
+            GenomeUtils.set_default_taxon_data(genome)
 
-        if any([x not in genome for x in ('dna_size', 'md5', 'gc_content',
-                                          'num_contigs')]):
+        if any([x not in genome for x in ('dna_size', 'md5', 'gc_content', 'num_contigs')]):
             if 'assembly_ref' in genome:
                 assembly_data = self.dfu.get_objects(
                     {'object_refs': [genome['assembly_ref']],
@@ -421,7 +335,6 @@ class GenomeInterface:
         type_counts['non_coding_features'] = len(
             genome.get('non_coding_features', []))
         genome['feature_counts'] = type_counts
-
         return genome
 
     @staticmethod
@@ -440,16 +353,15 @@ class GenomeInterface:
         #       Add validations for Metagenome object
 
         # this will fire for some annotation methods like PROKKA
-        if g['domain'] == "Bacteria" and len(g.get('cdss', [])) != len(
-                g['features']):
+        if g.get('domain') == "Bacteria" and len(g.get('cdss', [])) != len(g['features']):
             warnings.append("For prokaryotes, CDS array should generally be the"
                             " same length as the Features array.")
 
-        if g['domain'] == "Eukaryota" and len(g.get('features', [])) == len(g.get('cdss', [])):
+        if g.get('domain') == "Eukaryota" and len(g.get('features', [])) == len(g.get('cdss', [])):
             warnings.append("For Eukaryotes, CDS array should not be the same "
                             "length as the Features array due to RNA splicing.")
 
-        if "molecule_type" in g and g['molecule_type'] not in {"DNA", 'ds-DNA'}:
+        if g.get('molecule_type') not in {"DNA", 'ds-DNA'}:
             if g.get('domain', '') not in {'Virus', 'Viroid'} and \
                             g['molecule_type'] not in {"DNA", 'ds-DNA'}:
                 warnings.append("Genome molecule_type {} is not expected "
@@ -459,7 +371,9 @@ class GenomeInterface:
         if "genome_tiers" in g and set(g['genome_tiers']) - allowed_tiers:
             warnings.append("Undefined terms in genome_tiers: " + ", ".join(
                 set(g['genome_tiers']) - allowed_tiers))
-        if g['taxon_ref'] == "ReferenceTaxons/unknown_taxon":
+        assignments = g.get('taxon_assignments', {})
+        if 'ncbi' not in assignments or (
+                'taxon_ref' in g and g['taxon_ref'] == "ReferenceTaxons/unknown_taxon"):
             warnings.append('Unable to determine organism taxonomy')
 
         GenomeInterface.handle_large_genomes(g)

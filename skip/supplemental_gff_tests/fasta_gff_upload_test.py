@@ -6,10 +6,7 @@ import time
 import unittest
 from os import environ
 
-try:
-    from configparser import ConfigParser  # py2
-except:
-    from configparser import ConfigParser  # py3
+from configparser import ConfigParser  # py3
 
 from installed_clients.WorkspaceClient import Workspace as workspaceService
 from GenomeFileUtil.GenomeFileUtilImpl import GenomeFileUtil
@@ -24,12 +21,11 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        print('setting up class')
         cls.token = environ.get('KB_AUTH_TOKEN', None)
         config_file = environ.get('KB_DEPLOYMENT_CONFIG', None)
         cls.cfg = {}
         config = ConfigParser()
-        config.read(config_file)
+        config.read(config_file)  # type: ignore
         for nameval in config.items('GenomeFileUtil'):
             cls.cfg[nameval[0]] = nameval[1]
         authServiceUrl = cls.cfg.get('auth-service-url',

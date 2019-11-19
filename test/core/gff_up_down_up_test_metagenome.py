@@ -1,8 +1,6 @@
 import os
 import time
 import json
-import gzip
-import shutil
 import unittest
 from configparser import ConfigParser
 
@@ -36,27 +34,25 @@ class GenomeFileUtilTest(unittest.TestCase):
         cls.wsClient = workspaceService(cls.wsURL, token=token)
         cls.serviceImpl = GenomeFileUtil(cls.cfg)
         # get metagenome data.
-        gff_path   = "data/metagenomes/ebi/59111.assembled.gff"
+        gff_path = "data/metagenomes/ebi/59111.assembled.gff"
         fasta_path = "data/metagenomes/ebi/59111.assembled.fna"
-        ws_obj_name = 'metagenome_test_objects'
         suffix = int(time.time() * 1000)
         cls.wsName = "test_GenomeFileUtil_" + str(suffix)
-        ret = cls.wsClient.create_workspace({'workspace': cls.wsName})
+        cls.wsClient.create_workspace({'workspace': cls.wsName})
 
         print('Uploading GFF file')
-        result = cls.serviceImpl.fasta_gff_to_genome(
-            cls.ctx,
-            {
-                'workspace_name': cls.wsName,
-                'genome_name': 'MyGenome',
-                'fasta_file': {'path': fasta_path},
-                'gff_file': {'path': gff_path},
-                'source': 'GFF',
-                'type': 'Reference',
-                'genome_type': 'Metagenome',
-                'is_metagenome': True,
-                'generate_missing_genes': True
-            })[0]
+        result = cls.serviceImpl.fasta_gff_to_genome(cls.ctx, {
+            'workspace_name': cls.wsName,
+            'genome_name': 'MyGenome',
+            'fasta_file': {'path': fasta_path},
+            'gff_file': {'path': gff_path},
+            'source': 'GFF',
+            'taxon_id': '3702',
+            'type': 'Reference',
+            'genome_type': 'Metagenome',
+            'is_metagenome': True,
+            'generate_missing_genes': True
+        })[0]
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
         cls.genome_orig = data_file_cli.get_objects(
             {'object_refs': [result['genome_ref']]})['data'][0]['data']
@@ -66,19 +62,18 @@ class GenomeFileUtilTest(unittest.TestCase):
             cls.ctx, {'genome_ref': result['genome_ref']})[0]
 
         print('Reuploading GFF file')
-        new_result = cls.serviceImpl.fasta_gff_to_genome(
-            cls.ctx,
-            {
-                'workspace_name': cls.wsName,
-                'genome_name': 'MyGenome',
-                'fasta_file': {'path': fasta_path},
-                'gff_file': {'path': down_result['file_path']},
-                'source': 'GFF',
-                'type': 'Reference',
-                'genome_type': 'Metagenome',
-                'is_metagenome': True,
-                'generate_missing_genes': True
-            })[0]
+        new_result = cls.serviceImpl.fasta_gff_to_genome(cls.ctx, {
+            'workspace_name': cls.wsName,
+            'genome_name': 'MyGenome',
+            'fasta_file': {'path': fasta_path},
+            'gff_file': {'path': down_result['file_path']},
+            'source': 'GFF',
+            'type': 'Reference',
+            'genome_type': 'Metagenome',
+            'is_metagenome': True,
+            'generate_missing_genes': True,
+            'taxon_id': '3702',
+        })[0]
         cls.genome_new = data_file_cli.get_objects({'object_refs': [new_result['genome_ref']]})['data'][0]['data']
 
     @classmethod
@@ -138,17 +133,21 @@ class GenomeFileUtilTest(unittest.TestCase):
                 first_pass_matches += 1
             else:
                 first_pass_non_match += 1
-                note_orig = orig_feature.pop("note",None)
-                note_new = new_feature.pop("note",None)
-                inference_orig = orig_feature.pop('inference_data',None)
-                inference_new = new_feature.pop('inference_data',None)
+                orig_feature.pop("note", None)
+                new_feature.pop("note", None)
+                orig_feature.pop('inference_data', None)
+                new_feature.pop('inference_data', None)
                 if "warnings" in orig_feature and "warnings" not in new_feature:
                     del(orig_feature["warnings"])
                 if orig_feature == new_feature:
                     second_pass_matches += 1
                 else:
                     self.maxDiff = None
-                    self.assertEqual(orig_feature,new_feature)
-        self.assertEqual(len(orig_dict),(first_pass_matches + second_pass_matches),
-                        "There were %d first pass matches and %d second pass matches out of %d items in features" %
-                        (first_pass_matches, second_pass_matches, len(orig_dict)))
+                    self.assertEqual(orig_feature, new_feature)
+        self.assertEqual(
+            len(orig_dict),
+            (first_pass_matches + second_pass_matches),
+            (f"There were {first_pass_matches} first pass matches "
+             f"and {second_pass_matches} second pass matches out of "
+             f"{len(orig_dict)} items in features")
+        )
