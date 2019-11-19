@@ -44,48 +44,6 @@ class IntegrationTest(unittest.TestCase):
         ws_info = cls.ws.create_workspace({'workspace': cls.ws_name})
         cls.ws_id = ws_info[0]
 
-    def test_fasta_gff_to_genome_ok(self):
-        """
-        Test the `fasta_gff_to_genome` method
-        Taxonomy ID should be pulled from the source file.
-        """
-        # boolean generate_missing_genes;
-        result = self.gfu.fasta_gff_to_genome(self.ctx, {
-            "fasta_file": {
-                "path": f"{_DATA_PATH}/wigglesworthia/genome.fasta"
-            },
-            "gff_file": {
-                "path": f"{_DATA_PATH}/wigglesworthia/genome.gff3"
-            },
-            "workspace_name": self.ws_name,
-            'generate_missing_genes': 1,
-            'genome_name': str(uuid4()),
-        })
-        ref = result[0]['genome_ref']
-        self.assertTrue(ref, 'Genome ref exists')
-        info = result[0]['genome_info']
-        typ = info[2]
-        self.assertTrue(typ.startswith('KBaseGenomes.Genome'))
-        info_details = info[-1]
-        self.assertEqual(info_details['Taxonomy'], (
-            "cellular organisms;Bacteria;Proteobacteria;"
-            "Gammaproteobacteria;Enterobacterales;Erwiniaceae;"
-            "Wigglesworthia;Wigglesworthia glossinidia"
-        ))
-        self.assertEqual(info_details['Size'], '697724')
-        self.assertEqual(info_details['Source'], 'User')
-        self.assertEqual(info_details['Name'], 'Wigglesworthia glossinidia')
-        self.assertEqual(info_details['GC content'], '0.22479')
-        self.assertEqual(info_details['Genetic code'], '11')
-        self.assertEqual(info_details['Number of Genome Level Warnings'], '1')
-        self.assertEqual(info_details['Source ID'], 'unknown')
-        self.assertEqual(info_details['Number of Protein Encoding Genes'], '11')
-        self.assertEqual(info_details['Domain'], 'Bacteria')
-        self.assertTrue(info_details['Assembly Object'])
-        self.assertEqual(info_details['Number contigs'], '1')
-        self.assertEqual(info_details['Number of CDS'], '11')
-        self.assertTrue(info_details['MD5'])
-
     def test_fasta_gff_to_genome_with_taxon(self):
         """
         Test the `fasta_gff_to_genome` method.

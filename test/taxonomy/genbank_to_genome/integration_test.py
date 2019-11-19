@@ -44,45 +44,7 @@ class IntegrationTest(unittest.TestCase):
         ws_info = cls.ws.create_workspace({'workspace': cls.ws_name})
         cls.ws_id = ws_info[0]
 
-    def test_genbank_to_genome_ok(self):
-        """
-        Test the `genbank_to_genome` method
-        Taxonomy ID should be pulled from the genbank.
-        """
-        result = self.gfu.genbank_to_genome(self.ctx, {
-            'workspace_name': self.ws_name,
-            'generate_ids_if_needed': 'true',  # why is this a string
-            'file': {
-                'path': f"{_DATA_PATH}/wigglesworthia/genome.gb"
-            },
-            'genome_name': str(uuid4()),
-        })
-        ref = result[0]['genome_ref']
-        self.assertTrue(ref, 'Genome ref exists')
-        info = result[0]['genome_info']
-        typ = info[2]
-        self.assertTrue(typ.startswith('KBaseGenomes.Genome'))
-        info_details = info[-1]
-        self.assertEqual(info_details['Taxonomy'], (
-            'cellular organisms;Bacteria;Proteobacteria;'
-            'Gammaproteobacteria;Enterobacterales;Erwiniaceae;'
-            'Wigglesworthia;Wigglesworthia glossinidia'
-        ))
-        self.assertEqual(info_details['Size'], '697724')
-        self.assertEqual(info_details['Source'], 'Genbank')
-        self.assertEqual(info_details['Name'], 'Wigglesworthia glossinidia endosymbiont of Glossina brevipalpis')
-        self.assertEqual(info_details['GC content'], '0.22479')
-        self.assertEqual(info_details['Genetic code'], '11')
-        self.assertEqual(info_details['Number of Genome Level Warnings'], '0')
-        self.assertEqual(info_details['Source ID'], 'BA000021')
-        self.assertEqual(info_details['Number of Protein Encoding Genes'], '20')
-        self.assertEqual(info_details['Domain'], 'Bacteria')
-        self.assertTrue(info_details['Assembly Object'])
-        self.assertEqual(info_details['Number contigs'], '1')
-        self.assertEqual(info_details['Number of CDS'], '20')
-        self.assertTrue(info_details['MD5'])
-
-    def test_genbank_to_genome_ok_with_taxon(self):
+    def test_genbank_to_genome_taxonomy(self):
         """
         Test the `save_one_genome` method.
         Pass a taxon ID in the parameters.
@@ -123,3 +85,20 @@ class IntegrationTest(unittest.TestCase):
         self.assertEqual(info_details['Number contigs'], '1')
         self.assertEqual(info_details['Number of CDS'], '20')
         self.assertTrue(info_details['MD5'])
+
+    @unittest.skip('TODO')
+    def test_genbank_to_genome_invalid_taxon_id(self):
+        """
+        Test the `save_one_genome` method.
+        Pass a taxon ID in the parameters.
+        """
+        result = self.gfu.genbank_to_genome(self.ctx, {
+            'workspace_name': self.ws_name,
+            'generate_ids_if_needed': 'true',  # why is this a string
+            'taxon_id': '9999999999',
+            'file': {
+                'path': f"{_DATA_PATH}/wigglesworthia/genome.gb"
+            },
+            'genome_name': str(uuid4()),
+        })
+        print('test_genbank_to_genome_invalid_taxon_id result', result)

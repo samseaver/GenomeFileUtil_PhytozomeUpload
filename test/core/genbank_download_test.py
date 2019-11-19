@@ -19,7 +19,6 @@ class GenomeFileUtilTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        print('xyzxyzxyz')
         token = environ.get('KB_AUTH_TOKEN', None)
         # WARNING: don't call any logging methods on the context object,
         # it'll result in a NoneType error
