@@ -33,7 +33,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         cls.wsClient = workspaceService(cls.wsURL, token=token)
         cls.serviceImpl = GenomeFileUtil(cls.cfg)
         gff_path = "data/fasta_gff/RefSeq/Bacterial_Data/NC_021490.gff.gz"
-        fasta_path = "data/fasta_gff/RefSeq/Bacterial_Data/NC_021490.fasta.gz"
+        cls.fasta_path = "data/fasta_gff/RefSeq/Bacterial_Data/NC_021490.fasta.gz"
         suffix = int(time.time() * 1000)
         cls.wsName = "test_GenomeFileUtil_" + str(suffix)
         cls.wsClient.create_workspace({'workspace': cls.wsName})
@@ -43,12 +43,13 @@ class GenomeFileUtilTest(unittest.TestCase):
             'workspace_name': cls.wsName,
             'genome_name': 'MyGenome',
             'taxon_id': '243276',
-            'fasta_file': {'path': fasta_path},
+            'fasta_file': {'path': cls.fasta_path},
             'gff_file': {'path': gff_path},
             'source': 'GFF',
             'type': 'Reference'
         })[0]
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
+        cls.genome_ref = result['genome_ref']
         cls.genome_orig = data_file_cli.get_objects(
             {'object_refs': [result['genome_ref']]})['data'][0]['data']
 
@@ -60,7 +61,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         new_result = cls.serviceImpl.fasta_gff_to_genome(cls.ctx, {
             'workspace_name': cls.wsName,
             'genome_name': 'MyGenome',
-            'fasta_file': {'path': fasta_path},
+            'fasta_file': {'path': cls.fasta_path},
             'gff_file': {'path': down_result['file_path']},
             'source': 'GFF',
             'type': 'Reference',
@@ -131,6 +132,20 @@ class GenomeFileUtilTest(unittest.TestCase):
         self.assertEqual(len(orig_dict), (first_pass_matches + second_pass_matches),
                          "There were %d first pass matches and %d second pass matches out of %d items in %s" %
                          (first_pass_matches, second_pass_matches, len(orig_dict), feature_list_name))
+
+    def test_genome_gff_to_genome(self):
+        """Very limited, just checks if it runs basically.
+        TODO: expand this test."""
+        result = self.serviceImpl.ws_obj_gff_to_genome(self.ctx, {
+            'workspace_name': self.wsName,
+            'genome_name': 'MyGenome',
+            'fasta_file': {'path': self.fasta_path},
+            'ws_ref': self.metagenome_ref,
+            'source': 'GFF',
+            'type': 'Reference',
+            'taxon_id': '243276'
+        })
+
 
     def test_gene_features(self):
         self.feature_list_comparison("features")

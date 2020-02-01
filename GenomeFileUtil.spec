@@ -211,6 +211,8 @@ module GenomeFileUtil {
         and link to a taxon
     generate_missing_genes - If the file has CDS or mRNA with no corresponding
         gene, generate a spoofed gene. Off by default
+    existing_assembly_ref - a KBase assembly upa, to associate the genome with. 
+        Avoids saving a new assembly when specified.
     */
     typedef structure {
         File fasta_file;
@@ -227,6 +229,7 @@ module GenomeFileUtil {
         string scientific_name;
         usermeta metadata;
         boolean generate_missing_genes;
+        string existing_assembly_ref;
     } FastaGFFToGenomeParams;
 
     funcdef fasta_gff_to_genome(FastaGFFToGenomeParams params)
@@ -251,6 +254,8 @@ module GenomeFileUtil {
         and link to a taxon
     generate_missing_genes - If the file has CDS or mRNA with no corresponding
         gene, generate a spoofed gene. Off by default
+    existing_assembly_ref - a KBase assembly upa, to associate the metagenome with.
+        Avoids saving a new assembly when specified.
     */
 
     typedef structure {
@@ -263,6 +268,7 @@ module GenomeFileUtil {
         string source;
         usermeta metadata;
         boolean generate_missing_genes;
+        string existing_assembly_ref;
     } FastaGFFToMetagenomeParams;
 
     funcdef fasta_gff_to_metagenome(FastaGFFToMetagenomeParams params)
@@ -282,4 +288,50 @@ module GenomeFileUtil {
 
     funcdef save_one_genome(SaveOneGenomeParams params)
                 returns (SaveGenomeResult returnVal) authentication required;
+
+    /*
+
+    */
+
+    typedef structure {
+        string ws_ref;
+        File gff_file;
+
+        string genome_name;
+        string workspace_name;
+
+        string source;
+        string taxon_wsname;
+        string taxon_id;
+        string release;
+        int    genetic_code;
+        string scientific_name;
+        usermeta metadata;
+        boolean generate_missing_genes;
+
+    } WsObjGFFToGenomeParams;
+
+    funcdef ws_obj_gff_to_genome(WsObjGFFToGenomeParams params)
+                returns (GenomeSaveResult returnVal) authentication required;
+
+    /*
+
+    */
+
+    typedef structure {
+        string ws_ref;
+        File gff_file;
+
+        string genome_name;
+        string workspace_name;
+
+        string source;
+        usermeta metadata;
+        boolean generate_missing_genes;
+
+    } WsObjGFFToMetagenomeParams;
+
+    funcdef ws_obj_gff_to_metagenome(WsObjGFFToMetagenomeParams params)
+                returns (MetagenomeSaveResult returnVal) authentication required;
+
 };

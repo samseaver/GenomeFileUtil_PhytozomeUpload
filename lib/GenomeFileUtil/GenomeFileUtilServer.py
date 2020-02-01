@@ -390,6 +390,14 @@ class Application(object):
                              name='GenomeFileUtil.save_one_genome',
                              types=[dict])
         self.method_authentication['GenomeFileUtil.save_one_genome'] = 'required'  # noqa
+        self.rpc_service.add(impl_GenomeFileUtil.ws_obj_gff_to_genome,
+                             name='GenomeFileUtil.ws_obj_gff_to_genome',
+                             types=[dict])
+        self.method_authentication['GenomeFileUtil.ws_obj_gff_to_genome'] = 'required'  # noqa
+        self.rpc_service.add(impl_GenomeFileUtil.ws_obj_gff_to_metagenome,
+                             name='GenomeFileUtil.ws_obj_gff_to_metagenome',
+                             types=[dict])
+        self.method_authentication['GenomeFileUtil.ws_obj_gff_to_metagenome'] = 'required'  # noqa
         self.rpc_service.add(impl_GenomeFileUtil.status,
                              name='GenomeFileUtil.status',
                              types=[dict])
