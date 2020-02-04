@@ -481,18 +481,4 @@ def set_taxon_data(tax_id, re_api_url, genome_dict):
         )
     # Assign the scientific name to the most specific (right-most) taxon in the lineage
     genome_dict['scientific_name'] = sciname
-
-
-def validate_lists_are_same(ids1, ids2):
-    """
-    Given two sets of ids (from different sources), verify that they match up.
-    
-    Useful for comparing ids in GFF and Fasta files, or across Genomes and Assemblies.
-    """
-    diff = set(ids1) ^ (set(ids2))  # get the symmetric difference of the sets
-    if len(diff) == 0:
-        # all ids are shared
-        return True
-    return False
-
  

@@ -292,7 +292,6 @@ class FastaGFFToGenome:
             below seems like weird if statement
             '''
             if file.get('path') is not None:
-                print('freddddyiiie flanstone')
                 local_file_path = file['path']
                 file_path = os.path.join(input_directory, os.path.basename(local_file_path))
                 logging.info(f'Moving file from {local_file_path} to {file_path}')
