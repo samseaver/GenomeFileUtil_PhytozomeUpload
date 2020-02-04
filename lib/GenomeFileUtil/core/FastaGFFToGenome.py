@@ -164,7 +164,6 @@ class FastaGFFToGenome:
             genome_type = "metagenome"
         else:
             genome_type = params.get('genome_type', 'isolate')
-        # ADD THE OPTION FOR NO ASSEMBLY CREATION HERE
         if params.get('existing_assembly_ref'):
             assembly_ref = params['existing_assembly_ref']
 

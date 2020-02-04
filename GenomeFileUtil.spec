@@ -290,7 +290,24 @@ module GenomeFileUtil {
                 returns (SaveGenomeResult returnVal) authentication required;
 
     /*
+    gff_file - object containing path to gff_file
+    ws_ref - input Assembly or Genome reference
 
+    genome_name - becomes the name of the object
+    workspace_name - the name of the workspace it gets saved to.
+    source - Source of the file typically something like RefSeq or Ensembl
+    taxon_ws_name - where the reference taxons are : ReferenceTaxons
+    taxon_id - if defined, will try to link the Genome to the specified
+        taxonomy id in lieu of performing the lookup during upload
+    release - Release or version number of the data
+          per example Ensembl has numbered releases of all their data: Release 31
+    genetic_code - Genetic code of organism. Overwrites determined GC from
+          taxon object
+    scientific_name - will be used to set the scientific name of the genome
+        and link to a taxon
+    metadata - any user input metadata
+    generate_missing_genes - If the file has CDS or mRNA with no corresponding
+        gene, generate a spoofed gene. Off by default
     */
 
     typedef structure {
@@ -311,11 +328,25 @@ module GenomeFileUtil {
 
     } WsObjGFFToGenomeParams;
 
+    /*
+    This function takes in a workspace object of type KBaseGenomes.Genome or KBaseGenomeAnnotations.Assembly and a gff file and produces a KBaseGenomes.Genome reanotated according to the the input gff file.
+    */
     funcdef ws_obj_gff_to_genome(WsObjGFFToGenomeParams params)
                 returns (GenomeSaveResult returnVal) authentication required;
 
     /*
+    gff_file - object containing path to gff_file
+    ws_ref - input Assembly or AnnotatedMetagenomeAssembly reference
 
+    genome_name - becomes the name of the object
+    workspace_name - the name of the workspace it gets saved to.
+    source - Source of the file typically something like RefSeq or Ensembl
+
+    genetic_code - Genetic code of organism. Overwrites determined GC from
+          taxon object
+    metadata - any user input metadata
+    generate_missing_genes - If the file has CDS or mRNA with no corresponding
+        gene, generate a spoofed gene. Off by default
     */
 
     typedef structure {
@@ -331,6 +362,9 @@ module GenomeFileUtil {
 
     } WsObjGFFToMetagenomeParams;
 
+    /*
+    This function takes in a workspace object of type KBaseMetagenomes.AnnotatedMetagenomeAssembly or KBaseGenomeAnnotations.Assembly and a gff file and produces a KBaseMetagenomes.AnnotatedMetagenomeAssembly reanotated according to the the input gff file.
+    */
     funcdef ws_obj_gff_to_metagenome(WsObjGFFToMetagenomeParams params)
                 returns (MetagenomeSaveResult returnVal) authentication required;
 
