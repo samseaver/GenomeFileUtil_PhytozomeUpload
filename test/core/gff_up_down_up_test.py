@@ -32,7 +32,7 @@ class GenomeFileUtilTest(unittest.TestCase):
         cls.wsURL = cls.cfg['workspace-url']
         cls.wsClient = workspaceService(cls.wsURL, token=token)
         cls.serviceImpl = GenomeFileUtil(cls.cfg)
-        gff_path = "data/fasta_gff/RefSeq/Bacterial_Data/NC_021490.gff.gz"
+        cls.gff_path = "data/fasta_gff/RefSeq/Bacterial_Data/NC_021490.gff.gz"
         cls.fasta_path = "data/fasta_gff/RefSeq/Bacterial_Data/NC_021490.fasta.gz"
         suffix = int(time.time() * 1000)
         cls.wsName = "test_GenomeFileUtil_" + str(suffix)
@@ -44,7 +44,7 @@ class GenomeFileUtilTest(unittest.TestCase):
             'genome_name': 'MyGenome',
             'taxon_id': '243276',
             'fasta_file': {'path': cls.fasta_path},
-            'gff_file': {'path': gff_path},
+            'gff_file': {'path': cls.gff_path},
             'source': 'GFF',
             'type': 'Reference'
         })[0]
@@ -75,9 +75,7 @@ class GenomeFileUtilTest(unittest.TestCase):
             cls.wsClient.delete_workspace({'workspace': cls.wsName})
             print('Test workspace was deleted')
 
-    def feature_list_comparison(self, feature_list_name):
-        genome_orig = self.genome_orig
-        genome_new = self.genome_new
+    def feature_list_comparison(self, genome_orig, genome_new, feature_list_name):
         self.assertTrue(len(genome_orig[feature_list_name]) == len(genome_new[feature_list_name]),
                         feature_list_name + " list is not of equal length in Original and New Genomes.")
         print("\n\n" + feature_list_name + " TOTAL NUMBER:" + str(len(genome_orig[feature_list_name])))
@@ -134,27 +132,30 @@ class GenomeFileUtilTest(unittest.TestCase):
                          (first_pass_matches, second_pass_matches, len(orig_dict), feature_list_name))
 
     def test_genome_gff_to_genome(self):
-        """Very limited, just checks if it runs basically.
-        TODO: expand this test."""
         result = self.serviceImpl.ws_obj_gff_to_genome(self.ctx, {
             'workspace_name': self.wsName,
             'genome_name': 'MyGenome',
-            'fasta_file': {'path': self.fasta_path},
-            'ws_ref': self.metagenome_ref,
+            'gff_file': {'path': self.gff_path},
+            'ws_ref': self.genome_ref,
             'source': 'GFF',
             'type': 'Reference',
             'taxon_id': '243276'
-        })
-
+        })[0]
+        dfu = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
+        genome = dfu.get_objects({"object_refs": [result['genome_ref']]})['data'][0]['data']
+        self.feature_list_comparison(self.genome_orig, genome, 'features')
+        self.feature_list_comparison(self.genome_orig, genome, 'cdss')
+        self.feature_list_comparison(self.genome_orig, genome, 'mrnas')
+        self.feature_list_comparison(self.genome_orig, genome, 'non_coding_features')
 
     def test_gene_features(self):
-        self.feature_list_comparison("features")
+        self.feature_list_comparison(self.genome_orig, self.genome_new, "features")
 
     def test_cds_features(self):
-        self.feature_list_comparison("cdss")
+        self.feature_list_comparison(self.genome_orig, self.genome_new, "cdss")
 
     def test_mrna_features(self):
-        self.feature_list_comparison("mrnas")
+        self.feature_list_comparison(self.genome_orig, self.genome_new, "mrnas")
 
     def test_ncf_features(self):
-        self.feature_list_comparison("non_coding_features")
+        self.feature_list_comparison(self.genome_orig, self.genome_new, "non_coding_features")

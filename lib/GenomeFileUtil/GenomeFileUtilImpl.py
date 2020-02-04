@@ -1082,7 +1082,7 @@ class GenomeFileUtil:
         # ctx is the context object
         # return variables are: returnVal
         #BEGIN ws_obj_gff_to_genome
-        au = AssemblyUtil(self.callbackURL)
+        au = AssemblyUtil(self.cfg.callbackURL)
         ws = Workspace(url=self.cfg.workspaceURL)
 
         input_ref = params.get('ws_ref')
@@ -1134,10 +1134,13 @@ class GenomeFileUtil:
         # ctx is the context object
         # return variables are: returnVal
         #BEGIN ws_obj_gff_to_metagenome
-        au = AssemblyUtil(self.callbackURL)
+        au = AssemblyUtil(self.cfg.callbackURL)
         ws = Workspace(url=self.cfg.workspaceURL)
 
-        input_ref = params.get('ws_ref')
+        if params.get('ws_ref'):
+          input_ref = params['ws_ref']
+        else:
+          raise ValueError(f"ws_ref argument required for ws_obj_gff_to_metagenome method")
         # input should only be of workspace object types:
         #   - 'KBaseMetagenomes.AnnotatedMetagenomeAssembly'
         #   - 'KBaseGenomeAnnotations.Assembly'
@@ -1152,7 +1155,6 @@ class GenomeFileUtil:
                            f"not {obj_type}")
 
         fasta_file = [val['paths'][0] for key, val in au.get_fastas({'ref_lst': [input_ref]}).items()][0]
-
         params['fasta_file'] = {
           'path': fasta_file
         }
