@@ -34,18 +34,21 @@ class GenomeFileUtilTest(unittest.TestCase):
         cls.wsClient = workspaceService(cls.wsURL, token=token)
         cls.serviceImpl = GenomeFileUtil(cls.cfg)
         # get metagenome data.
-        gff_path = "data/metagenomes/ebi/59111.assembled.gff"
-        fasta_path = "data/metagenomes/ebi/59111.assembled.fna"
+        cls.gff_path = "data/metagenomes/ebi/59111.assembled.gff"
+        cls.fasta_path = "data/metagenomes/ebi/59111.assembled.fna"
+        if not os.path.isfile(cls.fasta_path) or not os.path.isfile(cls.gff_path):
+            raise InputError(f'Files {cls.gff_path} and/or {cls.fasta_path} not in test directory ')
+
         suffix = int(time.time() * 1000)
         cls.wsName = "test_GenomeFileUtil_" + str(suffix)
         cls.wsClient.create_workspace({'workspace': cls.wsName})
 
         print('Uploading GFF file')
-        result = cls.serviceImpl.fasta_gff_to_genome(cls.ctx, {
+        result = cls.serviceImpl.fasta_gff_to_metagenome(cls.ctx, {
             'workspace_name': cls.wsName,
             'genome_name': 'MyGenome',
-            'fasta_file': {'path': fasta_path},
-            'gff_file': {'path': gff_path},
+            'fasta_file': {'path': cls.fasta_path},
+            'gff_file': {'path': cls.gff_path},
             'source': 'GFF',
             'taxon_id': '3702',
             'type': 'Reference',
@@ -54,18 +57,19 @@ class GenomeFileUtilTest(unittest.TestCase):
             'generate_missing_genes': True
         })[0]
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
+        cls.metagenome_ref = result['metagenome_ref']
         cls.genome_orig = data_file_cli.get_objects(
-            {'object_refs': [result['genome_ref']]})['data'][0]['data']
+            {'object_refs': [result['metagenome_ref']]})['data'][0]['data']
 
         print('testing GFF download by building the file')
         down_result = cls.serviceImpl.metagenome_to_gff(
-            cls.ctx, {'genome_ref': result['genome_ref']})[0]
+            cls.ctx, {'genome_ref': result['metagenome_ref']})[0]
 
         print('Reuploading GFF file')
-        new_result = cls.serviceImpl.fasta_gff_to_genome(cls.ctx, {
+        new_result = cls.serviceImpl.fasta_gff_to_metagenome(cls.ctx, {
             'workspace_name': cls.wsName,
             'genome_name': 'MyGenome',
-            'fasta_file': {'path': fasta_path},
+            'fasta_file': {'path': cls.fasta_path},
             'gff_file': {'path': down_result['file_path']},
             'source': 'GFF',
             'type': 'Reference',
@@ -74,7 +78,7 @@ class GenomeFileUtilTest(unittest.TestCase):
             'generate_missing_genes': True,
             'taxon_id': '3702',
         })[0]
-        cls.genome_new = data_file_cli.get_objects({'object_refs': [new_result['genome_ref']]})['data'][0]['data']
+        cls.genome_new = data_file_cli.get_objects({'object_refs': [new_result['metagenome_ref']]})['data'][0]['data']
 
     @classmethod
     def tearDownClass(cls):
@@ -82,10 +86,25 @@ class GenomeFileUtilTest(unittest.TestCase):
             cls.wsClient.delete_workspace({'workspace': cls.wsName})
             print('Test workspace was deleted')
 
-    def test_feature_list_comparison(self):
-        metagenome_orig = self.genome_orig
-        metagenome_new = self.genome_new
+    def test_gff_and_metagenome_to_metagenome(self):
+        dfu = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
+        result = self.serviceImpl.ws_obj_gff_to_metagenome(self.ctx, {
+            'workspace_name': self.wsName,
+            'genome_name': 'MyGenome',
+            'gff_file': {'path': self.gff_path},
+            'ws_ref': self.metagenome_ref,
+            'source': 'GFF',
+            'type': 'Reference',
+            'genome_type': 'Metagenome',
+            'is_metagenome': True,
+            'generate_missing_genes': True,
+            'taxon_id': '3702',
+        })[0]
+        metagenome = dfu.get_objects({'object_refs': [result['metagenome_ref']]})['data'][0]['data']
+        # make sure its same as original
+        self._compare_features(self.genome_orig, metagenome)
 
+    def _compare_features(self, metagenome_orig, metagenome_new):
         scratch_dir = self.cfg['scratch']
 
         dfu = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
@@ -151,3 +170,8 @@ class GenomeFileUtilTest(unittest.TestCase):
              f"and {second_pass_matches} second pass matches out of "
              f"{len(orig_dict)} items in features")
         )
+
+    def test_feature_list_comparison(self):
+        metagenome_orig = self.genome_orig
+        metagenome_new = self.genome_new
+        self._compare_features(metagenome_orig, metagenome_new)

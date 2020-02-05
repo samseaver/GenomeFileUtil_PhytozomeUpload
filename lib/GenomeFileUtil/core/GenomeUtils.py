@@ -481,3 +481,4 @@ def set_taxon_data(tax_id, re_api_url, genome_dict):
         )
     # Assign the scientific name to the most specific (right-most) taxon in the lineage
     genome_dict['scientific_name'] = sciname
+ 
