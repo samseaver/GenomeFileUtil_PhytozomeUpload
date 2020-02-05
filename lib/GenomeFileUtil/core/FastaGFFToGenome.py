@@ -324,7 +324,7 @@ class FastaGFFToGenome:
                 logging.info("staged input file =" + file_path)
                 sys.stdout.flush()
                 if not os.path.isfile(file_path):
-                    raise FileNotFoundError(f"not so fasth buckaroo, {file_path} isnt real")
+                    raise FileNotFoundError(f"{file_path} not a file")
                 dfUtil_result = self.dfu.unpack_file({'file_path': file_path})
                 file_paths[key] = dfUtil_result['file_path']
                 err_msg = "DataFielUtil 'unpack_file' function call"
