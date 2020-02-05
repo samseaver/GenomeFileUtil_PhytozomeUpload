@@ -1150,7 +1150,7 @@ class GenomeFileUtil:
         obj_type = ws.get_object_info3({'objects': [{'ref': input_ref}]})['infos'][0][2]
         obj_type = obj_type.split('-')[0]
         valid_types = ["KBaseMetagenomes.AnnotatedMetagenomeAssembly", "KBaseGenomes.ContigSet", "KBaseGenomeAnnotations.Assembly"]
-        if obj_type in valid_types:
+        if obj_type not in valid_types:
             raise ValueError(f"input reference must be of type KBaseMetagenomes.AnnotatedMetagenomeAssembly or "
                              f"KBaseGenomes.ContigSet or KBaseGenomeAnnotations.Assembly "
                              f"not {obj_type}")

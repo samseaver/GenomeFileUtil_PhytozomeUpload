@@ -57,11 +57,6 @@ class GenomeFileUtilTest(unittest.TestCase):
             'generate_missing_genes': True
         })[0]
         data_file_cli = DataFileUtil(os.environ['SDK_CALLBACK_URL'])
-        print('-'*80)
-        print('-'*80)
-        print("Fred Flinstone:",json.dumps(result, indent=2))
-        print('-'*80)
-        print('-'*80)
         cls.metagenome_ref = result['metagenome_ref']
         cls.genome_orig = data_file_cli.get_objects(
             {'object_refs': [result['metagenome_ref']]})['data'][0]['data']
