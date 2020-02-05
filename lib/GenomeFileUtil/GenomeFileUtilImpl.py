@@ -51,7 +51,7 @@ class GenomeFileUtil:
     # the latter method is running.
     ######################################### noqa
     VERSION = "0.9.0"
-    GIT_URL = "https://github.com/slebras/GenomeFileUtil.git"
+    GIT_URL = "https://github.com/kbaseapps/GenomeFileUtil.git"
     GIT_COMMIT_HASH = "f9a4aaa7ba477336054c4f5b232db75ae52adc84"
 
     #BEGIN_CLASS_HEADER
@@ -1085,24 +1085,26 @@ class GenomeFileUtil:
         au = AssemblyUtil(self.cfg.callbackURL)
         ws = Workspace(url=self.cfg.workspaceURL)
 
-        input_ref = params.get('ws_ref')
+        if params.get('ws_ref'):
+            input_ref = params['ws_ref']
+        else:
+            raise ValueError(f"ws_ref argument required for ws_obj_gff_to_metagenome method") 
         # input should only be of workspace object types:
         #   - 'KBaseGenomes.Genome'
         #   - 'KBaseGenomeAnnotations.Assembly'
         #   - 'KBaseGenomes.ContigSet'
         obj_type = ws.get_object_info3({'objects': [{'ref': input_ref}]})['infos'][0][2]
-        if ("KBaseGenomes.Genome" not in obj_type 
-          and "KBaseGenomes.ContigSet" not in obj_type 
-          and "KBaseGenomeAnnotations.Assembly" not in obj_type
-        ):
-          raise ValueError(f"input reference must be of type KBaseGenomes.Genome or "
-                           f"KBaseGenomes.ContigSet or KBaseGenomeAnnotations.Assembly "
-                           f"not {obj_type}")
+        obj_type = obj_type.split('-')[0]
+        valid_types = ["KBaseGenomes.Genome", "KBaseGenomes.ContigSet", "KBaseGenomeAnnotations.Assembly"]
+        if obj_type not in valid_types:
+            raise ValueError(f"input reference must be of type KBaseGenomes.Genome or "
+                             f"KBaseGenomes.ContigSet or KBaseGenomeAnnotations.Assembly "
+                             f"not {obj_type}")
 
         fasta_file = [val['paths'][0] for key, val in au.get_fastas({'ref_lst': [input_ref]}).items()][0]
 
         params['fasta_file'] = {
-          'path': fasta_file
+            'path': fasta_file
         }
         params['use_existing_assembly'] = input_ref
         importer = FastaGFFToGenome(self.cfg)
@@ -1138,21 +1140,20 @@ class GenomeFileUtil:
         ws = Workspace(url=self.cfg.workspaceURL)
 
         if params.get('ws_ref'):
-          input_ref = params['ws_ref']
+            input_ref = params['ws_ref']
         else:
-          raise ValueError(f"ws_ref argument required for ws_obj_gff_to_metagenome method")
+            raise ValueError(f"ws_ref argument required for ws_obj_gff_to_metagenome method")
         # input should only be of workspace object types:
         #   - 'KBaseMetagenomes.AnnotatedMetagenomeAssembly'
         #   - 'KBaseGenomeAnnotations.Assembly'
         #   - 'KBaseGenomes.ContigSet'
         obj_type = ws.get_object_info3({'objects': [{'ref': input_ref}]})['infos'][0][2]
-        if ("KBaseMetagenomes.AnnotatedMetagenomeAssembly" not in obj_type 
-          and "KBaseGenomes.ContigSet" not in obj_type 
-          and "KBaseGenomeAnnotations.Assembly" not in obj_type
-        ):
-          raise ValueError(f"input reference must be of type KBaseMetagenomes.AnnotatedMetagenomeAssembly or "
-                           f"KBaseGenomes.ContigSet or KBaseGenomeAnnotations.Assembly "
-                           f"not {obj_type}")
+        obj_type = obj_type.split('-')[0]
+        valid_types = ["KBaseMetagenomes.AnnotatedMetagenomeAssembly", "KBaseGenomes.ContigSet", "KBaseGenomeAnnotations.Assembly"]
+        if obj_type in valid_types:
+            raise ValueError(f"input reference must be of type KBaseMetagenomes.AnnotatedMetagenomeAssembly or "
+                             f"KBaseGenomes.ContigSet or KBaseGenomeAnnotations.Assembly "
+                             f"not {obj_type}")
 
         fasta_file = [val['paths'][0] for key, val in au.get_fastas({'ref_lst': [input_ref]}).items()][0]
         params['fasta_file'] = {
