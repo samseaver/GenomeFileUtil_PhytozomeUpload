@@ -10,7 +10,5 @@ def validate_lists_have_same_elements(l1, l2):
     Useful for comparing ids in GFF and Fasta files, or across Genomes and Assemblies.
     """
     diff = set(l1) ^ (set(l2))  # get the symmetric difference of the sets
-    if len(diff) == 0:
-        # all ids are shared
-        return True
-    return False
+    # check if all ids are shared
+    return len(diff) == 0

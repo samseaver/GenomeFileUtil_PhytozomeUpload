@@ -167,14 +167,11 @@ class FastaGFFToGenome:
         if params.get('existing_assembly_ref'):
             assembly_ref = params['existing_assembly_ref']
 
-            if not re.match("\d+\/\d+\/\d+", assembly_ref):
-                raise ValueError(f"Assembly ref: {assembly_ref} is not a valid format. Must"
-                                 f" be in numerical <ws>/<object>/<version> format.")
             ret = self.dfu.get_objects(
                 {'object_refs': [assembly_ref]}
             )['data'][0]
 
-            if "KBaseGenomeAnnotations.Assembly" not in ret['info'][2] or
+            if "KBaseGenomeAnnotations.Assembly" not in ret['info'][2] or \
                "KBaseGenomes.ContigSet" not in ret['info'][2]:
                 raise ValueError(f"{assembly_ref} is not a reference to an assembly")
 
