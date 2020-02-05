@@ -174,9 +174,10 @@ class FastaGFFToGenome:
                 {'object_refs': [assembly_ref]}
             )['data'][0]
 
-            if "KBaseGenomeAnnotations.Assembly" not in ret['info'][2]:
+            if "KBaseGenomeAnnotations.Assembly" not in ret['info'][2] or
+               "KBaseGenomes.ContigSet" not in ret['info'][2]:
                 raise ValueError(f"{assembly_ref} is not a reference to an assembly")
-            
+
             assembly_data = ret['data']
             # should do more thorough check of sequences.
             if not validate_lists_have_same_elements(
