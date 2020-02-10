@@ -176,14 +176,15 @@ def parse_inferences(inferences):
     return result
 
 
-def propagate_cds_props_to_gene(cds, gene):
+def propagate_cds_props_to_gene(cds, gene, is_metagenome=False):
     # Put longest protein_translation to gene
-    if "protein_translation" not in gene or (
-                len(gene["protein_translation"]) <
-                len(cds["protein_translation"])):
-        gene["protein_translation"] = cds["protein_translation"]
-        gene["protein_translation_length"] = len(
-            cds["protein_translation"])
+    if not is_metagenome:
+        if "protein_translation" not in gene or (
+                    len(gene["protein_translation"]) <
+                    len(cds["protein_translation"])):
+            gene["protein_translation"] = cds["protein_translation"]
+            gene["protein_translation_length"] = len(
+                cds["protein_translation"])
     # Merge cds list attributes with gene
     for key in ('functions', 'aliases', 'db_xref'):
         if cds.get(key, []):
