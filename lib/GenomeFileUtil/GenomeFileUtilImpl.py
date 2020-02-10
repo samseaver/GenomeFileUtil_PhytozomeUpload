@@ -1160,6 +1160,8 @@ class GenomeFileUtil:
           'path': fasta_file
         }
         params['use_existing_assembly'] = input_ref
+        params['is_metagenome'] = True
+
         importer = FastaGFFToGenome(self.cfg)
         returnVal = importer.import_file(params)
         #END ws_obj_gff_to_metagenome

@@ -851,7 +851,7 @@ class FastaGFFToGenome:
             if 'parent_gene' in cds:
                 parent_gene = self.feature_dict[cds['parent_gene']]
                 # no propigation for now
-                propagate_cds_props_to_gene(cds, parent_gene)
+                propagate_cds_props_to_gene(cds, parent_gene, self.is_metagenome)
             elif self.generate_genes:
                 spoof = copy.copy(cds)
                 spoof['type'] = 'gene'
