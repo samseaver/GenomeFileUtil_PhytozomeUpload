@@ -174,7 +174,7 @@ class GenomeInterface:
                                     'meta': meta,
                                     'hidden': hidden}]}
         dfu_oi = self.ws_large_data.save_objects(save_params)[0]
-        returnVal = {'info': dfu_oi, 'warnings': data['warnings']}
+        returnVal = {'info': dfu_oi, 'warnings': data.get('warnings', [])}
         return returnVal
 
     @staticmethod
