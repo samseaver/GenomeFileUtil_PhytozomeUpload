@@ -63,7 +63,7 @@ class GenomeFileUtilTest(unittest.TestCase):
 
         print('testing GFF download by building the file')
         down_result = cls.serviceImpl.metagenome_to_gff(
-            cls.ctx, {'genome_ref': result['metagenome_ref']})[0]
+            cls.ctx, {'metagenome_ref': result['metagenome_ref']})[0]
 
         print('Reuploading GFF file')
         new_result = cls.serviceImpl.fasta_gff_to_metagenome(cls.ctx, {
@@ -175,3 +175,9 @@ class GenomeFileUtilTest(unittest.TestCase):
         metagenome_orig = self.genome_orig
         metagenome_new = self.genome_new
         self._compare_features(metagenome_orig, metagenome_new)
+
+    def test_metagenome_gff_export(self):
+        # fetch the test files and set things up
+        res = self.serviceImpl.export_metagenome_as_gff(
+            self.ctx, {'input_ref': self.metagenome_ref})[0]
+        self.assertTrue('shock_id' in res)

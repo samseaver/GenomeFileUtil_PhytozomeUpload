@@ -50,9 +50,9 @@ class GenomeFileUtil:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "0.9.0"
-    GIT_URL = "https://github.com/kbaseapps/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "f9a4aaa7ba477336054c4f5b232db75ae52adc84"
+    VERSION = "0.10.2"
+    GIT_URL = "https://github.com/slebras/GenomeFileUtil.git"
+    GIT_COMMIT_HASH = "e500a3489f42439a8e50c10debf2bb1858954d99"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -173,8 +173,13 @@ class GenomeFileUtil:
         # ctx is the context object
         # return variables are: result
         #BEGIN metagenome_to_gff
-        print('metagenome_to_gff -- paramaters = ')
-        pprint(params)
+        # print('metagenome_to_gff -- paramaters = ')
+        # pprint(params)
+        if not params.get('metagenome_ref'):
+            raise ValueError(f"argument 'metagenome_ref' required for function metagenome_to_gff")
+        
+        # quick hack to make function work with other code.
+        params['genome_ref'] = params['metagenome_ref']
 
         exporter = GenomeToGFF(self.cfg)
         result = exporter.export(ctx, params)
@@ -473,6 +478,78 @@ class GenomeFileUtil:
         # return the results
         return [output]
 
+    def export_metagenome_as_gff(self, ctx, params):
+        """
+        :param params: instance of type "ExportParams" (input and output
+           structure functions for standard downloaders) -> structure:
+           parameter "input_ref" of String
+        :returns: instance of type "ExportOutput" -> structure: parameter
+           "shock_id" of String
+        """
+        # ctx is the context object
+        # return variables are: output
+        #BEGIN export_metagenome_as_gff
+        if 'input_ref' not in params:
+            raise ValueError('Cannot run export_metagenome_as_gff- no "input_ref" '
+                             'field defined.')
+
+        # get WS metadata to get ws_name and obj_name
+        ws = Workspace(url=self.cfg.workspaceURL)
+        ws_obj = ws.get_objects2({'objects': [{
+            'ref': params['input_ref'],
+            'included':['/assembly_ref', '/gff_handle_ref']}
+        ]})['data'][0]
+
+        info = ws_obj['data']
+        ws_info = ws_obj['info']
+
+        # export to file (building from KBase Genome Object)
+        result = self.metagenome_to_gff(ctx, {
+            'metagenome_ref': params['input_ref']
+        })[0]
+
+        # get assembly
+        if 'assembly_ref' in info:
+            assembly_ref = info['assembly_ref']
+        else:
+            raise ValueError("no 'assembly' associated with this AnnotatedMetagenomeAssembly "
+                             "object. Cannot retrieve fasta file. ")
+        # print(('Assembly reference = ' + assembly_ref))
+        # print('Downloading assembly')
+        au = AssemblyUtil(self.cfg.callbackURL)
+        assembly_file_path = au.get_assembly_as_fasta(
+            {'ref': params['input_ref'] + ";" + assembly_ref}
+        )['path']
+
+        # create the output directory and move the files there
+        export_package_dir = os.path.join(self.cfg.sharedFolder, '_'.join(ws_info[1].split()))
+        os.makedirs(export_package_dir)
+        shutil.move(
+            result['file_path'],
+            os.path.join(export_package_dir,
+                         'KBase_derived_' + os.path.basename(result['file_path'])))
+        shutil.move(
+            assembly_file_path,
+            os.path.join(export_package_dir,
+                         os.path.basename(assembly_file_path)))
+
+        # package it up
+        dfUtil = DataFileUtil(self.cfg.callbackURL)
+        package_details = dfUtil.package_for_download({
+                                    'file_path': export_package_dir,
+                                    'ws_refs': [params['input_ref']]
+                                })
+
+        output = {'shock_id': package_details['shock_id']}
+        #END export_metagenome_as_gff
+
+        # At some point might do deeper type checking...
+        if not isinstance(output, dict):
+            raise ValueError('Method export_metagenome_as_gff return value ' +
+                             'output is not type dict as required.')
+        # return the results
+        return [output]
+
     def fasta_gff_to_genome(self, ctx, params):
         """
         :param params: instance of type "FastaGFFToGenomeParams" (genome_name
@@ -488,19 +565,21 @@ class GenomeFileUtil:
            scientific_name - will be used to set the scientific name of the
            genome and link to a taxon generate_missing_genes - If the file
            has CDS or mRNA with no corresponding gene, generate a spoofed
-           gene. Off by default) -> structure: parameter "fasta_file" of type
-           "File" -> structure: parameter "path" of String, parameter
+           gene. Off by default existing_assembly_ref - a KBase assembly upa,
+           to associate the genome with. Avoids saving a new assembly when
+           specified.) -> structure: parameter "fasta_file" of type "File" ->
+           structure: parameter "path" of String, parameter "shock_id" of
+           String, parameter "ftp_url" of String, parameter "gff_file" of
+           type "File" -> structure: parameter "path" of String, parameter
            "shock_id" of String, parameter "ftp_url" of String, parameter
-           "gff_file" of type "File" -> structure: parameter "path" of
-           String, parameter "shock_id" of String, parameter "ftp_url" of
-           String, parameter "genome_name" of String, parameter
-           "workspace_name" of String, parameter "source" of String,
-           parameter "taxon_wsname" of String, parameter "taxon_id" of
-           String, parameter "release" of String, parameter "genetic_code" of
-           Long, parameter "scientific_name" of String, parameter "metadata"
-           of type "usermeta" -> mapping from String to String, parameter
-           "generate_missing_genes" of type "boolean" (A boolean - 0 for
-           false, 1 for true. @range (0, 1))
+           "genome_name" of String, parameter "workspace_name" of String,
+           parameter "source" of String, parameter "taxon_wsname" of String,
+           parameter "taxon_id" of String, parameter "release" of String,
+           parameter "genetic_code" of Long, parameter "scientific_name" of
+           String, parameter "metadata" of type "usermeta" -> mapping from
+           String to String, parameter "generate_missing_genes" of type
+           "boolean" (A boolean - 0 for false, 1 for true. @range (0, 1)),
+           parameter "existing_assembly_ref" of String
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
            "genome_ref" of String
         """
@@ -545,19 +624,21 @@ class GenomeFileUtil:
            scientific_name - will be used to set the scientific name of the
            genome and link to a taxon generate_missing_genes - If the file
            has CDS or mRNA with no corresponding gene, generate a spoofed
-           gene. Off by default) -> structure: parameter "fasta_file" of type
-           "File" -> structure: parameter "path" of String, parameter
+           gene. Off by default existing_assembly_ref - a KBase assembly upa,
+           to associate the genome with. Avoids saving a new assembly when
+           specified.) -> structure: parameter "fasta_file" of type "File" ->
+           structure: parameter "path" of String, parameter "shock_id" of
+           String, parameter "ftp_url" of String, parameter "gff_file" of
+           type "File" -> structure: parameter "path" of String, parameter
            "shock_id" of String, parameter "ftp_url" of String, parameter
-           "gff_file" of type "File" -> structure: parameter "path" of
-           String, parameter "shock_id" of String, parameter "ftp_url" of
-           String, parameter "genome_name" of String, parameter
-           "workspace_name" of String, parameter "source" of String,
-           parameter "taxon_wsname" of String, parameter "taxon_id" of
-           String, parameter "release" of String, parameter "genetic_code" of
-           Long, parameter "scientific_name" of String, parameter "metadata"
-           of type "usermeta" -> mapping from String to String, parameter
-           "generate_missing_genes" of type "boolean" (A boolean - 0 for
-           false, 1 for true. @range (0, 1))
+           "genome_name" of String, parameter "workspace_name" of String,
+           parameter "source" of String, parameter "taxon_wsname" of String,
+           parameter "taxon_id" of String, parameter "release" of String,
+           parameter "genetic_code" of Long, parameter "scientific_name" of
+           String, parameter "metadata" of type "usermeta" -> mapping from
+           String to String, parameter "generate_missing_genes" of type
+           "boolean" (A boolean - 0 for false, 1 for true. @range (0, 1)),
+           parameter "existing_assembly_ref" of String
         :returns: instance of unspecified object
         """
         # ctx is the context object
@@ -590,17 +671,18 @@ class GenomeFileUtil:
            genome and link to a taxon generate_missing_genes - If the file
            has CDS or mRNA with no corresponding gene, generate a spoofed
            gene. Off by default existing_assembly_ref - a KBase assembly upa,
-           to associate the metagenome with.) -> structure: parameter
-           "fasta_file" of type "File" -> structure: parameter "path" of
+           to associate the metagenome with. Avoids saving a new assembly
+           when specified.) -> structure: parameter "fasta_file" of type
+           "File" -> structure: parameter "path" of String, parameter
+           "shock_id" of String, parameter "ftp_url" of String, parameter
+           "gff_file" of type "File" -> structure: parameter "path" of
            String, parameter "shock_id" of String, parameter "ftp_url" of
-           String, parameter "gff_file" of type "File" -> structure:
-           parameter "path" of String, parameter "shock_id" of String,
-           parameter "ftp_url" of String, parameter "genome_name" of String,
-           parameter "workspace_name" of String, parameter "source" of
-           String, parameter "metadata" of type "usermeta" -> mapping from
-           String to String, parameter "generate_missing_genes" of type
-           "boolean" (A boolean - 0 for false, 1 for true. @range (0, 1)),
-           parameter "existing_assembly_ref" of String
+           String, parameter "genome_name" of String, parameter
+           "workspace_name" of String, parameter "source" of String,
+           parameter "metadata" of type "usermeta" -> mapping from String to
+           String, parameter "generate_missing_genes" of type "boolean" (A
+           boolean - 0 for false, 1 for true. @range (0, 1)), parameter
+           "existing_assembly_ref" of String
         :returns: instance of type "MetagenomeSaveResult" -> structure:
            parameter "metagenome_ref" of String
         """
@@ -1065,17 +1147,33 @@ class GenomeFileUtil:
 
     def ws_obj_gff_to_genome(self, ctx, params):
         """
-        :param params: instance of type "WsObjGFFToGenomeParams" ->
-           structure: parameter "ws_ref" of String, parameter "gff_file" of
-           type "File" -> structure: parameter "path" of String, parameter
-           "shock_id" of String, parameter "ftp_url" of String, parameter
-           "genome_name" of String, parameter "workspace_name" of String,
-           parameter "source" of String, parameter "taxon_wsname" of String,
-           parameter "taxon_id" of String, parameter "release" of String,
-           parameter "genetic_code" of Long, parameter "scientific_name" of
-           String, parameter "metadata" of type "usermeta" -> mapping from
-           String to String, parameter "generate_missing_genes" of type
-           "boolean" (A boolean - 0 for false, 1 for true. @range (0, 1))
+        This function takes in a workspace object of type KBaseGenomes.Genome or KBaseGenomeAnnotations.Assembly and a gff file and produces a KBaseGenomes.Genome reanotated according to the the input gff file.
+        :param params: instance of type "WsObjGFFToGenomeParams" (gff_file -
+           object containing path to gff_file ws_ref - input Assembly or
+           Genome reference genome_name - becomes the name of the object
+           workspace_name - the name of the workspace it gets saved to.
+           source - Source of the file typically something like RefSeq or
+           Ensembl taxon_ws_name - where the reference taxons are :
+           ReferenceTaxons taxon_id - if defined, will try to link the Genome
+           to the specified taxonomy id in lieu of performing the lookup
+           during upload release - Release or version number of the data per
+           example Ensembl has numbered releases of all their data: Release
+           31 genetic_code - Genetic code of organism. Overwrites determined
+           GC from taxon object scientific_name - will be used to set the
+           scientific name of the genome and link to a taxon metadata - any
+           user input metadata generate_missing_genes - If the file has CDS
+           or mRNA with no corresponding gene, generate a spoofed gene. Off
+           by default) -> structure: parameter "ws_ref" of String, parameter
+           "gff_file" of type "File" -> structure: parameter "path" of
+           String, parameter "shock_id" of String, parameter "ftp_url" of
+           String, parameter "genome_name" of String, parameter
+           "workspace_name" of String, parameter "source" of String,
+           parameter "taxon_wsname" of String, parameter "taxon_id" of
+           String, parameter "release" of String, parameter "genetic_code" of
+           Long, parameter "scientific_name" of String, parameter "metadata"
+           of type "usermeta" -> mapping from String to String, parameter
+           "generate_missing_genes" of type "boolean" (A boolean - 0 for
+           false, 1 for true. @range (0, 1))
         :returns: instance of type "GenomeSaveResult" -> structure: parameter
            "genome_ref" of String
         """
@@ -1121,15 +1219,24 @@ class GenomeFileUtil:
 
     def ws_obj_gff_to_metagenome(self, ctx, params):
         """
-        :param params: instance of type "WsObjGFFToMetagenomeParams" ->
-           structure: parameter "ws_ref" of String, parameter "gff_file" of
-           type "File" -> structure: parameter "path" of String, parameter
-           "shock_id" of String, parameter "ftp_url" of String, parameter
-           "genome_name" of String, parameter "workspace_name" of String,
-           parameter "source" of String, parameter "metadata" of type
-           "usermeta" -> mapping from String to String, parameter
-           "generate_missing_genes" of type "boolean" (A boolean - 0 for
-           false, 1 for true. @range (0, 1))
+        This function takes in a workspace object of type KBaseMetagenomes.AnnotatedMetagenomeAssembly or KBaseGenomeAnnotations.Assembly and a gff file and produces a KBaseMetagenomes.AnnotatedMetagenomeAssembly reanotated according to the the input gff file.
+        :param params: instance of type "WsObjGFFToMetagenomeParams"
+           (gff_file - object containing path to gff_file ws_ref - input
+           Assembly or AnnotatedMetagenomeAssembly reference genome_name -
+           becomes the name of the object workspace_name - the name of the
+           workspace it gets saved to. source - Source of the file typically
+           something like RefSeq or Ensembl genetic_code - Genetic code of
+           organism. Overwrites determined GC from taxon object metadata -
+           any user input metadata generate_missing_genes - If the file has
+           CDS or mRNA with no corresponding gene, generate a spoofed gene.
+           Off by default) -> structure: parameter "ws_ref" of String,
+           parameter "gff_file" of type "File" -> structure: parameter "path"
+           of String, parameter "shock_id" of String, parameter "ftp_url" of
+           String, parameter "genome_name" of String, parameter
+           "workspace_name" of String, parameter "source" of String,
+           parameter "metadata" of type "usermeta" -> mapping from String to
+           String, parameter "generate_missing_genes" of type "boolean" (A
+           boolean - 0 for false, 1 for true. @range (0, 1))
         :returns: instance of type "MetagenomeSaveResult" -> structure:
            parameter "metagenome_ref" of String
         """
