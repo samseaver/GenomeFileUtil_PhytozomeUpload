@@ -16,7 +16,7 @@ Simply move the files from one of these two directories and put them into the
 ## State of tests
 
 ### Core tests
-	32 ran - all Pass!
+	Ran 32 tests in 3046.150s - all Pass!
 
 ### GFF supplemental tests
 	37 ran - 2 Fails
