@@ -22,6 +22,7 @@ from GenomeFileUtil.core.GenomeInterface import GenomeInterface
 from GenomeFileUtil.core.GenomeUtils import is_parent, warnings, \
     check_full_contig_length_or_multi_strand_feature
 from GenomeFileUtil.core.GenomeUtils import propagate_cds_props_to_gene, load_ontology_mappings
+from GenomeFileUtil.core.MiscUtils import validate_lists_have_same_elements
 from installed_clients.AssemblyUtilClient import AssemblyUtil
 from installed_clients.DataFileUtilClient import DataFileUtil
 
@@ -120,9 +121,12 @@ class FastaGFFToGenome:
 
         # 6) return the result
         info = result['info']
+        prefix = ''
+        if self.is_metagenome:
+            prefix = 'meta'
         details = {
-            'genome_ref': f'{info[6]}/{info[0]}/{info[4]}',
-            'genome_info': info
+            prefix+'genome_ref': f'{info[6]}/{info[0]}/{info[4]}',
+            prefix+'genome_info': info
         }
 
         return details
@@ -160,15 +164,38 @@ class FastaGFFToGenome:
             genome_type = "metagenome"
         else:
             genome_type = params.get('genome_type', 'isolate')
-        assembly_ref = self.au.save_assembly_from_fasta(
-            {'file': {'path': input_fasta_file},
-             'workspace_name': params['workspace_name'],
-             'assembly_name': params['genome_name'] + ".assembly",
-             'type': genome_type,
-             })
-        assembly_data = self.dfu.get_objects(
-            {'object_refs': [assembly_ref],
-             'ignore_errors': 0})['data'][0]['data']
+        if params.get('existing_assembly_ref'):
+            assembly_ref = params['existing_assembly_ref']
+
+            ret = self.dfu.get_objects(
+                {'object_refs': [assembly_ref]}
+            )['data'][0]
+
+            if "KBaseGenomeAnnotations.Assembly" not in ret['info'][2] or \
+               "KBaseGenomes.ContigSet" not in ret['info'][2]:
+                raise ValueError(f"{assembly_ref} is not a reference to an assembly")
+
+            assembly_data = ret['data']
+            # should do more thorough check of sequences.
+            if not validate_lists_have_same_elements(
+                assembly_data['contigs'].keys(),
+                contig_ids
+            ):
+                raise ValueError(f"provided assembly with ref {assembly_ref} does not "
+                                  "have matching contig ids to provided input fasta.")
+
+            logging.info(f"Using supplied assembly: {assembly_ref}")
+
+        else:
+            assembly_ref = self.au.save_assembly_from_fasta(
+                {'file': {'path': input_fasta_file},
+                 'workspace_name': params['workspace_name'],
+                 'assembly_name': params['genome_name'] + ".assembly",
+                 'type': genome_type,
+                 })
+            assembly_data = self.dfu.get_objects(
+                {'object_refs': [assembly_ref],
+                 'ignore_errors': 0})['data'][0]['data']
 
         # generate genome info
         genome = self._gen_genome_info(assembly_ref, assembly_data,
@@ -268,7 +295,11 @@ class FastaGFFToGenome:
                 # Metagenome Updates
                 # not sure if we have to be careful about moving the objects
                 # around
-                shutil.copy2(local_file_path, file_path)
+                if os.path.isfile(local_file_path):
+                    shutil.copy2(local_file_path, file_path)
+                else:
+                    raise FileNotFoundError(f"Input {key} file {local_file_path} not found")
+                err_msg  = "Shutil copy unsucessful"
 
             elif file.get('shock_id') is not None:
                 # handle shock file
@@ -279,7 +310,7 @@ class FastaGFFToGenome:
                                                     'shock_id': file['shock_id']
                                                     })['node_file_name']
                 file_path = os.path.join(input_directory, file_name)
-
+                err_msg = "Shock retrieval"
             # extract the file if it is compressed
             '''
             Metagenome Changes:
@@ -289,10 +320,17 @@ class FastaGFFToGenome:
             if file_path is not None:
                 logging.info("staged input file =" + file_path)
                 sys.stdout.flush()
+                if not os.path.isfile(file_path):
+                    raise FileNotFoundError(f"{file_path} not a file")
                 dfUtil_result = self.dfu.unpack_file({'file_path': file_path})
                 file_paths[key] = dfUtil_result['file_path']
+                err_msg = "DataFielUtil 'unpack_file' function call"
             else:
                 raise ValueError('No valid files could be extracted based on the input')
+
+            if not os.path.isfile(file_path):
+                raise ValueError(f"{err_msg} for {key} file to {file_path}")
+
 
         return file_paths
 
@@ -813,7 +851,7 @@ class FastaGFFToGenome:
             if 'parent_gene' in cds:
                 parent_gene = self.feature_dict[cds['parent_gene']]
                 # no propigation for now
-                propagate_cds_props_to_gene(cds, parent_gene)
+                propagate_cds_props_to_gene(cds, parent_gene, self.is_metagenome)
             elif self.generate_genes:
                 spoof = copy.copy(cds)
                 spoof['type'] = 'gene'
