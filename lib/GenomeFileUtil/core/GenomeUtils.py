@@ -453,7 +453,7 @@ def set_taxon_data(tax_id, re_api_url, genome_dict):
     # The results will be an array of taxon docs with "scientific_name" and "rank" fields
     lineage = [
         r['scientific_name'] for r in lineage_resp['results']
-        if r['scientific_name'] != 'root' and r['scientific_name'] != 'cellular organisms'
+        if r['scientific_name'] != 'root'
     ]
     # Format and normalize the lineage string
     taxonomy = '; '.join(lineage).replace('\n', '')
@@ -472,7 +472,7 @@ def set_taxon_data(tax_id, re_api_url, genome_dict):
     elif not genome_dict.get('domain'):
         genome_dict['domain'] = 'Unknown'
     genome_dict['taxonomy'] = taxonomy
-    sciname = lineage_resp['results'][-1]['scientific_name']
+    sciname = re_result['scientific_name']
     # The FastaGFFToGenome labyrinth of code sets the below default, which we want to override
     if genome_dict.get('scientific_name') and genome_dict['scientific_name'] != sciname:
         genome_dict['warnings'].append(
