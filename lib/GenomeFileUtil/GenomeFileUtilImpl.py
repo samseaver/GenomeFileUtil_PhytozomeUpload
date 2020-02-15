@@ -50,9 +50,9 @@ class GenomeFileUtil:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "0.10.2"
-    GIT_URL = "https://github.com/slebras/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "e500a3489f42439a8e50c10debf2bb1858954d99"
+    VERSION = "0.10.3"
+    GIT_URL = "https://github.com/kbaseapps/GenomeFileUtil.git"
+    GIT_COMMIT_HASH = "0e4c576e8204e80d54c2c1da5e5f88925bcff3c9"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -162,7 +162,7 @@ class GenomeFileUtil:
            optional flag switching export to GTF format (default is 0, which
            means GFF) target_dir - optional target directory to create file
            in (default is temporary folder with name 'gff_<timestamp>'
-           created in scratch)) -> structure: parameter "genome_ref" of
+           created in scratch)) -> structure: parameter "metagenome_ref" of
            String, parameter "ref_path_to_genome" of list of String,
            parameter "is_gtf" of type "boolean" (A boolean - 0 for false, 1
            for true. @range (0, 1)), parameter "target_dir" of String
