@@ -211,7 +211,7 @@ module GenomeFileUtil {
         and link to a taxon
     generate_missing_genes - If the file has CDS or mRNA with no corresponding
         gene, generate a spoofed gene. Off by default
-    existing_assembly_ref - a KBase assembly upa, to associate the genome with. 
+    existing_assembly_ref - a KBase assembly upa, to associate the genome with.
         Avoids saving a new assembly when specified.
     */
     typedef structure {
@@ -367,5 +367,38 @@ module GenomeFileUtil {
     */
     funcdef ws_obj_gff_to_metagenome(WsObjGFFToMetagenomeParams params)
                 returns (MetagenomeSaveResult returnVal) authentication required;
+
+    /*
+    Parameters for the update_taxon_assignments function.
+    Fields:
+        workspace_id: a workspace UPA of a Genome object
+        taxon_assignments: an optional mapping of assignments to add or replace. This will perform a
+            merge on the existing assignments. Any new assignments are added, while any existing
+            assignments are replaced.
+        remove_assignments: an optional list of assignment names to remove.
+
+    @optional taxon_assignments remove_assignments
+    */
+    typedef structure {
+        int workspace_id;
+        int object_id;
+        mapping<string, string> taxon_assignments;
+        list<string> remove_assignments;
+    } UpdateTaxonAssignmentsParams;
+
+    /*
+    Result of the update_taxon_assignments function.
+    Fields:
+        ws_obj_ref: a workspace UPA of a Genome object
+    */
+    typedef structure {
+        string ws_obj_ref;
+    } UpdateTaxonAssignmentsResult;
+
+    /*
+    Add, replace, or remove taxon assignments for a Genome object.
+    */
+    funcdef update_taxon_assignments(UpdateTaxonAssignmentsParams params)
+        returns (UpdateTaxonAssignmentsResult returnVal) authentication required;
 
 };
