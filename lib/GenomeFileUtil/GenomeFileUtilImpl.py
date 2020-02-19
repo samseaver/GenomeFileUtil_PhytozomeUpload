@@ -173,8 +173,6 @@ class GenomeFileUtil:
         # ctx is the context object
         # return variables are: result
         #BEGIN metagenome_to_gff
-        # print('metagenome_to_gff -- paramaters = ')
-        # pprint(params)
         if not params.get('metagenome_ref'):
             raise ValueError(f"argument 'metagenome_ref' required for function metagenome_to_gff")
         
@@ -512,10 +510,8 @@ class GenomeFileUtil:
         if 'assembly_ref' in info:
             assembly_ref = info['assembly_ref']
         else:
-            raise ValueError("no 'assembly' associated with this AnnotatedMetagenomeAssembly "
+            raise ValueError("No Assembly associated with this AnnotatedMetagenomeAssembly "
                              "object. Cannot retrieve fasta file. ")
-        # print(('Assembly reference = ' + assembly_ref))
-        # print('Downloading assembly')
         au = AssemblyUtil(self.cfg.callbackURL)
         assembly_file_path = au.get_assembly_as_fasta(
             {'ref': params['input_ref'] + ";" + assembly_ref}
