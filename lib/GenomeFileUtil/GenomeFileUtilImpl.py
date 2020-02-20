@@ -1200,7 +1200,17 @@ class GenomeFileUtil:
         params['fasta_file'] = {
             'path': fasta_file
         }
-        params['use_existing_assembly'] = input_ref
+
+        if obj_type == "KBaseGenomes.Genome":
+            assembly_ref = ws.get_objects2(
+                {"objects":
+                    [{"ref": input_ref, "included": ["assembly_ref"]}]
+                }
+            )['data'][0]['data']['assembly_ref']
+            params['existing_assembly_ref'] = assembly_ref
+        else:
+            params['existing_assembly_ref'] = input_ref
+
         importer = FastaGFFToGenome(self.cfg)
         returnVal = importer.import_file(params)
 
@@ -1262,7 +1272,15 @@ class GenomeFileUtil:
         params['fasta_file'] = {
           'path': fasta_file
         }
-        params['use_existing_assembly'] = input_ref
+        if obj_type == "KBaseMetagenomes.AnnotatedMetagenomeAssembly":
+            assembly_ref = ws.get_objects2(
+                {"objects":
+                    [{"ref": input_ref, "included": ["assembly_ref"]}]
+                }
+            )['data'][0]['data']['assembly_ref']
+            params['existing_assembly_ref'] = assembly_ref
+        else:
+            params['existing_assembly_ref'] = input_ref
         params['is_metagenome'] = True
 
         importer = FastaGFFToGenome(self.cfg)
