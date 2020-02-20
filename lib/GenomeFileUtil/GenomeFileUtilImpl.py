@@ -1177,7 +1177,7 @@ class GenomeFileUtil:
             )['data'][0]['data']['assembly_ref']
             params['existing_assembly_ref'] = assembly_ref
         else:
-          params['existing_assembly_ref'] = input_ref
+            params['existing_assembly_ref'] = input_ref
         params['is_metagenome'] = True
 
         importer = FastaGFFToGenome(self.cfg)
