@@ -171,8 +171,12 @@ class FastaGFFToGenome:
                 {'object_refs': [assembly_ref]}
             )['data'][0]
 
-            if "KBaseGenomeAnnotations.Assembly" not in ret['info'][2] or \
-               "KBaseGenomes.ContigSet" not in ret['info'][2]:
+            assembly_obj_type = ret['info'][2].split('-')[0]
+            valid_assembly_types = [
+                "KBaseGenomeAnnotations.Assembly",
+                "KBaseGenomes.ContigSet"
+            ]
+            if assembly_obj_type not in valid_assembly_types:
                 raise ValueError(f"{assembly_ref} is not a reference to an assembly")
 
             assembly_data = ret['data']
