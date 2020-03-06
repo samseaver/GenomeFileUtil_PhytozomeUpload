@@ -96,7 +96,7 @@ module GenomeFileUtil {
     */
 
     typedef structure {
-        string genome_ref;
+        string metagenome_ref;
         list <string> ref_path_to_genome;
         boolean is_gtf;
         string target_dir;
@@ -194,6 +194,9 @@ module GenomeFileUtil {
                 returns (ExportOutput output) authentication required;
 
     funcdef export_genome_features_protein_to_fasta(ExportParams params)
+                returns (ExportOutput output) authentication required;
+
+    funcdef export_metagenome_as_gff(ExportParams params)
                 returns (ExportOutput output) authentication required;
 
     /*

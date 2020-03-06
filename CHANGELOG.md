@@ -12,6 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `update_taxon_assignments` method was added to allow users to create,
   replace, or remove taxon assignments for a Genome object.
 
+## [0.10.4] - 2020-02-20
+
+### Changed
+- exporter function for Metagenome fasta + gff added.
+
+## [0.10.3] - 2020-02-20
+
+### Fixed
+
+- ws_obj_gff_to_genome and ws_obj_gff_to_metagenome bug on certain input types resolved
+
 ## [0.10.2] - 2020-02-11
 
 ### Fixed
@@ -22,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- ws_obj_gff_to_metagenome was erroneously outputting non-metagenome filestypes when the "is_metagenome" parameter was not specified.
+- ws_obj_gff_to_metagenome was erroneously outputting non-metagenome filetypes when the "is_metagenome" parameter was not specified.
 - protein sequences were still sometimes saved for some metagenome objects within the parent gene of a cds. protein_translation no longer saved in metagenome.
 
 ## [0.10.0] - 2020-02-05

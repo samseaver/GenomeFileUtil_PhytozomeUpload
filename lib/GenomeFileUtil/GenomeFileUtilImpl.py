@@ -162,7 +162,7 @@ class GenomeFileUtil:
            optional flag switching export to GTF format (default is 0, which
            means GFF) target_dir - optional target directory to create file
            in (default is temporary folder with name 'gff_<timestamp>'
-           created in scratch)) -> structure: parameter "genome_ref" of
+           created in scratch)) -> structure: parameter "metagenome_ref" of
            String, parameter "ref_path_to_genome" of list of String,
            parameter "is_gtf" of type "boolean" (A boolean - 0 for false, 1
            for true. @range (0, 1)), parameter "target_dir" of String
@@ -173,8 +173,11 @@ class GenomeFileUtil:
         # ctx is the context object
         # return variables are: result
         #BEGIN metagenome_to_gff
-        print('metagenome_to_gff -- paramaters = ')
-        pprint(params)
+        if not params.get('metagenome_ref'):
+            raise ValueError(f"argument 'metagenome_ref' required for function metagenome_to_gff")
+        
+        # quick hack to make function work with other code.
+        params['genome_ref'] = params['metagenome_ref']
 
         exporter = GenomeToGFF(self.cfg)
         result = exporter.export(ctx, params)
@@ -469,6 +472,76 @@ class GenomeFileUtil:
         # At some point might do deeper type checking...
         if not isinstance(output, dict):
             raise ValueError('Method export_genome_features_protein_to_fasta return value ' +
+                             'output is not type dict as required.')
+        # return the results
+        return [output]
+
+    def export_metagenome_as_gff(self, ctx, params):
+        """
+        :param params: instance of type "ExportParams" (input and output
+           structure functions for standard downloaders) -> structure:
+           parameter "input_ref" of String
+        :returns: instance of type "ExportOutput" -> structure: parameter
+           "shock_id" of String
+        """
+        # ctx is the context object
+        # return variables are: output
+        #BEGIN export_metagenome_as_gff
+        if 'input_ref' not in params:
+            raise ValueError('Cannot run export_metagenome_as_gff- no "input_ref" '
+                             'field defined.')
+
+        # get WS metadata to get ws_name and obj_name
+        ws = Workspace(url=self.cfg.workspaceURL)
+        ws_obj = ws.get_objects2({'objects': [{
+            'ref': params['input_ref'],
+            'included':['/assembly_ref', '/gff_handle_ref']}
+        ]})['data'][0]
+
+        info = ws_obj['data']
+        ws_info = ws_obj['info']
+
+        # export to file (building from KBase Genome Object)
+        result = self.metagenome_to_gff(ctx, {
+            'metagenome_ref': params['input_ref']
+        })[0]
+
+        # get assembly
+        if 'assembly_ref' in info:
+            assembly_ref = info['assembly_ref']
+        else:
+            raise ValueError("No Assembly associated with this AnnotatedMetagenomeAssembly "
+                             "object. Cannot retrieve fasta file. ")
+        au = AssemblyUtil(self.cfg.callbackURL)
+        assembly_file_path = au.get_assembly_as_fasta(
+            {'ref': params['input_ref'] + ";" + assembly_ref}
+        )['path']
+
+        # create the output directory and move the files there
+        export_package_dir = os.path.join(self.cfg.sharedFolder, '_'.join(ws_info[1].split()))
+        os.makedirs(export_package_dir)
+        shutil.move(
+            result['file_path'],
+            os.path.join(export_package_dir,
+                         'KBase_derived_' + os.path.basename(result['file_path'])))
+        shutil.move(
+            assembly_file_path,
+            os.path.join(export_package_dir,
+                         os.path.basename(assembly_file_path)))
+
+        # package it up
+        dfUtil = DataFileUtil(self.cfg.callbackURL)
+        package_details = dfUtil.package_for_download({
+                                    'file_path': export_package_dir,
+                                    'ws_refs': [params['input_ref']]
+                                })
+
+        output = {'shock_id': package_details['shock_id']}
+        #END export_metagenome_as_gff
+
+        # At some point might do deeper type checking...
+        if not isinstance(output, dict):
+            raise ValueError('Method export_metagenome_as_gff return value ' +
                              'output is not type dict as required.')
         # return the results
         return [output]
@@ -1127,7 +1200,17 @@ class GenomeFileUtil:
         params['fasta_file'] = {
             'path': fasta_file
         }
-        params['use_existing_assembly'] = input_ref
+
+        if obj_type == "KBaseGenomes.Genome":
+            assembly_ref = ws.get_objects2(
+                {"objects":
+                    [{"ref": input_ref, "included": ["assembly_ref"]}]
+                }
+            )['data'][0]['data']['assembly_ref']
+            params['existing_assembly_ref'] = assembly_ref
+        else:
+            params['existing_assembly_ref'] = input_ref
+
         importer = FastaGFFToGenome(self.cfg)
         returnVal = importer.import_file(params)
 
@@ -1189,7 +1272,15 @@ class GenomeFileUtil:
         params['fasta_file'] = {
           'path': fasta_file
         }
-        params['use_existing_assembly'] = input_ref
+        if obj_type == "KBaseMetagenomes.AnnotatedMetagenomeAssembly":
+            assembly_ref = ws.get_objects2(
+                {"objects":
+                    [{"ref": input_ref, "included": ["assembly_ref"]}]
+                }
+            )['data'][0]['data']['assembly_ref']
+            params['existing_assembly_ref'] = assembly_ref
+        else:
+            params['existing_assembly_ref'] = input_ref
         params['is_metagenome'] = True
 
         importer = FastaGFFToGenome(self.cfg)
