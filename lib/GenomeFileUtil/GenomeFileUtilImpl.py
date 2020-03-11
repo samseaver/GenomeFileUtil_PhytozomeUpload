@@ -50,9 +50,9 @@ class GenomeFileUtil:
     # state. A method could easily clobber the state set by another while
     # the latter method is running.
     ######################################### noqa
-    VERSION = "0.10.4"
-    GIT_URL = "https://github.com/kbaseapps/GenomeFileUtil.git"
-    GIT_COMMIT_HASH = "27d031f994a3c001e7899a29a08328f0d0d21a39"
+    VERSION = "0.11.0"
+    GIT_URL = "https://github.com/kbaseapps/GenomeFileUtil"
+    GIT_COMMIT_HASH = "c0324dc497ea262caf5d50ea68f6f014db468ad5"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -1290,6 +1290,68 @@ class GenomeFileUtil:
         # At some point might do deeper type checking...
         if not isinstance(returnVal, dict):
             raise ValueError('Method ws_obj_gff_to_metagenome return value ' +
+                             'returnVal is not type dict as required.')
+        # return the results
+        return [returnVal]
+
+    def update_taxon_assignments(self, ctx, params):
+        """
+        Add, replace, or remove taxon assignments for a Genome object.
+        :param params: instance of type "UpdateTaxonAssignmentsParams"
+           (Parameters for the update_taxon_assignments function. Fields:
+           ws_obj_ref: a workspace UPA of a Genome object taxon_assignments:
+           an optional mapping of assignments to add or replace. This will
+           perform a merge on the existing assignments. Any new assignments
+           are added, while any existing assignments are replaced.
+           remove_assignments: an optional list of assignment names to
+           remove. @optional taxon_assignments remove_assignments @id ws
+           ws_obj_ref) -> structure: parameter "workspace_id" of Long,
+           parameter "object_id" of Long, parameter "taxon_assignments" of
+           mapping from String to String, parameter "remove_assignments" of
+           list of String
+        :returns: instance of type "UpdateTaxonAssignmentsResult" (Result of
+           the update_taxon_assignments function. Fields: ws_obj_ref: a
+           workspace UPA of a Genome object) -> structure: parameter
+           "ws_obj_ref" of String
+        """
+        # ctx is the context object
+        # return variables are: returnVal
+        #BEGIN update_taxon_assignments
+        for key in ('workspace_id', 'object_id'):
+            if not params.get(key):
+                raise TypeError(f"`{key}` is required but missing.")
+            if not isinstance(params[key], int):
+                raise TypeError(f"`{key}` must be an integer.")
+        dfu = DataFileUtil(self.cfg.callbackURL)
+        obj_ref = f"{params['workspace_id']}/{params['object_id']}"
+        result = dfu.get_objects({'object_refs': [obj_ref]})['data'][0]
+        obj_data = result['data']
+        obj_info = result['info']
+        if not 'taxon_assignments' not in obj_data:
+            obj_data['taxon_assignments'] = {}
+        # Merge in params['taxon_assignments']
+        for key, val in params.get('taxon_assignments', {}).items():
+            obj_data['taxon_assignments'][key] = val
+        # Remove all keys from `remove_assignments`
+        for key in params.get('remove_assignments', []):
+            if key in obj_data['taxon_assignments']:
+                del obj_data['taxon_assignments'][key]
+        new_obj = {
+            'type': obj_info[2],
+            'data': obj_data,
+            'objid': obj_info[0]
+        }
+        infos = dfu.save_objects({
+            'id': params['workspace_id'],
+            'objects': [new_obj]
+        })
+        obj_ref = f"{infos[0][6]}/{infos[0][0]}/{infos[0][4]}"
+        returnVal = {'ws_obj_ref': obj_ref}
+        #END update_taxon_assignments
+
+        # At some point might do deeper type checking...
+        if not isinstance(returnVal, dict):
+            raise ValueError('Method update_taxon_assignments return value ' +
                              'returnVal is not type dict as required.')
         # return the results
         return [returnVal]

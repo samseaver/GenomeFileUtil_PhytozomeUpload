@@ -9,7 +9,7 @@ TEST_DIR = test
 LBIN_DIR = bin
 EXECUTABLE_SCRIPT_NAME = run_$(SERVICE_CAPS)_async_job.sh
 STARTUP_SCRIPT_NAME = start_server.sh
-TEST_SCRIPT_NAME = run_tests.sh
+TEST_SCRIPT_NAME = run_tests_within_container.sh
 
 .PHONY: test
 
@@ -59,7 +59,7 @@ build-test-script:
 
 test:
 	if [ ! -f /kb/module/work/token ]; then echo -e '\nOutside a docker container please run "kb-sdk test" rather than "make test"\n' && exit 1; fi
-	bash $(TEST_DIR)/$(TEST_SCRIPT_NAME)
+	bash $(SCRIPTS_DIR)/$(TEST_SCRIPT_NAME)
 
 clean:
 	rm -rfv $(LBIN_DIR)

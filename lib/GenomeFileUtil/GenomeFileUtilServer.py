@@ -402,6 +402,10 @@ class Application(object):
                              name='GenomeFileUtil.ws_obj_gff_to_metagenome',
                              types=[dict])
         self.method_authentication['GenomeFileUtil.ws_obj_gff_to_metagenome'] = 'required'  # noqa
+        self.rpc_service.add(impl_GenomeFileUtil.update_taxon_assignments,
+                             name='GenomeFileUtil.update_taxon_assignments',
+                             types=[dict])
+        self.method_authentication['GenomeFileUtil.update_taxon_assignments'] = 'required'  # noqa
         self.rpc_service.add(impl_GenomeFileUtil.status,
                              name='GenomeFileUtil.status',
                              types=[dict])
