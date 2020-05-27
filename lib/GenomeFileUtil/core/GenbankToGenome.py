@@ -63,6 +63,7 @@ class GenbankToGenome:
         self.ont_mappings = load_ontology_mappings('/kb/module/data')
         self.code_table = 11
         self.re_api_url = config.re_api_url
+        self.used_twice_identifiers = {}
         self.default_params = {
             'source': 'Genbank',
             'taxon_wsname': self.cfg.raw['taxon-workspace-name'],
@@ -266,7 +267,7 @@ class GenbankToGenome:
                 genome["molecule_type"] = r_annot.get('molecule_type', 'DNA')
                 genome['notes'] = r_annot.get('comment', "").replace('\\n', '\n')
 
-            self._parse_features(record, params['source'])
+            self._parse_features(record, genome['source'])
 
         genome.update(self.get_feature_lists())
 
@@ -726,6 +727,11 @@ class GenbankToGenome:
             self.defects['bad_parent_loc'] += 1
         return None
 
+    def assign_new_id(self, _id):
+        _id_modifier =  self.used_twice_identifiers.get(_id, 1)
+        self.used_twice_identifiers[_id] = _id_modifier + 1
+        return _id + "." + str(_id_modifier)
+
     def process_gene(self, _id, out_feat):
         out_feat.update({
             "id": _id,
@@ -734,7 +740,9 @@ class GenbankToGenome:
             'cdss': [],
         })
         if _id in self.genes:
-            raise ValueError(f"Duplicate gene ID: {_id}")
+            _id = self.assign_new_id(_id)
+            out_feat.update({"id": _id})
+            # raise ValueError(f"Duplicate gene ID: {_id}")
         self.genes[_id] = out_feat
 
     def process_noncoding(self, gene_id, feat_type, out_feat):
@@ -759,7 +767,7 @@ class GenbankToGenome:
 
     def process_mrna(self, gene_id, out_feat):
         if gene_id not in self.genes and self.generate_parents:
-                self.process_gene(gene_id, copy.copy(out_feat))
+            self.process_gene(gene_id, copy.copy(out_feat))
 
         gene_id = self._find_parent_gene(gene_id, out_feat)
         if gene_id:
