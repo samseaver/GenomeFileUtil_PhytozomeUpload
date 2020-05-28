@@ -63,6 +63,7 @@ class GenbankToGenome:
         self.ont_mappings = load_ontology_mappings('/kb/module/data')
         self.code_table = 11
         self.re_api_url = config.re_api_url
+        # dict with feature 'id's that have been used more than once.
         self.used_twice_identifiers = {}
         self.default_params = {
             'source': 'Genbank',
@@ -728,6 +729,7 @@ class GenbankToGenome:
         return None
 
     def assign_new_id(self, _id):
+        """given a feature id that has already been used, add a unique modifier to it"""
         _id_modifier =  self.used_twice_identifiers.get(_id, 1)
         self.used_twice_identifiers[_id] = _id_modifier + 1
         return _id + "." + str(_id_modifier)
