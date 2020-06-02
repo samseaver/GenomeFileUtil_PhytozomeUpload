@@ -5,7 +5,7 @@ This is the basic readme for this module. Include any usage or deployment instru
 
 | Branch  | Build                                                              | Coverage                                                                         | LGTM Alerts                                                     |
 | ------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| master  | [![Build Status](https://travis-ci.org/kbaseapps/GenomeFileUtil.svg?branch=master)](https://travis-ci.org/kbaseapps/GenomeFileUtil)  | [![Coverage Status](https://coveralls.io/repos/github/kbaseapps/GenomeFileUtil/badge.svg?branch=master)](https://coveralls.io/github/kbaseapps/GenomeFileUtil?branch=master)  | [![Total alerts](https://img.shields.io/lgtm/alerts/g/kbaseapps/GenomeFileUtil.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/kbaseapps/GenomeFileUtil/alerts/)  |
+| master  | [![KBase SDK Tests](https://github.com/kbaseapps/GenomeFileUtil/workflows/KBase%20SDK%20Tests/badge.svg)](https://github.com/kbaseapps/GenomeFileUtil/actions?query=workflow%3A%22KBase+SDK+Tests%22)  | [![codecov](https://codecov.io/gh/kbaseapps/GenomeFileUtil/branch/master/graph/badge.svg)](https://codecov.io/gh/kbaseapps/GenomeFileUtil)  | [![Total alerts](https://img.shields.io/lgtm/alerts/g/kbaseapps/GenomeFileUtil.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/kbaseapps/GenomeFileUtil/alerts/)  |
 
 
 ## Details
