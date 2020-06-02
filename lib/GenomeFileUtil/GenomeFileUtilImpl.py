@@ -51,8 +51,8 @@ class GenomeFileUtil:
     # the latter method is running.
     ######################################### noqa
     VERSION = "0.11.0"
-    GIT_URL = "https://github.com/kbaseapps/GenomeFileUtil"
-    GIT_COMMIT_HASH = "c0324dc497ea262caf5d50ea68f6f014db468ad5"
+    GIT_URL = "git@github.com:kbaseapps/GenomeFileUtil.git"
+    GIT_COMMIT_HASH = "77015bd3f47ec19a4e44bcd67a9b97833df70420"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -1299,16 +1299,15 @@ class GenomeFileUtil:
         Add, replace, or remove taxon assignments for a Genome object.
         :param params: instance of type "UpdateTaxonAssignmentsParams"
            (Parameters for the update_taxon_assignments function. Fields:
-           ws_obj_ref: a workspace UPA of a Genome object taxon_assignments:
-           an optional mapping of assignments to add or replace. This will
-           perform a merge on the existing assignments. Any new assignments
-           are added, while any existing assignments are replaced.
-           remove_assignments: an optional list of assignment names to
-           remove. @optional taxon_assignments remove_assignments @id ws
-           ws_obj_ref) -> structure: parameter "workspace_id" of Long,
-           parameter "object_id" of Long, parameter "taxon_assignments" of
-           mapping from String to String, parameter "remove_assignments" of
-           list of String
+           workspace_id: a workspace UPA of a Genome object
+           taxon_assignments: an optional mapping of assignments to add or
+           replace. This will perform a merge on the existing assignments.
+           Any new assignments are added, while any existing assignments are
+           replaced. remove_assignments: an optional list of assignment names
+           to remove. @optional taxon_assignments remove_assignments) ->
+           structure: parameter "workspace_id" of Long, parameter "object_id"
+           of Long, parameter "taxon_assignments" of mapping from String to
+           String, parameter "remove_assignments" of list of String
         :returns: instance of type "UpdateTaxonAssignmentsResult" (Result of
            the update_taxon_assignments function. Fields: ws_obj_ref: a
            workspace UPA of a Genome object) -> structure: parameter
