@@ -33,3 +33,5 @@ if __name__ == "__main__":
         f.write(text)
     with open(sys.argv[1], 'w') as f:
         f.write(output)
+        
+# Testing LGTM checks
