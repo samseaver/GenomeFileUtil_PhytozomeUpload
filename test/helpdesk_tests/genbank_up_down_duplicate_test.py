@@ -35,7 +35,8 @@ class GenomeFileUtilTest(unittest.TestCase):
         cls.wsURL = cls.cfg['workspace-url']
         cls.wsClient = workspaceService(cls.wsURL, token=token)
         cls.serviceImpl = GenomeFileUtil(cls.cfg)
-        gbk_path = "data/Cyanidioschyzon/Cyanidioschyzon_merolae.ASM9120v1.30.gbff"
+        # gbk_path = "data/Cyanidioschyzon/Cyanidioschyzon_merolae.ASM9120v1.30.gbff"
+        gbk_path = "data/Cyanidioschyzon/Cyanidioschyzon_merolae_one_locus.gbff"
         ws_obj_name = 'Cyanidioschyzon_merolae_duplicate_test_orig'
         suffix = int(time.time() * 1000)
         cls.wsName = "test_GenomeFileUtil_" + str(suffix)
