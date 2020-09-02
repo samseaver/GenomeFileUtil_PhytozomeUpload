@@ -282,7 +282,8 @@ class GenomeInterface:
                         term_evidence = []
                         for ev in term['evidence']:
                             ev['id'] = ontology
-                            ev['ontology_ref'] = term["ontology_ref"]
+                            if "ontology_ref" in term:
+                                ev['ontology_ref'] = term["ontology_ref"]
                             if ev not in ontology_events:
                                 ontology_events.append(ev)
                             term_evidence.append(ontology_events.index(ev))
