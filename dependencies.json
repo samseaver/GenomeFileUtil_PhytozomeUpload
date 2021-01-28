@@ -1,7 +1,7 @@
 [ {
   "module_name" : "AbstractHandle",
   "type" : "core",
-  "file_path" : "https://raw.githubusercontent.com/kbase/handle_service/master/handle_service.spec"
+  "file_path" : "https://raw.githubusercontent.com/kbase/handle_service2/develop/handle_service.spec"
 }, {
   "module_name" : "AssemblySequenceAPI",
   "type" : "sdk",
