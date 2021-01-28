@@ -11,8 +11,8 @@ from installed_clients.WorkspaceClient import Workspace as workspaceService
 from installed_clients.AbstractHandleClient import AbstractHandle as HandleService
 
 # NOTE: These tests must run against https://ci.kbase.us
-_WORKSPACE_ID = 58624#33192
-_OBJECT_ID = 31#33
+_WORKSPACE_NAME = 'KBaseTestData'
+_OBJECT_NAME = 'GCF_002287175.1'
 
 
 class UpdateTaxonAssignmentsTest(unittest.TestCase):
@@ -54,11 +54,12 @@ class UpdateTaxonAssignmentsTest(unittest.TestCase):
         taxon_val_new = str(uuid4())
         # Copy the object to test workspace
         dfu = DataFileUtil(self.callbackURL)
-        obj_ref = f"{_WORKSPACE_ID}/{_OBJECT_ID}"
+        obj_ref = f"{_WORKSPACE_NAME}/{_OBJECT_NAME}"
         result = dfu.get_objects({'object_refs': [obj_ref]})['data'][0]
         obj_data = result['data']
         # crate user owned handle in the object and update it
         hs = HandleService(self.handleURL)
+        print("obj_data:", obj_data.keys())
         prev_handle_id = obj_data['genbank_handle_ref']
         prev_shock_id = hs.hids_to_handles([prev_handle_id])[0]['id']
         new_handle_id = dfu.own_shock_node({'shock_id': prev_shock_id, 'make_handle': 1})['handle']['hid']
