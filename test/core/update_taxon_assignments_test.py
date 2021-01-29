@@ -12,7 +12,7 @@ from installed_clients.AbstractHandleClient import AbstractHandle as HandleServi
 
 # NOTE: These tests must run against https://ci.kbase.us
 _WORKSPACE_NAME = 'KBaseTestData'
-_OBJECT_NAME = 'GCF_002287175.1'
+_OBJECT_NAME = 'KBase_derived_GCF_002287175.1.gbff_genome'
 
 
 class UpdateTaxonAssignmentsTest(unittest.TestCase):
@@ -59,7 +59,6 @@ class UpdateTaxonAssignmentsTest(unittest.TestCase):
         obj_data = result['data']
         # crate user owned handle in the object and update it
         hs = HandleService(self.handleURL)
-        print("obj_data:", obj_data.keys())
         prev_handle_id = obj_data['genbank_handle_ref']
         prev_shock_id = hs.hids_to_handles([prev_handle_id])[0]['id']
         new_handle_id = dfu.own_shock_node({'shock_id': prev_shock_id, 'make_handle': 1})['handle']['hid']
@@ -95,7 +94,6 @@ class UpdateTaxonAssignmentsTest(unittest.TestCase):
         # Fetch the object and check the mapping
         obj = self.wsClient.get_objects2({'objects': [get_obj_params]})['data'][0]['data']
         self.assertTrue(taxon_key in obj['taxon_assignments'])
-        print(obj['taxon_assignments'])
         self.assertEqual(obj['taxon_assignments'][taxon_key], taxon_val)
         # Update the assignment we just added
         self.serviceImpl.update_taxon_assignments(self.ctx, {
