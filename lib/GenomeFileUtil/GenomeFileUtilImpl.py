@@ -1326,7 +1326,7 @@ class GenomeFileUtil:
         result = dfu.get_objects({'object_refs': [obj_ref]})['data'][0]
         obj_data = result['data']
         obj_info = result['info']
-        if not 'taxon_assignments' not in obj_data:
+        if 'taxon_assignments' not in obj_data:
             obj_data['taxon_assignments'] = {}
         # Merge in params['taxon_assignments']
         for key, val in params.get('taxon_assignments', {}).items():
