@@ -157,7 +157,7 @@ class GenomeToGFF:
         contig_list = list()
         # fix for empy list of contig_ids
         if “contig_ids” in genome_data and len(genome_data["contig_ids"]) > 0:
-            contig_list = genome_data["contig_ids"])
+            contig_list = genome_data["contig_ids"]
         else:
             contig_list = features_by_contig.keys()
         for contig in contig_list:
