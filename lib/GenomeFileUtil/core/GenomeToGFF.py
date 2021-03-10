@@ -161,7 +161,6 @@ class GenomeToGFF:
         else:
             contig_list = features_by_contig.keys()
         for contig in contig_list:
-            # for contig in genome_data.get('contig_ids', features_by_contig.keys()):
             file_handle.write("##sequence-region {}\n".format(contig))
             features_by_contig[contig].sort(key=feature_sort)
             for feature in features_by_contig[contig]:
