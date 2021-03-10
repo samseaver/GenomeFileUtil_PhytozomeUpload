@@ -153,7 +153,15 @@ class GenomeToGFF:
         file_handle = open(out_file_path, 'w')
         writer = csv.DictWriter(file_handle, gff_header, delimiter="\t",
                                 escapechar='\\', quotechar="'")
-        for contig in genome_data.get('contig_ids', features_by_contig.keys()):
+
+        contig_list = list()
+        # fix for empy list of contig_ids
+        if “contig_ids” in genome_data and len(genome_data[contig_ids]) > 0:
+            contig_list = genome_data[contig_ids])
+        else:
+            contig_list = features_by_contig.keys()
+        for contig in contig_list:
+            # for contig in genome_data.get('contig_ids', features_by_contig.keys()):
             file_handle.write("##sequence-region {}\n".format(contig))
             features_by_contig[contig].sort(key=feature_sort)
             for feature in features_by_contig[contig]:
