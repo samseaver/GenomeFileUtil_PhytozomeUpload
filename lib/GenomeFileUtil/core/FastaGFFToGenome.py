@@ -138,6 +138,7 @@ class FastaGFFToGenome:
 
         # parse feature information
         fasta_contigs = Bio.SeqIO.parse(input_fasta_file, "fasta")
+        logging.info("Scanning contigs")
         for contig in fasta_contigs:
             molecule_type = str(contig.seq.alphabet).replace(
                 'IUPACAmbiguous', '').strip('()')
@@ -253,7 +254,7 @@ class FastaGFFToGenome:
                 raise ValueError(f'Required "{key}" field must be a map/dict')
             sources = ('path', 'shock_id')
             n_valid_fields = sum(1 for f in sources if file.get(f))
-            print(f"inputs: {n_valid_fields}")
+            logging.info(f"inputs: {n_valid_fields}")
             if n_valid_fields < 1:
                 raise ValueError(f'Required "{key}" field must include one source: '
                                  f'{", ".join(sources)}')
@@ -356,6 +357,7 @@ class FastaGFFToGenome:
             ! Only a problem if there are space limits on processing in this
               request
         '''
+        logging.info("Parsing GFF file")
         for current_line in open(input_gff_file):
             if current_line.isspace() or current_line == "" or current_line.startswith("#"):
                 continue
@@ -998,7 +1000,13 @@ class FastaGFFToGenome:
                 {'file_path': input_gff_file, 'make_handle': 1, 'pack': "gzip"})
             genome['gff_handle_ref'] = gff_file_to_shock['handle']['hid']
 
+        logging.info("Scan features")
+        tot = len(self.feature_dict.values())
+        ct = 0
         for feature in self.feature_dict.values():
+            if (ct%1000000) == 0:
+                logging.debug("... %d of %d done" % (ct, tot))
+            ct += 1
             self.feature_counts[feature['type']] += 1
             if 'exon' in feature or feature['type'] == 'mRNA':
                 self._update_from_exons(feature)
@@ -1011,7 +1019,9 @@ class FastaGFFToGenome:
                 if location_warning is not None:
                     feature["warnings"] = feature.get('warnings', []) + [location_warning]
 
-            contig_len = genome["contig_lengths"][genome["contig_ids"].index(feature["location"][0][0])]
+            contig_id = feature["location"][0][0]
+            contig_len = assembly['contigs'][contig_id]["length"]
+
             feature = check_full_contig_length_or_multi_strand_feature(
                 feature, is_transpliced, contig_len, self.skip_types)
 
