@@ -6,4 +6,4 @@
 # modifies JS files, only @js-owner and not the global
 # owner(s) will be requested for a review.
 
-* @jsfillman @jkbaumohl @slebras @jayrbolton
+* @jsfillman @jkbaumohl @Tianhao-Gu
