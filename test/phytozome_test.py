@@ -307,8 +307,8 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
                     for mrna in Genome_Object['mrnas']:
                         if('functions' in mrna):
                             parent_feature = parent_feature_index[mrna['parent_gene']]
-                        for function in mrna['functions']:
-                            parent_feature_functions[parent_feature][function]=1
+                            for function in mrna['functions']:
+                                parent_feature_functions[parent_feature][function]=1
 
                 for index in parent_feature_functions:
                     Genome_Object['features'][index]['functions']=sorted(parent_feature_functions[index].keys())
