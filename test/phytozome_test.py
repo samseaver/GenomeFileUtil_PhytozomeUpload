@@ -300,7 +300,7 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
                 # If no features were annotated, and mrnas were annotated
                 # use parent_gene to do transfer annotation
                 parent_feature_functions = collections.defaultdict(dict)
-				if(Found_Count['features']==0 and Found_Count['mrnas']!=0):
+                if(Found_Count['features']==0 and Found_Count['mrnas']!=0):
                     #Create lookup dict
                     parent_feature_index = dict([(f['id'], i) for i, f in enumerate(Genome_Object['features'])])
                     for mrna in Genome_Object['mrnas']:
