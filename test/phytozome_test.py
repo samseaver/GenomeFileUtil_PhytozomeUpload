@@ -100,8 +100,9 @@ class FastaGFFToGenomeUploadTest(unittest.TestCase):
                 if(line.startswith("#pacId")):
                     #Store header
                     annotation_header=line.split('\t')
-                else:
-                    annotation_items=line.split('\t')
+                    continue
+
+                annotation_items=line.split('\t')
 
                 #Skip empty lines
                 if(len(annotation_items) <= 1 or len(annotation_items)<=ontology_column):
